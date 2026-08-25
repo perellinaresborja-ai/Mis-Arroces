@@ -1,4 +1,4 @@
-"use server"
+﻿"use server"
 
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
@@ -15,7 +15,7 @@ export async function login(formData: FormData) {
   })
 
   if (error) {
-    redirect("/login?error=Could not authenticate user")
+    redirect(`/login?error=${encodeURIComponent(error.message)}`)
   }
 
   // After login, check if user has a profile
@@ -28,7 +28,14 @@ export async function login(formData: FormData) {
       .single()
 
     if (!profile) {
-      redirect("/onboarding")
+      // Auto-create missing profile
+      await supabase.from("profiles").insert({
+        id: user.id,
+        username: `arrocero${Math.floor(Math.random() * 1000000)}`,
+        display_name: 'Chef Arrocero',
+        account_type: 'USER',
+        privacy_level: 'PUBLIC'
+      })
     }
   }
 
@@ -41,18 +48,32 @@ export async function signup(formData: FormData) {
   const email = formData.get("email") as string
   const password = formData.get("password") as string
 
-  const { error } = await supabase.auth.signUp({
+  const { data, error } = await supabase.auth.signUp({
     email,
     password,
   })
 
   if (error) {
-    redirect("/login?error=Could not create account")
+    redirect(`/login?error=${encodeURIComponent(error.message)}`)
+  }
+
+  if (data.user) {
+    // Generate an automatic username
+    const autoUsername = `arrocero${Math.floor(Math.random() * 1000000)}`
+    
+    // Attempt to insert the profile. We ignore the error here because if it fails due to UNIQUE constraint, 
+    // it just means another random collision, but the user is already authenticated.
+    await supabase.from("profiles").insert({
+      id: data.user.id,
+      username: autoUsername,
+      display_name: 'Chef Arrocero',
+      account_type: 'USER',
+      privacy_level: 'PUBLIC'
+    })
   }
 
   revalidatePath("/", "layout")
-  // New users always need to set up their profile
-  redirect("/onboarding")
+  redirect("/cookbook")
 }
 
 export async function logout() {

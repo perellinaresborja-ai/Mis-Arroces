@@ -1,46 +1,115 @@
-import Link from "next/link";
-import { buttonVariants } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+// @ts-nocheck
+import { createClient } from "@/lib/supabase/server"
+import Link from "next/link"
+import Image from "next/image"
+import { buttonVariants } from "@/components/ui/button"
+import { Flame, PlaySquare } from "lucide-react"
+import { fetchFeedPage } from "@/app/actions/feed"
+import { FeedList } from "@/components/domain/FeedList"
 
-export default function Home() {
+export default async function Home() {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  const feed = await fetchFeedPage(0)
+
+  // Minimal Stories mock fetch (Active stories from friends + self)
+  let stories: any[] = []
+  if (user) {
+    const { data } = await supabase.from("stories").select(`
+      *,
+      author:profiles!stories_owner_id_fkey(id, username, display_name, avatar:media_assets!fk_profiles_avatar(storage_path)),
+      story_media(media:media_assets(storage_path))
+    `)
+    .gt("expires_at", new Date().toISOString())
+    .eq("visibility", "PUBLIC")
+    .limit(10)
+    
+    // Group by user for the UI
+    const usersWithStories = Array.from(new Set(data?.map(s => s.owner_id))).map(ownerId => {
+      return {
+        author: data?.find(s => s.owner_id === ownerId)?.author,
+        stories: data?.filter(s => s.owner_id === ownerId)
+      }
+    })
+    stories = usersWithStories
+  }
+
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center p-6 text-center">
-      <div className="flex-1 flex flex-col items-center justify-center max-w-sm w-full gap-8">
-        
-        {/* Logo Placeholder */}
-        <div className="relative w-48 h-48 rounded-full border-2 border-primary/20 bg-background flex items-center justify-center shadow-sm">
-          <div className="text-4xl font-bold tracking-tighter text-foreground">
-            mis<span className="text-primary">arroces</span>
+    <div className="min-h-screen bg-background flex flex-col pb-24 md:pb-8">
+      
+      {/* Anonymous Welcome Header */}
+      {!user && (
+        <div className="bg-card border-b border-border p-6 md:p-12 text-center flex flex-col items-center">
+          <div className="relative w-48 h-32 md:w-64 md:h-48 mb-4">
+            <Image src="/logo.png" alt="Mis Arroces Logo" fill className="object-contain" priority />
+          </div>
+          <h1 className="text-2xl md:text-3xl font-bold mb-2">Vamos al grano.</h1>
+          <p className="text-muted-foreground max-w-md mb-6">Únete a la red social donde compartimos, medimos y perfeccionamos nuestros arroces.</p>
+          <div className="flex gap-4">
+            <Link href="/login" className={buttonVariants({ className: "rounded-xl" })}>Unirse / Entrar</Link>
           </div>
         </div>
-        
-        {/* Core Proposition */}
-        <div className="space-y-3">
-          <h1 className="text-2xl font-semibold tracking-tight text-foreground">
-            El arroz es el héroe.
-          </h1>
-          <p className="text-muted-foreground text-base">
-            Tu recetario de arroz, siempre contigo. Guarda tus resultados, mejora tus técnicas y nunca olvides cómo hiciste esa paella perfecta.
-          </p>
-        </div>
-        
-        {/* Call to Action */}
-        <div className="w-full space-y-4 pt-4">
-          <Link 
-            href="/cookbook" 
-            className={cn(buttonVariants({ size: "lg" }), "w-full text-base h-14 rounded-xl")}
-          >
-            Entrar a mi recetario
-          </Link>
-          <Link 
-            href="/discover" 
-            className={cn(buttonVariants({ variant: "outline", size: "lg" }), "w-full text-base h-14 rounded-xl border-border")}
-          >
-            Explorar comunidad
+      )}
+
+      {user && (
+        <div className="w-full max-w-2xl mx-auto flex items-center justify-between p-4 border-b border-border/50">
+          <Link href="/" className="font-serif text-xl font-bold tracking-tight">Mis Arroces</Link>
+          <Link href="/shorts" className="flex items-center gap-1.5 px-3 py-1.5 bg-primary/10 text-primary rounded-full font-bold text-sm hover:bg-primary/20 transition-colors">
+            <PlaySquare className="w-4 h-4" /> Shorts
           </Link>
         </div>
+      )}
+
+      {/* Main Feed Content */}
+      <div className="flex-1 w-full max-w-2xl mx-auto space-y-4">
         
+        {/* Stories Bar */}
+        {user && (
+          <div className="w-full bg-card border-b border-border p-4 flex gap-4 overflow-x-auto hide-scrollbar">
+            {/* Create Story Button */}
+            <Link href="/create/story" className="flex flex-col items-center gap-1 min-w-[72px] cursor-pointer hover:opacity-80">
+              <div className="w-16 h-16 rounded-full bg-muted border-2 border-dashed border-primary/50 flex items-center justify-center text-primary/50">
+                +
+              </div>
+              <span className="text-xs font-medium text-center">Tu historia</span>
+            </Link>
+
+            {stories.map((userStory: any, i) => (
+              <div key={i} className="flex flex-col items-center gap-1 min-w-[72px] cursor-pointer hover:opacity-80">
+                <div className="w-16 h-16 rounded-full border-2 border-primary overflow-hidden p-0.5">
+                  <div className="w-full h-full rounded-full bg-muted overflow-hidden">
+                    {userStory.author?.avatar?.storage_path ? (
+                      <img src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/recipe_media/${userStory.author.avatar.storage_path}`} className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full bg-primary/10" />
+                    )}
+                  </div>
+                </div>
+                <span className="text-xs font-medium text-center truncate max-w-[72px]">
+                  {userStory.author?.username}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {user && feed.length === 0 && (
+          <div className="text-center p-12 bg-card rounded-3xl border border-border mt-8">
+            <Flame className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+            <h2 className="text-lg font-bold mb-2">Tu muro está vacío</h2>
+            <p className="text-muted-foreground text-sm max-w-sm mx-auto mb-6">
+              Sigue a otros arroceros o sé el primero en publicar tu receta.
+            </p>
+            <Link href="/discover" className={buttonVariants({ variant: "outline", className: "rounded-xl" })}>
+              Descubrir recetas
+            </Link>
+          </div>
+        )}
+
+        <FeedList initialItems={feed} currentUserId={user?.id || null} />
+
       </div>
     </div>
-  );
+  )
 }

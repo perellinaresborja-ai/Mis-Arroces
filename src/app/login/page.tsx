@@ -1,56 +1,84 @@
-import { login, signup } from "./actions"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Compass } from "lucide-react"
+﻿import Image from "next/image"
+import { LoginForm } from "./LoginForm"
+
+export const dynamic = "force-dynamic"
 
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>
+  searchParams: Promise<{ error?: string, message?: string }>
 }) {
   const resolvedParams = await searchParams
   
+  // Randomly select one of the available cover images
+  const covers = [
+    "/arroces/carneret.png",
+    "/arroces/marret.png",
+    "/arroces/lallar.jpg"
+  ]
+  const randomCover = covers[Math.floor(Math.random() * covers.length)]
+
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center p-6 pb-24">
-      <div className="w-full max-w-sm space-y-8 bg-card p-6 rounded-2xl shadow-sm border border-border">
+    <div className="fixed inset-0 z-[100] flex min-h-screen w-screen bg-sand overflow-hidden">
+      
+      {/* LEFT ZONE - VISUAL (Hidden on Mobile, 60% on Desktop) */}
+      <div className="hidden lg:flex relative w-3/5 h-full bg-charcoal items-center justify-center overflow-hidden">
         
-        <div className="flex flex-col items-center text-center space-y-2">
-          <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-2">
-            <Compass className="w-8 h-8 text-primary" />
+        {/* Background Image */}
+        <Image 
+          src={randomCover}
+          alt="Mis Arroces Cover"
+          fill
+          className="object-cover opacity-80"
+          priority
+        />
+
+        {/* Visual Treatments (Vignette, Gradients) */}
+        <div className="absolute inset-0 bg-gradient-to-t from-charcoal/90 via-charcoal/30 to-transparent mix-blend-multiply" />
+        <div className="absolute inset-0 bg-gradient-to-r from-charcoal/80 via-transparent to-charcoal/80" />
+        <div className="absolute inset-0 shadow-[inset_0_0_150px_rgba(0,0,0,0.9)]" />
+
+        {/* Content over image */}
+        <div className="absolute inset-0 flex flex-col p-12 md:p-16 lg:p-24 justify-end z-10">
+          
+          
+
+          {/* Slogan */}
+          <div className="space-y-0">
+            <h1 className="text-6xl lg:text-7xl xl:text-8xl font-black tracking-tighter text-cream drop-shadow-2xl leading-[0.85]">
+              Vamos al
+              <br />
+              <span className="text-primary">grano.</span>
+            </h1>
           </div>
-          <h1 className="text-2xl font-bold tracking-tight">Bienvenido a Mis Arroces</h1>
-          <p className="text-sm text-muted-foreground">
-            Inicia sesión o crea tu cuenta para guardar tus recetas.
-          </p>
+        </div>
+      </div>
+
+      {/* RIGHT ZONE - LOGIN FORM (Full width on Mobile, 40% on Desktop) */}
+      <div className="flex-1 flex flex-col items-center pt-8 lg:pt-[12vh] px-6 relative h-full">
+        
+        <div className="w-full max-w-sm flex flex-col items-center shrink-0 mb-4">
+          <div className="relative w-56 h-56 lg:w-[320px] lg:h-[320px]">
+            <Image 
+              src="/logo_paella_m.png" 
+              alt="Mis Arroces" 
+              fill
+              className="object-contain"
+              priority
+            />
+          </div>
         </div>
 
-        {resolvedParams.error && (
-          <div className="p-3 text-sm text-destructive bg-destructive/10 rounded-lg text-center">
-            {resolvedParams.error}
-          </div>
-        )}
-
-        <form className="space-y-4 pt-4">
-          <div className="space-y-2 text-left">
-            <Label htmlFor="email">Correo electrónico</Label>
-            <Input id="email" name="email" type="email" placeholder="tu@email.com" required className="h-12" />
-          </div>
-          <div className="space-y-2 text-left">
-            <Label htmlFor="password">Contraseña</Label>
-            <Input id="password" name="password" type="password" required className="h-12" />
-          </div>
-          
-          <div className="flex flex-col gap-3 pt-4">
-            <Button formAction={login} className="w-full h-12 text-base">
-              Iniciar Sesión
-            </Button>
-            <Button formAction={signup} variant="outline" className="w-full h-12 text-base">
-              Crear Cuenta
-            </Button>
-          </div>
-        </form>
+        <LoginForm error={resolvedParams.error} message={resolvedParams.message} />
+        
+        {/* Mobile slogan fallback (very discreet) */}
+        <div className="lg:hidden mt-12 text-center">
+          <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground/50">
+            Vamos al grano.
+          </p>
+        </div>
       </div>
+
     </div>
   )
 }

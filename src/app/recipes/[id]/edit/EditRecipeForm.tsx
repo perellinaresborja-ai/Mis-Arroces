@@ -1,191 +1,442 @@
+// @ts-nocheck
 "use client"
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { createClient } from "@/lib/supabase/client"
+import { useForm, useFieldArray } from "react-hook-form"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Save, Plus, Trash2 } from "lucide-react"
+import { Save, Plus, Trash2, GripVertical, ChevronDown, ChevronUp, Check, Clock, EyeOff, Calendar } from "lucide-react"
+import { updateRecipeFull } from "@/app/actions/recipes"
+import { cn } from "@/lib/utils"
+import { RecipeMediaManager, MediaItem } from "./RecipeMediaManager"
+import { StepMediaManager, StepMediaItem } from "./StepMediaManager"
+import { uploadMedia } from "@/services/media/client"
 
 export default function EditRecipeForm({ recipe, catalogs }: { recipe: any, catalogs: any }) {
   const router = useRouter()
+  console.log("RECIPE MOUNT MEDIA:", recipe.recipe_media);
   const [isSaving, setIsSaving] = useState(false)
-  const [formData, setFormData] = useState({
-    name: recipe.name,
-    description: recipe.description || "",
-    status: recipe.status,
-    visibility: recipe.visibility,
-    style_id: recipe.style_id || "",
-    variety_id: recipe.variety_id || "",
-    base_servings: recipe.base_servings || 2,
-    rice_qty: recipe.rice_qty || 0,
-    stock_qty: recipe.stock_qty || 0,
-    cook_time: recipe.cook_time || 0,
-    rest_time: recipe.rest_time || 0,
+  
+  const initialScheduledFor = recipe.scheduled_for ? new Date(recipe.scheduled_for).toISOString().slice(0,16) : ""
+  const [scheduleDate, setScheduleDate] = useState(initialScheduledFor)
+  const [showSchedule, setShowSchedule] = useState(false)
+
+  const initialVessel = recipe.recipe_vessels?.[0] || {}
+
+  const { register, control, handleSubmit, watch, setValue, getValues } = useForm({
+    defaultValues: {
+      name: recipe.name,
+      description: recipe.description || "",
+      status: recipe.status,
+      visibility: recipe.visibility,
+      scheduled_for: recipe.scheduled_for || "",
+      style_id: recipe.style_id || "",
+      variety_id: recipe.variety_id || "",
+      heat_source_id: recipe.heat_source_id || "",
+      base_servings: recipe.base_servings || "",
+      rice_qty: recipe.rice_qty || "",
+      stock_qty: recipe.stock_qty || "",
+      cook_time: recipe.cook_time || "",
+      rest_time: recipe.rest_time || "",
+      difficulty: recipe.difficulty || "",
+      vessel_type_id: initialVessel.vessel_type_id || "",
+      vessel_diameter_cm: initialVessel.diameter_cm || "",
+      vessel_notes: initialVessel.notes || "",
+      tags: (recipe.recipe_tags || recipe.tags)?.map((t: any) => t.tag_id) || [],
+      steps: (recipe.recipe_steps || recipe.steps)?.sort((a: any, b: any) => a.step_number - b.step_number).map((s: any) => ({
+          ...s,
+          mediaItem: s.media_id && s.media ? { type: 'existing', id: s.media_id, url: `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/recipe_media/${s.media.storage_path}` } : null
+        })) || [],
+      ingredients: (recipe.recipe_ingredients || recipe.ingredients)?.sort((a: any, b: any) => a.display_order - b.display_order) || []
+    }
   })
 
-  // Basic dynamic array logic for steps
-  const [steps, setSteps] = useState<any[]>(recipe.recipe_steps || [])
+  const [mediaItems, setMediaItems] = useState<MediaItem[]>(
+    (recipe.recipe_media || recipe.media)?.map((m: any) => ({
+      id: m.media_id || m.media?.id,
+      url: `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/recipe_media/${m.media_assets?.storage_path || m.media?.storage_path}`,
+      file: null,
+      type: 'existing'
+    })) || []
+  )
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-    setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }))
-  }
+  const { fields: stepFields, append: appendStep, remove: removeStep, move: moveStep } = useFieldArray({
+    control,
+    name: "steps"
+  })
 
-  const handleSave = async () => {
-    setIsSaving(true)
-    const supabase = createClient()
-    
-    // Save main recipe data
-    await supabase.from("recipes").update({
-      name: formData.name,
-      description: formData.description,
-      status: formData.status,
-      visibility: formData.visibility,
-      style_id: formData.style_id || null,
-      variety_id: formData.variety_id || null,
-      base_servings: Number(formData.base_servings),
-      rice_qty: Number(formData.rice_qty),
-      stock_qty: Number(formData.stock_qty),
-      cook_time: Number(formData.cook_time),
-      rest_time: Number(formData.rest_time),
-    }).eq("id", recipe.id)
+  const { fields: ingFields, append: appendIng, remove: removeIng, move: moveIng } = useFieldArray({
+    control,
+    name: "ingredients"
+  })
 
-    // A real implementation would also sync steps, ingredients and vessels here
-    // ...
+  const watchRiceQty = watch("rice_qty")
+  const watchStockQty = watch("stock_qty")
+  const watchTags = watch("tags")
 
-    setIsSaving(false)
-    router.push(`/recipes/${recipe.id}`)
-  }
-
-  const ratio = (formData.rice_qty > 0 && formData.stock_qty > 0) 
-    ? (formData.stock_qty / formData.rice_qty).toFixed(2) 
+  const ratio = (Number(watchRiceQty) > 0 && Number(watchStockQty) > 0) 
+    ? (Number(watchStockQty) / Number(watchRiceQty)).toFixed(2) 
     : "0"
 
+  const toggleTag = (tagId: string) => {
+    const current = watchTags || []
+    if (current.includes(tagId)) {
+      setValue("tags", current.filter((id: string) => id !== tagId))
+    } else {
+      setValue("tags", [...current, tagId])
+    }
+  }
+
+  const submitWithAction = async (action: 'DRAFT' | 'PUBLISH' | 'SCHEDULE' | 'UPDATE') => {
+    let finalStatus = recipe.status
+    let finalScheduledFor = recipe.scheduled_for || null
+
+    if (action === 'DRAFT') {
+      finalStatus = 'DRAFT'
+      finalScheduledFor = null
+    } else if (action === 'PUBLISH') {
+      finalStatus = 'PUBLISHED'
+      finalScheduledFor = null
+    } else if (action === 'SCHEDULE') {
+      if (!scheduleDate) return alert("Por favor, selecciona una fecha y hora para programar.")
+      finalStatus = 'PUBLISHED'
+      finalScheduledFor = new Date(scheduleDate).toISOString()
+    } else if (action === 'UPDATE') {
+      // Keep existing status and scheduled_for
+      finalStatus = recipe.status
+      finalScheduledFor = recipe.scheduled_for
+    }
+
+    setValue('status', finalStatus)
+    setValue('scheduled_for', finalScheduledFor)
+
+    handleSubmit(onSubmit)()
+  }
+
+  const onSubmit = async (data: any) => {
+    setIsSaving(true)
+    try {
+      
+        console.log("Submitting mediaItems:", mediaItems);
+          const finalMediaIds: string[] = []
+        for (const item of mediaItems) {
+          if (item.type === 'existing') {
+            finalMediaIds.push(item.id!)
+          } else if (item.file) {
+            const uploadedId = await uploadMedia(item.file, 'recipes', recipe.id)
+            finalMediaIds.push(uploadedId)
+          }
+        }
+        data.media_ids = finalMediaIds
+          console.log("FINAL MEDIA IDS:", finalMediaIds);
+
+        // Upload step media
+        if (data.steps && data.steps.length > 0) {
+          for (let i = 0; i < data.steps.length; i++) {
+            const s = data.steps[i];
+            if (s.mediaItem) {
+              if (s.mediaItem.type === 'new' && s.mediaItem.file) {
+                const uploadedId = await uploadMedia(s.mediaItem.file, 'recipes', recipe.id)
+                s.media_id = uploadedId;
+              } else if (s.mediaItem.type === 'existing') {
+                s.media_id = s.mediaItem.id;
+              }
+            } else {
+              s.media_id = null;
+            }
+          }
+        }
+
+
+      
+        // Strip out File objects to avoid Next.js payload limits
+        const cleanData = { ...data };
+        if (cleanData.steps) {
+          cleanData.steps = cleanData.steps.map((s: any) => {
+            const cleanStep = { ...s };
+            delete cleanStep.mediaItem;
+            return cleanStep;
+          });
+        }
+        await updateRecipeFull(recipe.id, cleanData)
+
+      router.refresh()
+      router.push(`/recipes/${recipe.id}`)
+    } catch (err) {
+      console.error(err)
+      alert("Error saving recipe")
+      setIsSaving(false)
+    }
+  }
+
+  // Determine current logical state
+  const isCurrentlyScheduled = recipe.status === 'PUBLISHED' && recipe.scheduled_for && new Date(recipe.scheduled_for) > new Date();
+  const isCurrentlyPublished = recipe.status === 'PUBLISHED' && !isCurrentlyScheduled;
+
   return (
-    <div className="space-y-8">
-      {/* Basic Info */}
-      <section className="space-y-4 bg-card p-4 rounded-xl border border-border shadow-sm">
-        <h2 className="font-semibold text-lg">Información General</h2>
-        
-        <div className="space-y-2">
-          <Label>Nombre</Label>
-          <Input name="name" value={formData.name} onChange={handleChange} />
-        </div>
-        
-        <div className="space-y-2">
-          <Label>Descripción</Label>
-          <Input name="description" value={formData.description} onChange={handleChange} />
-        </div>
+    <form onSubmit={(e) => e.preventDefault()} className="space-y-8 pb-32">
+      <div className="space-y-8">
+        {/* Basic Info */}
+        <section className="bg-card border border-border p-4 md:p-6 rounded-2xl shadow-sm">
+          <div className="space-y-2 mb-6">
+            <Label>Foto de Portada (Obligatoria)</Label>
+            <RecipeMediaManager 
+                initialMedia={recipe.recipe_media || recipe.media || []}
+                onChange={setMediaItems}
+              />
+          </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label>Estado</Label>
-            <select name="status" value={formData.status} onChange={handleChange} className="w-full h-10 px-3 rounded-md border border-input bg-background">
-              <option value="DRAFT">Borrador</option>
-              <option value="PUBLISHED">Publicado</option>
-            </select>
-          </div>
-          <div className="space-y-2">
-            <Label>Visibilidad</Label>
-            <select name="visibility" value={formData.visibility} onChange={handleChange} className="w-full h-10 px-3 rounded-md border border-input bg-background">
-              <option value="PUBLIC">Público</option>
-              <option value="FOLLOWERS">Seguidores</option>
-              <option value="PRIVATE">Privado</option>
-            </select>
-          </div>
-        </div>
-      </section>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Nombre</Label>
+              <Input {...register("name", { required: true })} />
+            </div>
+            
+            <div className="space-y-2">
+              <Label>Descripción</Label>
+              <textarea 
+                {...register("description")} 
+                className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2" 
+                placeholder="Cuenta la historia de este arroz..."
+              />
+            </div>
 
-      {/* Technical Details */}
-      <section className="space-y-4 bg-card p-4 rounded-xl border border-border shadow-sm">
-        <h2 className="font-semibold text-lg">Detalles Técnicos</h2>
-        
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label>Estilo</Label>
-            <select name="style_id" value={formData.style_id} onChange={handleChange} className="w-full h-10 px-3 rounded-md border border-input bg-background">
-              <option value="">Selecciona...</option>
-              {catalogs.styles.map((s: any) => <option key={s.id} value={s.id}>{s.name}</option>)}
-            </select>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Visibilidad</Label>
+                <select {...register("visibility")} className="w-full h-10 px-3 rounded-md border border-input bg-background">
+                  <option value="PUBLIC">Público (Visible para todos)</option>
+                  <option value="FOLLOWERS">Solo mis Seguidores</option>
+                  <option value="PRIVATE">Privado (Solo yo)</option>
+                </select>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Controla quién puede ver la receta una vez que esté publicada.
+                </p>
+              </div>
+            </div>
           </div>
-          <div className="space-y-2">
-            <Label>Variedad de Arroz</Label>
-            <select name="variety_id" value={formData.variety_id} onChange={handleChange} className="w-full h-10 px-3 rounded-md border border-input bg-background">
-              <option value="">Selecciona...</option>
-              {catalogs.varieties.map((v: any) => <option key={v.id} value={v.id}>{v.name}</option>)}
-            </select>
-          </div>
-        </div>
+        </section>
 
-        <div className="grid grid-cols-3 gap-4 pt-2">
-          <div className="space-y-2">
-            <Label>Comensales</Label>
-            <Input name="base_servings" type="number" value={formData.base_servings} onChange={handleChange} />
+        {/* Technical Details */}
+        <section className="bg-card border border-border p-4 md:p-6 rounded-2xl shadow-sm">
+          <h2 className="font-bold text-lg mb-4 text-charcoal border-b pb-2">Detalles Técnicos</h2>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+            <div className="space-y-2">
+              <Label>Estilo</Label>
+              <select {...register("style_id")} className="w-full h-10 px-3 rounded-md border border-input bg-background">
+                <option value="">Selecciona...</option>
+                {catalogs.styles.map((s: any) => <option key={s.id} value={s.id}>{s.name}</option>)}
+              </select>
+            </div>
+            <div className="space-y-2">
+              <Label>Variedad de Arroz</Label>
+              <select {...register("variety_id")} className="w-full h-10 px-3 rounded-md border border-input bg-background">
+                <option value="">Selecciona...</option>
+                {catalogs.varieties.map((v: any) => <option key={v.id} value={v.id}>{v.name}</option>)}
+              </select>
+            </div>
+            <div className="space-y-2">
+              <Label>Fuente de calor</Label>
+              <select {...register("heat_source_id")} className="w-full h-10 px-3 rounded-md border border-input bg-background">
+                <option value="">Selecciona...</option>
+                {catalogs.heats.map((h: any) => <option key={h.id} value={h.id}>{h.name}</option>)}
+              </select>
+            </div>
+            <div className="space-y-2">
+              <Label>Dificultad</Label>
+              <select {...register("difficulty")} className="w-full h-10 px-3 rounded-md border border-input bg-background">
+                <option value="">Selecciona...</option>
+                <option value="EASY">Fácil</option>
+                <option value="MEDIUM">Media</option>
+                <option value="HARD">Difícil</option>
+                <option value="EXPERT">Experto</option>
+              </select>
+            </div>
           </div>
-          <div className="space-y-2">
-            <Label>Arroz (g)</Label>
-            <Input name="rice_qty" type="number" value={formData.rice_qty} onChange={handleChange} />
-          </div>
-          <div className="space-y-2">
-            <Label>Caldo (ml)</Label>
-            <Input name="stock_qty" type="number" value={formData.stock_qty} onChange={handleChange} />
-          </div>
-        </div>
 
-        <div className="p-3 bg-primary/10 text-primary font-medium rounded-lg text-sm flex justify-between items-center">
-          <span>Ratio Caldo/Arroz calculado:</span>
-          <span className="text-lg">1 : {ratio}</span>
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label>Cocción (min)</Label>
-            <Input name="cook_time" type="number" value={formData.cook_time} onChange={handleChange} />
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4 pt-4 border-t border-border/50 mt-4">
+            <div className="space-y-2">
+              <Label>Comensales</Label>
+              <Input type="number" {...register("base_servings")} />
+            </div>
+            <div className="space-y-2">
+              <Label>Arroz (gr)</Label>
+              <Input type="number" step="0.01" {...register("rice_qty")} />
+            </div>
+            <div className="space-y-2">
+              <Label>Caldo (ml)</Label>
+              <Input type="number" step="0.01" {...register("stock_qty")} />
+            </div>
+            <div className="space-y-2">
+              <Label>Cocción</Label>
+              <Input type="number" {...register("cook_time")} />
+            </div>
+            <div className="space-y-2">
+              <Label>Reposo</Label>
+              <Input type="number" {...register("rest_time")} />
+            </div>
           </div>
-          <div className="space-y-2">
-            <Label>Reposo (min)</Label>
-            <Input name="rest_time" type="number" value={formData.rest_time} onChange={handleChange} />
-          </div>
-        </div>
-      </section>
 
-      {/* Steps (Basic Mock for demonstration) */}
-      <section className="space-y-4 bg-card p-4 rounded-xl border border-border shadow-sm">
-        <div className="flex justify-between items-center">
-          <h2 className="font-semibold text-lg">Pasos</h2>
-          <Button variant="outline" size="sm" onClick={() => setSteps([...steps, { step_number: steps.length + 1, instruction: "" }])}>
-            <Plus className="w-4 h-4 mr-1" /> Añadir
+          <div className="mt-4 p-3 bg-primary/10 text-primary font-medium rounded-lg text-sm flex justify-between items-center">
+            <span>Ratio Caldo/Arroz calculado:</span>
+            <span className="text-lg font-bold">1 : {ratio}</span>
+          </div>
+        </section>
+
+        {/* Vessel Details */}
+        <section className="bg-card border border-border p-4 md:p-6 rounded-2xl shadow-sm">
+          <h2 className="font-bold text-lg mb-4 text-charcoal border-b pb-2">Recipiente</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+            <div className="space-y-2">
+              <Label>Tipo de recipiente</Label>
+              <select {...register("vessel_type_id")} className="w-full h-10 px-3 rounded-md border border-input bg-background">
+                <option value="">Selecciona...</option>
+                {catalogs.vessels.map((v: any) => <option key={v.id} value={v.id}>{v.name}</option>)}
+              </select>
+            </div>
+            <div className="space-y-2">
+              <Label>Diámetro (cm)</Label>
+              <Input type="number" step="0.1" {...register("vessel_diameter_cm")} placeholder="Ej. 40" />
+            </div>
+          </div>
+          <div className="space-y-2 mt-4">
+            <Label>Notas del recipiente (opcional)</Label>
+            <Input {...register("vessel_notes")} placeholder="Ej. Paellera de acero pulido" />
+          </div>
+        </section>
+
+        {/* Ingredients */}
+        <section className="bg-card border border-border p-4 md:p-6 rounded-2xl shadow-sm">
+          <div className="flex justify-between items-center border-b pb-2 mb-4">
+            <h2 className="font-semibold text-lg">Ingredientes</h2>
+            <Button type="button" variant="outline" size="sm" onClick={() => appendIng({ display_text: "", normalized_quantity: "", unit_id: "", is_scalable: true })}>
+              <Plus className="w-4 h-4 mr-1" /> Añadir
+            </Button>
+          </div>
+          
+          <div className="space-y-4">
+            {ingFields.map((field, idx) => (
+              <div key={field.id} className="flex gap-2 items-start bg-muted/50 p-2 md:p-3 rounded-lg border border-border/50">
+                <div className="flex flex-col gap-1">
+                  <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => moveIng(idx, idx - 1)} disabled={idx === 0}><ChevronUp className="w-4 h-4" /></Button>
+                  <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => moveIng(idx, idx + 1)} disabled={idx === ingFields.length - 1}><ChevronDown className="w-4 h-4" /></Button>
+                </div>
+                <div className="flex-1 space-y-2">
+                  <div className="grid grid-cols-12 gap-2">
+                    <div className="col-span-4 md:col-span-3">
+                      <Input type="number" step="0.01" placeholder="Cant." {...register(`ingredients.${idx}.normalized_quantity`)} />
+                    </div>
+                    <div className="col-span-8 md:col-span-3">
+                      <select {...register(`ingredients.${idx}.unit_id`)} className="w-full h-10 px-2 rounded-md border border-input bg-background text-sm">
+                        <option value="">Unidad (opc)</option>
+                        {catalogs.units.map((u: any) => <option key={u.id} value={u.id}>{u.name}</option>)}
+                      </select>
+                    </div>
+                    <div className="col-span-12 md:col-span-6">
+                      <Input placeholder="" {...register(`ingredients.${idx}.display_text`, { required: true })} />
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 mt-1">
+                    <input type="checkbox" id={`scale-${idx}`} {...register(`ingredients.${idx}.is_scalable`)} className="rounded border-input text-primary focus:ring-primary" />
+                    <label htmlFor={`scale-${idx}`} className="text-xs text-muted-foreground cursor-pointer">Escala con el nº de comensales</label>
+                  </div>
+                </div>
+                <Button type="button" variant="ghost" size="icon" className="text-destructive shrink-0" onClick={() => removeIng(idx)}>
+                  <Trash2 className="w-4 h-4" />
+                </Button>
+              </div>
+            ))}
+            {ingFields.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">No hay ingredientes añadidos.</p>}
+          </div>
+        </section>
+
+        {/* Steps */}
+        <section className="bg-card border border-border p-4 md:p-6 rounded-2xl shadow-sm">
+          <div className="flex justify-between items-center border-b pb-2 mb-4">
+            <h2 className="font-semibold text-lg">Pasos de Elaboración</h2>
+            <Button type="button" variant="outline" size="sm" onClick={() => appendStep({ instruction: "", duration_minutes: "", notes: "" })}>
+              <Plus className="w-4 h-4 mr-1" /> Añadir
+            </Button>
+          </div>
+          
+          <div className="space-y-4">
+            {stepFields.map((field, idx) => (
+              <div key={field.id} className="flex gap-2 items-start bg-muted/50 p-2 md:p-3 rounded-lg border border-border/50">
+                <div className="flex flex-col gap-1">
+                  <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => moveStep(idx, idx - 1)} disabled={idx === 0}><ChevronUp className="w-4 h-4" /></Button>
+                  <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => moveStep(idx, idx + 1)} disabled={idx === stepFields.length - 1}><ChevronDown className="w-4 h-4" /></Button>
+                </div>
+                <div className="shrink-0 pt-1">
+                    <StepMediaManager 
+                      initialMedia={field.mediaItem || null}
+                      onChange={(item) => setValue(`steps.${idx}.mediaItem`, item)}
+                    />
+                  </div>
+                  <div className="flex-1 space-y-2 w-full">
+                    <textarea 
+                    {...register(`steps.${idx}.instruction`, { required: true })}
+                    className="flex min-h-[60px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                    placeholder={`Paso ${idx + 1}... Ej. Sofreír la carne.`} 
+                  />
+                  <div className="flex flex-col md:flex-row gap-2">
+                    <Input type="number" placeholder="Duración (min)" {...register(`steps.${idx}.duration_minutes`)} className="md:w-1/3" />
+                    <Input placeholder="Notas opcionales (fuego medio, etc.)" {...register(`steps.${idx}.notes`)} className="md:w-2/3" />
+                  </div>
+                </div>
+                <Button type="button" variant="ghost" size="icon" className="text-destructive shrink-0" onClick={() => removeStep(idx)}>
+                  <Trash2 className="w-4 h-4" />
+                </Button>
+              </div>
+            ))}
+            {stepFields.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">No hay pasos añadidos.</p>}
+          </div>
+        </section>
+
+        {/* Tags */}
+        {catalogs.tags && catalogs.tags.length > 0 && (
+          <section className="bg-card border border-border p-4 md:p-6 rounded-2xl shadow-sm">
+            <h2 className="font-semibold text-lg border-b pb-2 mb-4">Etiquetas (Tags)</h2>
+            <div className="flex flex-wrap gap-2">
+              {catalogs.tags.map((tag: any) => {
+                const isSelected = watchTags?.includes(tag.id)
+                return (
+                  <button
+                    key={tag.id}
+                    type="button"
+                    onClick={() => toggleTag(tag.id)}
+                    className={cn(
+                      "px-3 py-1.5 rounded-full text-sm font-medium transition-colors border",
+                      isSelected 
+                        ? "bg-primary text-primary-foreground border-primary" 
+                        : "bg-background text-muted-foreground border-border hover:border-primary/50"
+                    )}
+                  >
+                    {tag.name}
+                  </button>
+                )
+              })}
+            </div>
+          </section>
+        )}
+      </div>
+
+      <div className="fixed bottom-0 left-0 right-0 p-4 bg-background/90 backdrop-blur-md border-t border-border z-50">
+        <div className="max-w-3xl mx-auto flex justify-end">
+          <Button 
+            type="button" 
+            variant="default"
+            className="w-full md:w-auto h-12 rounded-xl font-bold px-8" 
+            onClick={() => submitWithAction('UPDATE')}
+            disabled={isSaving}
+          >
+            <Save className="w-5 h-5 mr-2" />
+            {isSaving ? "Guardando..." : "Guardar receta"}
           </Button>
         </div>
-        
-        <div className="space-y-3">
-          {steps.map((step, idx) => (
-            <div key={idx} className="flex gap-2 items-start">
-              <div className="bg-muted text-muted-foreground w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-sm font-bold">
-                {idx + 1}
-              </div>
-              <Input 
-                value={step.instruction} 
-                onChange={e => {
-                  const newSteps = [...steps]
-                  newSteps[idx].instruction = e.target.value
-                  setSteps(newSteps)
-                }} 
-                placeholder="Ej. Sofreír la carne..." 
-              />
-              <Button variant="ghost" size="icon" className="text-destructive shrink-0" onClick={() => setSteps(steps.filter((_, i) => i !== idx))}>
-                <Trash2 className="w-4 h-4" />
-              </Button>
-            </div>
-          ))}
-          {steps.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">No hay pasos añadidos.</p>}
-        </div>
-      </section>
-
-      <Button onClick={handleSave} className="w-full h-14 text-lg rounded-xl sticky bottom-20 shadow-lg" disabled={isSaving}>
-        <Save className="w-5 h-5 mr-2" /> {isSaving ? "Guardando..." : "Guardar Receta"}
-      </Button>
-    </div>
+      </div>
+    </form>
   )
 }

@@ -1,0 +1,1 @@
+INSERT INTO storage.buckets (id, name, public) VALUES ('recipe_media', 'recipe_media', true) ON CONFLICT (id) DO NOTHING;

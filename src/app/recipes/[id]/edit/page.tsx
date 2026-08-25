@@ -1,4 +1,4 @@
-import { redirect } from "next/navigation"
+﻿import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
 import { getCatalogs } from "@/app/actions/recipes"
 import EditRecipeForm from "./EditRecipeForm"
@@ -19,8 +19,15 @@ export default async function EditRecipePage({
     .select(`
       *,
       recipe_ingredients(*),
-      recipe_steps(*),
-      recipe_vessels(*)
+      recipe_steps(*, media:media_assets(storage_path)),
+      recipe_vessels(*),
+      recipe_tags(*),
+      recipe_media(
+        media_id,
+        display_order,
+        is_primary,
+        media_assets(storage_path)
+      )
     `)
     .eq("id", resolvedParams.id)
     .single()
@@ -37,7 +44,7 @@ export default async function EditRecipePage({
       <header className="bg-card border-b border-border p-4 sticky top-0 z-10 flex items-center justify-between">
         <h1 className="font-bold truncate pr-4 text-foreground">Editar: {recipe.name}</h1>
       </header>
-      <main className="p-4 max-w-md mx-auto">
+      <main className="p-4 md:p-8 max-w-4xl mx-auto w-full">
         <EditRecipeForm recipe={recipe} catalogs={catalogs} />
       </main>
     </div>

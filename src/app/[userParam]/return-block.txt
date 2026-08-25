@@ -1,0 +1,131 @@
+  return (
+    <div className="pb-24 md:pb-8 bg-background min-h-screen overflow-x-hidden">
+      <header className="bg-card border-b border-border shadow-sm mb-6 relative">
+        {/* COVER FULL WIDTH */}
+        <div className="absolute top-0 left-0 right-0 h-32 md:h-48 lg:h-64 bg-muted z-0">
+          {coverUrl ? (
+            /* eslint-disable-next-line @next/next/no-img-element */
+            <img src={coverUrl} alt="Cover" className="w-full h-full object-cover" />
+          ) : (
+            <div className="w-full h-full bg-gradient-to-r from-muted/50 to-muted-foreground/5" />
+          )}
+        </div>
+        
+        <div className="absolute top-4 right-4 flex gap-2 z-10">
+          <ShareButton title={profile.display_name || `@${profile.username}`} text={profile.bio || "Perfil en Mis Arroces"} path={`/@${profile.username}`} />
+          {isSelf && (
+            <Link href="/settings" className="flex items-center justify-center w-10 h-10 bg-black/60 rounded-full hover:bg-black transition text-white backdrop-blur-sm shadow-sm" title="Configuración">
+              <Settings className="w-5 h-5" />
+            </Link>
+          )}
+        </div>
+
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 relative z-10 flex flex-col items-center pt-24 md:pt-40 lg:pt-56 pb-6">
+          {/* AVATAR OVERLAP */}
+          <div className="w-24 h-24 sm:w-28 sm:h-28 bg-card rounded-full p-1 shadow-sm relative">
+            <div className="w-full h-full bg-muted rounded-full overflow-hidden">
+              {avatarUrl ? (
+                /* eslint-disable-next-line @next/next/no-img-element */
+                <img src={avatarUrl} alt={profile.username} className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center bg-primary/10 text-primary/50">
+                  <User className="w-10 h-10" />
+                </div>
+              )}
+            </div>
+          </div>
+          
+          <div className="mt-3 text-center w-full">
+            {profile.display_name ? (
+              <>
+                <h1 className="text-2xl font-bold">{profile.display_name}</h1>
+                <div className="flex items-center justify-center gap-1.5 text-muted-foreground mt-0.5">
+                  <p className="text-[15px]">@{profile.username}</p>
+                  {profile.privacy_level === 'PRIVATE' && <Lock className="w-3.5 h-3.5" />}
+                </div>
+              </>
+            ) : (
+              <div className="flex items-center justify-center gap-1.5">
+                <h1 className="text-2xl font-bold">@{profile.username}</h1>
+                {profile.privacy_level === 'PRIVATE' && <Lock className="w-4 h-4 text-muted-foreground" />}
+              </div>
+            )}
+          </div>
+
+          {profile.bio && <p className="text-[15px] mt-3 max-w-md text-center whitespace-pre-wrap">{profile.bio}</p>}
+          
+          <div className="flex items-center justify-center gap-8 mt-4 text-sm font-medium w-full">
+            <div className="flex flex-col items-center">
+              <span className="font-bold text-foreground text-lg">{feedItems.length}</span>
+              <span className="text-muted-foreground text-xs uppercase tracking-wider">Elaboraciones</span>
+            </div>
+            <div className="flex flex-col items-center">
+              <span className="font-bold text-foreground text-lg">{followersCount || 0}</span>
+              <span className="text-muted-foreground text-xs uppercase tracking-wider">Seguidores</span>
+            </div>
+            <div className="flex flex-col items-center">
+              <span className="font-bold text-foreground text-lg">{followingCount || 0}</span>
+              <span className="text-muted-foreground text-xs uppercase tracking-wider">Siguiendo</span>
+            </div>
+          </div>
+
+          {!isSelf && (
+            <div className="mt-5">
+              <form action={async () => {
+                "use server"
+                const { toggleFollow } = await import("@/app/actions/social")
+                await toggleFollow(profile.id, profile.privacy_level === "PRIVATE", followStatus)
+              }}>
+                <Button variant={followStatus ? "secondary" : "default"} className="px-8 rounded-xl font-bold h-9">
+                  {followStatus === "ACCEPTED" ? "Siguiendo" : followStatus === "PENDING" ? "Pendiente" : "Seguir"}
+                </Button>
+              </form>
+            </div>
+          )}
+          
+          {isSelf && (
+            <div className="mt-5">
+              <Link href="/profile/edit" className="inline-flex items-center justify-center h-9 px-8 rounded-xl bg-secondary text-secondary-foreground font-bold hover:bg-secondary/80 transition text-sm shadow-sm border border-border">
+                Editar perfil
+              </Link>
+            </div>
+          )}
+        </div>
+      </header>
+
+      <div className="px-1 md:px-4 max-w-4xl mx-auto pb-6">
+        <h2 className="text-sm font-bold uppercase tracking-wider pb-2 border-b-2 border-primary text-foreground mb-4 w-max ml-1 md:ml-0">
+          Mis Elaboraciones
+        </h2>
+
+        {!canViewPrivate && profile.privacy_level === "PRIVATE" ? (
+          <div className="text-center py-16 border border-border rounded-xl bg-card mx-2">
+            <Lock className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+            <h2 className="text-xl font-bold mb-2">Esta cuenta es privada</h2>
+            <p className="text-sm text-muted-foreground max-w-xs mx-auto">Sigue a este usuario para ver sus elaboraciones.</p>
+          </div>
+        ) : (
+          <div>
+            {feedItems.length === 0 && (
+              <div className="text-center py-16 text-muted-foreground">
+                <p>No hay elaboraciones publicadas todavía.</p>
+              </div>
+            )}
+
+            {feedItems.length > 0 && (
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-1 md:gap-2">
+                {feedItems.map(item => (
+                  <ProfileGridCard 
+                    key={`${item.entity_type}-${item.id}`} 
+                    item={item} 
+                    currentUserId={user?.id || undefined} 
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}

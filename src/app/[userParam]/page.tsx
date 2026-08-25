@@ -130,8 +130,8 @@ export default async function PublicProfilePage({
   return (
     <div className="pb-24 md:pb-8 bg-background min-h-screen overflow-x-hidden max-w-[100vw]">
       <header className="mb-6 relative">
-        {/* COVER FULL WIDTH - STRICT 350px INLINE & ALIGNED */}
-        <div className="w-full bg-muted relative z-0 overflow-hidden rounded-xl" style={{ height: '350px' }}>
+        {/* COVER FULL WIDTH */}
+        <div className="w-full bg-muted relative z-0 overflow-hidden rounded-xl" style={{ height: '325px' }}>
           {coverUrl ? (
             /* eslint-disable-next-line @next/next/no-img-element */
             <img src={coverUrl} alt="Cover" className="w-full h-full object-cover object-center" />
@@ -142,7 +142,7 @@ export default async function PublicProfilePage({
           <div className="absolute top-4 right-4 flex gap-2 z-10">
             <ProfileShareModal username={profile.username} display_name={profile.display_name} path={`/@${profile.username}`} />
             {isSelf && (
-              <Link href="/profile/edit" className="flex items-center justify-center w-10 h-10 bg-black/60 rounded-full hover:bg-black transition text-white backdrop-blur-sm shadow-sm" title="ConfiguraciÃ³n">
+              <Link href="/settings" className="flex items-center justify-center w-10 h-10 bg-black/60 rounded-full hover:bg-black transition text-white backdrop-blur-sm shadow-sm" title="ConfiguraciÃ³n">
                 <Settings className="w-5 h-5" />
               </Link>
             )}

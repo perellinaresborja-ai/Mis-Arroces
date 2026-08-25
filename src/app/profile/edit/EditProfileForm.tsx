@@ -79,7 +79,7 @@ export function EditProfileForm({ initialProfile }: { initialProfile: any }) {
       {/* PORTADA & AVATAR COMBINED EDIT */}
       <div className="mb-8">
         {/* Cover */}
-        <div className="w-full h-32 md:h-48 lg:h-64 rounded-t-2xl overflow-hidden bg-muted relative border border-border group z-0">
+        <div className="w-full rounded-t-2xl overflow-hidden bg-muted relative border border-border group z-0" style={{ height: '250px' }}>
           {displayCoverUrl ? (
             <img src={displayCoverUrl} alt="Cover" className="w-full h-full object-cover" />
           ) : (
@@ -131,7 +131,7 @@ export function EditProfileForm({ initialProfile }: { initialProfile: any }) {
         </div>
       </div>
 
-      <div className="space-y-4 pt-4 border-t border-border">
+      <div className="space-y-4 pt-4  border-t border-border">
         <div className="space-y-2">
           <Label htmlFor="display_name">Nombre</Label>
           <Input 
