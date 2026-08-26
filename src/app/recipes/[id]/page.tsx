@@ -7,6 +7,7 @@ import { Pencil, Clock, Flame, Users, Beaker, ChefHat, Hourglass } from "lucide-
 import { FeedCard } from "@/components/domain/FeedCard"
 import { WantToCookButton } from "@/components/domain/WantToCookButton"
 import { SaveRecipeButton } from "@/components/domain/SaveRecipeButton"
+import { LoHeCocinadoButton } from "@/components/domain/LoHeCocinadoButton"
 
 export default async function RecipeDetailPage({
   params
@@ -127,10 +128,10 @@ export default async function RecipeDetailPage({
               </div>
                 
                 
-              {!isOwner && session?.user && (
+              {!isOwner && (
                   <div className="shrink-0 flex gap-2">
-                      <SaveRecipeButton recipeId={recipe.id} initialSaved={isSaved} />
-                      <WantToCookButton recipeId={recipe.id} initialSaved={isWantToCook} />
+                      <SaveRecipeButton recipeId={recipe.id} initialSaved={isSaved} isAuthenticated={!!session?.user} />
+                      <WantToCookButton recipeId={recipe.id} initialSaved={isWantToCook} isAuthenticated={!!session?.user} />
                   </div>
                 )}
             </div>
@@ -285,17 +286,15 @@ export default async function RecipeDetailPage({
 
         
           {/* Lo he cocinado CTA */}
-          {!isOwner && user && (
+          {!isOwner && (
             <div className="mt-16 bg-muted/30 border border-border p-6 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-6 shadow-sm">
               <div className="text-left">
                 <h3 className="text-xl font-bold mb-1 font-serif text-charcoal">¿Te has animado a prepararlo?</h3>
                 <p className="text-muted-foreground text-sm">Registra tu cocinado, sube tu foto y valora el socarrat.</p>
               </div>
-              <Link href={`/recipes/${recipe.id}/cook`} className="shrink-0 w-full md:w-auto">
-                <Button className="w-full md:w-auto font-bold rounded-xl h-12 px-8 bg-olive hover:bg-olive/90 text-white">
-                  ¡Lo he cocinado!
-                </Button>
-              </Link>
+              <div className="shrink-0 w-full md:w-auto">
+                <LoHeCocinadoButton recipeId={recipe.id} isAuthenticated={!!user} />
+              </div>
             </div>
           )}
 

@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import { useState, useTransition } from "react"
 import { PaellaLike } from "./PaellaLike"
@@ -17,6 +17,8 @@ interface LikeButtonProps {
   isAuthenticated: boolean
 }
 
+import { useAuthPrompt } from "@/components/providers/AuthPromptProvider"
+
 export function LikeButton({ 
   entityType, 
   entityId, 
@@ -27,7 +29,7 @@ export function LikeButton({
   showCount = true,
   isAuthenticated
 }: LikeButtonProps) {
-  const router = useRouter()
+  const { showAuthPrompt } = useAuthPrompt()
   const pathname = usePathname()
   const [isPending, startTransition] = useTransition()
   
@@ -36,7 +38,7 @@ export function LikeButton({
 
   const handleLike = () => {
     if (!isAuthenticated) {
-      router.push("/login?next=" + encodeURIComponent(pathname))
+      showAuthPrompt("Inicia sesión para indicar que te gusta.")
       return
     }
 

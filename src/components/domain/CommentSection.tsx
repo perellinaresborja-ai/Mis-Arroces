@@ -54,6 +54,7 @@ function CommentThread({
   onReply: (id: string, username: string) => void
   onDelete: (id: string) => void
 }) {
+  const { showAuthPrompt } = useAuthPrompt()
   const router = useRouter()
   const pathname = usePathname()
   const [isPending, startTransition] = useTransition()
@@ -84,7 +85,7 @@ function CommentThread({
 
   const handleLike = () => {
     if (!currentUserId) {
-      router.push("/login?next=" + encodeURIComponent(pathname))
+      showAuthPrompt("Crea tu cuenta para participar en la conversación.")
       return
     }
 
@@ -209,6 +210,7 @@ function CommentReply({
   onReply,
   onDelete
 }: any) {
+  const { showAuthPrompt } = useAuthPrompt()
   const router = useRouter()
   const pathname = usePathname()
   const [isPending, startTransition] = useTransition()
@@ -238,7 +240,7 @@ function CommentReply({
 
   const handleLike = () => {
     if (!currentUserId) {
-      router.push("/login?next=" + encodeURIComponent(pathname))
+      showAuthPrompt("Crea tu cuenta para participar en la conversación.")
       return
     }
 
@@ -307,6 +309,7 @@ function CommentReply({
 }
 
 export function CommentSection({ entityType, entityId, comments, currentUserId, allowComments, onCommentAdded, onCommentDeleted }: CommentSectionProps & { onCommentAdded?: (c: any) => void, onCommentDeleted?: (id: string) => void }) {
+  const { showAuthPrompt } = useAuthPrompt()
   const router = useRouter()
   const pathname = usePathname()
   const [isPending, startTransition] = useTransition()
@@ -326,7 +329,7 @@ export function CommentSection({ entityType, entityId, comments, currentUserId, 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (!currentUserId) {
-      router.push("/login?next=" + encodeURIComponent(pathname))
+      showAuthPrompt("Crea tu cuenta para participar en la conversación.")
       return
     }
     if (!newComment.trim()) return
@@ -414,7 +417,11 @@ export function CommentSection({ entityType, entityId, comments, currentUserId, 
                 className="flex-1 max-h-[120px] bg-transparent px-4 py-2 text-[15px] resize-none outline-none placeholder:text-muted-foreground"
                 style={{ height: '40px' }}
                 maxLength={1000}
-                disabled={!currentUserId || isPending}
+                disabled={isPending}
+                  onClick={() => {
+                    if (!currentUserId) showAuthPrompt("Crea tu cuenta para participar en la conversación.")
+                  }}
+                  readOnly={!currentUserId}
               />
               <button 
                 type="submit" 

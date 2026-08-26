@@ -10,6 +10,7 @@ import { ShareButton } from "@/components/domain/ShareButton"
 import { ProfileShareModal } from "@/components/domain/ProfileShareModal"
 import { ProfileAvatar } from "@/components/domain/ProfileAvatar"
 import { InviteButton } from "@/components/domain/InviteButton"
+import { ProfileFollowButton } from "@/components/domain/ProfileFollowButton"
 
 export default async function PublicProfilePage({ 
   params,
@@ -205,21 +206,26 @@ export default async function PublicProfilePage({
           </div>
 
           {!isSelf && (
-            <div className="mt-5">
-              <form action={async () => {
-                "use server"
-                const { toggleFollow } = await import("@/app/actions/social")
-                await toggleFollow(profile.id, profile.privacy_level === "PRIVATE", followStatus)
-              }}>
-                <Button 
-                  variant={followStatus === 'ACCEPTED' ? 'outline' : followStatus === 'PENDING' ? 'secondary' : 'default'} 
-                  className="min-w-[120px] rounded-full font-bold shadow-sm"
-                >
-                  {followStatus === 'ACCEPTED' ? 'Siguiendo' : followStatus === 'PENDING' ? 'Solicitud enviada' : 'Seguir'}
-                </Button>
-              </form>
-            </div>
-          )}
+              <div className="mt-5">
+                {!user ? (
+                  <ProfileFollowButton isAuthenticated={false} followStatus={null} targetId={profile.id} isPrivate={profile.privacy_level === "PRIVATE"} />
+                ) : (
+                  <form action={async () => {
+                    "use server"
+                    const { toggleFollow } = await import("@/app/actions/social")
+                    await toggleFollow(profile.id, profile.privacy_level === "PRIVATE", followStatus)
+                  }}>
+                    <Button 
+                      type="submit"
+                      variant={followStatus === 'ACCEPTED' ? 'outline' : followStatus === 'PENDING' ? 'secondary' : 'default'} 
+                      className="min-w-[120px] rounded-full font-bold shadow-sm"
+                    >
+                      {followStatus === 'ACCEPTED' ? 'Siguiendo' : followStatus === 'PENDING' ? 'Solicitud enviada' : 'Seguir'}
+                    </Button>
+                  </form>
+                )}
+              </div>
+            )}
           
           
         </div>

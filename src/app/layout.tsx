@@ -20,6 +20,8 @@ export const viewport: Viewport = {
   themeColor: "#F7F2E8", // Cream background
 };
 
+import { AuthPromptProvider } from "@/components/providers/AuthPromptProvider";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -28,17 +30,19 @@ export default function RootLayout({
   return (
     <html lang="es">
       <body className={`${inter.className} antialiased bg-background text-foreground safe-area-pt safe-area-pb overflow-x-hidden`}>
-        {/* Desktop Header */}
-        <DesktopNav />
-        
-        {/* Responsive global container */}
-        <div className="flex min-h-screen w-full flex-col bg-background relative max-w-7xl mx-auto px-0 md:px-8">
-          <main className="flex-1 pb-20 md:pb-8">
-            {children}
-          </main>
+        <AuthPromptProvider>
+          {/* Desktop Header */}
+          <DesktopNav />
           
-          <BottomNav />
-        </div>
+          {/* Responsive global container */}
+          <div className="flex min-h-screen w-full flex-col bg-background relative max-w-7xl mx-auto px-0 md:px-8">
+            <main className="flex-1 pb-20 md:pb-8">
+              {children}
+            </main>
+            
+            <BottomNav />
+          </div>
+        </AuthPromptProvider>
       </body>
     </html>
   );
