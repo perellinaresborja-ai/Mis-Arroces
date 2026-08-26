@@ -43,6 +43,24 @@ export interface FeedCardProps {
 }
 
 export function FeedCard({
+  entityType,
+  entityId,
+  user: initialUser,
+  createdAt,
+  likeCount,
+  isLiked,
+  commentCount,
+  currentUserId,
+  postContent,
+  recipeName,
+  recipeType,
+  sessionRating,
+  sessionSocarrat,
+  linkedRecipe,
+  media
+}: FeedCardProps) {
+  const user = initialUser || { username: 'usuario_desconocido', display_name: 'Usuario Desconocido', avatar: null }
+
 
   entityType,
   entityId,
@@ -181,4 +199,5 @@ export function FeedCard({
     </article>
   )
 }
+
 

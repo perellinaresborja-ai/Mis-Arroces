@@ -21,8 +21,8 @@ export function ShareButton({ title, text, path }: { title: string, text: string
   const { share } = useShare()
 
   
-  const recipeMatch = path.match(/\/recipes\/([^/?]+)/);
-  const sessionMatch = path.match(/\/sessions\/([^/?]+)/);
+  const recipeMatch = path?.match(/\/recipes\/([^/?]+)/);
+  const sessionMatch = path?.match(/\/sessions\/([^/?]+)/);
   const recipeId = recipeMatch ? recipeMatch[1] : null;
   const sessionId = sessionMatch ? sessionMatch[1] : null;
 
@@ -101,4 +101,5 @@ export function ShareButton({ title, text, path }: { title: string, text: string
     </>
   )
 }
+
 
