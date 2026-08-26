@@ -369,7 +369,7 @@ export default function EditRecipeForm({ recipe, catalogs }: { recipe: any, cata
           </div>
           </CollapsibleSection>
 
-          <EscandalloSection recipeId={recipe.id} initialIngredients={ingFields} catalogs={catalogs} baseServings={Number(watch("base_servings") || 2)} />
+          <EscandalloSection recipeId={recipe.id} initialIngredients={ingFields} catalogs={catalogs} baseServings={Number(watch("base_servings") || 2)} setValue={setValue} />
 
           {/* Steps */}
         <CollapsibleSection title="Pasos de Elaboración" rightAction={<Button type="button" variant="outline" size="sm" onClick={() => appendStep({ instruction: "", duration_minutes: "", notes: "" })}>

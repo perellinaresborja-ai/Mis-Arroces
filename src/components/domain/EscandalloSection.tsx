@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { createClient } from "@/lib/supabase/client"
 
-export function EscandalloSection({ recipeId, initialIngredients, catalogs, baseServings }: any) {
+export function EscandalloSection({ recipeId, initialIngredients, catalogs, baseServings, setValue }: any) {
   const [isOpen, setIsOpen] = useState(false)
   const [costs, setCosts] = useState<any[]>([])
 
@@ -28,6 +28,11 @@ export function EscandalloSection({ recipeId, initialIngredients, catalogs, base
     // Optimistic update
     const newCosts = [...costs]
     const idx = newCosts.findIndex(c => c.id === ingId)
+    // Also save to form state
+    const fieldIdx = initialIngredients.findIndex((i: any) => (i.db_id || i.id) === ingId)
+    if (fieldIdx >= 0 && setValue) {
+      setValue(`ingredients.${fieldIdx}.costData`, { purchase_amount: purchaseAmount, purchase_unit_id: purchaseUnitId, purchase_price: purchasePrice })
+    }
     if (idx >= 0) {
       newCosts[idx] = { id: ingId, recipe_id: recipeId, purchase_amount: purchaseAmount, purchase_unit_id: purchaseUnitId, purchase_price: purchasePrice }
     } else {

@@ -106,19 +106,50 @@ export async function updateRecipeFull(id: string, data: any) {
   }
 
   if (ingredients) {
-    await supabase.from("recipe_ingredients").delete().eq("recipe_id", id);
+    const existingIngIds = ingredients.filter((i: any) => i.db_id).map((i: any) => i.db_id);
+    
+    // Delete ingredients that are no longer in the list
+    if (existingIngIds.length > 0) {
+      const { error: delError } = await supabase.from("recipe_ingredients")
+        .delete()
+        .eq("recipe_id", id)
+        .not("id", "in", '(' + existingIngIds.join(',') + ')');
+      if (delError) console.error("ING DEL ERROR:", delError);
+    } else {
+      await supabase.from("recipe_ingredients").delete().eq("recipe_id", id);
+    }
+
     if (ingredients.length > 0) {
-      const ingsToInsert = ingredients.map((i: any, idx: number) => ({
+      const ingsToUpsert = ingredients.map((i: any, idx: number) => ({
+        id: i.db_id || i.id || undefined,
         recipe_id: id,
         display_order: idx + 1,
         display_text: i.display_text,
         normalized_quantity: i.normalized_quantity ? Number(i.normalized_quantity) : null,
         unit_id: i.unit_id || null,
         canonical_ingredient_id: i.canonical_ingredient_id || null,
-        
       }));
-      const { error: ingError } = await supabase.from("recipe_ingredients").insert(ingsToInsert);
-      if (ingError) console.error("ING INSERT ERROR:", ingError);
+      
+      const { error: ingError } = await supabase.from("recipe_ingredients").upsert(ingsToUpsert);
+      if (ingError) console.error("ING UPSERT ERROR:", ingError);
+
+      // Now save costs
+      const costsToUpsert = ingredients
+        .filter((i: any) => i.costData)
+        .map((i: any) => ({
+          id: i.db_id || i.id, // the ID used in ingsToUpsert
+          recipe_id: id,
+          owner_id: user.id,
+          purchase_amount: i.costData.purchase_amount,
+          purchase_unit_id: i.costData.purchase_unit_id,
+          purchase_price: i.costData.purchase_price
+        }));
+      
+      if (costsToUpsert.length > 0) {
+        const { error: costError } = await supabase.from("recipe_ingredient_costs").upsert(costsToUpsert);
+        if (costError) console.error("COST UPSERT ERROR:", costError);
+      }
+
     }
   }
 
