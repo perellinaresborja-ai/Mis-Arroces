@@ -36,7 +36,7 @@ export default async function ForgotPasswordPage({
         <div className="absolute inset-0 bg-gradient-to-r from-charcoal/80 via-transparent to-charcoal/80" />
         <div className="absolute inset-0 shadow-[inset_0_0_150px_rgba(0,0,0,0.9)]" />
 
-        <div className="absolute inset-0 flex flex-col p-12 md:p-16 lg:p-24 justify-between z-10">
+        <div className="absolute inset-0 flex flex-col p-12 md:p-16 lg:p-24 justify-end z-10">
           <div className="relative w-16 h-16 md:w-20 md:h-20">
             <Image 
               src="/mwh.png" 
