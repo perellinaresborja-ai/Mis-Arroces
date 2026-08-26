@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { BookOpen, Compass, User, Home } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { NotificationBell } from "@/components/domain/NotificationBell";
 
 export function BottomNav() {
   const pathname = usePathname();
@@ -64,6 +65,7 @@ export function BottomNav() {
             </Link>
           );
         })}
+            <NotificationBell className="flex flex-col items-center justify-center pt-2" />
       </div>
     </nav>
   );

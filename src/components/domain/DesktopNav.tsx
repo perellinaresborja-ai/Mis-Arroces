@@ -6,6 +6,7 @@ import { BookOpen, Compass, User, PlusCircle, Home } from "lucide-react"
 import { cn } from "@/lib/utils"
 import Image from "next/image"
 import { buttonVariants } from "@/components/ui/button"
+import { NotificationBell } from "@/components/domain/NotificationBell"
 
 export function DesktopNav() {
   const pathname = usePathname()
