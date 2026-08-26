@@ -10,7 +10,7 @@ export async function fetchShoppingList() {
 
   const { data: list } = await supabase
     .from("shopping_lists")
-    .select("*, shopping_list_items(*, unit:units(id, name, symbol))")
+    .select("*, shopping_list_items(*, unit:units(id, name))")
     .eq("user_id", user.id)
     .single()
 
@@ -46,7 +46,7 @@ export async function addRecipeToShoppingList(recipeId: string) {
   // 2. Fetch recipe ingredients
   const { data: recipe } = await supabase
     .from("recipes")
-    .select("recipe_ingredients(*, unit:units(id, name, symbol))")
+    .select("recipe_ingredients(*, unit:units(id, name))")
     .eq("id", recipeId)
     .single()
 
@@ -77,7 +77,7 @@ export async function addRecipeToShoppingList(recipeId: string) {
   // Wait, the prompt says "conversión mínima V1: g <-> kg, ml <-> L, unidad <-> unidad".
   // Let's fetch the units first.
   const { data: allUnits } = await supabase.from("units").select("*")
-  const unitsBySymbol = new Map(allUnits?.map((u: any) => [u.symbol?.toLowerCase(), u]))
+  const unitsBySymbol = new Map(allUnits?.map((u: any) => [u.name?.toLowerCase(), u]))
   const unitsById = new Map(allUnits?.map((u: any) => [u.id, u]))
 
   const gramUnit = unitsBySymbol.get("g")

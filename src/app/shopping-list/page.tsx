@@ -13,7 +13,7 @@ export default async function ShoppingListPage() {
   // Fetch list
   const { data: list } = await supabase
     .from("shopping_lists")
-    .select("*, items:shopping_list_items(*, unit:units(id, name, symbol), recipe:recipes(name))")
+    .select("*, items:shopping_list_items(*, unit:units(id, name), recipe:recipes(name))")
     .eq("user_id", user.id)
     .single()
 
