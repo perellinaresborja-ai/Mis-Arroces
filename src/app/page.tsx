@@ -11,6 +11,11 @@ export default async function Home() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
+  if (!user) {
+    const { redirect } = await import("next/navigation")
+    redirect("/login")
+  }
+
   const feed = await fetchFeedPage(0)
 
   // Minimal Stories mock fetch (Active stories from friends + self)
