@@ -12,7 +12,7 @@ export const metadata: Metadata = {
     default: "Mis Arroces | La red social de los arroces",
     template: "%s | Mis Arroces"
   },
-  description: "Descubre, guarda y comparte las mejores recetas de arroces y paellas. �nete a la comunidad de chefs arroceros.",
+  description: "Descubre, guarda y comparte las mejores recetas de arroces y paellas. nete a la comunidad de chefs arroceros.",
   manifest: "/manifest.json",
   keywords: ["arroz", "paella", "recetas", "red social", "cocina", "chef"],
   openGraph: {
