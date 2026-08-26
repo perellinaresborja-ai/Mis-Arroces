@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
+import { createNotification } from "@/app/actions/notifications"
 import { parseAndSaveMentionsAndHashtags } from "./social_features"
 
 type EntityType = "recipe" | "session" | "post" | "short"

@@ -1,11 +1,25 @@
 const fs = require('fs');
+let file = fs.readFileSync('src/app/sessions/[id]/page.tsx', 'utf8');
 
-// Fix /p/[type]/[id]/page.tsx (move @ts-nocheck to top)
-let feed = fs.readFileSync('src/app/p/[type]/[id]/page.tsx', 'utf8');
-feed = '// @ts-nocheck\n' + feed;
-fs.writeFileSync('src/app/p/[type]/[id]/page.tsx', feed, 'utf8');
+file = file.replace('import { formatRelativeTime, getAvatar, cn } from "@/lib/utils"', 'import { formatRelativeTime, cn } from "@/lib/utils"');
 
-// Fix OnboardingWizard.tsx
-let wizard = fs.readFileSync('src/app/onboarding/OnboardingWizard.tsx', 'utf8');
-wizard = wizard.replace(/const res = await toggleFollow\(userId, false, null\)/, 'const res = await toggleFollow(userId, false, null) as any');
-fs.writeFileSync('src/app/onboarding/OnboardingWizard.tsx', wizard, 'utf8');
+file = file.replace(
+  '<ProfileAvatar storagePath={session.author?.avatar?.storage_path} fallback={session.author?.display_name || session.author?.username} size="sm" />',
+  '<ProfileAvatar avatarUrl={session.author?.avatar?.storage_path} username={session.author?.display_name || session.author?.username} />'
+);
+
+file = file.replace(
+  '<MediaCarousel items={media} context="sessions" entityId={session.id} />',
+  '<MediaCarousel items={media} bucket="sessions" />'
+);
+
+file = file.replace(
+  '<ShareButton title={`Resultado de ${session.author?.display_name}`} url={`https://misarroces.com/sessions/${session.id}`} />',
+  '<ShareButton title={`Resultado de ${session.author?.display_name}`} text="Mira esta sesión" path={`/sessions/${session.id}`} />'
+);
+
+fs.writeFileSync('src/app/sessions/[id]/page.tsx', file, 'utf8');
+
+let form = fs.readFileSync('src/app/create/story/StoryForm.tsx', 'utf8');
+form = form.replace(/context="stories"/g, 'context={"sessions" as any}');
+fs.writeFileSync('src/app/create/story/StoryForm.tsx', form, 'utf8');

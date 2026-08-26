@@ -1,11 +1,14 @@
-// @ts-nocheck
 import { createClient } from "@/lib/supabase/server"
 import { notFound } from "next/navigation"
+import { formatRelativeTime, cn } from "@/lib/utils"
 import Link from "next/link"
-import { ShareButton } from "@/components/domain/ShareButton"
+import Image from "next/image"
 import { MediaCarousel } from "@/components/domain/MediaCarousel"
 import { LikeButton } from "@/components/domain/LikeButton"
+import { ShareButton } from "@/components/domain/ShareButton"
 import { CommentSection } from "@/components/domain/CommentSection"
+import { ChevronLeft } from "lucide-react"
+import { ProfileAvatar } from "@/components/domain/ProfileAvatar"
 
 export default async function SessionDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = await params
@@ -16,115 +19,97 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
     .from("cooking_sessions")
     .select(`
       *,
-      user:profiles!cooking_sessions_user_id_fkey(username, display_name),
+      author:profiles!cooking_sessions_user_id_fkey(id, username, display_name, avatar:media_assets!fk_profiles_avatar(storage_path)),
       recipe:recipes(id, name, owner_id),
-      session_media(
-        display_order,
-        media:media_assets(id, storage_path)
-      )
+      session_media(display_order, media:media_assets(id, storage_path))
     `)
     .eq("id", resolvedParams.id)
     .single()
 
   if (!session) notFound()
 
-  // Sort media by display_order
-  const mediaItems = session.session_media
-    ?.sort((a: any, b: any) => a.display_order - b.display_order)
-    .map((sm: any) => sm.media)
-    .filter(Boolean) || []
-
-  // Validate visibility manually for extra security, though RLS protects it
-  const isOwner = user?.id === session.user_id
-  let canView = isOwner || session.visibility === "PUBLIC"
-  
-  if (!canView && user && session.visibility === "FOLLOWERS") {
-    const { data: follow } = await supabase.from("follows").select("status").match({ follower_id: user.id, following_id: session.user_id, status: "ACCEPTED" }).single()
-    if (follow) canView = true
+  // Verify visibility
+  if (session.visibility === 'PRIVATE' && session.user_id !== user?.id) notFound()
+  if (session.visibility === 'FOLLOWERS' && session.user_id !== user?.id) {
+    if (!user) notFound()
+    const { data: follows } = await supabase.from("follows").select("status").eq("follower_id", user.id).eq("following_id", session.user_id).single()
+    if (follows?.status !== 'ACCEPTED') notFound()
   }
 
-  if (!canView) notFound()
+  // Fetch likes & comments
+  const [likesRes, commentsRes] = await Promise.all([
+    supabase.from("session_likes").select("user_id").eq("session_id", session.id),
+    supabase.from("session_comments").select(`
+      *,
+      author:profiles!session_comments_author_id_fkey(id, username, display_name, avatar:media_assets!fk_profiles_avatar(storage_path))
+    `).eq("session_id", session.id).eq("is_deleted", false).order("created_at", { ascending: true })
+  ])
 
-  const { count: likeCount } = await supabase.from("session_likes").select("*", { count: "exact", head: true }).eq("session_id", session.id)
-  const { data: likesData } = await supabase.from("session_likes" as any).select("user_id").eq("session_id", session.id)
-  const isLiked = user ? likesData?.some((l: any) => l.user_id === user.id) : false
-  const { data: commentsRaw } = await supabase.from("session_comments").select(`
-      id, content, is_deleted, created_at, parent_id,
-      author:profiles(id, username, display_name, avatar:media_assets!fk_profiles_avatar(storage_path)),
-      likes:session_comment_likes(user_id)
-    `).eq("session_id", session.id).order("created_at", { ascending: true })
+  const likeCount = likesRes.data?.length || 0
+  const isLiked = user ? !!likesRes.data?.find(l => l.user_id === user.id) : false
+  const comments = commentsRes.data || []
 
-  const comments = commentsRaw?.map(c => ({
-    ...c,
-    like_count: c.likes?.length || 0,
-    user_liked: user ? c.likes?.some((l: any) => l.user_id === user.id) : false
-  })) || []
-
+  const media = session.session_media?.map((m: any) => m.media).filter(Boolean).sort((a: any, b: any) => a.display_order - b.display_order) || []
 
   return (
-    <div className="min-h-screen bg-background p-4 md:p-8 pb-24 md:pb-8 max-w-3xl mx-auto space-y-8">
-      
-      <header className="space-y-2">
-        <h1 className="text-3xl font-bold tracking-tight">Cocinado</h1>
-        <div className="flex justify-between items-center text-sm text-muted-foreground">
-          <p>
-            Realizado por <Link href={`/@${session.user?.username}`} className="text-primary hover:underline font-medium">@{session.user?.username}</Link> el {new Date(session.date).toLocaleDateString()}
-          </p>
-          <LikeButton entityType="session" entityId={session.id} initialIsLiked={isLiked} initialLikeCount={likeCount || 0} isAuthenticated={!!user} />
-          <ShareButton title="Cocinado en Mis Arroces" text={`Mira el resultado de ${session.user?.display_name}`} path={`/sessions/${session.id}`} />
+    <div className="min-h-screen bg-background pb-24 md:pb-8">
+      {/* Header */}
+      <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-md border-b border-border/50">
+        <div className="max-w-2xl mx-auto h-14 px-4 flex items-center justify-between">
+          <Link href={`/recipes/${session.recipe_id}`} className="p-2 -ml-2 text-muted-foreground hover:text-foreground">
+            <ChevronLeft className="w-6 h-6" />
+          </Link>
+          <span className="font-bold text-sm">Resultado</span>
+          <div className="w-10"></div>
         </div>
       </header>
 
-      <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 flex justify-between items-center">
-        <div>
-          <p className="text-xs font-semibold text-primary uppercase tracking-wider mb-1">Receta Original</p>
-          <Link href={`/recipes/${session.recipe_id}`} className="font-medium hover:underline text-lg">{session.recipe?.name}</Link>
+      <main className="max-w-2xl mx-auto p-4 space-y-6">
+        <div className="bg-card border border-border rounded-3xl overflow-hidden shadow-sm">
+          
+          <div className="p-4 flex items-center justify-between">
+            <Link href={`/@${session.author?.username}`} className="flex items-center gap-3 group">
+              <ProfileAvatar avatarUrl={session.author?.avatar?.storage_path || null} username={session.author?.display_name || session.author?.username} />
+              <div>
+                <p className="font-bold text-sm group-hover:underline">{session.author?.display_name}</p>
+                <p className="text-xs text-muted-foreground">{formatRelativeTime(session.created_at)}</p>
+              </div>
+            </Link>
+          </div>
+
+          {media.length > 0 && (
+            <div className="w-full aspect-square">
+              <MediaCarousel items={media} bucket="sessions" />
+            </div>
+          )}
+
+          <div className="p-4 space-y-4">
+            <div className="flex justify-between items-center text-sm font-medium">
+              <div className="flex gap-4">
+                <span>Valoración: {session.rating}/5</span>
+                {session.socarrat_level && <span>Socarrat: {session.socarrat_level}/5</span>}
+              </div>
+            </div>
+
+            {session.notes && <p className="text-sm whitespace-pre-wrap">{session.notes}</p>}
+            {session.modifications && (
+              <div className="bg-muted/30 p-3 rounded-xl border border-border text-sm">
+                <strong>Cambios:</strong> <span className="text-muted-foreground">{session.modifications}</span>
+              </div>
+            )}
+
+            <div className="flex items-center gap-6 pt-2">
+              <LikeButton entityType="session" entityId={session.id} initialIsLiked={isLiked} initialLikeCount={likeCount} isAuthenticated={!!user} />
+              <ShareButton title={`Resultado de ${session.author?.display_name}`} text="Mira esta sesión" path={`/sessions/${session.id}`} />
+            </div>
+            
+            <div className="pt-4 border-t border-border mt-4">
+              <h3 className="font-bold mb-4">Comentarios</h3>
+              <CommentSection entityType="session" entityId={session.id} comments={comments} currentUserId={user?.id || null} allowComments={true} />
+            </div>
+          </div>
         </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
-        {session.rating && (
-          <div className="bg-card border border-border rounded-xl p-4">
-            <p className="text-sm text-muted-foreground mb-1">Valoración</p>
-            <p className="text-lg font-bold text-primary">{"⭐".repeat(session.rating)}</p>
-          </div>
-        )}
-        {session.socarrat_level && (
-          <div className="bg-card border border-border rounded-xl p-4">
-            <p className="text-sm text-muted-foreground mb-1">Socarrat</p>
-            <p className="text-lg font-medium">Nivel {session.socarrat_level}</p>
-          </div>
-        )}
-        {session.actual_servings && (
-          <div className="bg-card border border-border rounded-xl p-4">
-            <p className="text-sm text-muted-foreground mb-1">Raciones reales</p>
-            <p className="text-lg font-medium">{session.actual_servings}</p>
-          </div>
-        )}
-      </div>
-
-      {session.modifications && (
-        <section className="space-y-2">
-          <h2 className="font-bold text-lg">Cambios sobre la receta</h2>
-          <div className="bg-card border border-border rounded-xl p-4">
-            <p className="whitespace-pre-wrap">{session.modifications}</p>
-          </div>
-        </section>
-      )}
-
-      {session.notes && (
-        <section className="space-y-2">
-          <h2 className="font-bold text-lg">Notas personales</h2>
-          <div className="bg-card border border-border rounded-xl p-4">
-            <p className="whitespace-pre-wrap">{session.notes}</p>
-          </div>
-        </section>
-      )}
-
-      <div className="pt-8 border-t border-border mt-8">
-        <CommentSection entityType="session" entityId={session.id} comments={comments || []} currentUserId={user?.id || null} allowComments={session.allow_comments} />
-      </div>
+      </main>
     </div>
   )
 }
-

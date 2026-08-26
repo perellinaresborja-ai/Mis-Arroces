@@ -301,7 +301,7 @@ export default async function RecipeDetailPage({
           {/* Community Sessions */}
         {sessions && sessions.length > 0 && (
           <div className="mt-16 pt-10 border-t border-border">
-            <h2 className="text-2xl font-bold mb-8 font-serif text-charcoal">Lo han cocinado</h2>
+            <h2 className="text-2xl font-bold mb-8 font-serif text-charcoal">Resultados de la comunidad</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {sessions.map((s: any) => {
                 const sMedia = s.session_media?.map((m: any) => m.media).filter(Boolean) || []

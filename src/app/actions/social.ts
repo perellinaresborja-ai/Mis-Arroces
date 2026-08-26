@@ -3,6 +3,7 @@
 
 import { createClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
+import { createNotification } from "@/app/actions/notifications"
 import { redirect } from "next/navigation"
 
 export async function createPost(formData: FormData) {
@@ -88,16 +89,49 @@ export async function toggleFollow(targetUserId: string, isPrivate: boolean, cur
   if (!user) throw new Error("Unauthorized")
 
   if (currentStatus) {
-    // Unfollow or cancel request
     await supabase.from("follows").delete().match({ follower_id: user.id, following_id: targetUserId })
   } else {
-    // Follow
+    const status = isPrivate ? "PENDING" : "ACCEPTED"
     await supabase.from("follows").insert({
       follower_id: user.id,
       following_id: targetUserId,
-      status: isPrivate ? "PENDING" : "ACCEPTED"
+      status
     })
+    
+    await createNotification(
+      targetUserId, 
+      status === "PENDING" ? 'FOLLOW_REQUEST' : 'FOLLOW', 
+      'profile', 
+      user.id
+    )
   }
   revalidatePath("/discover")
   revalidatePath("/", "layout")
+}
+
+export async function acceptFollowRequest(followerId: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error("Unauthorized")
+
+  await supabase.from("follows")
+    .update({ status: 'ACCEPTED' })
+    .eq('follower_id', followerId)
+    .eq('following_id', user.id)
+
+  await createNotification(followerId, 'FOLLOW_ACCEPT', 'profile', user.id)
+  revalidatePath("/profile/requests")
+}
+
+export async function rejectFollowRequest(followerId: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error("Unauthorized")
+
+  await supabase.from("follows")
+    .delete()
+    .eq('follower_id', followerId)
+    .eq('following_id', user.id)
+
+  revalidatePath("/profile/requests")
 }

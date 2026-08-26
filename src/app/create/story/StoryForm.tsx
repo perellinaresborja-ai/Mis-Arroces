@@ -1,91 +1,82 @@
-// @ts-nocheck
 "use client"
 
 import { useState } from "react"
+import { MediaUploader, SelectedMedia } from "@/components/domain/MediaUploader"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
-import { MediaUploader, SelectedMedia } from "@/components/domain/MediaUploader"
 import { uploadMedia } from "@/services/media/client"
-import { createStory } from "@/app/actions/stories"
+import { useRouter } from "next/navigation"
+import { createClient } from "@/lib/supabase/client"
+import { v4 as uuidv4 } from "uuid"
+import { Loader2 } from "lucide-react"
 
-export function StoryForm({ recipes }: { recipes: { id: string, name: string }[] }) {
-  const [selectedMedia, setSelectedMedia] = useState<SelectedMedia[]>([])
+export function StoryForm() {
+  const [media, setMedia] = useState<SelectedMedia[]>([])
+  const [caption, setCaption] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [errorMsg, setErrorMsg] = useState<string | null>(null)
+  const router = useRouter()
+  const supabase = createClient()
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (isSubmitting) return
-
-    setIsSubmitting(true)
-    setErrorMsg(null)
+    if (media.length === 0) return alert("Añade una foto o vídeo")
     
+    setIsSubmitting(true)
     try {
-      const formData = new FormData(e.currentTarget)
-      const caption = formData.get("caption") as string
-      const recipeId = formData.get("recipeId") as string
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error("Unauthorized")
+
+      const storyId = uuidv4()
       
-      let mediaId = undefined;
+      const expiresAt = new Date()
+      expiresAt.setHours(expiresAt.getHours() + 24)
 
-      if (selectedMedia.length > 0) {
-        mediaId = await uploadMedia(selectedMedia[0].file, 'stories', 'temp_' + Date.now())
-      }
-
-      await createStory({
-        mediaId,
-        caption,
-        recipeId: recipeId || undefined
+      const { error: storyErr } = await supabase.from("stories").insert({
+        id: storyId,
+        owner_id: user.id,
+        visibility: 'PUBLIC',
+        caption: caption,
+        expires_at: expiresAt.toISOString()
       })
-      // Action redirects or we can redirect here
-      window.location.href = "/";
+      if (storyErr) throw storyErr
+
+      const uploadedPath = await uploadMedia(media[0].file, "stories", storyId)
+      
+      await supabase.from("story_media").insert({
+        story_id: storyId,
+        media_id: uploadedPath,
+        display_order: 0
+      })
+
+      router.push("/")
     } catch (err: any) {
-      console.error(err)
+      alert("Error: " + err.message)
       setIsSubmitting(false)
-      setErrorMsg(err.message || "Error al publicar la historia. Inténtalo de nuevo.")
     }
   }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      {errorMsg && (
-        <div className="p-3 bg-destructive/10 text-destructive text-sm rounded-lg">
-          {errorMsg}
-        </div>
-      )}
-
-      <div className="space-y-2">
-        <Label>Foto o Vídeo (Requerido)</Label>
-        <MediaUploader 
-          context="stories" 
-          maxItems={1} 
-          onMediaChange={setSelectedMedia} 
-        />
+      <div className="space-y-4">
+        <MediaUploader context={"sessions" as any} maxItems={1} onMediaChange={setMedia} />
       </div>
-
+      
       <div className="space-y-2">
-        <Label htmlFor="caption">Texto corto (Opcional)</Label>
-        <textarea 
+        <Label htmlFor="caption">Mensaje (Opcional)</Label>
+        <textarea
           id="caption"
-          name="caption"
-          maxLength={150}
-          placeholder="¿Qué estás preparando?..."
-          className="flex min-h-[80px] w-full rounded-xl border border-input bg-transparent px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          rows={3}
+          value={caption}
+          onChange={e => setCaption(e.target.value)}
+          className="w-full rounded-xl border border-input bg-background px-3 py-2 text-sm"
+          placeholder="Escribe algo..."
+          maxLength={200}
         />
-        <p className="text-xs text-muted-foreground text-right">Max 150 caracteres</p>
       </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="recipeId">Vincular Receta (Opcional)</Label>
-        <select name="recipeId" id="recipeId" className="w-full h-12 px-3 rounded-xl border border-input bg-background">
-          <option value="">No vincular receta</option>
-          {recipes?.map(r => (
-            <option key={r.id} value={r.id}>{r.name}</option>
-          ))}
-        </select>
-      </div>
-
-      <Button type="submit" className="w-full h-14 text-lg rounded-xl" disabled={isSubmitting || selectedMedia.length === 0}>
-        {isSubmitting ? "Publicando..." : "Subir a mi historia"}
+      <Button type="submit" className="w-full h-12 rounded-xl font-bold" disabled={isSubmitting || media.length === 0}>
+        {isSubmitting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+        Publicar historia
       </Button>
     </form>
   )
