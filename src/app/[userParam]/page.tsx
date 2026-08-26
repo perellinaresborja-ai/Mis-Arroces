@@ -229,7 +229,7 @@ export default async function PublicProfilePage({
           </Link>
           <Link href="?tab=videos" scroll={false} className={`flex items-center gap-2 px-4 sm:px-6 py-4 text-xs font-bold uppercase tracking-widest transition-colors ${tab === 'videos' ? 'text-foreground border-t-[3px] border-primary -mt-[2px]' : 'text-muted-foreground hover:text-foreground border-t-[3px] border-transparent -mt-[2px]'}`}>
             <Clapperboard className="w-4 h-4 sm:w-5 sm:h-5" />
-            <span className="hidden sm:inline">VÃ­deos</span>
+            <span className="hidden sm:inline">Vídeos</span>
           </Link>
           <Link href="?tab=tagged" scroll={false} className={`flex items-center gap-2 px-4 sm:px-6 py-4 text-xs font-bold uppercase tracking-widest transition-colors ${tab === 'tagged' ? 'text-foreground border-t-[3px] border-primary -mt-[2px]' : 'text-muted-foreground hover:text-foreground border-t-[3px] border-transparent -mt-[2px]'}`}>
             <UserSquare className="w-4 h-4 sm:w-5 sm:h-5" />
