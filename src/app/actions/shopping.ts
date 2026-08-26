@@ -1,6 +1,7 @@
 "use server"
 
 import { createClient } from "@/lib/supabase/server"
+import { trackEvent } from "@/app/actions/analytics"
 import { revalidatePath } from "next/cache"
 
 export async function fetchShoppingList() {

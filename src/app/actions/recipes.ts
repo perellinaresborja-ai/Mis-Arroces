@@ -2,6 +2,7 @@
 "use server"
 
 import { revalidatePath } from "next/cache"
+import { trackEvent } from "@/app/actions/analytics"
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
 
@@ -217,6 +218,12 @@ export async function toggleSaveRecipe(recipeId: string, saved: boolean) {
 
   if (saved) {
     await supabase.from('saves').insert({ recipe_id: recipeId, user_id: session.user.id });
+    try {
+      const { data } = await supabase.from("recipes").select("owner_id").eq("id", recipeId).single();
+      if (data?.owner_id && data.owner_id !== session.user.id) {
+        await trackEvent("SAVE", "RECIPE", recipeId, data.owner_id);
+      }
+    } catch(e) {}
   } else {
     await supabase.from('saves').delete().eq('recipe_id', recipeId).eq('user_id', session.user.id);
   }

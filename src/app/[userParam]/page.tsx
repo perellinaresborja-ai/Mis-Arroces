@@ -5,13 +5,14 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { ProfileGridCard } from "@/components/domain/ProfileGridCard"
 import { FeedCard } from "@/components/domain/FeedCard"
-import { Settings, Lock, User, Grid, Clapperboard, UserSquare, LinkIcon, ShoppingCart } from "lucide-react"
+import { Settings, Lock, User, Grid, Clapperboard, UserSquare, LinkIcon, ShoppingCart, BarChart2 } from "lucide-react"
 import { ShareButton } from "@/components/domain/ShareButton"
 import { ProfileShareModal } from "@/components/domain/ProfileShareModal"
 import { ProfileAvatar } from "@/components/domain/ProfileAvatar"
 import { InviteButton } from "@/components/domain/InviteButton"
 import { ProfileFollowButton } from "@/components/domain/ProfileFollowButton"
 
+import { ViewTracker } from "@/components/domain/ViewTracker"
 export default async function PublicProfilePage({ 
   params,
   searchParams
@@ -131,6 +132,7 @@ export default async function PublicProfilePage({
     : null;
   return (
     <div className="pb-24 md:pb-8 bg-background min-h-screen overflow-x-hidden max-w-[100vw]">
+      {profile.id && profile.id !== user?.id && <ViewTracker eventType="PROFILE_VIEW" entityType="PROFILE" entityId={profile.id} ownerId={profile.id} />}
       <header className="mb-6 relative">
         {/* COVER FULL WIDTH */}
         <div className="w-full bg-muted relative z-0 overflow-hidden rounded-xl" style={{ height: '325px' }}>

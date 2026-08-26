@@ -10,6 +10,7 @@ import { CommentSection } from "@/components/domain/CommentSection"
 import { ChevronLeft } from "lucide-react"
 import { ProfileAvatar } from "@/components/domain/ProfileAvatar"
 
+import { ViewTracker } from "@/components/domain/ViewTracker"
 export default async function SessionDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = await params
   const supabase = await createClient()
@@ -53,6 +54,7 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
 
   return (
     <div className="min-h-screen bg-background pb-24 md:pb-8">
+      {session.user_id && session.user_id !== user?.id && <ViewTracker eventType="SESSION_VIEW" entityType="SESSION" entityId={session.id} ownerId={session.user_id} />}
       {/* Header */}
       <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-md border-b border-border/50">
         <div className="max-w-2xl mx-auto h-14 px-4 flex items-center justify-between">

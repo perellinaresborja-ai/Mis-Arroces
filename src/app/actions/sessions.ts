@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
 import { createNotification } from "@/app/actions/notifications"
+import { trackEvent } from "@/app/actions/analytics"
 import { redirect } from "next/navigation"
 
 export async function createCookingSession(formData: FormData) {

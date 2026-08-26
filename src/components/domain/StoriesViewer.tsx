@@ -5,6 +5,9 @@ import { formatRelativeTime } from "@/lib/utils"
 import { X } from "lucide-react"
 import { markStoryViewed, fetchStoryViewers } from "@/app/actions/stories"
 import Link from "next/link"
+import { EntityInsightsModal } from "./EntityInsightsModal"
+import { BarChart2 } from "lucide-react"
+import { trackClickAction } from "@/app/actions/tracking"
 
 export function StoriesViewer({ groupedStories, initialGroupIndex, onClose, currentUser }: any) {
   const [groupIndex, setGroupIndex] = useState(initialGroupIndex)
@@ -13,6 +16,7 @@ export function StoriesViewer({ groupedStories, initialGroupIndex, onClose, curr
   const [progress, setProgress] = useState(0) // 0 to 100 per story
   const [viewers, setViewers] = useState<any[]>([])
   const [showViewers, setShowViewers] = useState(false)
+  const [insightsOpen, setInsightsOpen] = useState(false)
 
   const currentGroup = groupedStories[groupIndex]
   const currentStory = currentGroup?.stories[storyIndex]
@@ -225,13 +229,20 @@ export function StoriesViewer({ groupedStories, initialGroupIndex, onClose, curr
 
         {/* Owner Viewers Footer */}
         {isMe && (
-          <div className="absolute bottom-4 left-0 w-full flex justify-center z-30">
+          <div className="absolute bottom-4 left-0 w-full flex justify-center z-30 gap-2">
             <button 
               onClick={(e) => { e.stopPropagation(); setShowViewers(true); setIsPaused(true); }}
               className="flex items-center gap-2 px-4 py-1.5 bg-black/40 hover:bg-black/60 backdrop-blur-md rounded-full text-xs font-bold transition-colors"
             >
               <EyeIcon className="w-4 h-4" />
               Visto por {currentStory.viewCount || viewers.length}
+            </button>
+            <button 
+              onClick={(e) => { e.stopPropagation(); setInsightsOpen(true); setIsPaused(true); }}
+              className="flex items-center gap-2 px-4 py-1.5 bg-black/40 hover:bg-black/60 backdrop-blur-md rounded-full text-xs font-bold transition-colors"
+            >
+              <BarChart2 className="w-4 h-4" />
+              Estadísticas
             </button>
           </div>
         )}
@@ -268,6 +279,13 @@ export function StoriesViewer({ groupedStories, initialGroupIndex, onClose, curr
         )}
 
       </div>
+
+      <EntityInsightsModal 
+        isOpen={insightsOpen} 
+        onClose={() => { setInsightsOpen(false); setIsPaused(false); }} 
+        entityType="STORY" 
+        entityId={currentStory.id} 
+      />
     </div>
   )
 }

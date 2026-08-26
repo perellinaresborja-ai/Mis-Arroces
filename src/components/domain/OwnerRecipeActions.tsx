@@ -7,6 +7,8 @@ import { createStory } from "@/app/actions/stories"
 import { Calendar, Globe, Share, Loader2, Check, X, Pencil, MoreVertical, Share2 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
+import { EntityInsightsModal } from "./EntityInsightsModal"
+import { BarChart2 } from "lucide-react"
 
 export function OwnerRecipeActions({ recipeId, status, scheduledFor, primaryMediaId }: { recipeId: string, status: string, scheduledFor: string | null, primaryMediaId?: string }) {
   const router = useRouter()
@@ -14,6 +16,7 @@ export function OwnerRecipeActions({ recipeId, status, scheduledFor, primaryMedi
   const [showSchedule, setShowSchedule] = useState(false)
   const [scheduleDate, setScheduleDate] = useState("")
   const [menuOpen, setMenuOpen] = useState(false)
+  const [insightsOpen, setInsightsOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -142,7 +145,13 @@ export function OwnerRecipeActions({ recipeId, status, scheduledFor, primaryMedi
                   <Pencil className="w-4 h-4 mr-2 text-muted-foreground" /> Editar
                 </Button>
               </Link>
-            </>
+            <EntityInsightsModal 
+        isOpen={insightsOpen} 
+        onClose={() => setInsightsOpen(false)} 
+        entityType="RECIPE" 
+        entityId={recipeId} 
+      />
+    </>
           )}
 
           {isPublished && (

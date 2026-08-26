@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
+import { trackEvent } from "@/app/actions/analytics"
 import { createNotification } from "@/app/actions/notifications"
 import { parseAndSaveMentionsAndHashtags } from "./social_features"
 

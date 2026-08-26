@@ -11,6 +11,7 @@ import { SaveRecipeButton } from "@/components/domain/SaveRecipeButton"
 import { AddToCartButton } from "@/components/domain/AddToCartButton"
 import { LoHeCocinadoButton } from "@/components/domain/LoHeCocinadoButton"
 
+import { ViewTracker } from "@/components/domain/ViewTracker"
 export default async function RecipeDetailPage({
   params
 }: {
@@ -97,6 +98,7 @@ export default async function RecipeDetailPage({
 
   return (
     <div className="min-h-screen bg-background pb-24 font-sans">
+      {recipe.owner_id && recipe.owner_id !== user?.id && <ViewTracker eventType="RECIPE_VIEW" entityType="RECIPE" entityId={recipe.id} ownerId={recipe.owner_id} />}
       
       <div className="max-w-6xl mx-auto pt-4 md:pt-10 px-4">
         

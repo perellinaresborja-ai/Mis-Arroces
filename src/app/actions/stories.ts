@@ -3,6 +3,7 @@
 
 import { createClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
+import { trackEvent } from "@/app/actions/analytics"
 
 export async function createStory(data: {
   mediaId?: string
@@ -122,6 +123,7 @@ export async function markStoryViewed(storyId: string) {
 
   // INSERT ON CONFLICT DO NOTHING relies on unique constraint (story_id, viewer_id)
   await supabase.from("story_views").insert({ story_id: storyId, viewer_id: user.id })
+    await trackEvent("STORY_VIEW", "STORY", storyId, story.owner_id)
 }
 
 export async function fetchStoryViewers(storyId: string) {
