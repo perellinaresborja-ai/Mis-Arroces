@@ -38,21 +38,22 @@ export function EscandalloSection({ recipeId, initialIngredients, catalogs, base
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
 
-    await supabase.from("recipe_ingredient_costs").upsert({
+    const { error } = await supabase.from("recipe_ingredient_costs").upsert({
       id: ingId,
       recipe_id: recipeId,
       owner_id: user.id,
       purchase_amount: purchaseAmount,
       purchase_unit_id: purchaseUnitId,
       purchase_price: purchasePrice
-    })
+    });
+    if (error) console.error("Error saving cost:", error)
   }
 
   // Calculate totals
   const totalCost = useMemo(() => {
     let sum = 0
     initialIngredients.forEach((ing: any) => {
-      const costRow = costs.find(c => c.id === ing.id)
+      const costRow = costs.find(c => c.id === (ing.db_id || ing.id))
       if (costRow && costRow.purchase_price && costRow.purchase_amount) {
         // Find units
         const purchaseUnit = catalogs.units.find((u: any) => u.id === costRow.purchase_unit_id)
@@ -96,7 +97,7 @@ export function EscandalloSection({ recipeId, initialIngredients, catalogs, base
           
           <div className="space-y-4">
             {initialIngredients.map((ing: any) => {
-              const costRow = costs.find(c => c.id === ing.id)
+              const costRow = costs.find(c => c.id === (ing.db_id || ing.id))
               const usedUnit = catalogs.units.find((u: any) => u.id === ing.unit_id)
               
               return (
@@ -113,7 +114,7 @@ export function EscandalloSection({ recipeId, initialIngredients, catalogs, base
                       step="any"
                       placeholder="Ej: 2"
                       defaultValue={costRow?.purchase_amount}
-                      onBlur={(e) => handleSaveCost(ing.id, Number(e.target.value), costRow?.purchase_unit_id || ing.unit_id, costRow?.purchase_price || 0)}
+                      onBlur={(e) => handleSaveCost((ing.db_id || ing.id), Number(e.target.value), costRow?.purchase_unit_id || ing.unit_id, costRow?.purchase_price || 0)}
                     />
                   </div>
                   <div className="space-y-1">
@@ -121,7 +122,7 @@ export function EscandalloSection({ recipeId, initialIngredients, catalogs, base
                     <select 
                       className="w-full h-10 px-3 rounded-lg border border-input bg-background text-sm"
                       defaultValue={costRow?.purchase_unit_id || ing.unit_id}
-                      onChange={(e) => handleSaveCost(ing.id, costRow?.purchase_amount || 0, e.target.value, costRow?.purchase_price || 0)}
+                      onChange={(e) => handleSaveCost((ing.db_id || ing.id), costRow?.purchase_amount || 0, e.target.value, costRow?.purchase_price || 0)}
                     >
                       {catalogs.units.map((u: any) => (
                         <option key={u.id} value={u.id}>{u.name}</option>
@@ -135,7 +136,7 @@ export function EscandalloSection({ recipeId, initialIngredients, catalogs, base
                       step="any"
                       placeholder="Ej: 5.50"
                       defaultValue={costRow?.purchase_price}
-                      onBlur={(e) => handleSaveCost(ing.id, costRow?.purchase_amount || 0, costRow?.purchase_unit_id || ing.unit_id, Number(e.target.value))}
+                      onBlur={(e) => handleSaveCost((ing.db_id || ing.id), costRow?.purchase_amount || 0, costRow?.purchase_unit_id || ing.unit_id, Number(e.target.value))}
                     />
                   </div>
                 </div>

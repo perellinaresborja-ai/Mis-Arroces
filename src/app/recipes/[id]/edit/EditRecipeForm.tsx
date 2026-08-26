@@ -50,7 +50,7 @@ export default function EditRecipeForm({ recipe, catalogs }: { recipe: any, cata
           ...s,
           mediaItem: s.media_id && s.media ? { type: 'existing', id: s.media_id, url: `${"https://zvesoygqssyyojqyswwm.supabase.co"}/storage/v1/object/public/recipe_media/${s.media.storage_path}` } : null
         })) || [],
-      ingredients: (recipe.recipe_ingredients || recipe.ingredients)?.sort((a: any, b: any) => a.display_order - b.display_order) || []
+      ingredients: (recipe.recipe_ingredients || recipe.ingredients)?.sort((a: any, b: any) => a.display_order - b.display_order).map((ing: any) => ({ ...ing, db_id: ing.id })) || []
     }
   })
 
