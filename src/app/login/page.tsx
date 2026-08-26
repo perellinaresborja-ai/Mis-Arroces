@@ -60,7 +60,7 @@ export default async function LoginPage({
         <div className="w-full max-w-sm flex flex-col items-center shrink-0 mb-4">
           <div className="relative w-56 h-56 lg:w-[320px] lg:h-[320px]">
             <Image 
-              src="/logo_paella_m.png" 
+              src="/mpng.png" 
               alt="Mis Arroces" 
               fill
               className="object-contain"
