@@ -119,7 +119,7 @@ export function StoriesViewer({ groupedStories, initialGroupIndex, onClose, curr
 
   const mediaPath = currentStory.story_media?.[0]?.media?.storage_path
   const isVideo = mediaPath?.match(/\.(mp4|webm|ogg)$/i)
-  const fullUrl = mediaPath ? `${"https://zvesoygqssyyojqyswwm.supabase.co"}/storage/v1/object/public/stories/${mediaPath}` : ""
+  const fullUrl = mediaPath ? `${"https://zvesoygqssyyojqyswwm.supabase.co"}/storage/v1/object/public/recipe_media/${mediaPath}` : ""
 
   const handlePointerDown = () => setIsPaused(true)
   const handlePointerUp = () => setIsPaused(false)
@@ -148,7 +148,7 @@ export function StoriesViewer({ groupedStories, initialGroupIndex, onClose, curr
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-muted overflow-hidden flex items-center justify-center shrink-0">
               {currentGroup.author?.avatar?.storage_path ? (
-                <img src={`${"https://zvesoygqssyyojqyswwm.supabase.co"}/storage/v1/object/public/avatars/${currentGroup.author.avatar.storage_path}`} className="w-full h-full object-cover" />
+                <img src={`${"https://zvesoygqssyyojqyswwm.supabase.co"}/storage/v1/object/public/recipe_media/${currentGroup.author.avatar.storage_path}`} className="w-full h-full object-cover" />
               ) : (
                 <span className="font-bold text-muted-foreground text-sm">{(currentGroup.author?.display_name || currentGroup.author?.username || "?").charAt(0).toUpperCase()}</span>
               )}
@@ -251,7 +251,7 @@ export function StoriesViewer({ groupedStories, initialGroupIndex, onClose, curr
                   <Link href={`/@${v.username}`} key={v.id} className="flex items-center gap-3 p-3 hover:bg-white/5 rounded-2xl transition-colors">
                     <div className="w-10 h-10 rounded-full bg-muted overflow-hidden flex items-center justify-center shrink-0">
                       {v.avatar?.storage_path ? (
-                        <img src={`${"https://zvesoygqssyyojqyswwm.supabase.co"}/storage/v1/object/public/avatars/${v.avatar.storage_path}`} className="w-full h-full object-cover" />
+                        <img src={`${"https://zvesoygqssyyojqyswwm.supabase.co"}/storage/v1/object/public/recipe_media/${v.avatar.storage_path}`} className="w-full h-full object-cover" />
                       ) : (
                         <span className="font-bold text-muted-foreground text-sm">{(v.display_name || v.username || "?").charAt(0).toUpperCase()}</span>
                       )}

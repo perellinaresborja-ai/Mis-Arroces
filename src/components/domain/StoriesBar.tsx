@@ -47,7 +47,7 @@ export function StoriesBar({ groupedStories, currentUser }: { groupedStories: an
               <div className={`w-16 h-16 rounded-full p-0.5 border-2 \${group.allSeen ? 'border-border' : 'border-primary'}`}>
                 <div className="w-full h-full rounded-full overflow-hidden bg-muted flex items-center justify-center">
                   {group.author?.avatar?.storage_path ? (
-                    <img src={`${"https://zvesoygqssyyojqyswwm.supabase.co"}/storage/v1/object/public/avatars/${group.author.avatar.storage_path}`} className="w-full h-full object-cover" />
+                    <img src={`${"https://zvesoygqssyyojqyswwm.supabase.co"}/storage/v1/object/public/recipe_media/${group.author.avatar.storage_path}`} className="w-full h-full object-cover" />
                   ) : (
                     <span className="font-bold text-muted-foreground">{(group.author?.display_name || group.author?.username || "?").charAt(0).toUpperCase()}</span>
                   )}
