@@ -30,7 +30,7 @@ export function LoginForm({ error, message }: { error?: string, message?: string
             <input 
               id="email" 
               name="email" 
-              type="email" 
+              type="email" autoComplete="email" 
               placeholder="tu@email.com"
               required 
               className="w-full h-12 px-4 bg-transparent border-2 border-border/80 focus:border-charcoal rounded-xl outline-none transition-colors text-charcoal text-base" 
@@ -47,7 +47,7 @@ export function LoginForm({ error, message }: { error?: string, message?: string
               <input 
                 id="password" 
                 name="password" 
-                type={showPassword ? "text" : "password"} 
+                type={showPassword ? "text" : "password"} autoComplete="current-password" 
                 placeholder="••••••••"
                 required 
                 className="w-full h-12 pl-4 pr-12 bg-transparent border-2 border-border/80 focus:border-charcoal rounded-xl outline-none transition-colors text-charcoal text-base font-medium tracking-wide" 
