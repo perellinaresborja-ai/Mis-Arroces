@@ -3,6 +3,7 @@ import { redirect } from "next/navigation"
 import Link from "next/link"
 import { createClient } from "@/lib/supabase/server"
 import { Button } from "@/components/ui/button"
+import { formatUnitSymbol } from "@/lib/utils"
 import { Pencil, Clock, Flame, Users, Beaker, ChefHat, Hourglass } from "lucide-react"
 import { FeedCard } from "@/components/domain/FeedCard"
 import { WantToCookButton } from "@/components/domain/WantToCookButton"
@@ -236,7 +237,7 @@ export default async function RecipeDetailPage({
                     <span className="text-foreground/90">{ing.display_text}</span>
                     {ing.normalized_quantity && (
                       <span className="font-bold text-charcoal shrink-0 ml-4">
-                        {ing.normalized_quantity} {ing.unit?.name || ""}
+                        {ing.normalized_quantity} {formatUnitSymbol(ing.unit?.name)}
                       </span>
                     )}
                   </li>

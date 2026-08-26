@@ -11,7 +11,7 @@ import { EscandalloSection } from "@/components/domain/EscandalloSection"
 import { AddToCartButton } from "@/components/domain/AddToCartButton"
 import { Save, Plus, Trash2, GripVertical, ChevronDown, ChevronUp, Check, Clock, EyeOff, Calendar } from "lucide-react"
 import { updateRecipeFull } from "@/app/actions/recipes"
-import { cn } from "@/lib/utils"
+import { cn, formatUnitSymbol } from "@/lib/utils"
 import { RecipeMediaManager, MediaItem } from "./RecipeMediaManager"
 import { StepMediaManager, StepMediaItem } from "./StepMediaManager"
 import { uploadMedia } from "@/services/media/client"
@@ -354,7 +354,7 @@ export default function EditRecipeForm({ recipe, catalogs }: { recipe: any, cata
                     <div className="col-span-8 md:col-span-3">
                       <select {...register(`ingredients.${idx}.unit_id`)} className="w-full h-10 px-2 rounded-md border border-input bg-background text-sm">
                         <option value="">Unidad (opc)</option>
-                        {catalogs.units.map((u: any) => <option key={u.id} value={u.id}>{u.name}</option>)}
+                        {catalogs.units.map((u: any) => <option key={u.id} value={u.id}>{formatUnitSymbol(u.name)}</option>)}
                       </select>
                     </div>
                     <div className="col-span-12 md:col-span-6">

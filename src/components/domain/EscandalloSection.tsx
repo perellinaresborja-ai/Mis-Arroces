@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { createClient } from "@/lib/supabase/client"
+import { formatUnitSymbol } from "@/lib/utils"
 
 export function EscandalloSection({ recipeId, initialIngredients, catalogs, baseServings, setValue }: any) {
   const [isOpen, setIsOpen] = useState(false)
@@ -109,7 +110,7 @@ export function EscandalloSection({ recipeId, initialIngredients, catalogs, base
                 <div key={ing.id} className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end bg-muted/20 p-4 rounded-xl border border-border">
                   <div className="md:col-span-4">
                     <p className="font-medium">{ing.display_text}</p>
-                    <p className="text-xs text-muted-foreground">Cantidad usada: {ing.normalized_quantity} {usedUnit?.name}</p>
+                    <p className="text-xs text-muted-foreground">Cantidad usada: {ing.normalized_quantity} {formatUnitSymbol(usedUnit?.name)}</p>
                   </div>
                   
                   <div className="space-y-1">
@@ -130,7 +131,7 @@ export function EscandalloSection({ recipeId, initialIngredients, catalogs, base
                       onChange={(e) => handleSaveCost((ing.db_id || ing.id), costRow?.purchase_amount || 0, e.target.value, costRow?.purchase_price || 0)}
                     >
                       {catalogs.units.map((u: any) => (
-                        <option key={u.id} value={u.id}>{u.name}</option>
+                        <option key={u.id} value={u.id}>{formatUnitSymbol(u.name)}</option>
                       ))}
                     </select>
                   </div>
