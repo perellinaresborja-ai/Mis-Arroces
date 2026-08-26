@@ -24,7 +24,7 @@ export function DesktopNav() {
     <header className="hidden md:flex sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="flex h-16 items-center justify-between w-full max-w-7xl mx-auto px-4 md:px-8">
         
-        <Link href="/cookbook" className="flex items-center gap-2">
+        <Link href="/" className="flex items-center gap-2">
             <div className="relative w-56 h-12">
               <Image src="/mpng.png" alt="Mis Arroces Logo" fill className="object-contain object-left" priority />
             </div>
