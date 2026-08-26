@@ -44,7 +44,7 @@ export default async function PublicProfilePage({
   if (!profile) notFound()
 
   const avatarUrl = profile.avatar?.storage_path 
-    ? `${(process.env.NEXT_PUBLIC_SUPABASE_URL || "https://zvesoygqssyyojqyswwm.supabase.co")}/storage/v1/object/public/recipe_media/${profile.avatar.storage_path}`
+    ? `${"https://zvesoygqssyyojqyswwm.supabase.co"}/storage/v1/object/public/recipe_media/${profile.avatar.storage_path}`
     : null
 
   const isSelf = user?.id === profile.id
@@ -125,7 +125,7 @@ export default async function PublicProfilePage({
   }
 
   const coverUrl = profile.cover?.storage_path
-    ? `${(process.env.NEXT_PUBLIC_SUPABASE_URL || "https://zvesoygqssyyojqyswwm.supabase.co")}/storage/v1/object/public/recipe_media/${profile.cover.storage_path}`
+    ? `${"https://zvesoygqssyyojqyswwm.supabase.co"}/storage/v1/object/public/recipe_media/${profile.cover.storage_path}`
     : null;
   return (
     <div className="pb-24 md:pb-8 bg-background min-h-screen overflow-x-hidden max-w-[100vw]">

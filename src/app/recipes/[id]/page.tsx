@@ -44,7 +44,7 @@ export default async function RecipeDetailPage({
   // Get primary image
   const primaryMedia = recipe.media?.[0]?.media_assets?.storage_path
   const imageUrl = primaryMedia 
-    ? `${(process.env.NEXT_PUBLIC_SUPABASE_URL || "https://zvesoygqssyyojqyswwm.supabase.co")}/storage/v1/object/public/recipe_media/${primaryMedia}`
+    ? `${"https://zvesoygqssyyojqyswwm.supabase.co"}/storage/v1/object/public/recipe_media/${primaryMedia}`
     : null
 
   // Calculate ratio
@@ -235,7 +235,7 @@ export default async function RecipeDetailPage({
               <div className="space-y-10">
                 {recipe.steps.sort((a: any, b: any) => a.step_number - b.step_number).map((step: any) => {
                   const stepImageUrl = step.media?.storage_path 
-                    ? `${(process.env.NEXT_PUBLIC_SUPABASE_URL || "https://zvesoygqssyyojqyswwm.supabase.co")}/storage/v1/object/public/recipe_media/${step.media.storage_path}`
+                    ? `${"https://zvesoygqssyyojqyswwm.supabase.co"}/storage/v1/object/public/recipe_media/${step.media.storage_path}`
                     : null;
 
                   return (

@@ -103,7 +103,7 @@ function CommentThread({
   }
 
   const getAvatar = (path?: string) => path 
-    ? `${(process.env.NEXT_PUBLIC_SUPABASE_URL || "https://zvesoygqssyyojqyswwm.supabase.co")}/storage/v1/object/public/recipe_media/${path}`
+    ? `${"https://zvesoygqssyyojqyswwm.supabase.co"}/storage/v1/object/public/recipe_media/${path}`
     : null
 
   const isOwn = currentUserId === comment.author.id
@@ -257,7 +257,7 @@ function CommentReply({
   }
 
   const getAvatar = (path?: string) => path 
-    ? `${(process.env.NEXT_PUBLIC_SUPABASE_URL || "https://zvesoygqssyyojqyswwm.supabase.co")}/storage/v1/object/public/recipe_media/${path}`
+    ? `${"https://zvesoygqssyyojqyswwm.supabase.co"}/storage/v1/object/public/recipe_media/${path}`
     : null
 
   const isOwn = currentUserId === comment.author.id

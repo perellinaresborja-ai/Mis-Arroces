@@ -24,7 +24,7 @@ interface RecipeMediaManagerProps {
   onChange: (items: MediaItem[]) => void
 }
 
-const SUPABASE_URL = (process.env.NEXT_PUBLIC_SUPABASE_URL || "https://zvesoygqssyyojqyswwm.supabase.co")!
+const SUPABASE_URL = "https://zvesoygqssyyojqyswwm.supabase.co"!
 
 export function RecipeMediaManager({ initialMedia, onChange }: RecipeMediaManagerProps) {
   // Sort initial by display_order, put primary first usually (but display_order should handle that)

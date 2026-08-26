@@ -53,11 +53,11 @@ export function EditProfileForm({ initialProfile }: { initialProfile: any }) {
   }
 
   const existingAvatarUrl = initialProfile.avatar?.storage_path 
-    ? `${(process.env.NEXT_PUBLIC_SUPABASE_URL || "https://zvesoygqssyyojqyswwm.supabase.co")}/storage/v1/object/public/recipe_media/${initialProfile.avatar.storage_path}`
+    ? `${"https://zvesoygqssyyojqyswwm.supabase.co"}/storage/v1/object/public/recipe_media/${initialProfile.avatar.storage_path}`
     : null
     
   const existingCoverUrl = initialProfile.cover?.storage_path 
-    ? `${(process.env.NEXT_PUBLIC_SUPABASE_URL || "https://zvesoygqssyyojqyswwm.supabase.co")}/storage/v1/object/public/recipe_media/${initialProfile.cover.storage_path}`
+    ? `${"https://zvesoygqssyyojqyswwm.supabase.co"}/storage/v1/object/public/recipe_media/${initialProfile.cover.storage_path}`
     : null
 
   const displayAvatarUrl = selectedMedia.length > 0 ? selectedMedia[0].previewUrl : existingAvatarUrl

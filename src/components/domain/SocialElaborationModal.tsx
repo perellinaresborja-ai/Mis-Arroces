@@ -37,7 +37,7 @@ export function SocialElaborationModal({ isOpen, onClose, item, currentUserId }:
   const mediaList = item.recipe_media || item.session_media || item.post_media || []
   const media = [...mediaList].sort((a: any, b: any) => (a.display_order || 0) - (b.display_order || 0)).map(m => m.media).filter(Boolean)
 
-  const NEXT_PUBLIC_SUPABASE_URL = (process.env.NEXT_PUBLIC_SUPABASE_URL || "https://zvesoygqssyyojqyswwm.supabase.co")
+  const NEXT_PUBLIC_SUPABASE_URL = "https://zvesoygqssyyojqyswwm.supabase.co"
   const getImageUrl = (path: string) => `${NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/recipe_media/${path}`
 
   const next = () => setCurrentIndex(prev => (prev + 1) % media.length)

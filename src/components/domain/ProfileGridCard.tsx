@@ -15,7 +15,7 @@ export function ProfileGridCard({ item, currentUserId }: { item: any, currentUse
     const sorted = [...mediaList].sort((a: any, b: any) => (a.display_order || 0) - (b.display_order || 0))
     imagePath = sorted[0]?.media?.storage_path
   }
-  const imageUrl = imagePath ? `${(process.env.NEXT_PUBLIC_SUPABASE_URL || "https://zvesoygqssyyojqyswwm.supabase.co")}/storage/v1/object/public/recipe_media/${imagePath}` : null
+  const imageUrl = imagePath ? `${"https://zvesoygqssyyojqyswwm.supabase.co"}/storage/v1/object/public/recipe_media/${imagePath}` : null
 
   // determine link
   let badge = null

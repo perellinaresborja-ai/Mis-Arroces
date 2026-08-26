@@ -20,7 +20,7 @@ interface StepMediaManagerProps {
   onChange: (item: StepMediaItem | null) => void
 }
 
-const SUPABASE_URL = (process.env.NEXT_PUBLIC_SUPABASE_URL || "https://zvesoygqssyyojqyswwm.supabase.co")!
+const SUPABASE_URL = "https://zvesoygqssyyojqyswwm.supabase.co"!
 
 export function StepMediaManager({ initialMedia, onChange }: StepMediaManagerProps) {
   const [item, setItem] = useState<StepMediaItem | null>(

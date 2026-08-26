@@ -30,7 +30,7 @@ export function AutocompleteMenu({
                 {s.avatar?.storage_path ? (
                   /* eslint-disable-next-line @next/next/no-img-element */
                   <img 
-                    src={`${(process.env.NEXT_PUBLIC_SUPABASE_URL || "https://zvesoygqssyyojqyswwm.supabase.co")}/storage/v1/object/public/recipe_media/${s.avatar.storage_path}`} 
+                    src={`${"https://zvesoygqssyyojqyswwm.supabase.co"}/storage/v1/object/public/recipe_media/${s.avatar.storage_path}`} 
                     alt={s.username} 
                     className="w-full h-full object-cover"
                   />

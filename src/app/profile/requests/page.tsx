@@ -22,7 +22,7 @@ export default async function RequestsPage() {
     .order("created_at", { ascending: false })
 
   const getAvatarUrl = (path: string | undefined | null) => 
-    path ? `${(process.env.NEXT_PUBLIC_SUPABASE_URL || "https://zvesoygqssyyojqyswwm.supabase.co")}/storage/v1/object/public/recipe_media/${path}` : null
+    path ? `${"https://zvesoygqssyyojqyswwm.supabase.co"}/storage/v1/object/public/recipe_media/${path}` : null
 
   return (
     <div className="min-h-screen bg-background pb-24 md:pb-8 flex justify-center">

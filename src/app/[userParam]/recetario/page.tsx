@@ -30,7 +30,7 @@ export default async function PublicCookbookPage({
   const getMediaUrl = (mediaArray: any[]) => {
     const sorted = mediaArray ? [...mediaArray].sort((a,b) => (a.display_order||0) - (b.display_order||0)) : []
     const path = sorted[0]?.media?.storage_path
-    return path ? `${(process.env.NEXT_PUBLIC_SUPABASE_URL || "https://zvesoygqssyyojqyswwm.supabase.co")}/storage/v1/object/public/recipe_media/${path}` : null
+    return path ? `${"https://zvesoygqssyyojqyswwm.supabase.co"}/storage/v1/object/public/recipe_media/${path}` : null
   }
 
   return (

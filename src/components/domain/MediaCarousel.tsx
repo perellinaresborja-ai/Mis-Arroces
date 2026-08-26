@@ -15,7 +15,7 @@ export function MediaCarousel({ items, bucket = "recipe_media" }: { items: Media
   if (!items || items.length === 0) return null
 
   // Supabase public URL prefix
-  const NEXT_PUBLIC_SUPABASE_URL = (process.env.NEXT_PUBLIC_SUPABASE_URL || "https://zvesoygqssyyojqyswwm.supabase.co")
+  const NEXT_PUBLIC_SUPABASE_URL = "https://zvesoygqssyyojqyswwm.supabase.co"
   const getImageUrl = (path: string) => `${NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/${bucket}/${path}`
 
   const next = () => setCurrentIndex(prev => (prev + 1) % items.length)

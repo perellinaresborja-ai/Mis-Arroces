@@ -47,7 +47,7 @@ export default function EditRecipeForm({ recipe, catalogs }: { recipe: any, cata
       tags: (recipe.recipe_tags || recipe.tags)?.map((t: any) => t.tag_id) || [],
       steps: (recipe.recipe_steps || recipe.steps)?.sort((a: any, b: any) => a.step_number - b.step_number).map((s: any) => ({
           ...s,
-          mediaItem: s.media_id && s.media ? { type: 'existing', id: s.media_id, url: `${(process.env.NEXT_PUBLIC_SUPABASE_URL || "https://zvesoygqssyyojqyswwm.supabase.co")}/storage/v1/object/public/recipe_media/${s.media.storage_path}` } : null
+          mediaItem: s.media_id && s.media ? { type: 'existing', id: s.media_id, url: `${"https://zvesoygqssyyojqyswwm.supabase.co"}/storage/v1/object/public/recipe_media/${s.media.storage_path}` } : null
         })) || [],
       ingredients: (recipe.recipe_ingredients || recipe.ingredients)?.sort((a: any, b: any) => a.display_order - b.display_order) || []
     }
@@ -56,7 +56,7 @@ export default function EditRecipeForm({ recipe, catalogs }: { recipe: any, cata
   const [mediaItems, setMediaItems] = useState<MediaItem[]>(
     (recipe.recipe_media || recipe.media)?.map((m: any) => ({
       id: m.media_id || m.media?.id,
-      url: `${(process.env.NEXT_PUBLIC_SUPABASE_URL || "https://zvesoygqssyyojqyswwm.supabase.co")}/storage/v1/object/public/recipe_media/${m.media_assets?.storage_path || m.media?.storage_path}`,
+      url: `${"https://zvesoygqssyyojqyswwm.supabase.co"}/storage/v1/object/public/recipe_media/${m.media_assets?.storage_path || m.media?.storage_path}`,
       file: null,
       type: 'existing'
     })) || []
