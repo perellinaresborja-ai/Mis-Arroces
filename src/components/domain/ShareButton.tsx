@@ -72,6 +72,15 @@ export function ShareButton({ title, text, path }: { title: string, text: string
                 <Copy className="w-4 h-4 mr-2" /> {copied ? "¡Copiado!" : "Copiar link"}
               </Button>
             </div>
+            
+            <div className="mt-3">
+              <Button asChild variant="outline" className="w-full font-bold rounded-xl" size="lg">
+                <a href={`/create/story?share=${encodeURIComponent(path)}`}>
+                  <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v8"/><path d="M8 12h8"/></svg>
+                  Compartir en Historia
+                </a>
+              </Button>
+            </div>
           </div>
         </div>,
         document.body
