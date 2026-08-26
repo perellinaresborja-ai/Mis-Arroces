@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { BookOpen, Compass, User, PlusCircle, Home } from "lucide-react"
+import { BookOpen, Compass, User, ShoppingCart, PlusCircle, Home } from "lucide-react"
 import { cn } from "@/lib/utils"
 import Image from "next/image"
 import { buttonVariants } from "@/components/ui/button"
@@ -16,6 +16,11 @@ export function DesktopNav() {
     { href: "/me", icon: User, label: "Perfil" },
     { href: "/discover", icon: Compass, label: "Descubrir" },
     { href: "/cookbook", icon: BookOpen, label: "Recetario" },
+    {
+      href: "/shopping-list",
+      icon: ShoppingCart,
+      label: "Compra",
+    },
   ]
 
   // Only hide on auth pages
