@@ -1,7 +1,7 @@
 // @ts-nocheck
 "use client"
 
-import { useState } from "react"
+import React, { useState } from "react"
 import { useRouter } from "next/navigation"
 import { useForm, useFieldArray } from "react-hook-form"
 import { Button } from "@/components/ui/button"
@@ -14,6 +14,27 @@ import { cn } from "@/lib/utils"
 import { RecipeMediaManager, MediaItem } from "./RecipeMediaManager"
 import { StepMediaManager, StepMediaItem } from "./StepMediaManager"
 import { uploadMedia } from "@/services/media/client"
+
+
+function CollapsibleSection({ title, defaultOpen = false, children, rightAction }: { title: React.ReactNode, defaultOpen?: boolean, children: React.ReactNode, rightAction?: React.ReactNode }) {
+  const [isOpen, setIsOpen] = React.useState(defaultOpen)
+  return (
+    <div className="bg-card border border-border rounded-2xl shadow-sm overflow-hidden mb-8">
+      <div className="flex justify-between items-center w-full p-4 md:p-6 hover:bg-muted/30 transition-colors bg-card cursor-pointer" onClick={() => setIsOpen(!isOpen)}>
+        <h2 className="font-bold text-lg text-charcoal flex-1">{title}</h2>
+        <div className="flex items-center gap-4">
+          {rightAction && <div onClick={e => e.stopPropagation()}>{rightAction}</div>}
+          {isOpen ? <ChevronUp className="w-5 h-5 text-muted-foreground shrink-0" /> : <ChevronDown className="w-5 h-5 text-muted-foreground shrink-0" />}
+        </div>
+      </div>
+      {isOpen && (
+        <div className="p-4 md:p-6 pt-0 border-t border-border mt-4">
+          {children}
+        </div>
+      )}
+    </div>
+  )
+}
 
 export default function EditRecipeForm({ recipe, catalogs }: { recipe: any, catalogs: any }) {
   const router = useRouter()
@@ -180,7 +201,7 @@ export default function EditRecipeForm({ recipe, catalogs }: { recipe: any, cata
     <form onSubmit={(e) => e.preventDefault()} className="space-y-8 pb-32">
       <div className="space-y-8">
         {/* Basic Info */}
-        <section className="bg-card border border-border p-4 md:p-6 rounded-2xl shadow-sm">
+        <CollapsibleSection title="Información Básica" defaultOpen={true}>
           <div className="space-y-2 mb-6">
             <Label>Foto de Portada (Obligatoria)</Label>
             <RecipeMediaManager 
@@ -218,11 +239,10 @@ export default function EditRecipeForm({ recipe, catalogs }: { recipe: any, cata
               </div>
             </div>
           </div>
-        </section>
+        </CollapsibleSection>
 
         {/* Technical Details */}
-        <section className="bg-card border border-border p-4 md:p-6 rounded-2xl shadow-sm">
-          <h2 className="font-bold text-lg mb-4 text-charcoal border-b pb-2">Detalles Técnicos</h2>
+        <CollapsibleSection title="Detalles Técnicos">
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
             <div className="space-y-2">
@@ -285,11 +305,10 @@ export default function EditRecipeForm({ recipe, catalogs }: { recipe: any, cata
             <span>Ratio Caldo/Arroz calculado:</span>
             <span className="text-lg font-bold">1 : {ratio}</span>
           </div>
-        </section>
+        </CollapsibleSection>
 
         {/* Vessel Details */}
-        <section className="bg-card border border-border p-4 md:p-6 rounded-2xl shadow-sm">
-          <h2 className="font-bold text-lg mb-4 text-charcoal border-b pb-2">Recipiente</h2>
+        <CollapsibleSection title="Recipiente">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
             <div className="space-y-2">
               <Label>Tipo de recipiente</Label>
@@ -307,16 +326,12 @@ export default function EditRecipeForm({ recipe, catalogs }: { recipe: any, cata
             <Label>Notas del recipiente (opcional)</Label>
             <Input {...register("vessel_notes")} placeholder="Ej. Paellera de acero pulido" />
           </div>
-        </section>
+        </CollapsibleSection>
 
         {/* Ingredients */}
-        <section className="bg-card border border-border p-4 md:p-6 rounded-2xl shadow-sm">
-          <div className="flex justify-between items-center border-b pb-2 mb-4">
-            <h2 className="font-semibold text-lg">Ingredientes</h2>
-            <Button type="button" variant="outline" size="sm" onClick={() => appendIng({ display_text: "", normalized_quantity: "", unit_id: "", is_scalable: true })}>
+        <CollapsibleSection title="Ingredientes" rightAction={<Button type="button" variant="outline" size="sm" onClick={() => appendIng({ display_text: "", normalized_quantity: "", unit_id: "", is_scalable: true })}>
               <Plus className="w-4 h-4 mr-1" /> Añadir
-            </Button>
-          </div>
+            </Button>}>
           
           <div className="space-y-4">
             {ingFields.map((field, idx) => (
@@ -352,19 +367,14 @@ export default function EditRecipeForm({ recipe, catalogs }: { recipe: any, cata
             ))}
             {ingFields.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">No hay ingredientes añadidos.</p>}
           </div>
-          </section>
+          </CollapsibleSection>
 
           <EscandalloSection recipeId={recipe.id} initialIngredients={ingFields} catalogs={catalogs} baseServings={Number(watch("base_servings") || 2)} />
 
           {/* Steps */}
-        <section className="bg-card border border-border p-4 md:p-6 rounded-2xl shadow-sm">
-          <div className="flex justify-between items-center border-b pb-2 mb-4">
-            <h2 className="font-semibold text-lg">Pasos de Elaboración</h2>
-            <Button type="button" variant="outline" size="sm" onClick={() => appendStep({ instruction: "", duration_minutes: "", notes: "" })}>
+        <CollapsibleSection title="Pasos de Elaboración" rightAction={<Button type="button" variant="outline" size="sm" onClick={() => appendStep({ instruction: "", duration_minutes: "", notes: "" })}>
               <Plus className="w-4 h-4 mr-1" /> Añadir
-            </Button>
-          </div>
-          
+            </Button>}>
           <div className="space-y-4">
             {stepFields.map((field, idx) => (
               <div key={field.id} className="flex gap-2 items-start bg-muted/50 p-2 md:p-3 rounded-lg border border-border/50">
@@ -396,12 +406,11 @@ export default function EditRecipeForm({ recipe, catalogs }: { recipe: any, cata
             ))}
             {stepFields.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">No hay pasos añadidos.</p>}
           </div>
-        </section>
+        </CollapsibleSection>
 
         {/* Tags */}
         {catalogs.tags && catalogs.tags.length > 0 && (
-          <section className="bg-card border border-border p-4 md:p-6 rounded-2xl shadow-sm">
-            <h2 className="font-semibold text-lg border-b pb-2 mb-4">Etiquetas (Tags)</h2>
+          <CollapsibleSection title="Etiquetas (Tags)">
             <div className="flex flex-wrap gap-2">
               {catalogs.tags.map((tag: any) => {
                 const isSelected = watchTags?.includes(tag.id)
@@ -422,7 +431,7 @@ export default function EditRecipeForm({ recipe, catalogs }: { recipe: any, cata
                 )
               })}
             </div>
-          </section>
+          </CollapsibleSection>
         )}
       </div>
 
