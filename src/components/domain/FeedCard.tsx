@@ -155,7 +155,7 @@ export function FeedCard({
         <ShareButton 
           title={entityType === 'recipe' ? (recipeName || "") : `Publicación de ${user.display_name || `@${user.username}`}`} 
           text=""
-          path={href} 
+          path={`/p/${entityType}/${entityId}`} 
         />
         <div className="flex-1" />
       </footer>
