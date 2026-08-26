@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import { useState } from "react"
 import { Eye, EyeOff } from "lucide-react"
@@ -80,14 +80,14 @@ export function LoginForm({ error, message }: { error?: string, message?: string
           </Link>
         </div>
 
-        <div className="flex flex-col gap-3 pt-2">
-          <button 
-            formAction={login}
-            className="w-full h-12 bg-charcoal hover:bg-black text-white rounded-xl font-bold text-base transition-colors shadow-md"
-          >
-            INICIAR SESIÓN
-          </button>
-        </div>
+          <div className="pt-2">
+            <button 
+              formAction={login}
+              className="w-full h-12 bg-charcoal hover:bg-black text-white rounded-xl font-bold text-base transition-colors shadow-md"
+            >
+              VAMOS AL GRANO
+            </button>
+          </div>
 
         <div className="relative py-2 flex items-center">
           <div className="flex-grow border-t border-border/80"></div>
