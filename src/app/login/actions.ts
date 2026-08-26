@@ -48,9 +48,12 @@ export async function signup(formData: FormData) {
   const email = formData.get("email") as string
   const password = formData.get("password") as string
 
+    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://www.misarroces.es";
+
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
+    options: { emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://www.misarroces.es'}/auth/callback?next=/cookbook` }
   })
 
   if (error) {
@@ -85,3 +88,4 @@ export async function logout() {
   await supabase.auth.signOut()
   redirect("/")
 }
+
