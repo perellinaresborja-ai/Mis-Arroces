@@ -125,7 +125,7 @@ export function CookForm({ recipeId, initialData }: { recipeId: string, initialD
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="visibility">Visibilidad</Label>
+        <Label htmlFor="visibility">Privacidad</Label>
         <select name="visibility" id="visibility" className="w-full h-10 px-3 rounded-xl border border-input bg-background text-sm" defaultValue={initialData?.visibility || "PUBLIC"}>
           <option value="PUBLIC">Público</option>
           <option value="FOLLOWERS">Solo Seguidores</option>

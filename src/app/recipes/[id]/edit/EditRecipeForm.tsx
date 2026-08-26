@@ -228,7 +228,7 @@ export default function EditRecipeForm({ recipe, catalogs }: { recipe: any, cata
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Visibilidad</Label>
+                <Label>Privacidad</Label>
                 <select {...register("visibility")} className="w-full h-10 px-3 rounded-md border border-input bg-background">
                   <option value="PUBLIC">Público (Visible para todos)</option>
                   <option value="FOLLOWERS">Solo mis Seguidores</option>
