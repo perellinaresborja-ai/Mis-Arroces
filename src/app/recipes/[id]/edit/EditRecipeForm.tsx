@@ -7,6 +7,7 @@ import { useForm, useFieldArray } from "react-hook-form"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { EscandalloSection } from "@/components/domain/EscandalloSection"
 import { Save, Plus, Trash2, GripVertical, ChevronDown, ChevronUp, Check, Clock, EyeOff, Calendar } from "lucide-react"
 import { updateRecipeFull } from "@/app/actions/recipes"
 import { cn } from "@/lib/utils"
@@ -351,9 +352,11 @@ export default function EditRecipeForm({ recipe, catalogs }: { recipe: any, cata
             ))}
             {ingFields.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">No hay ingredientes añadidos.</p>}
           </div>
-        </section>
+          </section>
 
-        {/* Steps */}
+          <EscandalloSection recipeId={recipe.id} initialIngredients={ingFields} catalogs={catalogs} baseServings={Number(watch("base_servings") || 2)} />
+
+          {/* Steps */}
         <section className="bg-card border border-border p-4 md:p-6 rounded-2xl shadow-sm">
           <div className="flex justify-between items-center border-b pb-2 mb-4">
             <h2 className="font-semibold text-lg">Pasos de Elaboración</h2>
