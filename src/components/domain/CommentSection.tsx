@@ -12,6 +12,7 @@ import { AutocompleteMenu } from "./AutocompleteMenu"
 import { SocialTextRenderer } from "./SocialTextRenderer"
 import Link from "next/link"
 import { cn, formatRelativeTime } from "@/lib/utils"
+import { useAuthPrompt } from "@/components/providers/AuthPromptProvider"
 
 interface Comment {
   id: string
