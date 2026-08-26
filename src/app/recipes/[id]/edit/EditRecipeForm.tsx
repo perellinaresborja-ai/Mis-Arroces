@@ -185,11 +185,13 @@ export default function EditRecipeForm({ recipe, catalogs }: { recipe: any, cata
         }
         await updateRecipeFull(recipe.id, cleanData)
 
-      router.refresh()
-      router.push(`/recipes/${recipe.id}`)
-    } catch (err) {
+      
+    } catch (err: any) {
+      if (err?.message?.includes('NEXT_REDIRECT') || err?.digest?.includes('NEXT_REDIRECT')) {
+        throw err;
+      }
       console.error(err)
-      alert("Error saving recipe")
+      alert("Error: " + (err.message || JSON.stringify(err)))
       setIsSaving(false)
     }
   }

@@ -1,0 +1,1 @@
+ALTER TYPE notification_type_enum ADD VALUE IF NOT EXISTS 'NEW_MESSAGE';

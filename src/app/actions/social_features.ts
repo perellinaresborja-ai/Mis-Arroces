@@ -1,5 +1,5 @@
 "use server"
-// @ts-nocheck
+
 
 
 import { createClient } from "@/lib/supabase/server"
@@ -10,9 +10,10 @@ export async function searchUsersForMention(query: string) {
   
   // Basic search: in a real app, this would prioritize followed users.
   // For V1, simple ilike on username or display_name
+  
   const { data, error } = await supabase
     .from("profiles")
-    .select("id, username, display_name, avatar:recipe_media(storage_path)")
+    .select("id, username, display_name, avatar:media_assets!fk_profiles_avatar(storage_path)")
     .or(`username.ilike.%${query}%,display_name.ilike.%${query}%`)
     .limit(5)
     
@@ -27,6 +28,7 @@ export async function searchHashtags(query: string) {
   if (!query || query.length < 1) return []
   const supabase = await createClient()
   const normalizedQuery = query.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+  
   
   const { data, error } = await supabase
     .from("hashtags")
@@ -147,3 +149,5 @@ export async function removeSelfTag(entityType: string, entityId: string) {
     tagged_id: user.id
   })
 }
+
+

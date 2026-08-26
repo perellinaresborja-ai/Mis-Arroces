@@ -2,6 +2,7 @@
 "use server"
 
 import { createClient } from "@/lib/supabase/server"
+import { createClient as createAdminClient } from "@supabase/supabase-js"
 import { revalidatePath } from "next/cache"
 import { trackEvent } from "@/app/actions/analytics"
 
@@ -84,6 +85,28 @@ export async function fetchActiveStories() {
     .order("created_at", { ascending: true })
 
   if (!data) return []
+
+    // Generate signed URLs for story media using SERVICE_ROLE
+  // This is completely isolated from the browser and only signs paths that were already authorized by the RLS of 'stories'
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (serviceKey) {
+    const adminSupabase = createAdminClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://zvesoygqssyyojqyswwm.supabase.co',
+      serviceKey
+    );
+    for (const story of data) {
+      if (story.story_media && story.story_media.length > 0) {
+        const path = story.story_media[0].media?.storage_path;
+        if (path) {
+          // Admin client bypasses RLS on Storage to generate the signature
+          const { data: signed } = await adminSupabase.storage.from('story_media').createSignedUrl(path, 3600);
+          if (signed) {
+            story.story_media[0].media.signed_url = signed.signedUrl;
+          }
+        }
+      }
+    }
+  }
 
   // Group by owner
   const userMap = new Map()
@@ -173,4 +196,30 @@ export async function fetchStoryViewers(storyId: string) {
 
 
 
+
+
+
+export async function deleteStory(storyId: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error("Unauthorized")
+
+  // Check ownership
+  const { data: story } = await supabase.from("stories").select("owner_id, story_media(media:media_assets(storage_path))").eq("id", storyId).single()
+  if (!story || story.owner_id !== user.id) throw new Error("Not authorized or not found")
+
+  // Delete media from storage if it exists in story_media bucket
+  if (story.story_media && story.story_media.length > 0) {
+    const paths = story.story_media.map((sm: any) => sm.media?.storage_path).filter(Boolean)
+    if (paths.length > 0) {
+      await supabase.storage.from("story_media").remove(paths)
+    }
+  }
+
+  const { error } = await supabase.from("stories").delete().eq("id", storyId)
+  if (error) throw new Error("Failed to delete story")
+  
+  trackEvent("STORY_DELETED", "STORY", storyId, user.id)
+  revalidatePath("/")
+}
 

@@ -47,6 +47,14 @@ export function StoryCreator({ initialRecipeId, initialSessionId }: StoryCreator
   
   const [guides, setGuides] = useState<{x?: number, y?: number}>({})
   const containerRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    return () => {
+      // Prevent memory leaks
+      if (mediaUrl && !mediaUrl.startsWith('http')) {
+        URL.revokeObjectURL(mediaUrl)
+      }
+    }
+  }, [mediaUrl])
 
   // Fetch current user
   useEffect(() => {
@@ -362,6 +370,43 @@ export function StoryCreator({ initialRecipeId, initialSessionId }: StoryCreator
             onOverlayClick={(o) => setSelectedOverlayId(o.id)}
             selectedOverlayId={selectedOverlayId}
           />
+          {/* ACCESSIBILITY CONTROLS */}
+          {mode === 'EDITOR' && (
+            <div className="absolute right-4 top-1/2 -translate-y-1/2 flex flex-col gap-2 z-40 bg-black/50 p-2 rounded-2xl backdrop-blur-md">
+              <span className="text-[10px] text-center font-bold uppercase text-white/50 mb-1">A11y</span>
+              {!selectedOverlayId ? (
+                <>
+                  <Button variant="ghost" size="icon" onClick={() => setTransform(prev => ({...prev, scale: prev.scale + 0.1}))} title="Zoom In Media">+</Button>
+                  <Button variant="ghost" size="icon" onClick={() => setTransform(prev => ({...prev, scale: Math.max(0.1, prev.scale - 0.1)}))} title="Zoom Out Media">-</Button>
+                  <Button variant="ghost" size="icon" onClick={() => setTransform(prev => ({...prev, translateY: prev.translateY - 20}))} title="Move Up">↑</Button>
+                  <Button variant="ghost" size="icon" onClick={() => setTransform(prev => ({...prev, translateY: prev.translateY + 20}))} title="Move Down">↓</Button>
+                </>
+              ) : (
+                <>
+                  <Button variant="destructive" size="icon" onClick={() => setOverlays(prev => prev.filter(o => o.id !== selectedOverlayId))} title="Delete Overlay"><X className="w-4 h-4" /></Button>
+                  <Button variant="ghost" size="icon" onClick={() => setOverlays(prev => prev.map(o => o.id === selectedOverlayId ? {...o, scale: o.scale + 0.1} : o))} title="Scale Up Overlay">+</Button>
+                  <Button variant="ghost" size="icon" onClick={() => setOverlays(prev => prev.map(o => o.id === selectedOverlayId ? {...o, scale: Math.max(0.1, o.scale - 0.1)} : o))} title="Scale Down Overlay">-</Button>
+                  <Button variant="ghost" size="icon" onClick={() => setOverlays(prev => prev.map(o => o.id === selectedOverlayId ? {...o, y: o.y - 0.05} : o))} title="Move Up">↑</Button>
+                  <Button variant="ghost" size="icon" onClick={() => setOverlays(prev => prev.map(o => o.id === selectedOverlayId ? {...o, y: o.y + 0.05} : o))} title="Move Down">↓</Button>
+                </>
+              )}
+            </div>
+          )}
+          {/* END ACCESSIBILITY CONTROLS */}
+
+
+
+          {/* SAFE AREAS INDICATORS */}
+          {mode === 'EDITOR' && (
+            <div className="absolute inset-0 pointer-events-none z-30 opacity-40">
+              <div className="absolute top-0 left-0 w-full h-24 border-b border-dashed border-red-500 bg-red-500/10 flex items-start justify-center pt-2">
+                <span className="text-[10px] text-red-500 font-bold uppercase">Safe Area: Header & Progress</span>
+              </div>
+              <div className="absolute bottom-0 left-0 w-full h-32 border-t border-dashed border-red-500 bg-red-500/10 flex items-end justify-center pb-2">
+                <span className="text-[10px] text-red-500 font-bold uppercase">Safe Area: Footer Actions</span>
+              </div>
+            </div>
+          )}
 
           {/* Snap Guides */}
           {guides.x === 0.5 && <div className="absolute top-0 bottom-0 left-1/2 w-[1px] bg-blue-500 z-50 pointer-events-none" />}

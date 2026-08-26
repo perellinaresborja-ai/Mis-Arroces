@@ -74,10 +74,14 @@ export async function updateRecipeStatus(id: string, status: string, scheduledFo
   if (!user) throw new Error("Auth");
   await supabase.from("recipes").update({ status, scheduled_for: scheduledFor }).eq("id", id).eq("owner_id", user.id);
   const { revalidatePath } = require("next/cache");
+  const { redirect } = require("next/navigation");
+  
   revalidatePath("/recipes/" + id);
-    revalidatePath("/recipes/" + id + "/edit");
+  revalidatePath("/recipes/" + id + "/edit");
   revalidatePath("/cookbook");
   revalidatePath("/");
+
+  redirect("/recipes/" + id);
 }
 
 export async function updateRecipeFull(id: string, data: any) {
@@ -86,9 +90,30 @@ export async function updateRecipeFull(id: string, data: any) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("Auth");
   
-  const { steps, ingredients, vessels, media_ids, tags, ...baseData } = data;
+  const { steps, ingredients, vessels, media_ids, tags, vessel_type_id, vessel_diameter_cm, vessel_notes, ...rawBaseData } = data;
   
-  await supabase.from("recipes").update(baseData).eq("id", id).eq("owner_id", user.id);
+  // Clean empty strings to null for postgres
+  const baseData = { ...rawBaseData };
+  if (baseData.base_servings === null || baseData.base_servings === "") baseData.base_servings = 1;
+  for (const key of Object.keys(baseData)) {
+    if (baseData[key] === '') baseData[key] = null;
+  }
+  
+  const { data: updatedRecipe, error: recipeError } = await supabase
+    .from("recipes")
+    .update(baseData)
+    .eq("id", id)
+    .eq("owner_id", user.id)
+    .select("id")
+    .maybeSingle();
+
+  if (recipeError) {
+    throw new Error("Error actualizando receta: " + recipeError.message);
+  }
+
+  if (!updatedRecipe) {
+    throw new Error("La receta no se ha actualizado. No existe o no pertenece al usuario autenticado.");
+  }
 
   if (steps) {
     await supabase.from("recipe_steps").delete().eq("recipe_id", id);
@@ -102,7 +127,7 @@ export async function updateRecipeFull(id: string, data: any) {
         media_id: s.media_id || undefined,
       }));
       const { error: stepInsertError } = await supabase.from("recipe_steps").insert(stepsToInsert);
-      if (stepInsertError) console.error("STEP INSERT ERROR:", stepInsertError);
+      if (stepInsertError) throw new Error("STEP INSERT ERROR: " + stepInsertError.message);
     }
   }
 
@@ -115,12 +140,20 @@ export async function updateRecipeFull(id: string, data: any) {
         .delete()
         .eq("recipe_id", id)
         .not("id", "in", '(' + existingIngIds.join(',') + ')');
-      if (delError) console.error("ING DEL ERROR:", delError);
+      if (delError) throw new Error("ING DEL ERROR: " + delError.message);
     } else {
       await supabase.from("recipe_ingredients").delete().eq("recipe_id", id);
     }
 
     if (ingredients.length > 0) {
+      // Generate IDs for new ingredients so we can link costs
+      const crypto = require('crypto');
+      ingredients.forEach((i) => {
+        if (!i.db_id && !i.id) {
+          i.id = crypto.randomUUID();
+        }
+      });
+      
       const ingsToUpsert = ingredients.map((i: any, idx: number) => ({
         id: i.db_id || i.id || undefined,
         recipe_id: id,
@@ -132,37 +165,40 @@ export async function updateRecipeFull(id: string, data: any) {
       }));
       
       const { error: ingError } = await supabase.from("recipe_ingredients").upsert(ingsToUpsert);
-      if (ingError) console.error("ING UPSERT ERROR:", ingError);
+      if (ingError) throw new Error("ING UPSERT ERROR: " + ingError.message);
 
       // Now save costs
       const costsToUpsert = ingredients
-        .filter((i: any) => i.costData)
-        .map((i: any) => ({
-          id: i.db_id || i.id, // the ID used in ingsToUpsert
-          recipe_id: id,
-          owner_id: user.id,
-          purchase_amount: i.costData.purchase_amount,
-          purchase_unit_id: i.costData.purchase_unit_id,
-          purchase_price: i.costData.purchase_price
-        }));
+          .filter((i: any) => i.costData && (i.costData.purchase_amount || i.costData.purchase_price))
+          .map((i: any) => ({
+            id: i.db_id || i.id, // the ID used in ingsToUpsert
+            recipe_id: id,
+            owner_id: user.id,
+            purchase_amount: i.costData.purchase_amount ? Number(i.costData.purchase_amount) : null,
+            purchase_unit_id: i.costData.purchase_unit_id || null,
+            purchase_price: i.costData.purchase_price ? Number(i.costData.purchase_price) : null
+          }));
       
       if (costsToUpsert.length > 0) {
         const { error: costError } = await supabase.from("recipe_ingredient_costs").upsert(costsToUpsert);
-        if (costError) console.error("COST UPSERT ERROR:", costError);
+        if (costError) throw new Error("COST UPSERT ERROR: " + costError.message);
       }
-
     }
   }
 
-  if (vessels && vessels.length > 0) {
+  // Handle vessels either as array or flat fields
+  const hasFlatVessel = vessel_type_id || vessel_diameter_cm || vessel_notes;
+  if ((vessels && vessels.length > 0) || hasFlatVessel) {
     await supabase.from("recipe_vessels").delete().eq("recipe_id", id);
-    const v = vessels[0];
-    await supabase.from("recipe_vessels").insert({
-      recipe_id: id,
-      type_id: v.type_id || null,
-      diameter_cm: v.diameter_cm ? Number(v.diameter_cm) : null,
-      notes: v.notes || null,
-    });
+    const v = (vessels && vessels.length > 0) ? vessels[0] : { type_id: vessel_type_id, diameter_cm: vessel_diameter_cm, notes: vessel_notes };
+    if (v.type_id || v.diameter_cm || v.notes) {
+      await supabase.from("recipe_vessels").insert({
+        recipe_id: id,
+        type_id: v.type_id || null,
+        diameter_cm: v.diameter_cm ? Number(v.diameter_cm) : null,
+        notes: v.notes || null,
+      });
+    }
   }
 
   if (tags) {
@@ -186,16 +222,20 @@ export async function updateRecipeFull(id: string, data: any) {
         is_primary: idx === 0
       }));
       const { error: insertError } = await supabase.from("recipe_media").insert(mediasToInsert);
-      if (insertError) console.error("MEDIA INSERT ERROR:", insertError);
+      if (insertError) throw new Error("MEDIA INSERT ERROR: " + insertError.message);
     }
   }
 
   const { revalidatePath } = require("next/cache");
+  const { redirect } = require("next/navigation");
+  
   revalidatePath("/recipes/" + id);
+  revalidatePath("/recipes/" + id + "/edit");
   revalidatePath("/cookbook");
   revalidatePath("/");
-}
 
+  redirect("/recipes/" + id);
+}
 
 export async function toggleWantToCook(recipeId: string, wantToCook: boolean) {
   const supabase = await createClient();

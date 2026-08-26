@@ -351,3 +351,4 @@ CREATE POLICY "Public read access" ON rice_varieties FOR SELECT USING (true);
 CREATE POLICY "Public read access" ON vessel_types FOR SELECT USING (true);
 CREATE POLICY "Public read access" ON heat_sources FOR SELECT USING (true);
 CREATE POLICY "Public read access" ON tags FOR SELECT USING (true);
+
