@@ -56,15 +56,14 @@ export async function addRecipeToShoppingList(recipeId: string, targetServings?:
     // Synthetic ingredients for Rice and Stock
   
   const ratio = (targetServings && recipe.base_servings) ? targetServings / recipe.base_servings : 1;
-  const multiply = (qty: any) => qty ? qty * ratio : null;
-
+  
   const ingredientsToAdd: any[] = recipe.recipe_ingredients ? [...recipe.recipe_ingredients] : []
   
   if (recipe.rice_qty) {
     const riceName = recipe.variety && (recipe.variety as any).name ? `Arroz (${(recipe.variety as any).name})` : 'Arroz';
     ingredientsToAdd.push({
       display_text: riceName,
-      normalized_quantity: multiply(recipe.rice_qty),
+      normalized_quantity: recipe.rice_qty,
       unit: { name: "g" },
       unit_id: null // We will resolve this below
     })
@@ -75,7 +74,7 @@ export async function addRecipeToShoppingList(recipeId: string, targetServings?:
   if (recipe.stock_qty) {
     ingredientsToAdd.push({
       display_text: "Caldo",
-      normalized_quantity: multiply(recipe.stock_qty),
+      normalized_quantity: recipe.stock_qty,
       unit: { name: "ml" },
       unit_id: null
     })
@@ -201,6 +200,7 @@ export async function clearShoppingList(listId: string) {
   await supabase.from("shopping_list_items").delete().eq("list_id", listId)
   revalidatePath("/shopping-list")
 }
+
 
 
 
