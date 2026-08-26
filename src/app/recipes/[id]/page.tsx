@@ -126,6 +126,13 @@ export default async function RecipeDetailPage({
                   {recipe.name}
                 </h1>
               </div>
+              {isOwner && (
+                <div className="shrink-0 flex gap-2">
+                  <Link href={`/recipes/${recipe.id}/edit`} className="inline-flex items-center justify-center rounded-full border border-border bg-card px-4 py-2 text-sm font-medium hover:bg-muted transition-colors shadow-sm">
+                    <Pencil className="w-4 h-4 mr-2" /> Editar
+                  </Link>
+                </div>
+              )}
                 
                 
               {!isOwner && (
