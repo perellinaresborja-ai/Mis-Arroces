@@ -5,7 +5,7 @@ import { addRecipeToShoppingList } from "@/app/actions/shopping"
 import { ShoppingCart, Check, ListChecks } from "lucide-react"
 import { useRouter } from "next/navigation"
 
-export function AddToCartButton({ recipeId, isAuthenticated }: { recipeId: string, isAuthenticated: boolean }) {
+export function AddToCartButton({ recipeId, isAuthenticated, layout = "vertical" }: { recipeId: string, isAuthenticated: boolean, layout?: "horizontal" | "vertical" }) {
   const [added, setAdded] = useState(false)
   const [loading, setLoading] = useState(false)
   const router = useRouter()
@@ -29,11 +29,11 @@ export function AddToCartButton({ recipeId, isAuthenticated }: { recipeId: strin
   }
 
   return (
-    <div className="mt-6 flex flex-col gap-3 w-full max-w-[380px]">
+    <div className={`mt-6 flex gap-3 w-full ${layout === "horizontal" ? "flex-row" : "flex-col max-w-[380px]"}`}>
       <button 
         onClick={handleAdd}
         disabled={loading || added}
-        className="flex items-center justify-center gap-2 w-full py-3 bg-card border border-primary/20 text-primary font-bold rounded-2xl hover:bg-primary/5 transition-colors disabled:opacity-50"
+        className={`flex items-center justify-center gap-2 py-3 bg-card border border-primary/20 text-primary font-bold rounded-2xl hover:bg-primary/5 transition-colors disabled:opacity-50 text-sm md:text-base ${layout === "horizontal" ? "flex-1 px-2" : "w-full"}`}
       >
         {added ? (
           <>

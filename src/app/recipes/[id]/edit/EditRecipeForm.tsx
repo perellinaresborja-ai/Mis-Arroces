@@ -369,9 +369,8 @@ export default function EditRecipeForm({ recipe, catalogs }: { recipe: any, cata
             {ingFields.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">No hay ingredientes añadidos.</p>}
 
             {ingFields.length > 0 && (
-              <div className="mt-6 pt-4 border-t border-border flex justify-between items-center">
-                <p className="text-sm text-muted-foreground">¿Vas a prepararlo pronto?</p>
-                <AddToCartButton recipeId={recipe.id} isAuthenticated={true} />
+              <div className="mt-6 pt-4 border-t border-border">
+                <AddToCartButton recipeId={recipe.id} isAuthenticated={true} layout="horizontal" />
               </div>
             )}
           </div>
