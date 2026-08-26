@@ -5,7 +5,7 @@ import { addRecipeToShoppingList } from "@/app/actions/shopping"
 import { ShoppingCart, Check, ListChecks } from "lucide-react"
 import { useRouter } from "next/navigation"
 
-export function AddToCartButton({ recipeId, isAuthenticated, layout = "vertical" }: { recipeId: string, isAuthenticated: boolean, layout?: "horizontal" | "vertical" }) {
+export function AddToCartButton({ recipeId, isAuthenticated, layout = "vertical" }: { recipeId: string, isAuthenticated: boolean, layout?: "horizontal" | "vertical" | "icon" }) {
   const [added, setAdded] = useState(false)
   const [loading, setLoading] = useState(false)
   const router = useRouter()
@@ -26,6 +26,21 @@ export function AddToCartButton({ recipeId, isAuthenticated, layout = "vertical"
     } finally {
       setLoading(false)
     }
+  }
+
+  
+  if (layout === "icon") {
+    return (
+      <button 
+        onClick={handleAdd} 
+        disabled={loading || added} 
+        className="p-1.5 md:p-2 rounded-full hover:bg-primary/10 text-primary transition-colors disabled:opacity-50"
+        title="Añadir a mi compra"
+        type="button"
+      >
+        {added ? <Check className="w-4 h-4 md:w-5 md:h-5" /> : <ShoppingCart className="w-4 h-4 md:w-5 md:h-5" />}
+      </button>
+    )
   }
 
   return (

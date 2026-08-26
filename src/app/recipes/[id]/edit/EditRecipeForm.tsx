@@ -330,9 +330,14 @@ export default function EditRecipeForm({ recipe, catalogs }: { recipe: any, cata
         </CollapsibleSection>
 
         {/* Ingredients */}
-        <CollapsibleSection title="Ingredientes" rightAction={<Button type="button" variant="outline" size="sm" onClick={() => appendIng({ display_text: "", normalized_quantity: "", unit_id: "", is_scalable: true })}>
-              <Plus className="w-4 h-4 mr-1" /> Añadir
-            </Button>}>
+        <CollapsibleSection title="Ingredientes" rightAction={
+            <div className="flex items-center gap-1">
+              <AddToCartButton recipeId={recipe.id} isAuthenticated={true} layout="icon" />
+              <Button type="button" variant="outline" size="sm" onClick={() => appendIng({ display_text: "", normalized_quantity: "", unit_id: "", is_scalable: true })}>
+                <Plus className="w-4 h-4 mr-1" /> Añadir
+              </Button>
+            </div>
+          }>
           
           <div className="space-y-4">
             {ingFields.map((field, idx) => (
@@ -368,11 +373,7 @@ export default function EditRecipeForm({ recipe, catalogs }: { recipe: any, cata
             ))}
             {ingFields.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">No hay ingredientes añadidos.</p>}
 
-            {ingFields.length > 0 && (
-              <div className="mt-6 pt-4 border-t border-border">
-                <AddToCartButton recipeId={recipe.id} isAuthenticated={true} layout="horizontal" />
-              </div>
-            )}
+            
           </div>
           </CollapsibleSection>
 
