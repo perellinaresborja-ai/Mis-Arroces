@@ -31,11 +31,7 @@ export function BottomNav() {
       icon: BookOpen,
       label: "Recetario",
     },
-    {
-      href: "/shopping-list",
-      icon: ShoppingCart,
-      label: "Compra",
-    },
+    
   ];
 
   if (pathname === "/login" || pathname === "/forgot-password") return null;

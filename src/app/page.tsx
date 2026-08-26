@@ -6,6 +6,8 @@ import { buttonVariants } from "@/components/ui/button"
 import { Flame, PlaySquare } from "lucide-react"
 import { fetchFeedPage } from "@/app/actions/feed"
 import { FeedList } from "@/components/domain/FeedList"
+import { StoriesBar } from "@/components/domain/StoriesBar"
+import { fetchActiveStories } from "@/app/actions/stories"
 
 export default async function Home() {
   const supabase = await createClient()

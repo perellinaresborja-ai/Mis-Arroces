@@ -16,11 +16,7 @@ export function DesktopNav() {
     { href: "/me", icon: User, label: "Perfil" },
     { href: "/discover", icon: Compass, label: "Descubrir" },
     { href: "/cookbook", icon: BookOpen, label: "Recetario" },
-    {
-      href: "/shopping-list",
-      icon: ShoppingCart,
-      label: "Compra",
-    },
+    
   ]
 
   // Only hide on auth pages
