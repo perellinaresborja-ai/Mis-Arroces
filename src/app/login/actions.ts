@@ -33,7 +33,7 @@ export async function login(formData: FormData) {
         id: user.id,
         username: `arrocero${Math.floor(Math.random() * 1000000)}`,
         display_name: 'Chef Arrocero',
-        account_type: 'USER',
+        account_type: 'PERSONAL',
         privacy_level: 'PUBLIC'
       })
     }
@@ -67,7 +67,7 @@ export async function signup(formData: FormData) {
       id: data.user.id,
       username: autoUsername,
       display_name: 'Chef Arrocero',
-      account_type: 'USER',
+      account_type: 'PERSONAL',
       privacy_level: 'PUBLIC'
     })
   }

@@ -72,7 +72,7 @@ export default async function DiscoverPage(props: { searchParams?: Promise<{ q?:
 
     if (tab === "todo" || tab === "personas") {
       const { data } = await supabase.from("profiles").select(`
-        id, username, display_name, account_type, privacy_level, bio,
+        id, username, display_name, account_type, professional_type, privacy_level, bio,
         avatar:media_assets!fk_profiles_avatar(storage_path)
       `).or(`username.ilike.%${searchQ}%,display_name.ilike.%${searchQ}%`).limit(20)
       if (data) searchResults.users = data
@@ -125,7 +125,7 @@ export default async function DiscoverPage(props: { searchParams?: Promise<{ q?:
     }
 
     const { data: users } = await supabase.from("profiles").select(`
-      id, username, display_name, account_type, privacy_level,
+      id, username, display_name, account_type, professional_type, privacy_level,
       avatar:media_assets!fk_profiles_avatar(storage_path)
     `).eq("privacy_level", "PUBLIC").limit(12) // random or recent, using limit for now
     
@@ -312,8 +312,8 @@ export default async function DiscoverPage(props: { searchParams?: Promise<{ q?:
                       <div className="flex-1 min-w-0">
                         <p className="font-bold text-sm truncate flex items-center gap-2">
                           {u.display_name} 
-                          {u.account_type === 'CHEF' && <span className="text-[10px] bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded uppercase font-bold">Chef</span>}
-                          {u.account_type === 'RESTAURANT' && <span className="text-[10px] bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded uppercase font-bold">Restaurante</span>}
+                          {u.professional_type === 'CHEF' && <span className="text-[10px] bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded uppercase font-bold">Chef</span>}
+                          {u.professional_type === 'RESTAURANT' && <span className="text-[10px] bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded uppercase font-bold">Restaurante</span>}
                         </p>
                         <p className="text-xs text-muted-foreground truncate">@{u.username}</p>
                       </div>

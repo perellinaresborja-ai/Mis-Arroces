@@ -20,7 +20,7 @@ export async function GET(request: Request) {
           id: session.user.id,
           username: `arrocero${Math.floor(Math.random() * 1000000)}`,
           display_name: 'Chef Arrocero',
-          account_type: 'USER',
+          account_type: 'PERSONAL',
           privacy_level: 'PUBLIC'
         })
       }

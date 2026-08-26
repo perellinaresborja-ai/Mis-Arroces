@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { createPortal } from "react-dom"
-import { X, Eye, Users, Heart, MessageCircle, Share2, ShoppingCart, Loader2 } from "lucide-react"
+import { X, Eye, Users, Heart, MessageCircle, Share2, ShoppingCart, Loader2, Bookmark, Star, Pointer } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 
 export function EntityInsightsModal({ 
@@ -36,6 +36,16 @@ export function EntityInsightsModal({
 
   if (!isOpen) return null
 
+  const renderMetric = (icon: any, value: number, label: string) => (
+    <div className="bg-background p-3 rounded-2xl border border-border flex flex-col items-center justify-center text-center">
+      <div className="text-muted-foreground mb-1">{icon}</div>
+      <span className="text-xl font-black">{value || 0}</span>
+      <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider mt-1">{label}</span>
+    </div>
+  )
+
+  const ctr = data?.views ? ((data.link_clicks / data.views) * 100).toFixed(1) : 0;
+
   return createPortal(
     <div className="fixed inset-0 z-[99999] bg-black/80 flex items-center justify-center p-4 animate-in fade-in" onClick={onClose}>
       <div 
@@ -53,34 +63,30 @@ export function EntityInsightsModal({
           {loading ? (
             <div className="py-12 flex justify-center"><Loader2 className="w-8 h-8 animate-spin text-muted-foreground" /></div>
           ) : data ? (
-            <div className="grid grid-cols-2 gap-4">
-              <div className="bg-background p-4 rounded-2xl border border-border flex flex-col items-center justify-center text-center">
-                <Eye className="w-5 h-5 text-muted-foreground mb-2" />
-                <span className="text-2xl font-black">{data.views || 0}</span>
-                <span className="text-xs text-muted-foreground uppercase font-bold tracking-wider mt-1">Vistas</span>
-              </div>
-              <div className="bg-background p-4 rounded-2xl border border-border flex flex-col items-center justify-center text-center">
-                <Users className="w-5 h-5 text-muted-foreground mb-2" />
-                <span className="text-2xl font-black">{data.reach || 0}</span>
-                <span className="text-xs text-muted-foreground uppercase font-bold tracking-wider mt-1">Alcance</span>
-              </div>
-              <div className="bg-background p-4 rounded-2xl border border-border flex flex-col items-center justify-center text-center">
-                <Share2 className="w-5 h-5 text-muted-foreground mb-2" />
-                <span className="text-2xl font-black">{data.shares || 0}</span>
-                <span className="text-xs text-muted-foreground uppercase font-bold tracking-wider mt-1">Compartido</span>
-              </div>
-              {entityType === 'STORY' ? (
-                <div className="bg-background p-4 rounded-2xl border border-border flex flex-col items-center justify-center text-center">
-                  <Heart className="w-5 h-5 text-muted-foreground mb-2" />
-                  <span className="text-2xl font-black">{data.link_clicks || 0}</span>
-                  <span className="text-xs text-muted-foreground uppercase font-bold tracking-wider mt-1">Clics Link</span>
-                </div>
-              ) : (
-                <div className="bg-background p-4 rounded-2xl border border-border flex flex-col items-center justify-center text-center">
-                  <ShoppingCart className="w-5 h-5 text-muted-foreground mb-2" />
-                  <span className="text-2xl font-black">{data.shopping_adds || 0}</span>
-                  <span className="text-xs text-muted-foreground uppercase font-bold tracking-wider mt-1">En listas</span>
-                </div>
+            <div className="grid grid-cols-3 gap-3">
+              {renderMetric(<Eye className="w-5 h-5"/>, data.views, "Vistas")}
+              {renderMetric(<Users className="w-5 h-5"/>, data.reach, "Alcance")}
+              {renderMetric(<Share2 className="w-5 h-5"/>, data.shares, "Compartido")}
+              
+              {entityType === 'STORY' && (
+                <>
+                  {renderMetric(<Pointer className="w-5 h-5"/>, data.link_clicks, "Clics Link")}
+                  {renderMetric(<Heart className="w-5 h-5"/>, data.likes, "Likes")}
+                  <div className="bg-background p-3 rounded-2xl border border-border flex flex-col items-center justify-center text-center col-span-1">
+                    <span className="text-xl font-black text-primary">{ctr}%</span>
+                    <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider mt-1">CTR</span>
+                  </div>
+                </>
+              )}
+              
+              {entityType === 'RECIPE' && (
+                <>
+                  {renderMetric(<Heart className="w-5 h-5"/>, data.likes, "Likes")}
+                  {renderMetric(<MessageCircle className="w-5 h-5"/>, data.comments, "Coments")}
+                  {renderMetric(<Bookmark className="w-5 h-5"/>, data.saves, "Guardados")}
+                  {renderMetric(<Star className="w-5 h-5 text-yellow-500"/>, data.cooked, "Cocinados")}
+                  {renderMetric(<ShoppingCart className="w-5 h-5"/>, data.shopping_adds, "Listas")}
+                </>
               )}
             </div>
           ) : (
