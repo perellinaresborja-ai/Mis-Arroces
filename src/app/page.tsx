@@ -50,14 +50,16 @@ export default async function Home() {
       
       {/* Anonymous Welcome Header */}
       {!user && (
-        <div className="bg-card border-b border-border p-6 md:p-12 text-center flex flex-col items-center">
-          <div className="relative w-48 h-32 md:w-64 md:h-48 mb-4">
-            <Image src="/mpng.png" alt="Mis Arroces Logo" fill className="object-contain" priority />
-          </div>
-          <h1 className="text-2xl md:text-3xl font-bold mb-2">Vamos al grano.</h1>
-          <p className="text-muted-foreground max-w-md mb-6">Únete a la red social donde compartimos, medimos y perfeccionamos nuestros arroces.</p>
-          <div className="flex gap-4">
-            <Link href="/login" className={buttonVariants({ className: "rounded-xl" })}>Unirse / Entrar</Link>
+        <div className="w-full max-w-2xl mx-auto px-2 sm:px-0 pt-4">
+          <div className="bg-card border border-border rounded-3xl p-6 md:p-12 text-center flex flex-col items-center shadow-sm">
+            <div className="relative w-48 h-32 md:w-64 md:h-48 mb-4">
+              <Image src="/mpng.png" alt="Mis Arroces Logo" fill className="object-contain" priority />
+            </div>
+            <h1 className="text-2xl md:text-3xl font-bold mb-2">Vamos al grano.</h1>
+            <p className="text-muted-foreground max-w-md mb-6">Únete a la red social donde compartimos, medimos y perfeccionamos nuestros arroces.</p>
+            <div className="flex gap-4">
+              <Link href="/login" className={buttonVariants({ className: "rounded-xl font-bold" })}>Unirse / Entrar</Link>
+            </div>
           </div>
         </div>
       )}
