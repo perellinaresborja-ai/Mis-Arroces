@@ -57,17 +57,8 @@ export default async function Home() {
         </div>
       )}
 
-      {user && (
-        <div className="w-full max-w-2xl mx-auto flex items-center justify-between p-4 border-b border-border/50">
-          <Link href="/" className="font-serif text-xl font-bold tracking-tight">Mis Arroces</Link>
-          <Link href="/shorts" className="flex items-center gap-1.5 px-3 py-1.5 bg-primary/10 text-primary rounded-full font-bold text-sm hover:bg-primary/20 transition-colors">
-            <PlaySquare className="w-4 h-4" /> Shorts
-          </Link>
-        </div>
-      )}
-
       {/* Main Feed Content */}
-      <div className="flex-1 w-full max-w-2xl mx-auto space-y-4">
+      <div className="flex-1 w-full max-w-2xl mx-auto space-y-4 pt-4">
         
         {/* Stories Bar */}
         {user && (
