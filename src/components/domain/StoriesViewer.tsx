@@ -7,6 +7,7 @@ import { markStoryViewed, fetchStoryViewers } from "@/app/actions/stories"
 import Link from "next/link"
 import { SharedStoryRenderer } from "./SharedStoryRenderer"
 import { EntityInsightsModal } from "./EntityInsightsModal"
+import { SaveRecipeButton } from "./SaveRecipeButton"
 import { BarChart2 } from "lucide-react"
 import { trackClickAction } from "@/app/actions/tracking"
 
@@ -343,5 +344,6 @@ function EyeIcon({ className }: { className?: string }) {
     </svg>
   )
 }
+
 
 

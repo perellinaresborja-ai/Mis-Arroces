@@ -20,6 +20,12 @@ export function ShareButton({ title, text, path }: { title: string, text: string
   }, [])
   const { share } = useShare()
 
+  
+  const recipeMatch = path.match(/\/recipes\/([^/?]+)/);
+  const sessionMatch = path.match(/\/sessions\/([^/?]+)/);
+  const recipeId = recipeMatch ? recipeMatch[1] : null;
+  const sessionId = sessionMatch ? sessionMatch[1] : null;
+
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://www.misarroces.es";
   const url = `${baseUrl}${path}`;
   

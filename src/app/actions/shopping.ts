@@ -44,14 +44,38 @@ export async function addRecipeToShoppingList(recipeId: string) {
 
   if (!listId) throw new Error("Failed to get shopping list")
 
-  // 2. Fetch recipe ingredients
+    // 2. Fetch recipe ingredients
   const { data: recipe } = await supabase
     .from("recipes")
-    .select("recipe_ingredients(*, unit:units(id, name))")
+    .select("rice_qty, stock_qty, variety:rice_varieties(name), recipe_ingredients(*, unit:units(id, name))")
     .eq("id", recipeId)
     .single()
 
-  if (!recipe || !recipe.recipe_ingredients) return
+  if (!recipe) return
+
+  // Synthetic ingredients for Rice and Stock
+  const ingredientsToAdd = recipe.recipe_ingredients || []
+  
+  if (recipe.rice_qty) {
+    const riceName = recipe.variety && (recipe.variety as any).name ? `Arroz (${(recipe.variety as any).name})` : 'Arroz'
+    ingredientsToAdd.push({
+      ingredient_name: riceName,
+      quantity: recipe.rice_qty,
+      unit: { name: "g" }
+    })
+  } else {
+    ingredientsToAdd.push({ ingredient_name: "Arroz", quantity: null, unit: null })
+  }
+  
+  if (recipe.stock_qty) {
+    ingredientsToAdd.push({
+      ingredient_name: "Caldo",
+      quantity: recipe.stock_qty,
+      unit: { name: "ml" }
+    })
+  } else {
+    ingredientsToAdd.push({ ingredient_name: "Caldo", quantity: null, unit: null })
+  }
 
   // 3. Get existing items to merge
   const { data: currentItems } = await supabase
@@ -162,3 +186,4 @@ export async function clearShoppingList(listId: string) {
   await supabase.from("shopping_list_items").delete().eq("list_id", listId)
   revalidatePath("/shopping-list")
 }
+
