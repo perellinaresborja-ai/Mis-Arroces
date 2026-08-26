@@ -23,7 +23,7 @@ function CollapsibleSection({ title, defaultOpen = false, children, rightAction 
       <div className="flex justify-between items-center w-full p-4 md:p-6 hover:bg-muted/30 transition-colors bg-card cursor-pointer" onClick={() => setIsOpen(!isOpen)}>
         <h2 className="font-bold text-lg text-charcoal flex-1">{title}</h2>
         <div className="flex items-center gap-4">
-          {rightAction && <div onClick={e => e.stopPropagation()}>{rightAction}</div>}
+          {isOpen && rightAction && <div onClick={e => e.stopPropagation()}>{rightAction}</div>}
           {isOpen ? <ChevronUp className="w-5 h-5 text-muted-foreground shrink-0" /> : <ChevronDown className="w-5 h-5 text-muted-foreground shrink-0" />}
         </div>
       </div>
