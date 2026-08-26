@@ -7,6 +7,7 @@ import { Pencil, Clock, Flame, Users, Beaker, ChefHat, Hourglass } from "lucide-
 import { FeedCard } from "@/components/domain/FeedCard"
 import { WantToCookButton } from "@/components/domain/WantToCookButton"
 import { SaveRecipeButton } from "@/components/domain/SaveRecipeButton"
+import { AddToCartButton } from "@/components/domain/AddToCartButton"
 import { LoHeCocinadoButton } from "@/components/domain/LoHeCocinadoButton"
 
 export default async function RecipeDetailPage({
@@ -144,8 +145,8 @@ export default async function RecipeDetailPage({
                 
               {!isOwner && (
                   <div className="shrink-0 flex gap-2">
-                      <SaveRecipeButton recipeId={recipe.id} initialSaved={isSaved} isAuthenticated={!!session?.user} />
-                      <WantToCookButton recipeId={recipe.id} initialSaved={isWantToCook} isAuthenticated={!!session?.user} />
+                      <SaveRecipeButton recipeId={recipe.id} initialSaved={isSaved} isAuthenticated={!!user} />
+                      <WantToCookButton recipeId={recipe.id} initialSaved={isWantToCook} isAuthenticated={!!user} />
                   </div>
                 )}
             </div>
@@ -241,9 +242,12 @@ export default async function RecipeDetailPage({
                   </li>
                 ))}
               </ul>
-          </div>
+              <div className="mt-8">
+                <AddToCartButton recipeId={recipe.id} isAuthenticated={!!user} />
+              </div>
+            </div>
 
-          {/* Steps */}
+            {/* Steps */}
           <div className="md:col-span-7">
             <h2 className="text-2xl font-bold mb-8 font-serif text-charcoal">Elaboración</h2>
             {recipe.steps && recipe.steps.length > 0 ? (

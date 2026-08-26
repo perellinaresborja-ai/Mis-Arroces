@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { EscandalloSection } from "@/components/domain/EscandalloSection"
+import { AddToCartButton } from "@/components/domain/AddToCartButton"
 import { Save, Plus, Trash2, GripVertical, ChevronDown, ChevronUp, Check, Clock, EyeOff, Calendar } from "lucide-react"
 import { updateRecipeFull } from "@/app/actions/recipes"
 import { cn } from "@/lib/utils"
@@ -370,6 +371,10 @@ export default function EditRecipeForm({ recipe, catalogs }: { recipe: any, cata
           </CollapsibleSection>
 
           <EscandalloSection recipeId={recipe.id} initialIngredients={ingFields} catalogs={catalogs} baseServings={Number(watch("base_servings") || 2)} setValue={setValue} />
+
+          <div className="mt-4 flex justify-end">
+            <AddToCartButton recipeId={recipe.id} isAuthenticated={true} />
+          </div>
 
           {/* Steps */}
         <CollapsibleSection title="Pasos de Elaboración" rightAction={<Button type="button" variant="outline" size="sm" onClick={() => appendStep({ instruction: "", duration_minutes: "", notes: "" })}>
