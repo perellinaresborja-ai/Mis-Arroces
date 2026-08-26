@@ -367,14 +367,17 @@ export default function EditRecipeForm({ recipe, catalogs }: { recipe: any, cata
               </div>
             ))}
             {ingFields.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">No hay ingredientes añadidos.</p>}
+
+            {ingFields.length > 0 && (
+              <div className="mt-6 pt-4 border-t border-border flex justify-between items-center">
+                <p className="text-sm text-muted-foreground">¿Vas a prepararlo pronto?</p>
+                <AddToCartButton recipeId={recipe.id} isAuthenticated={true} />
+              </div>
+            )}
           </div>
           </CollapsibleSection>
 
           <EscandalloSection recipeId={recipe.id} initialIngredients={ingFields} catalogs={catalogs} baseServings={Number(watch("base_servings") || 2)} setValue={setValue} />
-
-          <div className="mt-4 flex justify-end">
-            <AddToCartButton recipeId={recipe.id} isAuthenticated={true} />
-          </div>
 
           {/* Steps */}
         <CollapsibleSection title="Pasos de Elaboración" rightAction={<Button type="button" variant="outline" size="sm" onClick={() => appendStep({ instruction: "", duration_minutes: "", notes: "" })}>
