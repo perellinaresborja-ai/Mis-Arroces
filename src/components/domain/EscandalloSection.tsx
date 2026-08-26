@@ -87,7 +87,7 @@ export function EscandalloSection({ recipeId, initialIngredients, catalogs, base
   return (
     <section className="bg-card border border-border p-4 md:p-6 rounded-2xl shadow-sm">
       <div className="flex justify-between items-center cursor-pointer" onClick={() => setIsOpen(!isOpen)}>
-        <h2 className="font-semibold text-lg flex items-center gap-2">Calcular escandallo <span className="text-xs bg-muted text-muted-foreground px-2 py-1 rounded-full font-normal">Opcional</span></h2>
+        <h2 className="font-semibold text-lg flex items-center gap-2">Calcular escandallo </h2>
         {isOpen ? <ChevronUp className="w-5 h-5 text-muted-foreground" /> : <ChevronDown className="w-5 h-5 text-muted-foreground" />}
       </div>
 
