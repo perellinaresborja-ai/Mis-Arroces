@@ -1,4 +1,4 @@
-﻿import Image from "next/image"
+import Image from "next/image"
 import { ForgotPasswordForm } from "./ForgotPasswordForm"
 
 export const dynamic = "force-dynamic"
@@ -37,15 +37,6 @@ export default async function ForgotPasswordPage({
         <div className="absolute inset-0 shadow-[inset_0_0_150px_rgba(0,0,0,0.9)]" />
 
         <div className="absolute inset-0 flex flex-col p-12 md:p-16 lg:p-24 justify-end z-10">
-          <div className="relative w-16 h-16 md:w-20 md:h-20">
-            <Image 
-              src="/mwh.png" 
-              alt="Símbolo Mis Arroces" 
-              fill
-              className="object-contain object-left-top drop-shadow-2xl"
-            />
-          </div>
-
           <div className="space-y-0">
             <h1 className="text-6xl lg:text-7xl xl:text-8xl font-black tracking-tighter text-cream drop-shadow-2xl leading-[0.85]">
               Vamos al
@@ -59,9 +50,9 @@ export default async function ForgotPasswordPage({
       {/* RIGHT ZONE - FORM */}
       <div className="flex-1 flex flex-col items-center pt-8 lg:pt-[12vh] px-6 relative h-full">
         <div className="w-full max-w-sm flex flex-col items-center shrink-0 mb-4">
-          <div className="relative w-40 h-40 lg:w-56 lg:h-56">
+          <div className="relative w-[280px] h-[80px]">
             <Image 
-              src="/logopng.png" 
+              src="/mpng.png" 
               alt="Mis Arroces" 
               fill
               className="object-contain"
