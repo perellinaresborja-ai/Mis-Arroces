@@ -257,13 +257,13 @@ export default async function PublicProfilePage({
           <div>
             {tab !== 'posts' && (
               <div className="text-center py-16 text-muted-foreground">
-                <p>PrÃ³ximamente: AÃºn no hay contenido en esta secciÃ³n.</p>
+                <p>Próximamente: Aún no hay contenido en esta sección.</p>
               </div>
             )}
 
             {tab === 'posts' && feedItems.length === 0 && (
               <div className="text-center py-16 text-muted-foreground">
-                <p>No hay elaboraciones publicadas todavÃ­a.</p>
+                <p>No hay elaboraciones publicadas todavía.</p>
               </div>
             )}
 

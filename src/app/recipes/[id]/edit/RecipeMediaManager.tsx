@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import { useState, useRef } from "react"
 import { uploadMedia, ALLOWED_MIME_TYPES, MAX_FILE_SIZE_MB, prepareImage } from "@/services/media/client"
