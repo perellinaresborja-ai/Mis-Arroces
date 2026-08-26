@@ -58,11 +58,11 @@ export default async function Home() {
       )}
 
       {/* Main Feed Content */}
-      <div className="flex-1 w-full max-w-2xl mx-auto space-y-4 pt-4">
+      <div className="flex-1 w-full max-w-2xl mx-auto space-y-4 pt-4 px-2 sm:px-0">
         
         {/* Stories Bar */}
         {user && (
-          <div className="w-full bg-card border-b border-border p-4 flex gap-4 overflow-x-auto hide-scrollbar">
+          <div className="w-full bg-card border border-border p-4 rounded-3xl flex gap-4 overflow-x-auto hide-scrollbar shadow-sm">
             {/* Create Story Button */}
             <Link href="/create/story" className="flex flex-col items-center gap-1 min-w-[72px] cursor-pointer hover:opacity-80">
               <div className="w-16 h-16 rounded-full bg-muted border-2 border-dashed border-primary/50 flex items-center justify-center text-primary/50">

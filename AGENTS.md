@@ -7,3 +7,12 @@ This version has breaking changes — APIs, conventions, and file structure may 
 This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
 
 <!-- END:nextjs-agent-rules -->
+
+
+## Línea Gráfica de Mis Arroces
+- Todas las tarjetas, contenedores de feed, modales y barras de contenido deben tener bordes redondeados (ounded-2xl o ounded-3xl), fondo g-card y un borde order border-border.
+- No usar diseños de bloque a sangre (flush sin bordes ni redondeo) para los contenedores principales (por ejemplo, barra de historias, publicaciones).
+
+## Línea Gráfica de Mis Arroces
+- Todas las tarjetas, contenedores de feed, modales y barras de contenido deben tener bordes redondeados (`rounded-2xl` o `rounded-3xl`), fondo `bg-card` y un borde `border border-border`.
+- No usar diseños de bloque a sangre (flush sin bordes ni redondeo) para los contenedores principales (por ejemplo, barra de historias, publicaciones).
