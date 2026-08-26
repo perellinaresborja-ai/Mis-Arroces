@@ -17,7 +17,8 @@ export function InviteButton({ inviteCode }: { inviteCode: string | null }) {
 
   if (!inviteCode) return null
 
-  const url = typeof window !== "undefined" ? `${window.location.origin}/invite/${inviteCode}` : `/invite/${inviteCode}`
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://www.misarroces.es";
+  const url = `${baseUrl}/invite/${inviteCode}`;
   const text = "Únete a Mis Arroces y descubre recetas de arroz."
 
   const handleNativeShare = () => {
@@ -59,7 +60,7 @@ export function InviteButton({ inviteCode }: { inviteCode: string | null }) {
             
             <div className="text-center mb-6">
               <div className="relative w-32 h-8 mx-auto mb-4">
-                <Image src="/mpng.png" alt="Mis Arroces" fill className="object-contain" />
+                <Image src="/logover.png" alt="Mis Arroces" fill className="object-contain" />
               </div>
               <h2 className="text-xl font-bold font-serif mb-2">Invita a tus amigos</h2>
               <p className="text-muted-foreground text-sm">
@@ -82,3 +83,4 @@ export function InviteButton({ inviteCode }: { inviteCode: string | null }) {
     </>
   )
 }
+

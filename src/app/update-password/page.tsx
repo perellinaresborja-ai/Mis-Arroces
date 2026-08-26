@@ -38,7 +38,7 @@ export default async function UpdatePasswordPage({
         <div className="absolute inset-0 flex flex-col p-12 md:p-16 lg:p-24 justify-between z-10">
           <div className="relative w-16 h-16 md:w-20 md:h-20">
             <Image 
-              src="/mpng.png" 
+              src="/logover.png" 
               alt="Símbolo Mis Arroces" 
               fill
               className="object-contain object-left-top drop-shadow-2xl"
@@ -60,7 +60,7 @@ export default async function UpdatePasswordPage({
         <div className="w-full max-w-sm flex flex-col items-center shrink-0 mb-4">
           <div className="relative w-40 h-40 lg:w-56 lg:h-56">
             <Image 
-              src="/mpng.png" 
+              src="/logover.png" 
               alt="Mis Arroces" 
               fill
               className="object-contain"

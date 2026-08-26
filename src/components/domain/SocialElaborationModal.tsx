@@ -75,7 +75,7 @@ export function SocialElaborationModal({ isOpen, onClose, item, currentUserId }:
             <>
               <Image 
                 src={getImageUrl(media[currentIndex].storage_path)} 
-                alt={`Media ${currentIndex + 1}`}
+                alt={`Media ${currentIndex + 1}`} sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                 fill
                 className="object-contain"
                 priority

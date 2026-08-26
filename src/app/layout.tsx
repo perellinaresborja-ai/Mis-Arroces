@@ -3,13 +3,42 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { BottomNav } from "@/components/domain/BottomNav";
 import { DesktopNav } from "@/components/domain/DesktopNav";
+import { AuthPromptProvider } from "@/components/providers/AuthPromptProvider";
 
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Mis Arroces",
-  description: "Tu recetario de arroz, siempre contigo.",
+  title: {
+    default: "Mis Arroces | La red social de los arroces",
+    template: "%s | Mis Arroces"
+  },
+  description: "Descubre, guarda y comparte las mejores recetas de arroces y paellas. �nete a la comunidad de chefs arroceros.",
   manifest: "/manifest.json",
+  keywords: ["arroz", "paella", "recetas", "red social", "cocina", "chef"],
+  openGraph: {
+    type: "website",
+    locale: "es_ES",
+    url: "https://misarroces.com",
+    siteName: "Mis Arroces",
+    title: "Mis Arroces | La red social de los arroces",
+    description: "Descubre, guarda y comparte las mejores recetas de arroces y paellas.",
+    images: [{
+      url: "/logohor.png",
+      width: 1200,
+      height: 630,
+      alt: "Mis Arroces Logo"
+    }]
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Mis Arroces | La red social de los arroces",
+    description: "Descubre, guarda y comparte las mejores recetas de arroces y paellas.",
+    images: ["/logohor.png"]
+  },
+  robots: {
+    index: true,
+    follow: true
+  }
 };
 
 export const viewport: Viewport = {
@@ -19,8 +48,6 @@ export const viewport: Viewport = {
   userScalable: false,
   themeColor: "#F7F2E8", // Cream background
 };
-
-import { AuthPromptProvider } from "@/components/providers/AuthPromptProvider";
 
 export default function RootLayout({
   children,
@@ -47,3 +74,4 @@ export default function RootLayout({
     </html>
   );
 }
+

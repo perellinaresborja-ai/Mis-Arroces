@@ -6,6 +6,9 @@ import { revalidatePath } from "next/cache"
 import { trackEvent } from "@/app/actions/analytics"
 
 export async function createStory(data: {
+  mediaTransform?: any
+  overlays?: any[]
+  background?: any
   mediaId?: string
   caption?: string
   recipeId?: string
@@ -20,7 +23,10 @@ export async function createStory(data: {
     caption: data.caption || null,
     recipe_id: data.recipeId || null,
     session_id: data.sessionId || null,
-    visibility: "PUBLIC"
+    visibility: "PUBLIC",
+    media_transform: data.mediaTransform || null,
+    overlays: data.overlays || [],
+    background: data.background || null
   }).select().single()
 
   if (error || !story) {
@@ -28,12 +34,30 @@ export async function createStory(data: {
     throw new Error("Failed to create story")
   }
 
-  if (data.mediaId) {
+    if (data.mediaId) {
     await supabase.from("story_media").insert({
       story_id: story.id,
       media_id: data.mediaId,
       display_order: 0
     })
+  }
+
+  // Handle MENTION notifications
+  if (data.overlays && Array.isArray(data.overlays)) {
+    const { createNotification } = await import("@/app/actions/notifications");
+    const mentionedIds = new Set<string>();
+    
+    for (const overlay of data.overlays) {
+      if (overlay.type === 'MENTION' && overlay.payload?.userId) {
+        mentionedIds.add(overlay.payload.userId);
+      }
+    }
+    
+    for (const recipientId of mentionedIds) {
+      if (recipientId !== user.id) {
+        await createNotification(recipientId, 'MENTION', 'story', story.id);
+      }
+    }
   }
 
   revalidatePath("/")
@@ -52,7 +76,9 @@ export async function fetchActiveStories() {
       *,
       author:profiles!stories_owner_id_fkey(id, username, display_name, avatar:media_assets!fk_profiles_avatar(storage_path)),
       story_media(media:media_assets(storage_path)),
-      story_views(viewer_id)
+      story_views(viewer_id),
+        recipe:recipes(id, name, recipe_media(media:media_assets(storage_path))),
+        session:cooking_sessions(id, session_media(media:media_assets(storage_path)))
     `)
     .gt("expires_at", new Date().toISOString())
     .order("created_at", { ascending: true })
@@ -122,7 +148,7 @@ export async function markStoryViewed(storyId: string) {
   if (story?.owner_id === user.id) return
 
   // INSERT ON CONFLICT DO NOTHING relies on unique constraint (story_id, viewer_id)
-  await supabase.from("story_views").insert({ story_id: storyId, viewer_id: user.id })
+  await supabase.from("story_views").upsert({ story_id: storyId, viewer_id: user.id }, { onConflict: "story_id, viewer_id", ignoreDuplicates: true })
     await trackEvent("STORY_VIEW", "STORY", storyId, story.owner_id)
 }
 
@@ -144,3 +170,6 @@ export async function fetchStoryViewers(storyId: string) {
     
   return data?.map((v: any) => v.viewer) || []
 }
+
+
+

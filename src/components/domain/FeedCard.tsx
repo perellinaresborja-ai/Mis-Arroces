@@ -88,7 +88,7 @@ export function FeedCard({
             </div>
             {user.display_name && (
               <div className="text-[13px] text-muted-foreground flex items-center gap-1">
-                @{user.username} <span>ï¿½</span> {formatRelativeTime(createdAt)}
+                @{user.username} <span>•</span> {formatRelativeTime(createdAt)}
               </div>
             )}
           </div>
@@ -181,3 +181,4 @@ export function FeedCard({
     </article>
   )
 }
+

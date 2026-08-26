@@ -13,7 +13,8 @@ export function ProfileShareModal({ username, display_name, path }: { username: 
   useEffect(() => setIsMounted(true), [])
   const { share } = useShare()
 
-  const url = typeof window !== "undefined" ? `${window.location.origin}${path}` : path
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://www.misarroces.es";
+  const url = `${baseUrl}${path}`;
   
   // Use a public QR code API
   const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(url)}&color=000000&bgcolor=ffffff`
@@ -78,3 +79,4 @@ export function ProfileShareModal({ username, display_name, path }: { username: 
     </>
   )
 }
+

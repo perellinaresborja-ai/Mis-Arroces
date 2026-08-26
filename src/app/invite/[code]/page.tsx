@@ -64,7 +64,7 @@ export default async function InviteLandingPage({ params }: { params: Promise<{ 
     <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-background">
       <div className="w-full max-w-sm bg-card border border-border p-8 rounded-3xl shadow-sm text-center">
         <div className="relative w-48 h-12 mx-auto mb-8">
-          <Image src="/mpng.png" alt="Mis Arroces Logo" fill className="object-contain" priority />
+          <Image src="/logover.png" alt="Mis Arroces Logo" fill className="object-contain" priority />
         </div>
 
         <div className="w-24 h-24 mx-auto bg-muted rounded-full overflow-hidden border-2 border-border mb-4 relative z-10">

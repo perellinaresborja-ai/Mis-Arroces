@@ -52,7 +52,7 @@ export default async function ForgotPasswordPage({
         <div className="w-full max-w-sm flex flex-col items-center shrink-0 mb-4">
           <div className="relative w-[280px] h-[80px]">
             <Image 
-              src="/mpng.png" 
+              src="/logover.png" 
               alt="Mis Arroces" 
               fill
               className="object-contain"

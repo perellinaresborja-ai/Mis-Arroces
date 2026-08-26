@@ -51,7 +51,7 @@ export function AuthPromptProvider({ children }: { children: ReactNode }) {
       >
         <div className="flex justify-between items-start mb-6">
           <div className="relative w-32 h-8">
-            <Image src="/mpng.png" alt="Mis Arroces" fill className="object-contain object-left" />
+            <Image src="/logover.png" alt="Mis Arroces" fill className="object-contain object-left" />
           </div>
           <button onClick={() => setIsOpen(false)} className="p-2 bg-muted rounded-full hover:bg-muted/80 shrink-0">
             <X className="w-4 h-4" />

@@ -23,13 +23,7 @@ export function MediaCarousel({ items, bucket = "recipe_media" }: { items: Media
 
   return (
     <div className="relative w-full aspect-square md:aspect-[4/3] rounded-2xl overflow-hidden bg-black/5">
-      <Image 
-        src={getImageUrl(items[currentIndex].storage_path)} 
-        alt={`Media ${currentIndex + 1}`}
-        fill
-        className="object-cover"
-        priority
-      />
+      <Image src={getImageUrl(items[currentIndex].storage_path)} alt={`Media ${currentIndex + 1}`} fill sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" className="object-cover" priority={currentIndex === 0} />
 
       {items.length > 1 && (
         <>
@@ -60,3 +54,4 @@ export function MediaCarousel({ items, bucket = "recipe_media" }: { items: Media
     </div>
   )
 }
+

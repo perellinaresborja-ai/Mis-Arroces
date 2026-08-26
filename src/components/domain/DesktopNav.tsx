@@ -28,7 +28,7 @@ export function DesktopNav() {
         
         <Link href="/" className="flex items-center gap-2">
             <div className="relative w-56 h-12">
-              <Image src="/mpng.png" alt="Mis Arroces Logo" fill className="object-contain object-left" priority />
+              <Image src="/logohor.png" alt="Mis Arroces Logo" fill sizes="300px" className="object-contain object-left" priority />
             </div>
           </Link>
 
@@ -59,3 +59,4 @@ export function DesktopNav() {
     </header>
   )
 }
+

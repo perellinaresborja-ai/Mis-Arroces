@@ -51,6 +51,17 @@ export default async function PublicProfilePage({
     : null
 
   const isSelf = user?.id === profile.id
+  let hasActiveShoppingItems = false
+  if (isSelf) {
+    const { data: list } = await supabase
+      .from('shopping_lists')
+      .select('shopping_list_items(id, is_checked)')
+      .eq('user_id', user.id)
+      .single()
+    if (list && list.shopping_list_items) {
+      hasActiveShoppingItems = list.shopping_list_items.some((i: any) => !i.is_checked)
+    }
+  }
 
   let followStatus = null
   if (user && !isSelf) {
@@ -147,9 +158,15 @@ export default async function PublicProfilePage({
             <ProfileShareModal username={profile.username} display_name={profile.display_name} path={`/@${profile.username}`} />
             {isSelf && (
               <>
-                <Link href="/shopping-list" className="flex items-center justify-center w-10 h-10 bg-black/60 rounded-full hover:bg-black transition text-white backdrop-blur-sm shadow-sm" title="Lista de la compra">
-                    <ShoppingCart className="w-5 h-5" />
-                  </Link>
+                <Link href="/shopping-list" className="relative flex items-center justify-center w-10 h-10 bg-black/60 rounded-full hover:bg-black transition text-white backdrop-blur-sm shadow-sm" title="Lista de la compra">
+  <ShoppingCart className="w-5 h-5" />
+  {hasActiveShoppingItems && (
+    <span className="absolute top-0 right-0 -mt-1 -mr-1 flex h-3 w-3">
+      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+      <span className="relative inline-flex rounded-full h-3 w-3 bg-primary"></span>
+    </span>
+  )}
+</Link>
                   <InviteButton inviteCode={profile.invite_code} />
                 <Link href="/settings" className="flex items-center justify-center w-10 h-10 bg-black/60 rounded-full hover:bg-black transition text-white backdrop-blur-sm shadow-sm" title="Configuración">
                   <Settings className="w-5 h-5" />
@@ -289,3 +306,4 @@ export default async function PublicProfilePage({
     </div>
   )
 }
+
