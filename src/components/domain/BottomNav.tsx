@@ -16,9 +16,9 @@ export function BottomNav() {
       label: "Inicio",
     },
     {
-      href: "/cookbook",
-      icon: BookOpen,
-      label: "Recetario",
+      href: "/me",
+      icon: User,
+      label: "Perfil",
     },
     {
       href: "/discover",
@@ -26,9 +26,9 @@ export function BottomNav() {
       label: "Descubrir",
     },
     {
-      href: "/me",
-      icon: User,
-      label: "Perfil",
+      href: "/cookbook",
+      icon: BookOpen,
+      label: "Recetario",
     },
   ];
 

@@ -12,9 +12,9 @@ export function DesktopNav() {
 
   const navItems = [
     { href: "/", icon: Home, label: "Inicio" },
-    { href: "/cookbook", icon: BookOpen, label: "Recetario" },
-    { href: "/discover", icon: Compass, label: "Descubrir" },
     { href: "/me", icon: User, label: "Perfil" },
+    { href: "/discover", icon: Compass, label: "Descubrir" },
+    { href: "/cookbook", icon: BookOpen, label: "Recetario" },
   ]
 
   // Only hide on auth pages
