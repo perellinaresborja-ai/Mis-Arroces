@@ -23,27 +23,7 @@ export default async function Home() {
 
   const feed = await fetchFeedPage(0)
 
-  // Minimal Stories mock fetch (Active stories from friends + self)
-  let stories: any[] = []
-  if (user) {
-    const { data } = await supabase.from("stories").select(`
-      *,
-      author:profiles!stories_owner_id_fkey(id, username, display_name, avatar:media_assets!fk_profiles_avatar(storage_path)),
-      story_media(media:media_assets(storage_path))
-    `)
-    .gt("expires_at", new Date().toISOString())
-    .eq("visibility", "PUBLIC")
-    .limit(10)
-    
-    // Group by user for the UI
-    const usersWithStories = Array.from(new Set(data?.map(s => s.owner_id))).map(ownerId => {
-      return {
-        author: data?.find(s => s.owner_id === ownerId)?.author,
-        stories: data?.filter(s => s.owner_id === ownerId)
-      }
-    })
-    stories = usersWithStories
-  }
+  const activeStories = await fetchActiveStories()
 
   return (
     <div className="min-h-screen bg-background flex flex-col pb-24 md:pb-8">
@@ -68,34 +48,7 @@ export default async function Home() {
       <div className="flex-1 w-full max-w-2xl mx-auto space-y-4 pt-4 px-2 sm:px-0">
         
         {/* Stories Bar */}
-        {user && (
-          <div className="w-full bg-card border border-border p-4 rounded-3xl flex gap-4 overflow-x-auto hide-scrollbar shadow-sm">
-            {/* Create Story Button */}
-            <Link href="/create/story" className="flex flex-col items-center gap-1 min-w-[72px] cursor-pointer hover:opacity-80">
-              <div className="w-16 h-16 rounded-full bg-muted border-2 border-dashed border-primary/50 flex items-center justify-center text-primary/50">
-                +
-              </div>
-              <span className="text-xs font-medium text-center">Tu historia</span>
-            </Link>
-
-            {stories.map((userStory: any, i) => (
-              <div key={i} className="flex flex-col items-center gap-1 min-w-[72px] cursor-pointer hover:opacity-80">
-                <div className="w-16 h-16 rounded-full border-2 border-primary overflow-hidden p-0.5">
-                  <div className="w-full h-full rounded-full bg-muted overflow-hidden">
-                    {userStory.author?.avatar?.storage_path ? (
-                      <img src={`${"https://zvesoygqssyyojqyswwm.supabase.co"}/storage/v1/object/public/recipe_media/${userStory.author.avatar.storage_path}`} className="w-full h-full object-cover" />
-                    ) : (
-                      <div className="w-full h-full bg-primary/10" />
-                    )}
-                  </div>
-                </div>
-                <span className="text-xs font-medium text-center truncate max-w-[72px]">
-                  {userStory.author?.username}
-                </span>
-              </div>
-            ))}
-          </div>
-        )}
+          <StoriesBar groupedStories={activeStories} currentUser={user} />
 
         {user && feed.length === 0 && (
           <div className="text-center p-12 bg-card rounded-3xl border border-border mt-8">
