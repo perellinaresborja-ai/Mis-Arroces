@@ -1,4 +1,4 @@
-﻿"use server"
+"use server"
 
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
@@ -73,7 +73,11 @@ export async function signup(formData: FormData) {
   }
 
   revalidatePath("/", "layout")
-  redirect("/cookbook")
+  if (data.session) {
+    redirect("/cookbook")
+  } else {
+    redirect("/login?message=Revisa tu email para activar la cuenta")
+  }
 }
 
 export async function logout() {
