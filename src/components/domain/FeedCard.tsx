@@ -8,6 +8,7 @@ import { MediaCarousel } from "@/components/domain/MediaCarousel"
 import { MessageCircle, Bookmark } from "lucide-react"
 import { CommentsModal } from "@/components/domain/CommentsModal"
 import { cn, formatRelativeTime } from "@/lib/utils"
+import { useAuthPrompt } from "@/components/providers/AuthPromptProvider"
 
 export interface FeedCardProps {
   entityType: "recipe" | "session" | "post"
@@ -42,6 +43,7 @@ export interface FeedCardProps {
 }
 
 export function FeedCard({
+
   entityType,
   entityId,
   user,
@@ -59,6 +61,7 @@ export function FeedCard({
   media
 }: FeedCardProps) {
   const [isCommentsOpen, setIsCommentsOpen] = useState(false)
+  const { showAuthPrompt } = useAuthPrompt()
   
   const avatar = user.avatar?.storage_path 
     ? `${"https://zvesoygqssyyojqyswwm.supabase.co"}/storage/v1/object/public/recipe_media/${user.avatar?.storage_path}`
@@ -147,7 +150,13 @@ export function FeedCard({
           isAuthenticated={!!currentUserId}
         />
         
-        <button onClick={() => setIsCommentsOpen(true)} className="flex items-center gap-1.5 hover:opacity-70 transition-opacity">
+        <button onClick={() => {
+            if (!currentUserId) {
+              showAuthPrompt("Crea tu cuenta para participar en la conversación.")
+              return
+            }
+            setIsCommentsOpen(true)
+          }} className="flex items-center gap-1.5 hover:opacity-70 transition-opacity">
           <MessageCircle className="w-6 h-6 transition-colors hover:text-primary" />
           {commentCount > 0 && <span className="text-sm font-medium">{commentCount}</span>}
         </button>
