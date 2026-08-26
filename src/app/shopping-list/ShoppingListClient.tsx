@@ -32,10 +32,21 @@ export function ShoppingListClient({ listId, initialItems }: { listId: string, i
   const pending = items.filter(i => !i.is_checked).sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
   const checked = items.filter(i => i.is_checked).sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
 
-  const formatQuantity = (qty: number | null, unitSymbol: string | null) => {
+  const formatQuantity = (qty: number | null, unitName: string | null) => {
     if (!qty) return ""
     const formattedQty = Number.isInteger(qty) ? qty.toString() : qty.toFixed(2).replace(/\.00$/, "")
-    return `${formattedQty} ${unitSymbol || ""}`.trim()
+    
+    let symbol = unitName || ""
+    const lower = symbol.toLowerCase()
+    if (lower.includes("gramo")) symbol = "g"
+    else if (lower.includes("kilo")) symbol = "kg"
+    else if (lower.includes("mililitro")) symbol = "ml"
+    else if (lower.includes("litro")) symbol = "L"
+    else if (lower.includes("cuchara")) symbol = "cda."
+    else if (lower.includes("pizca")) symbol = "pizca"
+    else if (lower.includes("unidad")) symbol = "ud"
+
+    return `${formattedQty} ${symbol}`.trim()
   }
 
   return (
@@ -59,7 +70,7 @@ export function ShoppingListClient({ listId, initialItems }: { listId: string, i
                     {item.recipe?.name && <span className="text-xs text-muted-foreground truncate">de {item.recipe.name}</span>}
                   </div>
                   <span className="font-bold whitespace-nowrap ml-2 text-sm">
-                    {formatQuantity(item.quantity, item.unit?.symbol)}
+                    {formatQuantity(item.quantity, item.unit?.name)}
                   </span>
                 </div>
                 <button onClick={() => handleRemove(item.id)} className="p-2 text-muted-foreground hover:text-destructive shrink-0">
@@ -84,7 +95,7 @@ export function ShoppingListClient({ listId, initialItems }: { listId: string, i
                     <div className="flex-1 flex justify-between items-center min-w-0">
                       <span className="font-medium truncate line-through">{item.ingredient_name}</span>
                       <span className="font-bold whitespace-nowrap ml-2 text-sm line-through">
-                        {formatQuantity(item.quantity, item.unit?.symbol)}
+                        {formatQuantity(item.quantity, item.unit?.name)}
                       </span>
                     </div>
                     <button onClick={() => handleRemove(item.id)} className="p-2 text-muted-foreground hover:text-destructive shrink-0">
