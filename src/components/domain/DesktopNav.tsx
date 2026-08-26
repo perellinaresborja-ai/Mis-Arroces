@@ -1,8 +1,8 @@
-﻿"use client"
+"use client"
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { BookOpen, Compass, PlusCircle, User } from "lucide-react"
+import { BookOpen, Compass, User, PlusCircle, Home } from "lucide-react"
 import { cn } from "@/lib/utils"
 import Image from "next/image"
 import { buttonVariants } from "@/components/ui/button"
@@ -11,13 +11,14 @@ export function DesktopNav() {
   const pathname = usePathname()
 
   const navItems = [
+    { href: "/", icon: Home, label: "Inicio" },
     { href: "/cookbook", icon: BookOpen, label: "Recetario" },
     { href: "/discover", icon: Compass, label: "Descubrir" },
     { href: "/me", icon: User, label: "Perfil" },
   ]
 
-  // Only show inside the app
-  if (pathname === "/" || pathname === "/login" || pathname === "/onboarding") return null
+  // Only hide on auth pages
+  if (pathname === "/login" || pathname === "/forgot-password") return null
 
   return (
     <header className="hidden md:flex sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -31,7 +32,9 @@ export function DesktopNav() {
 
         <nav className="flex items-center gap-8">
           {navItems.map((item) => {
-            const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`)
+            const isActive = item.href === "/" 
+              ? pathname === "/" 
+              : pathname === item.href || pathname.startsWith(`${item.href}/`)
             const Icon = item.icon
             return (
               <Link

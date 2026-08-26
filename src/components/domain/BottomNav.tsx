@@ -3,13 +3,18 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BookOpen, Compass, User } from "lucide-react";
+import { BookOpen, Compass, User, Home } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function BottomNav() {
   const pathname = usePathname();
 
   const navItems = [
+    {
+      href: "/",
+      icon: Home,
+      label: "Inicio",
+    },
     {
       href: "/cookbook",
       icon: BookOpen,
@@ -27,11 +32,15 @@ export function BottomNav() {
     },
   ];
 
+  if (pathname === "/login" || pathname === "/forgot-password") return null;
+
   return (
     <nav className="md:hidden fixed bottom-0 z-50 w-full border-t border-border bg-background pb-safe">
       <div className="flex h-16 items-center justify-around px-2">
         {navItems.map((item) => {
-          const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
+          const isActive = item.href === "/" 
+            ? pathname === "/" 
+            : pathname === item.href || pathname.startsWith(`${item.href}/`);
           const Icon = item.icon;
 
           return (
