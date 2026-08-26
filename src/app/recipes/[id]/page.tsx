@@ -75,7 +75,7 @@ export default async function RecipeDetailPage({
   }
 
   // Fetch recent cooked sessions for this recipe
-  const { data: sessions } = await supabase
+  const { data: sessions, count: publicCookCount } = await supabase
     .from("cooking_sessions")
     .select(`
       *,
@@ -83,7 +83,7 @@ export default async function RecipeDetailPage({
       session_media(media:media_assets(id, storage_path))
     `)
     .eq("recipe_id", recipe.id)
-    .eq("privacy_level", "PUBLIC")
+    .eq("status", "PUBLISHED").eq("visibility", "PUBLIC")
     .order("date", { ascending: false })
     .limit(5)
 
@@ -122,7 +122,14 @@ export default async function RecipeDetailPage({
             <div className="flex justify-between items-start gap-4">
               <div>
                 
-                <h1 className="text-3xl md:text-5xl font-bold leading-tight text-foreground font-serif tracking-tight">
+                
+                  {(publicCookCount || 0) >= 5 && (
+                    <div className="inline-flex items-center gap-1.5 bg-primary/10 text-primary px-3 py-1 rounded-full text-xs font-bold border border-primary/20 shadow-sm mb-3">
+                      ✓ Probada por la comunidad
+                    </div>
+                  )}
+                  <h1 className="text-3xl md:text-5xl font-bold leading-tight text-foreground font-serif tracking-tight">
+
                   {recipe.name}
                 </h1>
               </div>
