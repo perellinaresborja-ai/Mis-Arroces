@@ -246,7 +246,7 @@ export default async function RecipeDetailPage({
                 ))}
               </ul>
               <div className="mt-8">
-                <AddToCartButton recipeId={recipe.id} isAuthenticated={!!user} />
+                <AddToCartButton recipeId={recipe.id} isAuthenticated={!!user} baseServings={recipe.base_servings} />
               </div>
             </div>
 

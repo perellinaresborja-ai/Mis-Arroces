@@ -18,7 +18,7 @@ export async function fetchShoppingList() {
   return list
 }
 
-export async function addRecipeToShoppingList(recipeId: string) {
+export async function addRecipeToShoppingList(recipeId: string, targetServings?: number) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error("Unauthorized")
@@ -47,20 +47,24 @@ export async function addRecipeToShoppingList(recipeId: string) {
     // 2. Fetch recipe ingredients
   const { data: recipe } = await supabase
     .from("recipes")
-    .select("rice_qty, stock_qty, variety:rice_varieties(name), recipe_ingredients(*, unit:units(id, name))")
+    .select("base_servings, rice_qty, stock_qty, variety:rice_varieties(name), recipe_ingredients(*, unit:units(id, name))")
     .eq("id", recipeId)
     .single()
 
   if (!recipe) return
 
     // Synthetic ingredients for Rice and Stock
+  
+  const ratio = (targetServings && recipe.base_servings) ? targetServings / recipe.base_servings : 1;
+  const multiply = (qty: any) => qty ? qty * ratio : null;
+
   const ingredientsToAdd: any[] = recipe.recipe_ingredients ? [...recipe.recipe_ingredients] : []
   
   if (recipe.rice_qty) {
     const riceName = recipe.variety && (recipe.variety as any).name ? `Arroz (${(recipe.variety as any).name})` : 'Arroz';
     ingredientsToAdd.push({
       display_text: riceName,
-      normalized_quantity: recipe.rice_qty,
+      normalized_quantity: multiply(recipe.rice_qty),
       unit: { name: "g" },
       unit_id: null // We will resolve this below
     })
@@ -71,7 +75,7 @@ export async function addRecipeToShoppingList(recipeId: string) {
   if (recipe.stock_qty) {
     ingredientsToAdd.push({
       display_text: "Caldo",
-      normalized_quantity: recipe.stock_qty,
+      normalized_quantity: multiply(recipe.stock_qty),
       unit: { name: "ml" },
       unit_id: null
     })
@@ -122,6 +126,9 @@ export async function addRecipeToShoppingList(recipeId: string) {
   }
 
   for (const ing of ingredientsToAdd) {
+    if (ing.normalized_quantity && ratio !== 1) {
+      ing.normalized_quantity = ing.normalized_quantity * ratio;
+    }
     // Resolve synthetic unit_ids if missing
     if (!ing.unit_id && ing.unit?.name) {
       const u = unitsBySymbol.get(ing.unit.name.toLowerCase())
