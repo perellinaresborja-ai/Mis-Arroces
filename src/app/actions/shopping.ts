@@ -53,28 +53,30 @@ export async function addRecipeToShoppingList(recipeId: string) {
 
   if (!recipe) return
 
-  // Synthetic ingredients for Rice and Stock
-  const ingredientsToAdd = recipe.recipe_ingredients || []
+    // Synthetic ingredients for Rice and Stock
+  const ingredientsToAdd: any[] = recipe.recipe_ingredients ? [...recipe.recipe_ingredients] : []
   
   if (recipe.rice_qty) {
-    const riceName = recipe.variety && (recipe.variety as any).name ? `Arroz (${(recipe.variety as any).name})` : 'Arroz'
+    const riceName = recipe.variety && (recipe.variety as any).name ? `Arroz (${(recipe.variety as any).name})` : 'Arroz';
     ingredientsToAdd.push({
-      ingredient_name: riceName,
-      quantity: recipe.rice_qty,
-      unit: { name: "g" }
+      display_text: riceName,
+      normalized_quantity: recipe.rice_qty,
+      unit: { name: "g" },
+      unit_id: null // We will resolve this below
     })
   } else {
-    ingredientsToAdd.push({ ingredient_name: "Arroz", quantity: null, unit: null })
+    ingredientsToAdd.push({ display_text: "Arroz", normalized_quantity: null, unit: null, unit_id: null })
   }
   
   if (recipe.stock_qty) {
     ingredientsToAdd.push({
-      ingredient_name: "Caldo",
-      quantity: recipe.stock_qty,
-      unit: { name: "ml" }
+      display_text: "Caldo",
+      normalized_quantity: recipe.stock_qty,
+      unit: { name: "ml" },
+      unit_id: null
     })
   } else {
-    ingredientsToAdd.push({ ingredient_name: "Caldo", quantity: null, unit: null })
+    ingredientsToAdd.push({ display_text: "Caldo", normalized_quantity: null, unit: null, unit_id: null })
   }
 
   // 3. Get existing items to merge
@@ -119,7 +121,13 @@ export async function addRecipeToShoppingList(recipeId: string) {
     return null // incompatible
   }
 
-  for (const ing of recipe.recipe_ingredients) {
+  for (const ing of ingredientsToAdd) {
+    // Resolve synthetic unit_ids if missing
+    if (!ing.unit_id && ing.unit?.name) {
+      const u = unitsBySymbol.get(ing.unit.name.toLowerCase())
+      if (u) ing.unit_id = u.id
+    }
+
     if (!ing.display_text) continue
     const normName = normalize(ing.display_text)
     let matched = false
@@ -186,4 +194,5 @@ export async function clearShoppingList(listId: string) {
   await supabase.from("shopping_list_items").delete().eq("list_id", listId)
   revalidatePath("/shopping-list")
 }
+
 

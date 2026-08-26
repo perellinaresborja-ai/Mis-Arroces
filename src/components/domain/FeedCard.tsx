@@ -59,25 +59,8 @@ export function FeedCard({
   linkedRecipe,
   media
 }: FeedCardProps) {
-  const user = initialUser || { username: 'usuario_desconocido', display_name: 'Usuario Desconocido', avatar: null }
 
-
-  entityType,
-  entityId,
-  user,
-  createdAt,
-  likeCount,
-  isLiked,
-  commentCount,
-  currentUserId,
-  postContent,
-  recipeName,
-  recipeType,
-  sessionRating,
-  sessionSocarrat,
-  linkedRecipe,
-  media
-}: FeedCardProps) {
+  const user = initialUser || { username: 'usuario_desconocido', display_name: 'Usuario Desconocido', avatar: null };
   const [isCommentsOpen, setIsCommentsOpen] = useState(false)
   const { showAuthPrompt } = useAuthPrompt()
   
