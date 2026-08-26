@@ -1,9 +1,0 @@
-const fs = require('fs');
-let editForm = fs.readFileSync('src/app/recipes/[id]/edit/EditRecipeForm.tsx', 'utf8');
-
-editForm = editForm.replace(
-  '{ingFields.length > 0 && (\n              \n            )}',
-  ''
-);
-
-fs.writeFileSync('src/app/recipes/[id]/edit/EditRecipeForm.tsx', editForm, 'utf8');

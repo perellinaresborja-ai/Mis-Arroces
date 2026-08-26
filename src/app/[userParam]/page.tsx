@@ -5,7 +5,7 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { ProfileGridCard } from "@/components/domain/ProfileGridCard"
 import { FeedCard } from "@/components/domain/FeedCard"
-import { Settings, Lock, User, Grid, Clapperboard, UserSquare, LinkIcon } from "lucide-react"
+import { Settings, Lock, User, Grid, Clapperboard, UserSquare, LinkIcon, ShoppingCart } from "lucide-react"
 import { ShareButton } from "@/components/domain/ShareButton"
 import { ProfileShareModal } from "@/components/domain/ProfileShareModal"
 import { ProfileAvatar } from "@/components/domain/ProfileAvatar"
@@ -145,7 +145,10 @@ export default async function PublicProfilePage({
             <ProfileShareModal username={profile.username} display_name={profile.display_name} path={`/@${profile.username}`} />
             {isSelf && (
               <>
-                <InviteButton inviteCode={profile.invite_code} />
+                <Link href="/shopping-list" className="flex items-center justify-center w-10 h-10 bg-black/60 rounded-full hover:bg-black transition text-white backdrop-blur-sm shadow-sm" title="Lista de la compra">
+                    <ShoppingCart className="w-5 h-5" />
+                  </Link>
+                  <InviteButton inviteCode={profile.invite_code} />
                 <Link href="/settings" className="flex items-center justify-center w-10 h-10 bg-black/60 rounded-full hover:bg-black transition text-white backdrop-blur-sm shadow-sm" title="Configuración">
                   <Settings className="w-5 h-5" />
                 </Link>
