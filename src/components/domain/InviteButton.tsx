@@ -2,11 +2,12 @@
 
 import { useState, useEffect } from "react"
 import { createPortal } from "react-dom"
-import { Send, Share2, Copy, X } from "lucide-react"
+import { UserPlus, Share2, Copy, X } from "lucide-react"
 import { useShare } from "@/lib/platform"
 import { Button } from "@/components/ui/button"
+import Image from "next/image"
 
-export function ShareButton({ title, text, path }: { title: string, text: string, path: string }) {
+export function InviteButton({ inviteCode }: { inviteCode: string | null }) {
   const [isOpen, setIsOpen] = useState(false)
   const [copied, setCopied] = useState(false)
   const [isMounted, setIsMounted] = useState(false)
@@ -14,13 +15,13 @@ export function ShareButton({ title, text, path }: { title: string, text: string
   useEffect(() => setIsMounted(true), [])
   const { share } = useShare()
 
-  const url = typeof window !== "undefined" ? `${window.location.origin}${path}` : path
-  
-  // Use a public QR code API
-  const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(url)}&color=000000&bgcolor=ffffff`
+  if (!inviteCode) return null
+
+  const url = typeof window !== "undefined" ? `${window.location.origin}/invite/${inviteCode}` : `/invite/${inviteCode}`
+  const text = "Únete a Mis Arroces y descubre recetas de arroz."
 
   const handleNativeShare = () => {
-    share(title, text, url)
+    share("Mis Arroces", text, url)
   }
 
   const handleCopy = () => {
@@ -35,10 +36,10 @@ export function ShareButton({ title, text, path }: { title: string, text: string
     <>
       <button 
         onClick={() => setIsOpen(true)}
-        className="flex items-center gap-1.5 hover:opacity-70 transition-opacity"
-        title="Compartir"
+        className="flex items-center justify-center w-10 h-10 bg-black/60 rounded-full hover:bg-black transition text-white backdrop-blur-sm shadow-sm"
+        title="Invitar amigos"
       >
-        <Send className="w-6 h-6" strokeWidth={1.5} />
+        <UserPlus className="w-5 h-5" />
       </button>
 
       {isOpen && isMounted && createPortal(
@@ -56,29 +57,22 @@ export function ShareButton({ title, text, path }: { title: string, text: string
               </button>
             </div>
             
-            <div className="flex flex-col items-center justify-center mb-8 bg-white p-4 rounded-2xl w-fit mx-auto border shadow-sm">
-              <div className="text-center font-bold text-black mb-3 text-lg tracking-tight line-clamp-2 max-w-[200px]">
-                {title || "Mis Arroces"}
+            <div className="text-center mb-6">
+              <div className="relative w-32 h-8 mx-auto mb-4">
+                <Image src="/mpng.png" alt="Mis Arroces" fill className="object-contain" />
               </div>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={qrCodeUrl} alt="QR Code" className="w-48 h-48" />
+              <h2 className="text-xl font-bold font-serif mb-2">Invita a tus amigos</h2>
+              <p className="text-muted-foreground text-sm">
+                Comparte tu enlace personal y descubre juntos las mejores recetas de la comunidad.
+              </p>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
-              <Button onClick={handleNativeShare} className="w-full font-bold rounded-xl" size="lg">
-                <Share2 className="w-4 h-4 mr-2" /> Compartir
+              <Button onClick={handleNativeShare} className="w-full font-bold rounded-xl bg-olive hover:bg-olive/90 text-white" size="lg">
+                <Share2 className="w-4 h-4 mr-2" /> Enviar
               </Button>
               <Button onClick={handleCopy} variant="secondary" className="w-full font-bold rounded-xl" size="lg">
                 <Copy className="w-4 h-4 mr-2" /> {copied ? "¡Copiado!" : "Copiar link"}
-              </Button>
-            </div>
-            
-            <div className="mt-3">
-              <Button variant="outline" className="w-full font-bold rounded-xl" size="lg" onClick={() => window.location.href = `/create/story?share=${encodeURIComponent(path)}`}>
-                
-                  <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v8"/><path d="M8 12h8"/></svg>
-                  Compartir en Historia
-                
               </Button>
             </div>
           </div>

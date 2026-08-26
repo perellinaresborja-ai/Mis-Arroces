@@ -16,6 +16,12 @@ export default async function Home() {
     redirect("/login")
   }
 
+  const { data: profile } = await supabase.from("profiles").select("onboarding_completed").eq("id", user.id).single()
+  if (!profile?.onboarding_completed) {
+    const { redirect } = await import("next/navigation")
+    redirect("/onboarding")
+  }
+
   const feed = await fetchFeedPage(0)
 
   // Minimal Stories mock fetch (Active stories from friends + self)
