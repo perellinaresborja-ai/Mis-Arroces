@@ -64,7 +64,7 @@ export default async function PostDetailPage({ params }: { params: Promise<{ id:
 
   const isLiked = !!userLike
   const avatarUrl = post.author?.avatar?.storage_path 
-    ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/recipe_media/${post.author.avatar?.storage_path}`
+    ? `${(process.env.NEXT_PUBLIC_SUPABASE_URL || "https://zvesoygqssyyojqyswwm.supabase.co")}/storage/v1/object/public/recipe_media/${post.author.avatar?.storage_path}`
     : null
 
   return (

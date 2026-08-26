@@ -61,7 +61,7 @@ export function FeedCard({
   const [isCommentsOpen, setIsCommentsOpen] = useState(false)
   
   const avatar = user.avatar?.storage_path 
-    ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/recipe_media/${user.avatar?.storage_path}`
+    ? `${(process.env.NEXT_PUBLIC_SUPABASE_URL || "https://zvesoygqssyyojqyswwm.supabase.co")}/storage/v1/object/public/recipe_media/${user.avatar?.storage_path}`
     : null
 
   const href = entityType === 'recipe' 

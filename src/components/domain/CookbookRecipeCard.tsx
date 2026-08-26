@@ -19,7 +19,7 @@ export function CookbookRecipeCard({ recipe, tab }: { recipe: any, tab: string }
   const sorted = mediaArray ? [...mediaArray].sort((a: any, b: any) => (a.display_order||0) - (b.display_order||0)) : []
   const path = sorted[0]?.media?.storage_path
   const primaryMediaId = sorted[0]?.media_id
-  const coverUrl = path ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/recipe_media/${path}` : null
+  const coverUrl = path ? `${(process.env.NEXT_PUBLIC_SUPABASE_URL || "https://zvesoygqssyyojqyswwm.supabase.co")}/storage/v1/object/public/recipe_media/${path}` : null
 
   const handlePublish = async () => {
     setIsLoading(true)

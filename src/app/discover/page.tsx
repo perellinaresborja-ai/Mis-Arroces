@@ -135,7 +135,7 @@ export default async function DiscoverPage(props: { searchParams?: Promise<{ q?:
   // Helper to format avatar URL
   const getAvatarUrl = (avatarPath: string | null | undefined) => {
     if (!avatarPath) return null
-    return `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/recipe_media/${avatarPath}`
+    return `${(process.env.NEXT_PUBLIC_SUPABASE_URL || "https://zvesoygqssyyojqyswwm.supabase.co")}/storage/v1/object/public/recipe_media/${avatarPath}`
   }
 
   return (
@@ -177,7 +177,7 @@ export default async function DiscoverPage(props: { searchParams?: Promise<{ q?:
             <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide snap-x">
               {homeData.popular.map((r) => {
                 const media = r.recipe_media?.[0]?.media?.storage_path
-                const imgUrl = media ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/recipe_media/${media}` : null
+                const imgUrl = media ? `${(process.env.NEXT_PUBLIC_SUPABASE_URL || "https://zvesoygqssyyojqyswwm.supabase.co")}/storage/v1/object/public/recipe_media/${media}` : null
                 return (
                   <Link key={r.id} href={`/recipes/${r.id}`} className="snap-start shrink-0 w-64 group block bg-card rounded-2xl overflow-hidden border border-border hover:border-primary/50 transition-colors">
                     <div className="aspect-[4/3] bg-muted relative overflow-hidden">
@@ -205,7 +205,7 @@ export default async function DiscoverPage(props: { searchParams?: Promise<{ q?:
             <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide snap-x">
               {homeData.popular.map((r) => {
                 const media = r.recipe_media?.[0]?.media?.storage_path
-                const imgUrl = media ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/recipe_media/${media}` : null
+                const imgUrl = media ? `${(process.env.NEXT_PUBLIC_SUPABASE_URL || "https://zvesoygqssyyojqyswwm.supabase.co")}/storage/v1/object/public/recipe_media/${media}` : null
                 return (
                   <Link key={r.id} href={`/recipes/${r.id}`} className="snap-start shrink-0 w-64 group block bg-card rounded-2xl overflow-hidden border border-border hover:border-primary/50 transition-colors">
                     <div className="aspect-[4/3] bg-muted relative overflow-hidden">
@@ -265,7 +265,7 @@ export default async function DiscoverPage(props: { searchParams?: Promise<{ q?:
               <div className="grid grid-cols-2 gap-4">
                 {searchResults.recipes.map((r) => {
                   const media = r.recipe_media?.[0]?.media?.storage_path
-                  const imgUrl = media ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/recipe_media/${media}` : null
+                  const imgUrl = media ? `${(process.env.NEXT_PUBLIC_SUPABASE_URL || "https://zvesoygqssyyojqyswwm.supabase.co")}/storage/v1/object/public/recipe_media/${media}` : null
                   return (
                     <Link key={r.id} href={`/recipes/${r.id}`} className="group block bg-card border border-border rounded-2xl overflow-hidden hover:border-primary/50 transition-colors">
                       <div className="aspect-square bg-muted relative">

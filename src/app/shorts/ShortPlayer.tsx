@@ -19,8 +19,8 @@ export function ShortPlayer({ short, currentUserId }: { short: any, currentUserI
   const pathname = usePathname()
 
   const videoPath = short.short_media?.[0]?.media?.storage_path
-  const videoUrl = videoPath ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/recipe_media/${videoPath}` : null
-  const avatarUrl = short.author?.avatar?.storage_path ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/recipe_media/${short.author.avatar.storage_path}` : null
+  const videoUrl = videoPath ? `${(process.env.NEXT_PUBLIC_SUPABASE_URL || "https://zvesoygqssyyojqyswwm.supabase.co")}/storage/v1/object/public/recipe_media/${videoPath}` : null
+  const avatarUrl = short.author?.avatar?.storage_path ? `${(process.env.NEXT_PUBLIC_SUPABASE_URL || "https://zvesoygqssyyojqyswwm.supabase.co")}/storage/v1/object/public/recipe_media/${short.author.avatar.storage_path}` : null
 
   useEffect(() => {
     const observer = new IntersectionObserver(

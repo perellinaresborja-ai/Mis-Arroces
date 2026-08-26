@@ -85,7 +85,7 @@ export default async function Home() {
                 <div className="w-16 h-16 rounded-full border-2 border-primary overflow-hidden p-0.5">
                   <div className="w-full h-full rounded-full bg-muted overflow-hidden">
                     {userStory.author?.avatar?.storage_path ? (
-                      <img src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/recipe_media/${userStory.author.avatar.storage_path}`} className="w-full h-full object-cover" />
+                      <img src={`${(process.env.NEXT_PUBLIC_SUPABASE_URL || "https://zvesoygqssyyojqyswwm.supabase.co")}/storage/v1/object/public/recipe_media/${userStory.author.avatar.storage_path}`} className="w-full h-full object-cover" />
                     ) : (
                       <div className="w-full h-full bg-primary/10" />
                     )}

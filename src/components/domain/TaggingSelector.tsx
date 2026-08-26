@@ -106,7 +106,7 @@ export function TaggingSelector({
                       <div className="w-10 h-10 rounded-full bg-muted overflow-hidden">
                         {user.avatar?.storage_path && (
                           /* eslint-disable-next-line @next/next/no-img-element */
-                          <img src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/recipe_media/${user.avatar.storage_path}`} className="w-full h-full object-cover" alt="" />
+                          <img src={`${(process.env.NEXT_PUBLIC_SUPABASE_URL || "https://zvesoygqssyyojqyswwm.supabase.co")}/storage/v1/object/public/recipe_media/${user.avatar.storage_path}`} className="w-full h-full object-cover" alt="" />
                         )}
                       </div>
                       <div className="text-left flex flex-col">
