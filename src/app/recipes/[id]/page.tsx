@@ -147,7 +147,7 @@ export default async function RecipeDetailPage({
                 
                 
               {!isOwner && (
-                  <div className="shrink-0 flex gap-2">
+                  <div className="shrink-0 flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
                       <SaveRecipeButton recipeId={recipe.id} initialSaved={isSaved} isAuthenticated={!!user} />
                       <WantToCookButton recipeId={recipe.id} initialSaved={isWantToCook} isAuthenticated={!!user} />
                   </div>
