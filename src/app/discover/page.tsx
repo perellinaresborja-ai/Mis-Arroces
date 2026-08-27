@@ -153,6 +153,32 @@ export default async function DiscoverPage(props: { searchParams?: Promise<{ q?:
       {!q && (
         <div className="space-y-12 animate-in fade-in duration-500">
           
+          <section>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold">Arroceros que descubrir</h2>
+              <Link href="/discover?tab=personas" className="text-sm font-semibold text-primary hover:underline">Ver todos &gt;</Link>
+            </div>
+            <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide">
+              {homeData.users.map((u) => {
+                const avatar = getAvatarUrl(u.avatar?.storage_path)
+                return (
+                  <Link key={u.id} href={`/@${u.username}`} className="flex flex-col items-center gap-2 shrink-0 w-20 group">
+                    <div className="w-16 h-16 rounded-full bg-muted border-2 border-border overflow-hidden group-hover:border-primary transition-colors">
+                      {avatar ? (
+                        <img src={avatar} alt={u.username} className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center bg-primary/5 text-primary text-xl font-bold">
+                          {u.username[0].toUpperCase()}
+                        </div>
+                      )}
+                    </div>
+                    <span className="text-xs font-medium text-center truncate w-full px-1">{u.display_name}</span>
+                  </Link>
+                )
+              })}
+            </div>
+          </section>
+
           {/* Quick Chips Concept */}
           <section>
             <div className="flex gap-2 overflow-x-auto pb-4 scrollbar-hide">
@@ -203,7 +229,7 @@ export default async function DiscoverPage(props: { searchParams?: Promise<{ q?:
               <Link href="/discover?tab=arroces" className="text-sm font-semibold text-primary hover:underline">Ver todos &gt;</Link>
             </div>
             <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide snap-x">
-              {homeData.popular.map((r) => {
+              {homeData.recent.map((r) => {
                 const media = r.recipe_media?.[0]?.media?.storage_path
                 const imgUrl = media ? `${"https://zvesoygqssyyojqyswwm.supabase.co"}/storage/v1/object/public/recipe_media/${media}` : null
                 return (
@@ -225,31 +251,7 @@ export default async function DiscoverPage(props: { searchParams?: Promise<{ q?:
             </div>
           </section>
 
-          <section className="mt-8">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold">Arroceros que descubrir</h2>
-              <Link href="/discover?tab=personas" className="text-sm font-semibold text-primary hover:underline">Ver todos &gt;</Link>
-            </div>
-            <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide">
-              {homeData.users.map((u) => {
-                const avatar = getAvatarUrl(u.avatar?.storage_path)
-                return (
-                  <Link key={u.id} href={`/@${u.username}`} className="flex flex-col items-center gap-2 shrink-0 w-20 group">
-                    <div className="w-16 h-16 rounded-full bg-muted border-2 border-border overflow-hidden group-hover:border-primary transition-colors">
-                      {avatar ? (
-                        <img src={avatar} alt={u.username} className="w-full h-full object-cover" />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center bg-primary/5 text-primary text-xl font-bold">
-                          {u.username[0].toUpperCase()}
-                        </div>
-                      )}
-                    </div>
-                    <span className="text-xs font-medium text-center truncate w-full px-1">{u.display_name}</span>
-                  </Link>
-                )
-              })}
-            </div>
-          </section>
+          
 
         </div>
       )}
