@@ -104,7 +104,7 @@ export default async function DiscoverPage(props: { searchParams?: Promise<{ q?:
   }
 
   // Queries for Discover Home (when no search)
-  let homeData = { popular: [] as any[], users: [] as any[] }
+  let homeData = { popular: [] as any[], recent: [] as any[], users: [] as any[] }
   if (!q) {
     const { data: popularRecipes, error: popError } = await supabase.from("popular_recipes_v1").select(`
       *,
@@ -124,7 +124,14 @@ export default async function DiscoverPage(props: { searchParams?: Promise<{ q?:
       homeData.popular = popularRecipes
     }
 
-    const { data: users } = await supabase.from("profiles").select(`
+    const { data: recentRecipes } = await supabase.from("recipes").select(`
+        *,
+        author:profiles!recipes_owner_id_fkey(id, username, display_name, avatar:media_assets!fk_profiles_avatar(storage_path)),
+        recipe_media(media:media_assets(id, storage_path))
+      `).eq("status", "PUBLISHED").order("created_at", { ascending: false }).limit(10)
+      if (recentRecipes) homeData.recent = recentRecipes;
+
+      const { data: users } = await supabase.from("profiles").select(`
       id, username, display_name, account_type, professional_type, privacy_level,
       avatar:media_assets!fk_profiles_avatar(storage_path)
     `).eq("privacy_level", "PUBLIC").limit(12) // random or recent, using limit for now
