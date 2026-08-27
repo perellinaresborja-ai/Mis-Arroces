@@ -32,7 +32,8 @@ export function MessageBubble({ message, isOwn, onReply }: { message: Record<str
   }, [message.reply_to_id, replyData, supabase]);
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(mContent);
+    const textToCopy = mContent || realtimeUrl || '';
+    if (textToCopy) navigator.clipboard.writeText(textToCopy);
     setShowMenu(false);
   };
 
@@ -188,11 +189,9 @@ export function MessageBubble({ message, isOwn, onReply }: { message: Record<str
             <button onClick={handleReply} className="w-full text-left px-3 py-2 text-sm flex items-center gap-2 hover:bg-muted transition-colors">
               <Reply className="w-4 h-4" /> Responder
             </button>
-            {mContent && (
-              <button onClick={handleCopy} className="w-full text-left px-3 py-2 text-sm flex items-center gap-2 hover:bg-muted transition-colors">
-                <Copy className="w-4 h-4" /> Copiar
-              </button>
-            )}
+            <button onClick={handleCopy} className="w-full text-left px-3 py-2 text-sm flex items-center gap-2 hover:bg-muted transition-colors">
+              <Copy className="w-4 h-4" /> Copiar
+            </button>
             {isOwn && (
               <button onClick={handleUnsend} className="w-full text-left px-3 py-2 text-sm flex items-center gap-2 hover:bg-muted text-destructive transition-colors">
                 <Trash2 className="w-4 h-4" /> Anular
