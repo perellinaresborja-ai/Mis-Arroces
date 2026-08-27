@@ -16,6 +16,7 @@ export function MessageBubble({ message, isOwn }: { message: Record<string, unkn
   const attachment = (message.message_attachments as any[])?.[0];
   const attachmentPath = attachment?.storage_path;
   const mediaUrl = attachmentPath ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/message_media/${attachmentPath}` : null;
+  const supabase = createClient();
   const [realtimeUrl, setRealtimeUrl] = useState<string | null>(mediaUrl);
   
   useEffect(() => {
@@ -27,13 +28,13 @@ export function MessageBubble({ message, isOwn }: { message: Record<string, unkn
       const fetchAttachment = async () => {
         // Wait 500ms to ensure the second insert (attachment) has completed
         await new Promise(r => setTimeout(r, 500));
-        const { data } = await supabase.from('message_attachments').select('storage_path').eq('message_id', message.id).single();
+        const { data } = await supabase.from('message_attachments').select('storage_path').eq('message_id', message.id as string).single();
         if (data?.storage_path) {
           setRealtimeUrl(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/message_media/${data.storage_path}`);
         } else {
           // If network is slow, retry once after 1.5s
           setTimeout(async () => {
-            const { data: retryData } = await supabase.from('message_attachments').select('storage_path').eq('message_id', message.id).single();
+            const { data: retryData } = await supabase.from('message_attachments').select('storage_path').eq('message_id', message.id as string).single();
             if (retryData?.storage_path) {
               setRealtimeUrl(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/message_media/${retryData.storage_path}`);
             }
@@ -43,7 +44,7 @@ export function MessageBubble({ message, isOwn }: { message: Record<string, unkn
       fetchAttachment();
     }
   }, [mType, mediaUrl, message.id, supabase]);
-  const supabase = createClient()
+  
 
   useEffect(() => {
     if (mType === 'RECIPE' || mType === 'SESSION' || mType === 'STORY') {
