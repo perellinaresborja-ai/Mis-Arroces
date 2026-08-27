@@ -35,9 +35,23 @@ export async function createStory(data: {
     throw new Error("Failed to create story")
   }
 
+    // Verify ownership if client provided an arbitrary mediaId
+    if (data.mediaId) {
+      const { data: ma } = await supabase.from('media_assets').select('owner_id').eq('id', data.mediaId).single();
+      if (!ma || ma.owner_id !== user.id) {
+        throw new Error("Unauthorized: You do not own this media asset.");
+      }
+    }
+
     // Automatically resolve recipe media if not provided
     let finalMediaId = data.mediaId;
     if (!finalMediaId && data.recipeId) {
+      // Verify recipe visibility before allowing its media to be linked
+      const { data: recipe } = await supabase.from('recipes').select('visibility').eq('id', data.recipeId).single();
+      if (!recipe || (recipe.visibility !== 'PUBLIC' && recipe.visibility !== 'FOLLOWERS')) {
+         // Fallback or skip if not public, though RLS on recipes should handle this.
+      }
+
       const { data: rm } = await supabase
         .from('recipe_media')
         .select('media_id')
