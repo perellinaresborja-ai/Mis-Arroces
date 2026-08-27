@@ -40,7 +40,8 @@ export function ClientChat({ conversationId, initialMessages, userId, myStatus, 
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
-  const pendingRequest = otherStatus === 'REQUEST'
+  const isWaitingForReply = otherStatus === 'REQUEST' && messages.length > 0;
+  const canSendFirstRequestMessage = otherStatus === 'REQUEST' && messages.length === 0;
   const isRejected = otherStatus === 'REJECTED' || myStatus === 'REJECTED'
 
   return (
@@ -53,7 +54,7 @@ export function ClientChat({ conversationId, initialMessages, userId, myStatus, 
       </div>
 
       <div className="fixed bottom-0 left-0 right-0 max-w-xl mx-auto bg-card border-t border-border p-0 z-20">
-        {pendingRequest ? (
+        {isWaitingForReply ? (
           <div className="p-4 text-center text-sm text-muted-foreground bg-muted/50 font-medium">
             Solicitud enviada. Esperando respuesta.
           </div>
@@ -61,7 +62,7 @@ export function ClientChat({ conversationId, initialMessages, userId, myStatus, 
           <div className="p-4 text-center text-sm text-muted-foreground bg-muted/50 font-medium">
             No puedes enviar mensajes a esta conversación.
           </div>
-        ) : myStatus === 'ACTIVE' ? (
+        ) : (myStatus === 'ACTIVE' || canSendFirstRequestMessage) ? (
           <MessageInput conversationId={conversationId} receiverId={otherUserId} disabled={false} />
         ) : null}
       </div>
