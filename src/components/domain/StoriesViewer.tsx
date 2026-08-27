@@ -48,7 +48,7 @@ export function StoriesViewer({ groupedStories, initialGroupIndex, onClose, curr
   // console.log("DEBUG ISME", { isMe, currentUserId: currentUser?.id, authorId: currentGroup?.author?.id, ownerId: currentStory?.owner_id });
 
   // Navigate next/prev story
-  const handleDelete = async (e: React.MouseEvent) => { e.stopPropagation(); setIsPaused(true); if(!confirm('¿Eliminar esta historia?')) { setIsPaused(false); return; } try { await deleteStory(currentStory.id); window.location.reload(); } catch(e) { alert('Error: Solo puedes eliminar tus propias historias.'); setIsPaused(false); } };
+  const handleDelete = async (e: React.MouseEvent) => { e.stopPropagation(); setIsPaused(true); if(!confirm('¿Eliminar esta historia?')) { setIsPaused(false); return; } try { await deleteStory(currentStory.id); window.location.reload(); } catch(e) { alert('Error al eliminar la historia'); setIsPaused(false); } };
 
   const nextStory = () => {
     if (!currentGroup) return
@@ -233,9 +233,9 @@ export function StoriesViewer({ groupedStories, initialGroupIndex, onClose, curr
                     <button onClick={handleCopyLink} className="flex items-center gap-4 w-full p-4 hover:bg-white/5 transition-colors text-left border-b border-white/10">
                       <Copy className="w-6 h-6" /> <span className="font-semibold">Copiar enlace</span>
                     </button>
-                    <button onClick={(e) => { handleDelete(e); closeMenu(); }} className="flex items-center gap-4 w-full p-4 hover:bg-red-500/20 text-red-500 transition-colors text-left border-b border-white/10">
-                        <Trash2 className="w-6 h-6" /> <span className="font-semibold">Eliminar Story</span>
-                      </button>
+                    <button onClick={(e) => { e.stopPropagation(); alert('Reportado'); closeMenu(); }} className="flex items-center gap-4 w-full p-4 hover:bg-red-500/20 text-red-500 transition-colors text-left border-b border-white/10">
+                      <Flag className="w-6 h-6" /> <span className="font-semibold">Reportar</span>
+                    </button>
                   </>
                 )}
                 <button onClick={closeMenu} className="w-full p-4 text-center text-white/70 hover:bg-white/5 font-semibold transition-colors mt-2">
