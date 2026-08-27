@@ -136,3 +136,18 @@ export async function rejectFollowRequest(followerId: string) {
 
   revalidatePath("/profile/requests")
 }
+
+export async function blockUser(blockedUserId: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error("Unauthorized")
+
+  // Check if already blocked
+  const { data: existing } = await supabase.from('blocks').select('*').eq('blocker_id', user.id).eq('blocked_id', blockedUserId).single()
+  
+  if (!existing) {
+    await supabase.from('blocks').insert({ blocker_id: user.id, blocked_id: blockedUserId })
+    // Remove follows in both directions
+    await supabase.from('follows').delete().or(`and(follower_id.eq.${user.id},following_id.eq.${blockedUserId}),and(follower_id.eq.${blockedUserId},following_id.eq.${user.id})`)
+  }
+}
