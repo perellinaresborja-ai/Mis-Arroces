@@ -13,11 +13,11 @@ interface CommentsModalProps {
   entityType: "recipe" | "session" | "post"
   entityId: string
   currentUserId: string | null
-    authorId?: string
+    isOwner?: boolean
   allowComments: boolean
 }
 
-export function CommentsModal({ isOpen, onClose, entityType, entityId, currentUserId, authorId, allowComments }: CommentsModalProps) {
+export function CommentsModal({ isOpen, onClose, entityType, entityId, currentUserId, isOwner, allowComments }: CommentsModalProps) {
   const [showOptionsMenu, setShowOptionsMenu] = useState(false)
   const router = useRouter()
   const [comments, setComments] = useState<any[]>([])
@@ -58,7 +58,7 @@ export function CommentsModal({ isOpen, onClose, entityType, entityId, currentUs
         <div className="flex items-center justify-between p-4 border-b border-border shrink-0 relative">
           <h2 className="font-bold text-lg">Comentarios</h2>
           <div className="flex items-center gap-2">
-            {currentUserId && currentUserId === authorId && (
+            {isOwner && (
               <div className="relative">
                 <button 
                   onClick={() => setShowOptionsMenu(!showOptionsMenu)} 
