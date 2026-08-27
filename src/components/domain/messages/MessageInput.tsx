@@ -29,17 +29,16 @@ export function MessageInput({ conversationId, receiverId, disabled }: { convers
 
     try {
       let messageType = 'TEXT'
-      let entityId = null
+      let mediaPath = null
 
       if (file) {
         messageType = file.type.startsWith('video/') ? 'VIDEO' : 'IMAGE'
         const ext = file.name.split('.').pop()
         const path = `${conversationId}/${crypto.randomUUID()}.${ext}`
         
-        // Use file directly, it's safer when not using Server Actions for the surrounding code
         const { error: uploadError } = await supabase.storage.from('message_media').upload(path, file)
         if (uploadError) throw uploadError
-        entityId = path
+        mediaPath = path
       } else {
         try {
           const url = new URL(content.trim())
@@ -57,12 +56,21 @@ export function MessageInput({ conversationId, receiverId, disabled }: { convers
         sender_id: userData.user.id,
         type: messageType,
         body: content.trim() || null,
-        entity_id: entityId
+        entity_id: null
       }).select().single()
 
       if (insertError || !msg) throw insertError || new Error("Failed to insert message")
 
-      // Call Server Action ONLY for notification, passing only simple strings
+      if (mediaPath) {
+        const { error: attachError } = await supabase.from('message_attachments').insert({
+          message_id: msg.id,
+          storage_path: mediaPath,
+          mime_type: file!.type,
+          size_bytes: file!.size
+        })
+        if (attachError) throw attachError
+      }
+
       await notifyNewMessage(conversationId, msg.id).catch(console.error)
 
       setContent("")
