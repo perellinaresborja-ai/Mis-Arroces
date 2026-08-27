@@ -32,7 +32,7 @@ export function ClientChat({ initialMessages, userId, conversationId, myStatus, 
   }, [messages])
 
   return (
-    <div className="flex flex-col flex-1 h-full relative">
+    <div className="flex flex-col flex-1 min-h-0 h-full relative">
       <div className="flex-1 overflow-y-auto p-4 pb-32 md:pb-20 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
         {messages.map((msg: Record<string, unknown>) => (
           <MessageBubble key={msg.id as string} message={msg} isOwn={msg.sender_id as string === userId} />
