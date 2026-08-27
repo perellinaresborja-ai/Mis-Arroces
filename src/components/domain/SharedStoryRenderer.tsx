@@ -48,13 +48,6 @@ export function SharedStoryRenderer({
     objectFit: 'contain',
     zIndex: 1,
     pointerEvents: 'none',
-  }px, ${transform.translateY}px) scale(${transform.scale}) rotate(${transform.rotation || 0}deg)` : 'none',
-    transformOrigin: 'center center',
-    width: '100%',
-    height: '100%',
-    objectFit: 'contain',
-    zIndex: 1,
-    pointerEvents: 'none',
   }
 
   return (

@@ -1,20 +1,6 @@
 const fs = require('fs');
+let code = fs.readFileSync('src/components/domain/StoriesViewer.tsx', 'utf8');
 
-function fixUseClient(file) {
-  let code = fs.readFileSync(file, 'utf8');
-  
-  // Remove all instances of "use client" (with or without semicolon)
-  code = code.replace(/"use client"\s*;?\s*/g, '');
-  code = code.replace(/'use client'\s*;?\s*/g, '');
-  
-  // Clean up any weird empty lines at the very top
-  code = code.trimStart();
-  
-  // Add exactly one "use client" at the very top
-  code = '"use client"\n' + code;
-  
-  fs.writeFileSync(file, code);
-}
+code = code.replace('import { ShareDMModal } from "./ShareDMModal"\n"use client"', '"use client"\nimport { ShareDMModal } from "./ShareDMModal"');
 
-fixUseClient('src/components/domain/DesktopNav.tsx');
-fixUseClient('src/components/domain/BottomNav.tsx');
+fs.writeFileSync('src/components/domain/StoriesViewer.tsx', code);
