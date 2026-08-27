@@ -171,14 +171,15 @@ export function StoriesViewer({ groupedStories, initialGroupIndex, onClose, curr
           </button>
         </div>
 
-        {/* Media Container */}
+                {/* Media Container */}
         <div 
           className="flex-1 relative w-full h-full flex items-center justify-center"
+          style={!fullUrl && currentStory.background?.type === 'color' ? { backgroundColor: currentStory.background.value } : { backgroundColor: '#18181B' }}
           onPointerDown={handlePointerDown}
           onPointerUp={handlePointerUp}
           onPointerLeave={handlePointerUp}
         >
-          {isVideo ? (
+          {fullUrl && isVideo && (
             <video 
               ref={videoRef}
               src={fullUrl} 
@@ -189,7 +190,8 @@ export function StoriesViewer({ groupedStories, initialGroupIndex, onClose, curr
               onTimeUpdate={handleTimeUpdate}
               onEnded={handleVideoEnded}
             />
-          ) : (
+          )}
+          {fullUrl && !isVideo && (
             <img 
               src={fullUrl} 
               className="w-full h-full object-contain md:object-cover" 
