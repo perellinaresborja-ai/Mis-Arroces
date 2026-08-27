@@ -70,7 +70,7 @@ export function MessageInput({ conversationId, receiverId, disabled }: { convers
       if (previewUrl) URL.revokeObjectURL(previewUrl)
       setPreviewUrl(null)
     } catch (err: Error | NodeJS.ErrnoException | unknown) {
-      alert('Error enviando: ' + (err instanceof Error ? err.message : String(err)))
+      alert('Error enviando: ' + (err instanceof Error ? err.message : JSON.stringify(err)))
     } finally {
       setIsSending(false)
     }
