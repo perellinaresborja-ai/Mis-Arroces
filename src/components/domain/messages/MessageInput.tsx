@@ -58,7 +58,7 @@ export function MessageInput({ conversationId, receiverId, disabled, replyingTo,
         body: content.trim() || null,
         reply_to_id: replyingTo?.id || null,
         entity_id: null
-      }).select().single()
+      } as any).select().single()
 
       if (insertError || !msg) throw insertError || new Error("Failed to insert message")
 
