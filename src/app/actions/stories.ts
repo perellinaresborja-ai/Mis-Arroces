@@ -35,13 +35,39 @@ export async function createStory(data: {
     throw new Error("Failed to create story")
   }
 
-    if (data.mediaId) {
-    await supabase.from("story_media").insert({
-      story_id: story.id,
-      media_id: data.mediaId,
-      display_order: 0
-    })
-  }
+    // Automatically resolve recipe media if not provided
+    let finalMediaId = data.mediaId;
+    if (!finalMediaId && data.recipeId) {
+      const { data: rm } = await supabase
+        .from('recipe_media')
+        .select('media_id')
+        .eq('recipe_id', data.recipeId)
+        .order('display_order', { ascending: true })
+        .limit(1)
+        .single();
+      if (rm) finalMediaId = rm.media_id;
+    }
+
+    if (finalMediaId) {
+      const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+      let insertClient = supabase;
+      if (serviceKey) {
+        insertClient = createAdminClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL || '',
+          serviceKey
+        );
+      }
+      
+      const { error: smError } = await insertClient.from("story_media").insert({
+        story_id: story.id,
+        media_id: finalMediaId,
+        display_order: 0
+      });
+      
+      if (smError) {
+        console.error("Failed to insert story_media:", smError);
+      }
+    }
 
   // Handle MENTION notifications
   if (data.overlays && Array.isArray(data.overlays)) {
