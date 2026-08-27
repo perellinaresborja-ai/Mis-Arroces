@@ -79,7 +79,7 @@ export async function signup(formData: FormData) {
   if (data.session) {
     redirect("/cookbook")
   } else {
-    redirect("/login?message=Revisa tu email para activar la cuenta")
+    redirect("/login?message=Cuenta creada. Revisa tu correo para confirmar tu cuenta.")
   }
 }
 

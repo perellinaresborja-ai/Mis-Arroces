@@ -4,6 +4,7 @@ import { useState } from "react"
 import { Eye, EyeOff } from "lucide-react"
 import Link from "next/link"
 import { login, signup } from "./actions"
+import { useFormStatus } from "react-dom"
 
 export function LoginForm({ error, message }: { error?: string, message?: string }) {
   const [showPassword, setShowPassword] = useState(false)
@@ -105,5 +106,42 @@ export function LoginForm({ error, message }: { error?: string, message?: string
         </div>
       </form>
     </div>
+  )
+}
+
+function SubmitButtons() {
+  const { pending, action } = useFormStatus();
+  
+  const isLoginPending = pending && action === login;
+  const isSignupPending = pending && action === signup;
+
+  return (
+    <>
+      <div className="pt-2">
+        <button 
+          formAction={login}
+          disabled={pending}
+          className="w-full h-12 bg-charcoal hover:bg-black disabled:bg-charcoal/50 disabled:cursor-not-allowed text-white rounded-xl font-bold text-base transition-colors shadow-md"
+        >
+          {isLoginPending ? "INICIANDO SESIÓN..." : "VAMOS AL GRANO"}
+        </button>
+      </div>
+
+      <div className="relative py-2 flex items-center">
+        <div className="flex-grow border-t border-border/80"></div>
+        <span className="shrink-0 px-4 text-sm text-muted-foreground bg-sand">o</span>
+        <div className="flex-grow border-t border-border/80"></div>
+      </div>
+      
+      <div className="flex flex-col gap-3">
+        <button 
+          formAction={signup}
+          disabled={pending}
+          className="w-full h-12 bg-transparent border-2 border-primary disabled:border-primary/50 disabled:text-primary/50 disabled:cursor-not-allowed text-primary hover:bg-primary hover:text-primary-foreground rounded-xl font-bold text-base transition-colors"
+        >
+          {isSignupPending ? "CREANDO CUENTA..." : "CREAR CUENTA NUEVA"}
+        </button>
+      </div>
+    </>
   )
 }
