@@ -56,6 +56,7 @@ export function MessageInput({ conversationId, receiverId, disabled, replyingTo,
         sender_id: userData.user.id,
         type: messageType,
         body: content.trim() || null,
+        reply_to_id: replyingTo?.id || null,
         entity_id: null
       }).select().single()
 
