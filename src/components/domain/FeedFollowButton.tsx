@@ -30,10 +30,10 @@ export function FeedFollowButton({
       }
     }
     if (showMenu) {
-      document.addEventListener("mousedown", handleClickOutside)
+      document.addEventListener("pointerdown", handleClickOutside)
     }
     return () => {
-      document.removeEventListener("mousedown", handleClickOutside)
+      document.removeEventListener("pointerdown", handleClickOutside)
     }
   }, [showMenu])
 
@@ -101,7 +101,7 @@ export function FeedFollowButton({
   if (status === 'BLOCKED') return null;
 
   return (
-    <div className="relative" ref={menuRef}>
+    <div className="relative" ref={menuRef} onMouseEnter={() => status === 'ACCEPTED' && setShowMenu(true)} onMouseLeave={() => setShowMenu(false)}>
       <Button 
         type="button"
         variant={status === 'ACCEPTED' ? 'secondary' : 'outline'}
