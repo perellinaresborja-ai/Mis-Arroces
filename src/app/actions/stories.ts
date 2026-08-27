@@ -99,7 +99,7 @@ export async function fetchActiveStories() {
         const path = story.story_media[0].media?.storage_path;
         if (path) {
           // Admin client bypasses RLS on Storage to generate the signature
-          const { data: signed } = await adminSupabase.storage.from('story_media').createSignedUrl(path, 3600);
+          const { data: signed } = await adminSupabase.storage.from('recipe_media').createSignedUrl(path, 3600);
           if (signed) {
             story.story_media[0].media.signed_url = signed.signedUrl;
           }
