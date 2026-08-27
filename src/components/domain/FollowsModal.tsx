@@ -77,27 +77,12 @@ export function FollowsModal({
             onClick={e => e.stopPropagation()}
           >
             <div className="flex items-center justify-between p-4 border-b border-border shrink-0">
-              <h2 className="text-lg font-bold">Amigos</h2>
+              {tab === 'followers' ? <h2 className="text-lg font-bold">Seguidores</h2> : <h2 className="text-lg font-bold">Siguiendo</h2>}
               <button onClick={() => setIsOpen(false)} className="p-2 hover:bg-muted rounded-full transition-colors">
                 <X className="w-5 h-5" />
               </button>
             </div>
             
-            <div className="flex w-full px-4 border-b border-border shrink-0">
-              <button 
-                onClick={() => setTab('followers')}
-                className={`flex-1 text-center font-bold text-sm py-3 border-b-2 transition-colors ${tab === 'followers' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground'}`}
-              >
-                Seguidores
-              </button>
-              <button 
-                onClick={() => setTab('following')}
-                className={`flex-1 text-center font-bold text-sm py-3 border-b-2 transition-colors ${tab === 'following' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground'}`}
-              >
-                Siguiendo
-              </button>
-            </div>
-
             <div className="overflow-y-auto flex-1 p-4 pb-48">
               {isLoading ? (
                 <div className="flex justify-center p-8">
