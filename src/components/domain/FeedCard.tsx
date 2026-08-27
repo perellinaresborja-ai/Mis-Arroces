@@ -15,8 +15,10 @@ export interface FeedCardProps {
   entityType: "recipe" | "session" | "post"
   entityId: string
   user: {
+    id: string
     username: string
     display_name: string | null
+    privacy_level?: string
     avatar?: { storage_path: string } | null
   }
   createdAt: string
@@ -87,8 +89,18 @@ export function FeedCard({
             {avatar && <img src={avatar} alt={user.username} className="w-full h-full object-cover" />}
           </div>
           <div>
-            <div className="font-bold text-[15px] group-hover:underline">
-              {user.display_name || `@${user.username}`}
+            <div className="flex items-center">
+              <div className="font-bold text-[15px] group-hover:underline">
+                {user.display_name || `@${user.username}`}
+              </div>
+              {currentUserId !== user.id && (
+                <FeedFollowButton 
+                  isAuthenticated={!!currentUserId} 
+                  initialStatus={followStatus || null} 
+                  targetId={user.id} 
+                  isPrivate={user.privacy_level === 'PRIVATE'} 
+                />
+              )}
             </div>
             {user.display_name && (
               <div className="text-[13px] text-muted-foreground flex items-center gap-1">
