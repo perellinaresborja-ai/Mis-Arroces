@@ -4,6 +4,7 @@ import { redirect } from "next/navigation"
 
 export default async function MessagesPage({ searchParams }: { searchParams: Promise<{ [key: string]: string | string[] | undefined }> | { [key: string]: string | string[] | undefined } }) {
   const sp = await Promise.resolve(searchParams);
+  let creationError = null;
   
   if (sp && typeof sp.to === 'string') {
     let convId: string | undefined;
@@ -11,6 +12,7 @@ export default async function MessagesPage({ searchParams }: { searchParams: Pro
       convId = await getOrCreateConversation(sp.to)
     } catch (err) {
       console.error("Error al crear la conversación:", err)
+      creationError = err instanceof Error ? err.message : String(err);
     }
     
     if (convId) {
@@ -24,6 +26,13 @@ export default async function MessagesPage({ searchParams }: { searchParams: Pro
     <div className="max-w-xl mx-auto p-4 pb-24">
       <h1 className="text-2xl font-bold mb-6">Mensajes</h1>
       
+      {creationError && (
+        <div className="bg-destructive/10 border border-destructive text-destructive p-4 rounded-xl mb-6">
+          <p className="font-bold">Error iniciando conversación</p>
+          <p className="text-sm mt-1">{creationError}</p>
+        </div>
+      )}
+
       <div className="space-y-4">
         {convs.length === 0 && <p className="text-muted-foreground text-center py-12">No tienes mensajes todavía.</p>}
         
