@@ -16,3 +16,5 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 ## Línea Gráfica de Mis Arroces
 - Todas las tarjetas, contenedores de feed, modales y barras de contenido deben tener bordes redondeados (`rounded-2xl` o `rounded-3xl`), fondo `bg-card` y un borde `border border-border`.
 - No usar diseños de bloque a sangre (flush sin bordes ni redondeo) para los contenedores principales (por ejemplo, barra de historias, publicaciones).
+
+- REFUERZO: TODAS las tarjetas e interfaces deben tener cantos redondeados (rounded-2xl o rounded-3xl), sin excepciones.
