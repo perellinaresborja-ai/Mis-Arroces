@@ -2,12 +2,26 @@
 import { UnreadBadge } from "@/components/domain/messages/UnreadBadge";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import {  BookOpen, Compass, User, ShoppingCart, Home , MessageCircle } from "lucide-react";
+import { BookOpen, Compass, User, Home, MessageCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { NotificationBell } from "@/components/domain/NotificationBell";
+import { useEffect, useState } from "react";
+import { createClient } from "@/lib/supabase/client";
 
 export function BottomNav() {
   const pathname = usePathname();
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data } = await supabase.from('profiles').select('avatar_media_id').eq('id', user.id).single();
+        if (data?.avatar_media_id) setAvatarUrl(data.avatar_media_id);
+      }
+    };
+    fetchUser();
+  }, []);
 
   const navItems = [
     {
@@ -16,26 +30,26 @@ export function BottomNav() {
       label: "Inicio",
     },
     {
-      href: "/messages",
-      icon: MessageCircle,
-      label: "Mensajes",
-    },
-    {
-      href: "/me",
-      icon: User,
-      label: "Perfil",
-    },
-    {
       href: "/discover",
       icon: Compass,
       label: "Descubrir",
+    },
+    {
+      href: "/messages",
+      icon: MessageCircle,
+      label: "Mensajes",
     },
     {
       href: "/cookbook",
       icon: BookOpen,
       label: "Recetario",
     },
-    
+    {
+      href: "/me",
+      icon: User, // Fallback if no avatar
+      label: "Perfil",
+      isAvatar: true
+    },
   ];
 
   if (pathname === "/login" || pathname === "/forgot-password") return null;
@@ -54,23 +68,29 @@ export function BottomNav() {
               key={item.href}
               href={item.href}
               className={cn(
-                "flex flex-col items-center justify-center gap-1 w-full h-full",
+                "flex flex-col items-center justify-center gap-1 w-full h-full relative",
                 isActive ? "text-foreground" : "text-muted-foreground"
               )}
             >
-              <div 
-                className="flex items-center justify-center rounded-full transition-colors p-1"
-              >
-                <Icon className="h-6 w-6" strokeWidth={isActive ? 2.5 : 2} />
+              <div className="flex items-center justify-center transition-colors p-1 relative">
+                {item.isAvatar && avatarUrl ? (
+                  <div className={cn(
+                    "w-7 h-7 rounded-full overflow-hidden border-2",
+                    isActive ? "border-foreground" : "border-transparent"
+                  )}>
+                    <img src={avatarUrl} alt="Perfil" className="w-full h-full object-cover" />
+                  </div>
+                ) : (
+                  <Icon className="h-6 w-6" strokeWidth={isActive ? 2.5 : 2} />
+                )}
+                
                 {item.href === '/messages' && <UnreadBadge />}
               </div>
               <span className="text-[10px] font-medium">{item.label}</span>
             </Link>
           );
         })}
-            <NotificationBell className="flex flex-col items-center justify-center pt-2" />
       </div>
     </nav>
   );
 }
-

@@ -1,26 +1,42 @@
 "use client"
-import { UnreadBadge } from "@/components/domain/messages/UnreadBadge"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import {  BookOpen, Compass, User, ShoppingCart, PlusCircle, Home , MessageCircle } from "lucide-react"
+import { Flame, PlaySquare, User, Home, MessageCircle, BookOpen, Compass } from "lucide-react"
 import { cn } from "@/lib/utils"
 import Image from "next/image"
-import { buttonVariants } from "@/components/ui/button"
 import { NotificationBell } from "@/components/domain/NotificationBell"
 
 export function DesktopNav() {
   const pathname = usePathname()
 
   const navItems = [
-    { href: "/", icon: Home, label: "Inicio" },
-    { href: "/messages", icon: MessageCircle, label: "Mensajes" },
-    { href: "/me", icon: User, label: "Perfil" },
-    { href: "/discover", icon: Compass, label: "Descubrir" },
-    { href: "/cookbook", icon: BookOpen, label: "Recetario" },
-    
+    {
+      href: "/",
+      icon: Home,
+      label: "Inicio",
+    },
+    {
+      href: "/discover",
+      icon: Compass,
+      label: "Descubrir",
+    },
+    {
+      href: "/messages",
+      icon: MessageCircle,
+      label: "Mensajes",
+    },
+    {
+      href: "/cookbook",
+      icon: BookOpen,
+      label: "Recetario",
+    },
+    {
+      href: "/me",
+      icon: User,
+      label: "Perfil",
+    },
   ]
 
-  // Only hide on auth pages
   if (pathname === "/login" || pathname === "/forgot-password") return null
 
   return (
@@ -33,7 +49,7 @@ export function DesktopNav() {
             </div>
           </Link>
 
-        <nav className="flex items-center gap-8">
+        <nav className="flex items-center gap-6">
           {navItems.map((item) => {
             const isActive = item.href === "/" 
               ? pathname === "/" 
@@ -54,11 +70,11 @@ export function DesktopNav() {
             )
           })}
           
-          
+          <div className="flex items-center pl-2 border-l border-border ml-2">
+            <NotificationBell />
+          </div>
         </nav>
       </div>
     </header>
   )
 }
-
-
