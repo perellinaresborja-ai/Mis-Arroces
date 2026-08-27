@@ -1,6 +1,4 @@
-
-"use client";
-
+"use client"
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {  BookOpen, Compass, User, ShoppingCart, Home , MessageCircle } from "lucide-react";
