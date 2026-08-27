@@ -86,7 +86,7 @@ export function EditProfileForm({ initialProfile }: { initialProfile: any }) {
             <div className="w-full h-full bg-gradient-to-r from-muted/50 to-muted-foreground/5" />
           )}
           
-          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-4">
+          <div className="absolute inset-0 bg-black/40 md:opacity-0 md:group-hover:opacity-100 transition-opacity flex items-center justify-center gap-4 opacity-100">
             <div className="[&_button]:!text-white [&_button]:drop-shadow-md">
               <MediaUploader 
                 context="avatars" 
