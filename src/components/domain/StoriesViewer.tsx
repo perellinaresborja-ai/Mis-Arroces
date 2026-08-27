@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useRef } from "react"
 import { formatRelativeTime } from "@/lib/utils"
-import { X } from "lucide-react"
-import { markStoryViewed, fetchStoryViewers } from "@/app/actions/stories"
+import { X, Trash2 } from "lucide-react"
+import { markStoryViewed, fetchStoryViewers, deleteStory } from "@/app/actions/stories"
 import Link from "next/link"
 import { SharedStoryRenderer } from "./SharedStoryRenderer"
 import { EntityInsightsModal } from "./EntityInsightsModal"
