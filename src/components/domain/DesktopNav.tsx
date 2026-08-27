@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { BookOpen, Compass, User, ShoppingCart, PlusCircle, Home } from "lucide-react"
+import {  BookOpen, Compass, User, ShoppingCart, PlusCircle, Home , MessageCircle } from "lucide-react"
 import { cn } from "@/lib/utils"
 import Image from "next/image"
 import { buttonVariants } from "@/components/ui/button"
@@ -59,4 +59,5 @@ export function DesktopNav() {
     </header>
   )
 }
+
 

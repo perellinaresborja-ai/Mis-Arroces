@@ -3,7 +3,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BookOpen, Compass, User, ShoppingCart, Home } from "lucide-react";
+import {  BookOpen, Compass, User, ShoppingCart, Home , MessageCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NotificationBell } from "@/components/domain/NotificationBell";
 
@@ -71,3 +71,4 @@ export function BottomNav() {
     </nav>
   );
 }
+

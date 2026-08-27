@@ -39,7 +39,8 @@ export function NotificationPanel({ onClose, onRead }: { onClose: () => void, on
     }
 
     // Routing logic
-    if (notif.type === 'FOLLOW' || notif.type === 'FOLLOW_ACCEPT') {
+    if (notif.type === 'NEW_MESSAGE') { router.push(`/messages/${notif.payload?.conversation_id}`); }
+    else if (notif.type === 'FOLLOW' || notif.type === 'FOLLOW_ACCEPT') {
       router.push(`/@${notif.actor?.username}`)
     } else if (notif.type === 'FOLLOW_REQUEST') {
       router.push(`/profile/requests`)
@@ -77,6 +78,7 @@ export function NotificationPanel({ onClose, onRead }: { onClose: () => void, on
       case 'TAG': return <><span className="font-bold">{name}</span> te etiquetó.</>
       case 'FOLLOW': return <><span className="font-bold">{name}</span> empezó a seguirte.</>
       case 'FOLLOW_REQUEST': return <><span className="font-bold">{name}</span> quiere seguirte.</>
+      case 'NEW_MESSAGE': return <><span className="font-bold">{name}</span> te envió un mensaje.</>;
       case 'FOLLOW_ACCEPT': return <><span className="font-bold">{name}</span> aceptó tu solicitud.</>
       case 'COOKED_RECIPE': return <><span className="font-bold">{name}</span> ha cocinado tu receta.</>
       default: return <><span className="font-bold">{name}</span> interactuó contigo.</>

@@ -1,32 +1,100 @@
-import Link from 'next/link'
+"use client"
+import { useState, useEffect } from "react"
+import { formatRelativeTime } from "@/lib/utils"
+import Link from "next/link"
+import { createClient } from "@/lib/supabase/client"
 
-export function MessageBubble({ message, isOwn }: { message: any, isOwn: boolean }) {
-  const { type, body, signed_url, entity_id } = message
+export function MessageBubble({ message, isOwn }: { message: Record<string, unknown>, isOwn: boolean }) {
+  const [entityData, setEntityData] = useState<Record<string, unknown> | null>(null)
+  const [entityStatus, setEntityStatus] = useState<'LOADING'|'LOADED'|'EXPIRED'|'UNAVAILABLE'>('LOADING')
+  
+  const mType = message.type as string
+  const mEntityId = message.entity_id as string
+  const mContent = (message.content || message.body) as string
+  const mCreatedAt = message.created_at as string
+  
+  const mediaUrl = mEntityId ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/message_media/${mEntityId}` : null
+  const supabase = createClient()
+
+  useEffect(() => {
+    if (mType === 'RECIPE' || mType === 'SESSION' || mType === 'STORY') {
+      const fetchEntity = async () => {
+        try {
+          let query;
+          if (mType === 'RECIPE') query = supabase.from('recipes').select('*').eq('id', mEntityId).single();
+          else if (mType === 'SESSION') query = supabase.from('cooking_sessions').select('*').eq('id', mEntityId).single();
+          else query = supabase.from('stories').select('*').eq('id', mEntityId).single();
+          
+          const { data, error } = await query;
+          
+          if (error || !data) {
+            setEntityStatus('UNAVAILABLE')
+            return
+          }
+          
+          if (mType === 'STORY' && 'expires_at' in data && new Date((data as {expires_at: string}).expires_at) < new Date()) {
+            setEntityStatus('EXPIRED')
+            return
+          }
+          
+          setEntityData(data as Record<string, unknown>)
+          setEntityStatus('LOADED')
+        } catch(e) {
+          setEntityStatus('UNAVAILABLE')
+        }
+      }
+      fetchEntity()
+    } else {
+      setEntityStatus('LOADED')
+    }
+  }, [mType, mEntityId, supabase])
+
   return (
-    <div className={'flex mb-4 ' + (isOwn ? 'justify-end' : 'justify-start')}>
-      <div className={'max-w-[75%] rounded-2xl p-3 ' + (isOwn ? 'bg-primary text-primary-foreground' : 'bg-secondary text-secondary-foreground')}>
-        {type === 'TEXT' && <p>{body}</p>}
-        {type === 'LINK' && <a href={body} target="_blank" rel="noopener noreferrer" className="underline">{body}</a>}
-        {type === 'IMAGE' && signed_url && (
-          <div className="space-y-2">
-            <img src={signed_url} className="rounded-xl max-h-64 object-cover" alt="Image" />
-            {body && <p>{body}</p>}
+    <div className={`flex w-full mb-4 ${isOwn ? "justify-end" : "justify-start"}`}>
+      <div className={`max-w-[75%] rounded-2xl p-3 ${isOwn ? "bg-primary text-primary-foreground rounded-tr-sm" : "bg-muted text-foreground rounded-tl-sm"}`}>
+        
+        {mType === 'IMAGE' && mediaUrl && (
+          <img src={mediaUrl} alt="Media" className="rounded-xl w-full object-cover mb-2 max-h-64 cursor-pointer" />
+        )}
+        
+        {mType === 'VIDEO' && mediaUrl && (
+          <video src={mediaUrl} controls playsInline className="rounded-xl w-full max-h-64 mb-2 bg-black/10" />
+        )}
+
+        {mType === 'LINK' && (
+          <a href={mContent} target="_blank" rel="noopener noreferrer" className="underline break-all">
+            {mContent}
+          </a>
+        )}
+
+        {(mType === 'RECIPE' || mType === 'SESSION' || mType === 'STORY') && (
+          <div className="bg-background/10 rounded-xl p-3 mb-2 border border-border/20">
+            {entityStatus === 'LOADING' && <p className="text-xs opacity-70">Cargando...</p>}
+            {entityStatus === 'EXPIRED' && <p className="text-xs font-bold">Story caducada</p>}
+            {entityStatus === 'UNAVAILABLE' && <p className="text-xs font-bold">Contenido no disponible</p>}
+            {entityStatus === 'LOADED' && entityData && (
+              <>
+                <p className="font-semibold text-sm mb-1">{mType} Compartido</p>
+                {entityData.title && <p className="text-xs truncate">{entityData.title as string}</p>}
+                <Link href={`/${mType.toLowerCase()}s/${mEntityId}`} className="text-xs underline block mt-2 opacity-90 hover:opacity-100">
+                  Ver {mType}
+                </Link>
+              </>
+            )}
           </div>
         )}
-        {type === 'VIDEO' && signed_url && (
-          <div className="space-y-2">
-            <video src={signed_url} controls className="rounded-xl max-h-64 object-cover" />
-            {body && <p>{body}</p>}
-          </div>
+
+        {mType === 'TEXT' && (
+          <p className="text-sm whitespace-pre-wrap break-words">{mContent}</p>
         )}
-        {(type === 'RECIPE' || type === 'SESSION' || type === 'STORY') && (
-          <Link href={'/' + (type === 'RECIPE' ? 'recipes' : type === 'SESSION' ? 'sessions' : 'stories') + '/' + entity_id}>
-            <div className="border border-border/50 p-2 rounded-xl bg-background/50 hover:bg-background/80 transition-colors cursor-pointer">
-              <p className="font-bold text-sm text-foreground">{type} Compartido</p>
-              <p className="text-xs opacity-80 text-foreground">Toca para ver</p>
-            </div>
-          </Link>
+        
+        {(mType === 'IMAGE' || mType === 'VIDEO') && mContent && (
+          <p className="text-sm mt-1 whitespace-pre-wrap break-words">{mContent}</p>
         )}
+
+        <div className={`text-[10px] mt-1 opacity-70 ${isOwn ? "text-right" : "text-left"}`}>
+          {formatRelativeTime(mCreatedAt)}
+        </div>
       </div>
     </div>
   )
