@@ -189,7 +189,7 @@ export default async function DiscoverPage(props: { searchParams?: Promise<{ q?:
           {/* Quick Chips Concept */}
           <section>
             <div className="flex gap-2 overflow-x-auto pb-4 scrollbar-hide">
-              {['Seco', 'Caldoso', 'Meloso', 'Al horno'].map(term => (
+              {['Seco', 'Caldoso', 'Al horno'].map(term => (
                 <Link key={term} href={`/discover?q=${term}&tab=arroces`} className="px-4 py-2 bg-primary/10 text-primary rounded-full text-sm font-bold whitespace-nowrap shrink-0 hover:bg-primary/20 transition">
                   {term}
                 </Link>
