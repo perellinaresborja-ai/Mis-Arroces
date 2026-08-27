@@ -370,10 +370,7 @@ export function CommentSection({ entityType, entityId, comments, currentUserId, 
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-2 font-bold text-lg">
-        <MessageCircle className="w-5 h-5" />
-        Comentarios ({localComments.filter(c => !c.is_deleted).length})
-      </div>
+      
 
       {allowComments ? (
         <form onSubmit={handleSubmit} className="space-y-2 mb-6">
