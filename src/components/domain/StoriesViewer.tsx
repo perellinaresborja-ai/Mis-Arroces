@@ -189,6 +189,11 @@ export function StoriesViewer({ groupedStories, initialGroupIndex, onClose, curr
               className="w-full h-full object-contain md:object-cover"
               onTimeUpdate={handleTimeUpdate}
               onEnded={handleVideoEnded}
+              style={{
+                transform: currentStory.media_transform 
+                  ? `translate(${currentStory.media_transform.translateX}px, ${currentStory.media_transform.translateY}px) scale(${currentStory.media_transform.scale}) rotate(${currentStory.media_transform.rotation || 0}deg)` 
+                  : 'none'
+              }}
             />
           )}
           {fullUrl && !isVideo && (
@@ -197,6 +202,11 @@ export function StoriesViewer({ groupedStories, initialGroupIndex, onClose, curr
               className="w-full h-full object-contain md:object-cover" 
               alt="Story"
               draggable={false}
+              style={{
+                transform: currentStory.media_transform 
+                  ? `translate(${currentStory.media_transform.translateX}px, ${currentStory.media_transform.translateY}px) scale(${currentStory.media_transform.scale}) rotate(${currentStory.media_transform.rotation || 0}deg)` 
+                  : 'none'
+              }}
             />
           )}
 
