@@ -60,7 +60,7 @@ export function BottomNav() {
     },
   ];
 
-  if (pathname === "/login" || pathname === "/forgot-password") return null;
+  if (pathname === "/login" || pathname === "/forgot-password" || pathname.includes("/edit") || pathname.includes("/create")) return null;
 
   return (
     <nav className="md:hidden fixed bottom-0 z-50 w-full border-t border-border bg-background pb-safe">
