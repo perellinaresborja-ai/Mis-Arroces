@@ -42,7 +42,7 @@ export async function fetchConversations() {
     // Get other member details
     const { data: others } = await supabase
       .from('conversation_members')
-      .select('*, user:profiles!inner(id, username, display_name, avatar_media_id)')
+      .select('*, user:profiles!inner(id, username, display_name, avatar:media_assets!fk_profiles_avatar(storage_path))')
       .eq('conversation_id', cm.conversation_id)
       .neq('user_id', user.id)
       .limit(1)

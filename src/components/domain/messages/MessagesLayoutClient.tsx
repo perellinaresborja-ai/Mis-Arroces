@@ -23,8 +23,8 @@ export function MessagesLayoutClient({ convs, children }: { convs: Record<string
               <Link key={c.conversation_id} href={`/messages/${c.conversation_id}`} className="block">
                 <div className={`flex items-center p-3 rounded-2xl border transition-colors ${isActive ? 'bg-primary/10 border-primary/20' : 'bg-card border-border hover:bg-card/80'}`}>
                   <div className="w-12 h-12 bg-secondary rounded-full overflow-hidden shrink-0 border border-border">
-                    {c.otherMember?.user?.avatar_media_id ? (
-                      <img src={c.otherMember.user.avatar_media_id} className="w-full h-full object-cover" alt="" />
+                    {c.otherMember?.user?.avatar?.storage_path ? (
+                      <img src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/recipe_media/${c.otherMember.user.avatar.storage_path}`} className="w-full h-full object-cover" alt="" />
                     ) : (
                       <div className="w-full h-full bg-primary/20 flex items-center justify-center font-bold">
                         {c.otherMember?.user?.username?.[0]?.toUpperCase()}

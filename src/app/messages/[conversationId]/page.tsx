@@ -33,7 +33,7 @@ export default async function ConversationPage({ params }: { params: { conversat
 
   const { data: otherMember } = await supabase
     .from('conversation_members')
-    .select('status, user_id, user:profiles!inner(id, username, display_name)')
+    .select('status, user_id, user:profiles!inner(id, username, display_name, avatar:media_assets!fk_profiles_avatar(storage_path))')
     .eq('conversation_id', conversationId)
     .neq('user_id', user.id)
     .single()
@@ -43,9 +43,13 @@ export default async function ConversationPage({ params }: { params: { conversat
   return (
     <div className="flex flex-col h-full w-full bg-background relative">
       <div className="flex items-center gap-3 p-4 border-b border-border bg-card shrink-0 sticky top-0 z-10">
-        <div className="w-10 h-10 bg-secondary rounded-full flex items-center justify-center font-bold">
-          {otherMember?.user?.username?.[0]?.toUpperCase()}
-        </div>
+        {otherMember?.user?.avatar?.storage_path ? (
+          <img src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/recipe_media/${otherMember.user.avatar.storage_path}`} className="w-10 h-10 rounded-full object-cover shrink-0" alt="" />
+        ) : (
+          <div className="w-10 h-10 bg-secondary rounded-full flex items-center justify-center font-bold shrink-0">
+            {otherMember?.user?.username?.[0]?.toUpperCase()}
+          </div>
+        )}
         <div>
           <h2 className="font-bold leading-none">{otherMember?.user?.display_name || otherMember?.user?.username}</h2>
           <p className="text-xs text-muted-foreground mt-1">@{otherMember?.user?.username}</p>
