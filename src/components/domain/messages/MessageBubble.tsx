@@ -13,7 +13,9 @@ export function MessageBubble({ message, isOwn }: { message: Record<string, unkn
   const mContent = (message.content || message.body) as string
   const mCreatedAt = message.created_at as string
   
-  const mediaUrl = mEntityId ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/message_media/${mEntityId}` : null
+  const attachment = (message.message_attachments as any[])?.[0];
+  const attachmentPath = attachment?.storage_path;
+  const mediaUrl = attachmentPath ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/message_media/${attachmentPath}` : null;
   const supabase = createClient()
 
   useEffect(() => {
