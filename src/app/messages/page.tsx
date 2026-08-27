@@ -2,16 +2,19 @@ import { fetchConversations, getOrCreateConversation } from "@/app/actions/messa
 import Link from "next/link"
 import { redirect } from "next/navigation"
 
-export default async function MessagesPage({ searchParams }: any) {
-  // Await searchParams if Next.js version requires it (Next 15+), or just access it.
-  // Next 15+ searchParams is a Promise. We can safely await it.
-  const sp = await searchParams;
-  if (sp?.to) {
+export default async function MessagesPage({ searchParams }: { searchParams: Promise<{ [key: string]: string | string[] | undefined }> | { [key: string]: string | string[] | undefined } }) {
+  const sp = await Promise.resolve(searchParams);
+  
+  if (sp && typeof sp.to === 'string') {
+    let convId: string | undefined;
     try {
-      const convId = await getOrCreateConversation(sp.to)
-      redirect(`/messages/${convId}`)
+      convId = await getOrCreateConversation(sp.to)
     } catch (err) {
-      console.error(err)
+      console.error("Error al crear la conversación:", err)
+    }
+    
+    if (convId) {
+      redirect(`/messages/${convId}`)
     }
   }
 
