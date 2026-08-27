@@ -189,14 +189,14 @@ export default async function DiscoverPage(props: { searchParams?: Promise<{ q?:
           {/* Quick Chips Concept */}
           <section>
             <div className="flex gap-2 overflow-x-auto pb-4 scrollbar-hide">
-              {varieties?.slice(0, 4).map(v => (
-                <Link key={v.id} href={`/discover?q=${v.name}&tab=arroces&variety=${v.id}`} className="px-4 py-2 bg-secondary text-secondary-foreground rounded-full text-sm font-bold whitespace-nowrap shrink-0 hover:bg-secondary/80 transition">
-                  {v.name}
+              {['Seco', 'Caldoso', 'Meloso'].map(term => (
+                <Link key={term} href={`/discover?q=${term}&tab=arroces`} className="px-4 py-2 bg-primary/10 text-primary rounded-full text-sm font-bold whitespace-nowrap shrink-0 hover:bg-primary/20 transition">
+                  {term}
                 </Link>
               ))}
-              {styles?.slice(0, 3).map(s => (
-                <Link key={s.id} href={`/discover?q=${s.name}&tab=arroces&style=${s.id}`} className="px-4 py-2 bg-primary/10 text-primary rounded-full text-sm font-bold whitespace-nowrap shrink-0 hover:bg-primary/20 transition">
-                  {s.name}
+              {['Pescado', 'Marisco', 'Carne', 'Verdura'].map(term => (
+                <Link key={term} href={`/discover?q=${term}&tab=arroces`} className="px-4 py-2 bg-secondary text-secondary-foreground rounded-full text-sm font-bold whitespace-nowrap shrink-0 hover:bg-secondary/80 transition">
+                  {term}
                 </Link>
               ))}
             </div>
