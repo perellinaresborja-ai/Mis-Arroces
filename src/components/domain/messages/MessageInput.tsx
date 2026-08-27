@@ -6,7 +6,7 @@ import { Image as ImageIcon, Video, X, Send } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { notifyNewMessage } from "@/app/actions/messaging"
 
-export function MessageInput({ conversationId, receiverId, disabled }: { conversationId: string, receiverId?: string, disabled?: boolean }) {
+export function MessageInput({ conversationId, receiverId, disabled, replyingTo, onCancelReply }: { conversationId: string, receiverId?: string, disabled?: boolean, replyingTo?: Record<string, any> | null, onCancelReply?: () => void }) {
   const [content, setContent] = useState("")
   const [file, setFile] = useState<File | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
@@ -74,6 +74,7 @@ export function MessageInput({ conversationId, receiverId, disabled }: { convers
       await notifyNewMessage(conversationId, msg.id).catch(console.error)
 
       setContent("")
+      if (onCancelReply) onCancelReply()
       setFile(null)
       if (previewUrl) URL.revokeObjectURL(previewUrl)
       setPreviewUrl(null)
@@ -84,8 +85,22 @@ export function MessageInput({ conversationId, receiverId, disabled }: { convers
     }
   }
 
+
   return (
-    <form onSubmit={handleSend} className="p-4 border-t border-border bg-card">
+    <div className="flex flex-col w-full bg-card border-t border-border">
+      {replyingTo && (
+        <div className="bg-muted px-4 py-2 flex items-center justify-between border-b border-border text-sm">
+          <div className="truncate opacity-70 flex-1">
+            <span className="font-bold mr-2">Respondiendo a:</span>
+            {replyingTo.type === 'IMAGE' || replyingTo.type === 'VIDEO' ? 'Archivo adjunto' : replyingTo.body || replyingTo.content}
+          </div>
+          <button type="button" onClick={onCancelReply} className="p-1 hover:bg-background rounded-full">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+      <form onSubmit={handleSend} className="p-4">
+
       {previewUrl && (
         <div className="mb-4 relative inline-block">
           {file?.type.startsWith('video/') ? (
@@ -103,5 +118,6 @@ export function MessageInput({ conversationId, receiverId, disabled }: { convers
         <Button type="submit" size="icon" disabled={disabled || isSending || (!content.trim() && !file)} className="rounded-full"><Send className="w-4 h-4"/></Button>
       </div>
     </form>
+    </div>
   )
 }

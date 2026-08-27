@@ -213,3 +213,18 @@ export async function notifyNewMessage(conversationId: string, messageId: string
     await createNotification(members[0].user_id, 'NEW_MESSAGE', conversationId, user.id, { message_id: messageId });
   }
 }
+
+export async function unsendMessage(messageId: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { success: false, error: 'Unauthorized' }
+
+  const { error } = await supabase
+    .from('messages')
+    .update({ deleted_at: new Date().toISOString() })
+    .eq('id', messageId)
+    .eq('sender_id', user.id)
+
+  if (error) return { success: false, error: error.message }
+  return { success: true }
+}
