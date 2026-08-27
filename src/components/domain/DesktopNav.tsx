@@ -88,7 +88,16 @@ export function DesktopNav() {
                   isActive ? "text-primary" : "text-muted-foreground"
                 )}
               >
-                <Icon className="h-4 w-4" />
+                {(item as any).isAvatar && avatarUrl ? (
+                  <div className={cn(
+                    "w-6 h-6 rounded-full overflow-hidden border-2 flex items-center justify-center shrink-0",
+                    isActive ? "border-primary" : "border-transparent"
+                  )}>
+                    <img src={avatarUrl} alt="Perfil" className="w-full h-full object-cover" />
+                  </div>
+                ) : (
+                  <Icon className="h-4 w-4" />
+                )}
                 {item.label}
               </Link>
             )
