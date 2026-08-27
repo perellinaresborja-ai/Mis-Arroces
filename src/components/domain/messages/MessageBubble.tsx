@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react"
 import { formatRelativeTime } from "@/lib/utils"
 import Link from "next/link"
-import { ChevronDown, Reply, Copy, Trash2 } from "lucide-react"
+import { Reply, Copy, Trash2 } from "lucide-react"
 import { unsendMessage } from "@/app/actions/messaging"
 import { createClient } from "@/lib/supabase/client"
 
@@ -122,7 +122,10 @@ export function MessageBubble({ message, isOwn, onReply }: { message: Record<str
   return (
     <div className={`flex w-full mb-4 ${isOwn ? "justify-end" : "justify-start"}`}>
       <div className="relative group max-w-[75%]">
-        <div className={`rounded-2xl p-3 relative ${isOwn ? "bg-primary text-primary-foreground rounded-tr-sm" : "bg-muted text-foreground rounded-tl-sm"}`}>
+        <div 
+          onClick={(e) => { e.stopPropagation(); setShowMenu(!showMenu); }}
+          className={`rounded-2xl p-3 relative cursor-pointer ${isOwn ? "bg-primary text-primary-foreground rounded-tr-sm" : "bg-muted text-foreground rounded-tl-sm"}`}
+        >
           {replyData && (
             <div className="bg-background/20 rounded-xl p-2 mb-2 text-xs opacity-80 border-l-2 border-primary">
               <span className="font-bold block mb-1">Respuesta a:</span>
@@ -176,13 +179,7 @@ export function MessageBubble({ message, isOwn, onReply }: { message: Record<str
           </div>
         </div>
         
-        {/* Dropdown Menu */}
-        <button 
-          onClick={() => setShowMenu(!showMenu)}
-          className={`absolute top-1 ${isOwn ? '-left-6' : '-right-6'} opacity-0 group-hover:opacity-100 p-1 bg-card rounded-full shadow-sm border border-border text-foreground transition-opacity`}
-        >
-          <ChevronDown className="w-4 h-4" />
-        </button>
+        
 
         {showMenu && (
           <div className={`absolute top-8 ${isOwn ? '-left-32' : '-right-32'} w-32 bg-card border border-border shadow-lg rounded-xl overflow-hidden z-50 text-foreground`}>
