@@ -51,8 +51,8 @@ export function MessageInput({ conversationId, receiverId, disabled }: { convers
       await sendMessage(
         conversationId,
         messageType as any,
-        content.trim() || undefined,
-        entityId || undefined
+        content.trim() || null,
+        entityId || null
       )
 
       setContent("")

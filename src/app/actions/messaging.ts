@@ -98,8 +98,8 @@ export async function updateReadStatus(conversationId: string) {
 export async function sendMessage(
   conversationId: string,
   type: 'TEXT' | 'IMAGE' | 'VIDEO' | 'LINK' | 'RECIPE' | 'SESSION' | 'STORY',
-  body?: string,
-  entityId?: string
+  body?: string | null,
+  entityId?: string | null
 ) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -128,7 +128,7 @@ export async function sendMessage(
     await createNotification(targetUserId, 'NEW_MESSAGE', conversationId, user.id, { message_id: msg.id })
   }
 
-  return msg
+  return { success: true, id: msg.id }
 }
 
 export async function acceptRequest(conversationId: string) {
