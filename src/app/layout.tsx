@@ -62,7 +62,7 @@ export default function RootLayout({
           <DesktopNav />
           
           {/* Responsive global container */}
-          <div className="flex min-h-screen w-full flex-col bg-background relative max-w-7xl mx-auto px-0 md:px-8">
+          <div className="flex min-h-[100dvh] md:min-h-[calc(100vh-64px)] w-full flex-col bg-background relative max-w-7xl mx-auto px-0 md:px-8">
             <main className="flex-1 pb-20 md:pb-8">
               {children}
             </main>
