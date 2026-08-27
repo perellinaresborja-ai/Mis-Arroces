@@ -78,10 +78,12 @@ export default async function ConversationPage({ params }: { params: { conversat
       )}
 
       <ClientChat 
-        initialMessages={messages} 
+        initialMessages={messages as unknown as Record<string, unknown>[]} 
         userId={user.id} 
         conversationId={conversationId} 
-        isRequest={isRequest}
+        myStatus={member.status}
+        otherStatus={otherMember?.status}
+        otherUserId={otherMember?.user_id}
       />
     </div>
   )
