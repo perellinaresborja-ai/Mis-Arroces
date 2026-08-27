@@ -4,6 +4,7 @@ import { notFound, redirect } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { ProfileGridCard } from "@/components/domain/ProfileGridCard"
+import { FollowsModal } from "@/components/domain/FollowsModal"
 import { FeedCard } from "@/components/domain/FeedCard"
 import { MessageCircle, Settings, Lock, User, Grid, Clapperboard, UserSquare, LinkIcon, ShoppingCart, BarChart2 } from "lucide-react"
 import { ShareButton } from "@/components/domain/ShareButton"
@@ -217,14 +218,12 @@ export default async function PublicProfilePage({
               <span className="font-bold text-foreground text-[17px] leading-none">{feedItems.length}</span>
               <span className="text-muted-foreground text-[11px] uppercase tracking-wider mt-1">Elaboraciones</span>
             </div>
-            <div className="flex flex-col items-center">
-              <span className="font-bold text-foreground text-[17px] leading-none">{followersCount || 0}</span>
-              <span className="text-muted-foreground text-[11px] uppercase tracking-wider mt-1">Seguidores</span>
-            </div>
-            <div className="flex flex-col items-center">
-              <span className="font-bold text-foreground text-[17px] leading-none">{followingCount || 0}</span>
-              <span className="text-muted-foreground text-[11px] uppercase tracking-wider mt-1">Siguiendo</span>
-            </div>
+            <FollowsModal 
+              targetUserId={profile.id} 
+              currentUserId={user?.id || null} 
+              followersCount={followersCount || 0} 
+              followingCount={followingCount || 0} 
+            />
           </div>
 
           {!isSelf && (
