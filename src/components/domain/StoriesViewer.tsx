@@ -136,7 +136,7 @@ export function StoriesViewer({ groupedStories, initialGroupIndex, onClose, curr
       <div className="relative w-full h-full max-w-lg md:h-[90vh] md:rounded-3xl md:overflow-hidden bg-zinc-900 shadow-2xl flex flex-col">
         
         {/* Progress Bars */}
-        <div className="absolute top-0 left-0 w-full z-10 flex gap-1 p-2 bg-gradient-to-b from-black/50 to-transparent pt-safe">
+        <div className="absolute top-0 left-0 w-full z-50 flex gap-1 p-2 bg-gradient-to-b from-black/50 to-transparent pt-safe pointer-events-none">
           {currentGroup.stories.map((s: any, idx: number) => {
             let width = "0%"
             if (idx < storyIndex) width = "100%"
@@ -151,7 +151,7 @@ export function StoriesViewer({ groupedStories, initialGroupIndex, onClose, curr
         </div>
 
         {/* Header */}
-        <div className="absolute top-4 left-0 w-full z-10 flex items-center justify-between px-4 pt-safe mt-2">
+        <div className="absolute top-4 left-0 w-full z-50 flex items-center justify-between px-4 pt-safe mt-2">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-muted overflow-hidden flex items-center justify-center shrink-0">
               {currentGroup.author?.avatar?.storage_path ? (
