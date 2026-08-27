@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Image as ImageIcon, Video, X, Send } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
-import { sendMessage } from "@/app/actions/messaging"
+import { notifyNewMessage } from "@/app/actions/messaging"
 
 export function MessageInput({ conversationId, receiverId, disabled }: { conversationId: string, receiverId?: string, disabled?: boolean }) {
   const [content, setContent] = useState("")
@@ -36,7 +36,8 @@ export function MessageInput({ conversationId, receiverId, disabled }: { convers
         const ext = file.name.split('.').pop()
         const path = `${conversationId}/${crypto.randomUUID()}.${ext}`
         
-        const { error: uploadError } = await supabase.storage.from('message_media').upload(path, await file.arrayBuffer(), { contentType: file.type })
+        // Use file directly, it's safer when not using Server Actions for the surrounding code
+        const { error: uploadError } = await supabase.storage.from('message_media').upload(path, file)
         if (uploadError) throw uploadError
         entityId = path
       } else {
@@ -48,12 +49,21 @@ export function MessageInput({ conversationId, receiverId, disabled }: { convers
         } catch (_) {}
       }
 
-      await sendMessage({
-        conversationId,
-        type: messageType as any,
+      const { data: userData } = await supabase.auth.getUser()
+      if (!userData?.user) throw new Error("No user")
+
+      const { data: msg, error: insertError } = await supabase.from('messages').insert({
+        conversation_id: conversationId,
+        sender_id: userData.user.id,
+        type: messageType,
         body: content.trim() || null,
-        entityId: entityId || null
-      })
+        entity_id: entityId
+      }).select().single()
+
+      if (insertError || !msg) throw insertError || new Error("Failed to insert message")
+
+      // Call Server Action ONLY for notification, passing only simple strings
+      await notifyNewMessage(conversationId, msg.id).catch(console.error)
 
       setContent("")
       setFile(null)
