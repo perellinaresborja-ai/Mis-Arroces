@@ -4,6 +4,8 @@ import { useEffect, useState } from "react"
 import { getComments } from "@/app/actions/interactions"
 import { CommentSection } from "@/components/domain/CommentSection"
 import { X, MoreHorizontal, Bookmark, MessageSquareOff, Edit2, Trash2 } from "lucide-react"
+import { toggleComments, deleteEntity, toggleBookmark } from "@/app/actions/post_options"
+import { useRouter } from "next/navigation"
 
 interface CommentsModalProps {
   isOpen: boolean
@@ -17,6 +19,7 @@ interface CommentsModalProps {
 
 export function CommentsModal({ isOpen, onClose, entityType, entityId, currentUserId, authorId, allowComments }: CommentsModalProps) {
   const [showOptionsMenu, setShowOptionsMenu] = useState(false)
+  const router = useRouter()
   const [comments, setComments] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
 
