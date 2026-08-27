@@ -7,6 +7,7 @@ import { Type, MapPin, AtSign, Image as ImageIcon, Smile, X, ArrowRight, Check, 
 import { Button } from "@/components/ui/button"
 import { getDraft, saveDraft, clearDraft } from "@/lib/idbDrafts"
 import { createStory } from "@/app/actions/stories"
+import { uploadMedia } from "@/services/media/client"
 import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 
@@ -293,12 +294,19 @@ export function StoryCreator({ initialRecipeId, initialSessionId }: StoryCreator
   const handlePublish = async () => {
     try {
       setIsPublishing(true)
+      
+      let mediaId: string | undefined;
+      if (mediaFile) {
+        mediaId = await uploadMedia(mediaFile, 'stories', Date.now().toString());
+      }
+
       await createStory({
         mediaTransform: transform,
         overlays,
         background,
         recipeId: initialRecipeId,
-        sessionId: initialSessionId
+        sessionId: initialSessionId,
+        mediaId
       })
       await clearDraft()
       router.push('/')
