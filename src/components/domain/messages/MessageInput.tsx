@@ -36,7 +36,7 @@ export function MessageInput({ conversationId, receiverId, disabled }: { convers
         const ext = file.name.split('.').pop()
         const path = `${conversationId}/${crypto.randomUUID()}.${ext}`
         
-        const { error: uploadError } = await supabase.storage.from('message_media').upload(path, file)
+        const { error: uploadError } = await supabase.storage.from('message_media').upload(path, await file.arrayBuffer(), { contentType: file.type })
         if (uploadError) throw uploadError
         entityId = path
       } else {
