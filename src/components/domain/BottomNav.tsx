@@ -16,8 +16,16 @@ export function BottomNav() {
       const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        const { data } = await supabase.from('profiles').select('avatar_media_id').eq('id', user.id).single();
-        if (data?.avatar_media_id) setAvatarUrl(data.avatar_media_id);
+        const { data } = await supabase.from('profiles')
+          .select(`avatar:media_assets!fk_profiles_avatar(storage_path)`)
+          .eq('id', user.id)
+          .single();
+          
+        // @ts-ignore
+        if (data?.avatar?.storage_path) {
+          // @ts-ignore
+          setAvatarUrl(`https://zvesoygqssyyojqyswwm.supabase.co/storage/v1/object/public/recipe_media/${data.avatar.storage_path}`);
+        }
       }
     };
     fetchUser();
