@@ -33,12 +33,12 @@ export function ShareDMModal({ isOpen, onClose, entityType, entityId }: { isOpen
   const handleShare = async (receiverId: string) => {
     try {
       const convId = await getOrCreateConversation(receiverId)
-      await sendMessage(
-        convId,
-        entityType,
-        undefined,
+      await sendMessage({
+        conversationId: convId,
+        type: entityType,
+        body: null,
         entityId
-      )
+      })
       onClose()
       alert("Enviado correctamente")
     } catch (err: Error | NodeJS.ErrnoException | unknown) {

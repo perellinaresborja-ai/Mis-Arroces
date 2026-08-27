@@ -95,12 +95,8 @@ export async function updateReadStatus(conversationId: string) {
     .eq('user_id', user.id)
 }
 
-export async function sendMessage(
-  conversationId: string,
-  type: 'TEXT' | 'IMAGE' | 'VIDEO' | 'LINK' | 'RECIPE' | 'SESSION' | 'STORY',
-  body?: string | null,
-  entityId?: string | null
-) {
+export async function sendMessage(params: { conversationId: string; type: 'TEXT' | 'IMAGE' | 'VIDEO' | 'LINK' | 'RECIPE' | 'SESSION' | 'STORY'; body?: string | null; entityId?: string | null }) {
+  const { conversationId, type, body, entityId } = params;
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error("Unauthorized")

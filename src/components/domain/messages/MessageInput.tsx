@@ -48,12 +48,12 @@ export function MessageInput({ conversationId, receiverId, disabled }: { convers
         } catch (_) {}
       }
 
-      await sendMessage(
+      await sendMessage({
         conversationId,
-        messageType as any,
-        content.trim() || null,
-        entityId || null
-      )
+        type: messageType as any,
+        body: content.trim() || null,
+        entityId: entityId || null
+      })
 
       setContent("")
       setFile(null)
