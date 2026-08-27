@@ -44,7 +44,8 @@ export function StoriesViewer({ groupedStories, initialGroupIndex, onClose, curr
 
   const currentGroup = groupedStories[groupIndex]
   const currentStory = currentGroup?.stories[storyIndex]
-  const isMe = currentUser?.id === currentGroup?.author?.id
+  const isMe = currentUser?.id === currentGroup?.author?.id || currentUser?.id === currentStory?.owner_id;
+  // console.log("DEBUG ISME", { isMe, currentUserId: currentUser?.id, authorId: currentGroup?.author?.id, ownerId: currentStory?.owner_id });
 
   // Navigate next/prev story
   const handleDelete = async (e: React.MouseEvent) => { e.stopPropagation(); setIsPaused(true); if(!confirm('¿Eliminar esta historia?')) { setIsPaused(false); return; } try { await deleteStory(currentStory.id); window.location.reload(); } catch(e) { alert('Error al eliminar la historia'); setIsPaused(false); } };
