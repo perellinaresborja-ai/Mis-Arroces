@@ -228,7 +228,10 @@ export default async function PublicProfilePage({
           </div>
 
           {!isSelf && (
-              <div className="mt-5">
+              <div className="mt-5 flex justify-center items-center gap-2">
+                <a href={`/messages?to=${profile.id}`} className="inline-flex items-center justify-center rounded-full text-sm font-bold border border-border bg-card hover:bg-muted h-10 px-4 shadow-sm">
+                  <MessageCircle className="w-4 h-4 mr-2"/> Mensaje
+                </a>
                 {!user ? (
                   <ProfileFollowButton isAuthenticated={false} followStatus={null} targetId={profile.id} isPrivate={profile.privacy_level === "PRIVATE"} />
                 ) : (

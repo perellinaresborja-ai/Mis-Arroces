@@ -17,6 +17,11 @@ export function BottomNav() {
       label: "Inicio",
     },
     {
+      href: "/messages",
+      icon: MessageCircle,
+      label: "Mensajes",
+    },
+    {
       href: "/me",
       icon: User,
       label: "Perfil",
@@ -57,10 +62,8 @@ export function BottomNav() {
               <div 
                 className="flex items-center justify-center rounded-full transition-colors p-1"
               >
-                <Icon 
-                  className="h-6 w-6"
-                  strokeWidth={isActive ? 2.5 : 2}
-                />
+                <Icon className="h-6 w-6" strokeWidth={isActive ? 2.5 : 2} />
+                {item.href === '/messages' && <UnreadBadge />}
               </div>
               <span className="text-[10px] font-medium">{item.label}</span>
             </Link>

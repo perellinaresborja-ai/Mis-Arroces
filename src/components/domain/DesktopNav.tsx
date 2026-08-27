@@ -1,3 +1,4 @@
+import { UnreadBadge } from "@/components/domain/messages/UnreadBadge"
 "use client"
 
 import Link from "next/link"
@@ -13,6 +14,7 @@ export function DesktopNav() {
 
   const navItems = [
     { href: "/", icon: Home, label: "Inicio" },
+    { href: "/messages", icon: MessageCircle, label: "Mensajes" },
     { href: "/me", icon: User, label: "Perfil" },
     { href: "/discover", icon: Compass, label: "Descubrir" },
     { href: "/cookbook", icon: BookOpen, label: "Recetario" },
