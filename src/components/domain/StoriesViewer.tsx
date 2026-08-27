@@ -190,9 +190,14 @@ export function StoriesViewer({ groupedStories, initialGroupIndex, onClose, curr
             </div>
           </div>
           
-          <button onClick={(e) => { e.stopPropagation(); onClose(); }} className="p-2 hover:bg-black/20 rounded-full transition-colors backdrop-blur-sm relative z-50 pointer-events-auto">
-            <X className="w-6 h-6 drop-shadow-md" />
-          </button>
+                      <div className="flex gap-2 relative z-50 pointer-events-auto">
+              <button onClick={handleMenuClick} className="p-2 hover:bg-black/20 rounded-full transition-colors backdrop-blur-sm">
+                <MoreHorizontal className="w-6 h-6 drop-shadow-md text-white" />
+              </button>
+              <button onClick={(e) => { e.stopPropagation(); onClose(); }} className="p-2 hover:bg-black/20 rounded-full transition-colors backdrop-blur-sm">
+                <X className="w-6 h-6 drop-shadow-md text-white" />
+              </button>
+            </div>
         </div>
 
                 {/* Context Menu Overlay */}
