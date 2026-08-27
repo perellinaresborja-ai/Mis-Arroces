@@ -14,7 +14,7 @@ export function MessagesLayoutClient({ convs, children }: { convs: Record<string
           <h1 className="text-2xl font-bold">Mensajes</h1>
         </div>
         
-        <div className="flex-1 overflow-y-auto p-4 space-y-4 pb-24 md:pb-4">
+        <div className="flex-1 overflow-y-auto p-4 space-y-4 pb-24 md:pb-4 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
           {convs.length === 0 && <p className="text-muted-foreground text-center py-12 text-sm">No tienes mensajes todavía.</p>}
           
           {convs.map((c) => {
