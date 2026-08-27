@@ -206,7 +206,7 @@ export function StoriesViewer({ groupedStories, initialGroupIndex, onClose, curr
               <div className="w-full max-w-lg bg-zinc-900 rounded-t-3xl overflow-hidden flex flex-col pb-safe animate-in slide-in-from-bottom-full duration-200" onClick={e => e.stopPropagation()}>
                 <div className="w-12 h-1.5 bg-white/20 rounded-full mx-auto my-3" />
                 
-                {currentUser?.id === currentStory.owner_id ? (
+                {isMe ? (
                   <>
                     <button onClick={(e) => { e.stopPropagation(); setShowViewers(true); closeMenu(); }} className="flex items-center gap-4 w-full p-4 hover:bg-white/5 transition-colors text-left border-b border-white/10">
                       <BarChartIcon className="w-6 h-6" /> <span className="font-semibold">Ver estadísticas</span>
