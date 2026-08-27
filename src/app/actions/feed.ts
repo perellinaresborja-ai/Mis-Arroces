@@ -13,9 +13,11 @@ export async function fetchFeedPage(pageIndex: number = 0) {
 
   let query = supabase.from("feed_items").select("*").order("created_at", { ascending: false }).range(offset, offset + PAGE_SIZE - 1)
 
+  let followStatusMap: Record<string, string> = {}
   if (user) {
-    const { data: follows } = await supabase.from("follows").select("following_id").eq("follower_id", user.id).eq("status", "ACCEPTED")
-    const followingIds = follows?.map(f => f.following_id) || []
+    const { data: follows } = await supabase.from("follows").select("following_id, status").eq("follower_id", user.id)
+    const followingIds = follows?.filter(f => f.status === 'ACCEPTED').map(f => f.following_id) || []
+    followStatusMap = follows?.reduce((acc: any, f: any) => { acc[f.following_id] = f.status; return acc; }, {}) || {}
     const allowedAuthors = [user.id, ...followingIds].map(id => `"${id}"`).join(",")
 
     query = query.or(`visibility.eq.PUBLIC,user_id.eq.${user.id},and(visibility.eq.FOLLOWERS,user_id.in.(${allowedAuthors}))`)
