@@ -186,7 +186,7 @@ export function StoriesViewer({ groupedStories, initialGroupIndex, onClose, curr
               autoPlay 
               playsInline 
               muted={false}
-              className="w-full h-full object-contain md:object-cover"
+              className="max-w-full max-h-full object-contain md:object-cover"
               onTimeUpdate={handleTimeUpdate}
               onEnded={handleVideoEnded}
               style={{
@@ -199,7 +199,7 @@ export function StoriesViewer({ groupedStories, initialGroupIndex, onClose, curr
           {fullUrl && !isVideo && (
             <img 
               src={fullUrl} 
-              className="w-full h-full object-contain md:object-cover" 
+              className="max-w-full max-h-full object-contain md:object-cover" 
               alt="Story"
               draggable={false}
               style={{
