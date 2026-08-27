@@ -62,7 +62,7 @@ export function FeedFollowButton({
       size="sm"
       disabled={isPending}
       onClick={handleFollow}
-      className={`ml-2 h-7 px-3 text-xs rounded-full font-bold shadow-sm transition-colors ${status === 'ACCEPTED' ? 'bg-secondary/50 text-muted-foreground hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30 border border-transparent' : 'border-primary text-primary hover:bg-primary hover:text-primary-foreground'}`}
+      className={`h-7 px-3 text-xs rounded-full font-bold shadow-sm transition-colors ${status === 'ACCEPTED' ? 'bg-secondary/50 text-muted-foreground hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30 border border-transparent' : 'border-primary text-primary hover:bg-primary hover:text-primary-foreground'}`}
     >
       {status === 'ACCEPTED' ? 'Siguiendo' : status === 'PENDING' ? 'Pendiente' : 'Seguir'}
     </Button>

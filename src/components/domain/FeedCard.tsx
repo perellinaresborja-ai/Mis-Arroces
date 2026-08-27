@@ -93,14 +93,6 @@ export function FeedCard({
               <Link href={`/@${user.username}`} className="font-bold text-[15px] hover:underline">
                 {user.display_name || `@${user.username}`}
               </Link>
-              {currentUserId !== user.id && (
-                <FeedFollowButton 
-                  isAuthenticated={!!currentUserId} 
-                  initialStatus={followStatus || null} 
-                  targetId={user.id} 
-                  isPrivate={user.privacy_level === 'PRIVATE'} 
-                />
-              )}
             </div>
             {user.display_name && (
               <div className="text-[13px] text-muted-foreground flex items-center gap-1">
@@ -110,8 +102,15 @@ export function FeedCard({
           </div>
         </div>
         
-        <div className="shrink-0 ml-4">
-            {/* Si necesitamos algun menu de opciones (•••) en el futuro, iría aquí */}
+        <div className="shrink-0 ml-2">
+          {currentUserId !== user.id && (
+            <FeedFollowButton 
+              isAuthenticated={!!currentUserId} 
+              initialStatus={followStatus || null} 
+              targetId={user.id} 
+              isPrivate={user.privacy_level === 'PRIVATE'} 
+            />
+          )}
         </div>
       </header>
 
