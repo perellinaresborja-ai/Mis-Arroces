@@ -98,7 +98,7 @@ export function FollowsModal({
               </button>
             </div>
 
-            <div className="overflow-y-auto flex-1 p-4">
+            <div className="overflow-y-auto flex-1 p-4 pb-48">
               {isLoading ? (
                 <div className="flex justify-center p-8">
                   <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
@@ -118,8 +118,7 @@ export function FollowsModal({
                             {avatarUrl && <img src={avatarUrl} alt={u.username} className="w-full h-full object-cover" />}
                           </div>
                           <div className="flex flex-col">
-                            <span className="font-bold text-sm">{u.display_name || `@${u.username}`}</span>
-                            <span className="text-xs text-muted-foreground">@{u.username}</span>
+                            <span className="font-bold text-[15px]">{u.display_name || `@${u.username}`}</span>
                           </div>
                         </Link>
                         
