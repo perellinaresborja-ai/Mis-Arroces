@@ -1,6 +1,8 @@
 "use client"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+import { useEffect, useState } from "react"
+import { createClient } from "@/lib/supabase/client"
 import { Flame, PlaySquare, User, Home, MessageCircle, BookOpen, Compass } from "lucide-react"
 import { cn } from "@/lib/utils"
 import Image from "next/image"
@@ -8,6 +10,27 @@ import { NotificationBell } from "@/components/domain/NotificationBell"
 
 export function DesktopNav() {
   const pathname = usePathname()
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data } = await supabase.from('profiles')
+          .select(`avatar:media_assets!fk_profiles_avatar(storage_path)`)
+          .eq('id', user.id)
+          .single();
+          
+        // @ts-ignore
+        if (data?.avatar?.storage_path) {
+          // @ts-ignore
+          setAvatarUrl(`https://zvesoygqssyyojqyswwm.supabase.co/storage/v1/object/public/recipe_media/${data.avatar.storage_path}`);
+        }
+      }
+    };
+    fetchUser();
+  }, []);
 
   const navItems = [
     {
@@ -34,6 +57,7 @@ export function DesktopNav() {
       href: "/me",
       icon: User,
       label: "Perfil",
+      isAvatar: true
     },
   ]
 
