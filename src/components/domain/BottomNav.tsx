@@ -1,4 +1,5 @@
 "use client"
+import { UnreadBadge } from "@/components/domain/messages/UnreadBadge";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {  BookOpen, Compass, User, ShoppingCart, Home , MessageCircle } from "lucide-react";
