@@ -9,6 +9,7 @@ import { MessageCircle, Bookmark } from "lucide-react"
 import { CommentsModal } from "@/components/domain/CommentsModal"
 import { cn, formatRelativeTime } from "@/lib/utils"
 import { useAuthPrompt } from "@/components/providers/AuthPromptProvider"
+import { FeedFollowButton } from "@/components/domain/FeedFollowButton"
 
 export interface FeedCardProps {
   entityType: "recipe" | "session" | "post"
@@ -25,6 +26,7 @@ export interface FeedCardProps {
   isLiked: boolean
   commentCount: number
   currentUserId: string | null
+  followStatus?: string | null
 
   // Post specific
   postContent?: string
@@ -51,6 +53,7 @@ export function FeedCard({
   isLiked,
   commentCount,
   currentUserId,
+  followStatus,
   postContent,
   recipeName,
   recipeType,

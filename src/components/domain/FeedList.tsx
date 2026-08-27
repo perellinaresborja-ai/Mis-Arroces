@@ -49,6 +49,7 @@ export function FeedList({ initialItems, currentUserId }: { initialItems: any[],
               likeCount={item.likeCount}
               commentCount={item.commentCount}
               currentUserId={currentUserId}
+              followStatus={(item as any).followStatus}
               postContent={item.data.content}
               linkedRecipe={item.data.recipe}
               media={media}
@@ -69,6 +70,7 @@ export function FeedList({ initialItems, currentUserId }: { initialItems: any[],
               likeCount={item.likeCount}
               commentCount={item.commentCount}
               currentUserId={currentUserId}
+              followStatus={(item as any).followStatus}
               recipeName={item.data.name}
               recipeType={item.data.rice_type}
               media={media}
@@ -89,6 +91,7 @@ export function FeedList({ initialItems, currentUserId }: { initialItems: any[],
               likeCount={item.likeCount}
               commentCount={item.commentCount}
               currentUserId={currentUserId}
+              followStatus={(item as any).followStatus}
               sessionRating={item.data.rating}
               sessionSocarrat={item.data.socarrat_level}
               linkedRecipe={item.data.recipe}
