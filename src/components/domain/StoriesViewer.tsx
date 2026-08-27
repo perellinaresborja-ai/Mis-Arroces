@@ -126,8 +126,7 @@ export function StoriesViewer({ groupedStories, initialGroupIndex, onClose, curr
     const mediaObj = currentStory.story_media?.[0]?.media;
   const mediaPath = mediaObj?.storage_path;
   const isVideo = mediaPath?.match(/\.(mp4|webm|ogg)$/i);
-  // Remove public fallback entirely. Story media is private.
-  const fullUrl = mediaObj?.signed_url || "";
+  const fullUrl = mediaObj?.signed_url || (mediaPath ? `${"https://zvesoygqssyyojqyswwm.supabase.co"}/storage/v1/object/public/recipe_media/${mediaPath}` : "");
 
   const handlePointerDown = () => setIsPaused(true)
   const handlePointerUp = () => setIsPaused(false)
