@@ -53,12 +53,6 @@ export function DesktopNav() {
       icon: BookOpen,
       label: "Recetario",
     },
-    {
-      href: "/me",
-      icon: User,
-      label: "Perfil",
-      isAvatar: true
-    },
   ]
 
   if (pathname === "/login" || pathname === "/forgot-password") return null
@@ -88,34 +82,33 @@ export function DesktopNav() {
                   isActive ? "text-primary" : "text-muted-foreground"
                 )}
               >
-                {(item as any).isAvatar ? (
-                  avatarUrl ? (
-                    <div className={cn(
-                      "w-8 h-8 rounded-full overflow-hidden border-2 flex items-center justify-center shrink-0",
-                      isActive ? "border-primary" : "border-transparent"
-                    )}>
-                      <img src={avatarUrl} alt="Perfil" className="w-full h-full object-cover" />
-                    </div>
-                  ) : (
-                    <div className={cn(
-                      "w-8 h-8 rounded-full bg-muted flex items-center justify-center shrink-0 border-2",
-                      isActive ? "border-primary" : "border-transparent"
-                    )}>
-                      <Icon className="h-4 w-4" />
-                    </div>
-                  )
-                ) : (
-                  <>
+                <>
                     <Icon className="h-4 w-4" />
                     {item.label}
                   </>
-                )}
               </Link>
             )
           })}
           
-          <div className="flex items-center pl-2 border-l border-border ml-2">
+          <div className="flex items-center gap-4 pl-6 border-l border-border ml-2">
             <NotificationBell />
+            <Link href="/me" className={cn("transition-colors hover:opacity-80", pathname === "/me" || pathname.startsWith("/me/") ? "opacity-100" : "opacity-80")}>
+              {avatarUrl ? (
+                <div className={cn(
+                  "w-9 h-9 rounded-full overflow-hidden border-2 flex items-center justify-center shrink-0",
+                  (pathname === "/me" || pathname.startsWith("/me/")) ? "border-primary" : "border-transparent"
+                )}>
+                  <img src={avatarUrl} alt="Perfil" className="w-full h-full object-cover" />
+                </div>
+              ) : (
+                <div className={cn(
+                  "w-9 h-9 rounded-full bg-muted flex items-center justify-center shrink-0 border-2",
+                  (pathname === "/me" || pathname.startsWith("/me/")) ? "border-primary" : "border-transparent"
+                )}>
+                  <User className="h-5 w-5 text-muted-foreground" />
+                </div>
+              )}
+            </Link>
           </div>
         </nav>
       </div>
