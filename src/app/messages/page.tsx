@@ -1,6 +1,6 @@
-import { fetchConversations, getOrCreateConversation } from "@/app/actions/messaging"
-import Link from "next/link"
+import { getOrCreateConversation } from "@/app/actions/messaging"
 import { redirect } from "next/navigation"
+import { MessageCircle } from "lucide-react"
 
 export default async function MessagesPage({ searchParams }: { searchParams: Promise<{ [key: string]: string | string[] | undefined }> | { [key: string]: string | string[] | undefined } }) {
   const sp = await Promise.resolve(searchParams);
@@ -20,51 +20,22 @@ export default async function MessagesPage({ searchParams }: { searchParams: Pro
     }
   }
 
-  const convs = await fetchConversations()
-
   return (
-    <div className="max-w-xl mx-auto p-4 pb-24">
-      <h1 className="text-2xl font-bold mb-6">Mensajes</h1>
-      
+    <div className="flex-1 flex flex-col items-center justify-center p-8 text-center h-full">
       {creationError && (
-        <div className="bg-destructive/10 border border-destructive text-destructive p-4 rounded-xl mb-6">
+        <div className="bg-destructive/10 border border-destructive text-destructive p-4 rounded-xl mb-6 max-w-sm">
           <p className="font-bold">Error iniciando conversación</p>
           <p className="text-sm mt-1">{creationError}</p>
         </div>
       )}
-
-      <div className="space-y-4">
-        {convs.length === 0 && <p className="text-muted-foreground text-center py-12">No tienes mensajes todavía.</p>}
-        
-        {convs.map((c) => (
-          <Link key={c.conversation_id} href={`/messages/${c.conversation_id}`} className="block">
-            <div className="flex items-center p-3 rounded-2xl bg-card border border-border hover:bg-card/80 transition-colors">
-              <div className="w-12 h-12 bg-secondary rounded-full overflow-hidden shrink-0 border border-border">
-                {c.otherMember?.user?.avatar_media_id ? (
-                  <img src={c.otherMember.user.avatar_media_id} className="w-full h-full object-cover" alt="" />
-                ) : (
-                  <div className="w-full h-full bg-primary/20 flex items-center justify-center font-bold">
-                    {c.otherMember?.user?.username?.[0]?.toUpperCase()}
-                  </div>
-                )}
-              </div>
-              <div className="ml-4 flex-1 truncate">
-                <div className="flex justify-between items-center">
-                  <h3 className="font-bold truncate">{c.otherMember?.user?.username}</h3>
-                  {c.unreadCount > 0 && (
-                    <span className="bg-primary text-primary-foreground text-xs font-bold px-2 py-0.5 rounded-full">
-                      {c.unreadCount}
-                    </span>
-                  )}
-                </div>
-                <p className="text-sm text-muted-foreground truncate">
-                  {c.status === 'REQUEST' ? 'Nueva solicitud' : (c.lastMessage?.body || 'Enviado un archivo adjunto')}
-                </p>
-              </div>
-            </div>
-          </Link>
-        ))}
+      
+      <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mb-6">
+        <MessageCircle className="w-10 h-10 text-primary" />
       </div>
+      <h2 className="text-2xl font-bold mb-2">Tus Mensajes</h2>
+      <p className="text-muted-foreground max-w-sm">
+        Selecciona una conversación a la izquierda o inicia un nuevo chat desde el perfil de otro usuario.
+      </p>
     </div>
   )
 }

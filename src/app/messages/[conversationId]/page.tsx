@@ -1,4 +1,4 @@
-import { fetchMessages, updateReadStatus, acceptRequest, rejectRequest } from "@/app/actions/messaging"
+import { fetchMessages, updateReadStatus } from "@/app/actions/messaging"
 import { createClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
 import { ClientChat } from "@/components/domain/messages/ClientChat"
@@ -38,11 +38,10 @@ export default async function ConversationPage({ params }: { params: { conversat
     .neq('user_id', user.id)
     .single()
 
-  const isRequest = member.status === 'REQUEST'
   const messages = await fetchMessages(conversationId)
 
   return (
-    <div className="flex flex-col h-[100dvh] max-w-2xl mx-auto border-x border-border bg-background relative">
+    <div className="flex flex-col h-full w-full bg-background relative">
       <div className="flex items-center gap-3 p-4 border-b border-border bg-card shrink-0 sticky top-0 z-10">
         <div className="w-10 h-10 bg-secondary rounded-full flex items-center justify-center font-bold">
           {otherMember?.user?.username?.[0]?.toUpperCase()}
@@ -53,30 +52,6 @@ export default async function ConversationPage({ params }: { params: { conversat
         </div>
       </div>
       
-      {isRequest && (
-        <div className="p-4 bg-muted text-center shrink-0 border-b border-border">
-          <p className="text-sm font-semibold mb-2">Este usuario quiere enviarte un mensaje</p>
-          <div className="flex justify-center gap-2">
-            <form action={async () => {
-              "use server"
-              const s = await createClient()
-              await s.from('conversation_members').update({ status: 'ACTIVE' }).eq('conversation_id', conversationId).eq('user_id', user.id)
-              redirect(`/messages/${conversationId}`)
-            }}>
-              <button className="bg-primary text-primary-foreground px-4 py-1.5 rounded-xl text-sm font-bold">Aceptar</button>
-            </form>
-            <form action={async () => {
-              "use server"
-              const s = await createClient()
-              await s.from('conversation_members').update({ status: 'REJECTED', rejected_at: new Date().toISOString() }).eq('conversation_id', conversationId).eq('user_id', user.id)
-              redirect('/messages')
-            }}>
-              <button className="bg-destructive text-destructive-foreground px-4 py-1.5 rounded-xl text-sm font-bold">Rechazar</button>
-            </form>
-          </div>
-        </div>
-      )}
-
       <ClientChat 
         initialMessages={messages as unknown as Record<string, unknown>[]} 
         userId={user.id} 
