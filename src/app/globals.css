@@ -148,3 +148,13 @@
     @apply font-sans;
   }
 }
+/* HIDE SCROLLBARS EVERYWHERE FOR A CLEANER LOOK */
+::-webkit-scrollbar {
+  width: 0px;
+  background: transparent;
+  display: none;
+}
+* {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
