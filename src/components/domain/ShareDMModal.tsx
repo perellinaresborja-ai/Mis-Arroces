@@ -58,7 +58,7 @@ export function ShareDMModal({ isOpen, onClose, entityType, entityId }: { isOpen
         <div className="p-4 space-y-4">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input placeholder="Buscar usuarios..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9 border-border bg-muted/50" />
+            <Input placeholder="Buscar usuarios..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9 border-border bg-muted/50 text-foreground font-medium" />
           </div>
           <div className="space-y-2 max-h-[300px] overflow-y-auto">
             {isLoading ? <Loader2 className="w-5 h-5 animate-spin mx-auto text-muted-foreground" /> : users.map((u: Record<string, unknown>) => (
