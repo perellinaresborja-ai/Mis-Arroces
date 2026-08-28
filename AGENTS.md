@@ -8,15 +8,10 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 <!-- END:nextjs-agent-rules -->
 
-
 ## Línea Gráfica de Mis Arroces
-- Todas las tarjetas, contenedores de feed, modales y barras de contenido deben tener bordes redondeados (ounded-2xl o ounded-3xl), fondo g-card y un borde order border-border.
+- Todas las tarjetas, contenedores de feed, modales y barras de contenido deben tener bordes redondeados (`rounded-2xl` o `rounded-3xl`), fondo `bg-card` y un borde `border border-border`. Sin excepciones.
 - No usar diseños de bloque a sangre (flush sin bordes ni redondeo) para los contenedores principales (por ejemplo, barra de historias, publicaciones).
 
-## Línea Gráfica de Mis Arroces
-- Todas las tarjetas, contenedores de feed, modales y barras de contenido deben tener bordes redondeados (`rounded-2xl` o `rounded-3xl`), fondo `bg-card` y un borde `border border-border`.
-- No usar diseños de bloque a sangre (flush sin bordes ni redondeo) para los contenedores principales (por ejemplo, barra de historias, publicaciones).
-
-- REFUERZO: TODAS las tarjetas e interfaces deben tener cantos redondeados (rounded-2xl o rounded-3xl), sin excepciones.
-
-- REFUERZO: Cuando se hace algo, se hace para que funcione, no de adorno. Todo botón, menú o interfaz visual debe tener su funcionalidad real implementada por detrás (base de datos, páginas, etc.) en el mismo momento. No dejar "alertas" ni cosas a medias simulando que funcionan.
+## Funcionalidad y Flujo de Trabajo
+- **Cero Adornos:** Cuando se implementa algo, se hace para que funcione de verdad. Todo botón, menú o interfaz visual debe tener su funcionalidad real conectada y funcionando por detrás (base de datos, páginas, API, etc.) desde el minuto uno. No dejar botones "de pega", "alertas", mockups o cosas a medias simulando que funcionan.
+- **Git Push Automático:** Cuando se complete exitosamente la implementación de una característica (y compile sin errores), se debe realizar automáticamente un `git add .`, `git commit` y `git push` al repositorio. No hay que esperar a que el usuario pida actualizar el deployment, hay que hacerlo de forma proactiva.
