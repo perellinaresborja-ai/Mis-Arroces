@@ -18,8 +18,7 @@ export default async function CreateStoryPage(props: { searchParams?: Promise<{ 
   return (
     <div className="bg-black min-h-screen">
       <StoryCreator 
-        initialRecipeId={searchParams?.recipe_id} 
-        initialSessionId={searchParams?.session_id} 
+        initialRecipe={searchParams?.recipe_id ? { id: searchParams.recipe_id, name: "Receta" } : undefined} 
       />
     </div>
   )

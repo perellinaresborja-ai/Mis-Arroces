@@ -4,6 +4,7 @@ import { notFound, redirect } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { ProfileGridCard } from "@/components/domain/ProfileGridCard"
+import { ProfileHighlightsClient } from "@/components/domain/ProfileHighlightsClient"
 import { FollowsModal } from "@/components/domain/FollowsModal"
 import { FeedCard } from "@/components/domain/FeedCard"
 import { MessageCircle, Settings, Lock, User, Grid, Clapperboard, UserSquare, LinkIcon, ShoppingCart, BarChart2 } from "lucide-react"
@@ -171,7 +172,8 @@ export default async function PublicProfilePage({
     </span>
   )}
 </Link>
-                                  <Link href="/settings" className="flex items-center justify-center w-10 h-10 bg-black/60 rounded-full hover:bg-black transition text-white backdrop-blur-sm shadow-sm" title="Configuración">
+                                  <Link href="/profile/story-archive" className="flex items-center justify-center w-10 h-10 bg-black/60 rounded-full hover:bg-black transition text-white backdrop-blur-sm shadow-sm" title="Archivo"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="5" x="2" y="3" rx="1"/><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8"/><path d="M10 12h4"/></svg></Link>
+                <Link href="/settings" className="flex items-center justify-center w-10 h-10 bg-black/60 rounded-full hover:bg-black transition text-white backdrop-blur-sm shadow-sm" title="Configuración">
                   <Settings className="w-5 h-5" />
                 </Link>
               </>

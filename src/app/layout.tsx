@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { BottomNav } from "@/components/domain/BottomNav";
 import { DesktopNav } from "@/components/domain/DesktopNav";
+import { MobileHeader } from "@/components/domain/MobileHeader";
 import { AuthPromptProvider } from "@/components/providers/AuthPromptProvider";
 import { createClient } from "@/lib/supabase/server";
 import { checkPendingLegal } from "@/app/actions/legal";
@@ -72,6 +73,8 @@ export default async function RootLayout({
           <LegalConsentGate pendingLegal={pendingLegal} />
           {/* Desktop Header */}
           <DesktopNav />
+          {/* Mobile Header */}
+          <MobileHeader />
           
           {/* Responsive global container */}
           <div className="flex min-h-[100dvh] md:min-h-[calc(100vh-64px)] w-full flex-col bg-background relative max-w-7xl mx-auto px-0 md:px-8">

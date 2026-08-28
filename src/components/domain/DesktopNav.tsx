@@ -7,6 +7,7 @@ import { Flame, PlaySquare, User, Home, MessageCircle, BookOpen, Compass } from 
 import { cn } from "@/lib/utils"
 import Image from "next/image"
 import { NotificationBell } from "@/components/domain/NotificationBell"
+import { GlobalCreateMenu } from "@/components/domain/GlobalCreateMenu"
 
 export function DesktopNav() {
   const pathname = usePathname()
@@ -91,6 +92,7 @@ export function DesktopNav() {
           })}
           
           <div className="flex items-center gap-4 pl-6 border-l border-border ml-2">
+            <GlobalCreateMenu />
             <NotificationBell />
             <Link href="/me" className={cn("transition-colors hover:opacity-80", pathname === "/me" || pathname.startsWith("/me/") ? "opacity-100" : "opacity-80")}>
               {avatarUrl ? (

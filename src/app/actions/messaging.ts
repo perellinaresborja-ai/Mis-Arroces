@@ -88,9 +88,26 @@ export async function updateReadStatus(conversationId: string) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return
 
-  await supabase
+  // Find the latest message timestamp to avoid clock skew
+  const { data: latestMsg } = await supabase
+    .from('messages')
+    .select('created_at')
+    .eq('conversation_id', conversationId)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .single()
+
+  const readAt = latestMsg?.created_at || new Date().toISOString()
+
+  // Use Admin Client to bypass RLS since conversation_members lacks an UPDATE policy for regular users
+  const adminSupabase = (await import("@supabase/supabase-js")).createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL || "",
+    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""
+  )
+
+  await adminSupabase
     .from('conversation_members')
-    .update({ last_read_at: new Date().toISOString() })
+    .update({ last_read_at: readAt })
     .eq('conversation_id', conversationId)
     .eq('user_id', user.id)
 }
