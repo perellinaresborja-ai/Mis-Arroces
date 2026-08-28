@@ -1,4 +1,6 @@
-import Link from "next/link"
+const fs = require('fs');
+
+const termsContent = `import Link from "next/link"
 
 export default function TermsPage() {
   return (
@@ -108,3 +110,7 @@ export default function TermsPage() {
     </div>
   )
 }
+`;
+
+fs.writeFileSync('src/app/legal/terms/page.tsx', termsContent);
+console.log("UPDATED TERMS - EXPANDED");
