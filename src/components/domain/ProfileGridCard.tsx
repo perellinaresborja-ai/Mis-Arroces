@@ -1,6 +1,6 @@
 "use client"
 
-import { MessageCircle } from "lucide-react"
+import { MessageCircle, Pin } from "lucide-react"
 import { PaellaIcon } from "@/components/icons/PaellaIcon"
 import { SocialElaborationModal } from "./SocialElaborationModal"
 import { useState } from "react"
@@ -39,7 +39,15 @@ export function ProfileGridCard({ item, currentUserId }: { item: any, currentUse
           </div>
         )}
         
+        
+        {item.is_pinned && (
+          <div className="absolute top-1.5 left-1.5 z-10 bg-black/60 text-white p-1 rounded-md backdrop-blur-sm shadow-sm pointer-events-none">
+            <Pin className="w-3.5 h-3.5 fill-current transform rotate-45" />
+          </div>
+        )}
+        
         {/* Subtle badge for specific content types */}
+
         {badge && (
           <div className="absolute top-1.5 right-1.5 z-10 bg-black/60 text-white p-1 rounded-md backdrop-blur-sm shadow-sm pointer-events-none">
             {badge === 'Cocinado' ? (

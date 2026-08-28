@@ -63,6 +63,7 @@ export function FeedCard({
   sessionRating,
   sessionSocarrat,
   linkedRecipe,
+  isPinned,
   media
 }: FeedCardProps) {
 
@@ -116,6 +117,7 @@ export function FeedCard({
             entityType={entityType} 
             entityId={entityId} 
             allowComments={true} 
+            isPinned={isPinned} 
           />
         )}
         </div>

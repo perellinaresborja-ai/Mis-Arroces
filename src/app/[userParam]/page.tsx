@@ -96,7 +96,11 @@ export default async function PublicProfilePage({
     const sessions = (sesRes.data || []).map((s: any) => ({ ...s, entity_type: 'session', sort_date: new Date(s.date || s.created_at).getTime() }))
     const posts = (postRes.data || []).map((p: any) => ({ ...p, entity_type: 'post', sort_date: new Date(p.created_at).getTime() }))
 
-    feedItems = [...recipes, ...sessions, ...posts].sort((a, b) => b.sort_date - a.sort_date)
+    feedItems = [...recipes, ...sessions, ...posts].sort((a, b) => {
+      if (a.is_pinned && !b.is_pinned) return -1;
+      if (!a.is_pinned && b.is_pinned) return 1;
+      return b.sort_date - a.sort_date;
+    })
 
     if (feedItems.length > 0) {
       // Split items by type to fetch likes and comments
