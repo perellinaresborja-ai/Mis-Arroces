@@ -5,7 +5,7 @@ import React, { useState, useTransition, useRef, useEffect } from "react"
 import { createComment, deleteComment, editComment, toggleCommentLike } from "@/app/actions/interactions"
 import { usePathname, useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { MessageCircle, Reply, ChevronDown, ChevronUp, Send } from "lucide-react"
+import { MessageCircle, Reply, ChevronDown, ChevronUp, ArrowUp } from "lucide-react"
 import { PaellaLike } from "./PaellaLike"
 import { useAutocomplete } from "@/hooks/useAutocomplete"
 import { AutocompleteMenu } from "./AutocompleteMenu"
@@ -422,13 +422,13 @@ export function CommentSection({ entityType, entityId, comments, currentUserId, 
                   readOnly={!currentUserId}
               />
               <button 
-                type="submit" 
-                disabled={isPending || !newComment.trim()} 
-                className="flex items-center justify-center p-2 mx-1 mb-1 text-primary hover:text-primary/80 disabled:opacity-50 disabled:text-muted-foreground transition-colors shrink-0"
-                title="Publicar"
-              >
-                <Send className="w-5 h-5 -ml-0.5" strokeWidth={1.5} />
-              </button>
+                  type="submit" 
+                  disabled={isPending || !newComment.trim()} 
+                  className="flex items-center justify-center w-8 h-8 mx-2 mb-1.5 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 disabled:bg-muted disabled:text-muted-foreground disabled:opacity-100 transition-colors shrink-0"
+                  title="Publicar"
+                >
+                  <ArrowUp className="w-5 h-5" strokeWidth={2.5} />
+                </button>
             </div>
           </div>
         </form>

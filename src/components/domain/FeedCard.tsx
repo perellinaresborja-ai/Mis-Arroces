@@ -7,6 +7,7 @@ import { LikeButton } from "@/components/domain/LikeButton"
 import { MediaCarousel } from "@/components/domain/MediaCarousel"
 import { MessageCircle, Bookmark } from "lucide-react"
 import { CommentsModal } from "@/components/domain/CommentsModal"
+import { PostOptionsMenu } from "@/components/domain/PostOptionsMenu"
 import { cn, formatRelativeTime } from "@/lib/utils"
 import { useAuthPrompt } from "@/components/providers/AuthPromptProvider"
 import { FeedFollowButton } from "@/components/domain/FeedFollowButton"
@@ -103,14 +104,20 @@ export function FeedCard({
         </div>
         
         <div className="shrink-0 ml-2">
-          {currentUserId !== user.id && (
-            <FeedFollowButton 
-              isAuthenticated={!!currentUserId} 
-              initialStatus={followStatus || null} 
-              targetId={user.id} 
-              isPrivate={user.privacy_level === 'PRIVATE'} 
-            />
-          )}
+          {currentUserId !== user.id ? (
+          <FeedFollowButton 
+            isAuthenticated={!!currentUserId} 
+            initialStatus={followStatus || null} 
+            targetId={user.id} 
+            isPrivate={user.privacy_level === "PRIVATE"} 
+          />
+        ) : (
+          <PostOptionsMenu 
+            entityType={entityType} 
+            entityId={entityId} 
+            allowComments={true} 
+          />
+        )}
         </div>
       </header>
 
