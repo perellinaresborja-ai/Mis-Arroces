@@ -42,6 +42,7 @@ export interface FeedCardProps {
   sessionRating?: number
   sessionSocarrat?: number
   linkedRecipe?: { id: string, name: string }
+  isPinned?: boolean
 
   // Media
   media: { id: string, storage_path: string }[]
