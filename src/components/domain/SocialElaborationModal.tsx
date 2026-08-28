@@ -46,7 +46,7 @@ export function SocialElaborationModal({ isOpen, onClose, item, currentUserId }:
 
   const href = item.entity_type === 'recipe' ? `/recipes/${item.id}` : item.entity_type === 'session' ? `/sessions/${item.id}` : `/posts/${item.id}`
   const actionLabel = item.entity_type === 'recipe' ? "Ver receta completa" : item.entity_type === 'session' ? "Ver cocinado" : "Ver post"
-  const isOwner = true; // DEBUG FORCED
+  const isOwner = currentUserId && item.author?.id === currentUserId;
 
   const authorAvatarUrl = item.author?.avatar?.storage_path ? getImageUrl(item.author.avatar.storage_path) : null
 
@@ -120,12 +120,9 @@ export function SocialElaborationModal({ isOpen, onClose, item, currentUserId }:
              </Link>
              
              <div className="flex items-center gap-3">
-               {isOwner && (
-                 <Link href={`${href}/edit`} className="text-sm font-semibold text-primary hover:underline bg-primary/10 px-3 py-1 rounded-full">
-                   Editar
-                 </Link>
-               )}
-               <button onClick={onClose} className="hover:bg-muted p-1.5 rounded-full transition"><X className="w-5 h-5"/></button>
+               
+               {isOwner && <PostOptionsMenu entityType={item.entity_type} entityId={item.id} allowComments={item.allow_comments ?? true} onDeleted={onClose} />}
+              <button onClick={onClose} className="hover:bg-muted p-1.5 rounded-full transition"><X className="w-5 h-5"/></button>
              </div>
            </div>
 
