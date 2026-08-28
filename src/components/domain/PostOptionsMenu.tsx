@@ -44,8 +44,10 @@ export function PostOptionsMenu({
     setShowMenu(false);
     if (entityType === 'recipe') {
       router.push(`/recipes/${entityId}/edit`);
-    } else {
-      alert("La página de edición para este tipo está en construcción");
+    } else if (entityType === 'post') {
+      router.push(`/posts/${entityId}/edit`);
+    } else if (entityType === 'session') {
+      router.push(`/sessions/${entityId}/edit`);
     }
   }
 
