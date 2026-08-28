@@ -1,19 +1,30 @@
-import { Construction } from "lucide-react"
+import { createClient } from "@/lib/supabase/server"
+import { redirect } from "next/navigation"
+import { PostForm } from "./PostForm"
 
 export const metadata = {
   title: "Nueva Publicación | Mis Arroces",
 }
 
-export default function CreatePostPlaceholder() {
+export default async function CreatePostPage() {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  if (!user) {
+    redirect("/login")
+  }
+
+  // Fetch user's recipes to allow linking
+  const { data: recipes } = await supabase
+    .from('recipes')
+    .select('id, name')
+    .eq('owner_id', user.id)
+    .order('created_at', { ascending: false })
+
   return (
-    <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
-      <div className="w-20 h-20 bg-muted rounded-full flex items-center justify-center mb-6">
-        <Construction className="w-10 h-10 text-muted-foreground" />
-      </div>
-      <h1 className="text-2xl font-bold mb-3">Nueva Publicación</h1>
-      <p className="text-muted-foreground max-w-md mx-auto">
-        El creador de publicaciones estará disponible muy pronto. Podrás compartir fotos, vídeos y carruseles en el nuevo feed social de MisArroces.
-      </p>
+    <div className="max-w-2xl mx-auto py-8 px-4">
+      <h1 className="text-3xl font-bold mb-8">Crear Publicación</h1>
+      <PostForm recipes={recipes || []} />
     </div>
   )
 }
