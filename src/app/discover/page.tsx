@@ -51,7 +51,7 @@ export default async function DiscoverPage(props: { searchParams?: Promise<{ q?:
         }
       }
     }
-  } else if (q) {
+  } else if (q || tab !== "todo") {
     const searchQ = q.startsWith("@") ? q.substring(1) : q
 
     if (tab === "todo" || tab === "arroces") {
@@ -61,7 +61,8 @@ export default async function DiscoverPage(props: { searchParams?: Promise<{ q?:
         recipe_media(display_order, media:media_assets(id, storage_path)),
         variety:rice_varieties(name),
         style:rice_styles(name)
-      `).eq("status", "PUBLISHED").ilike("name", `%${q}%`).order("created_at", { ascending: false }).limit(20)
+      `).eq("status", "PUBLISHED").order("created_at", { ascending: false }).limit(20)
+      if (q) req = req.ilike("name", `%${q}%`)
       
       if (variety) req = req.eq("variety_id", variety)
       if (style) req = req.eq("style_id", style)
@@ -71,21 +72,26 @@ export default async function DiscoverPage(props: { searchParams?: Promise<{ q?:
     }
 
     if (tab === "todo" || tab === "personas") {
-      const { data } = await supabase.from("profiles").select(`
+      let reqProfiles = supabase.from("profiles").select(`
         id, username, display_name, account_type, professional_type, privacy_level, bio,
         avatar:media_assets!fk_profiles_avatar(storage_path)
-      `).or(`username.ilike.%${searchQ}%,display_name.ilike.%${searchQ}%`).limit(20)
+      `).limit(20)
+      if (q) reqProfiles = reqProfiles.or(`username.ilike.%${searchQ}%,display_name.ilike.%${searchQ}%`)
+      else reqProfiles = reqProfiles.eq("privacy_level", "PUBLIC")
+      const { data } = await reqProfiles
       if (data) searchResults.users = data
     }
 
     if (tab === "todo" || tab === "publicaciones") {
-      const { data } = await supabase.from("social_posts").select(`
+      let req = supabase.from("social_posts").select(`
         *,
         author:profiles!social_posts_author_id_fkey(id, username, display_name, avatar:media_assets!fk_profiles_avatar(storage_path)),
         post_media(media:media_assets(id, storage_path)),
         recipe:recipes(id, name)
-      `).eq("visibility", "PUBLIC").ilike("content", `%${q}%`).order("created_at", { ascending: false }).limit(20)
+      `).eq("visibility", "PUBLIC").order("created_at", { ascending: false }).limit(20)
+      if (q) req = req.ilike("content", `%${q}%`)
       
+      const { data } = await req
       searchResults.posts = data || []
     }
 
@@ -93,19 +99,21 @@ export default async function DiscoverPage(props: { searchParams?: Promise<{ q?:
       // Simplest: match recipe name or rating notes
       // Wait, we need to join recipes to search by recipe name!
       // In PostgREST, we can do filtering on joined tables: recipe:recipes!inner(name)
-      const { data } = await supabase.from("cooking_sessions").select(`
+      let req = supabase.from("cooking_sessions").select(`
         *,
         author:profiles!cooking_sessions_user_id_fkey(id, username, display_name, avatar:media_assets!fk_profiles_avatar(storage_path)),
         session_media(media:media_assets(id, storage_path)),
         recipe:recipes!inner(id, name)
-      `).in("privacy_level", ["PUBLIC", "FOLLOWERS"]).ilike("recipe.name", `%${q}%`).order("date", { ascending: false }).limit(20)
+      `).in("privacy_level", ["PUBLIC", "FOLLOWERS"]).order("date", { ascending: false }).limit(20)
+      if (q) req = req.ilike("recipe.name", `%${q}%`)
+      const { data } = await req
       if (data) searchResults.sessions = data
     }
   }
 
   // Queries for Discover Home (when no search)
   let homeData = { popular: [] as any[], recent: [] as any[], users: [] as any[] }
-  if (!q) {
+  if (!q && tab === "todo") {
     const { data: popularRecipes, error: popError } = await supabase.from("popular_recipes_v1").select(`
       *,
       author:profiles!recipes_owner_id_fkey(id, username, display_name, avatar:media_assets!fk_profiles_avatar(storage_path)),
@@ -157,7 +165,7 @@ export default async function DiscoverPage(props: { searchParams?: Promise<{ q?:
       />
 
       {/* DISCOVER HOME (No search active) */}
-      {!q && (
+      {(!q && tab === "todo") && (
         <div className="space-y-12 animate-in fade-in duration-500">
           
           <section>
@@ -264,7 +272,7 @@ export default async function DiscoverPage(props: { searchParams?: Promise<{ q?:
       )}
 
       {/* SEARCH RESULTS */}
-      {q && (
+      {(q || tab !== "todo") && (
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4">
           
           {/* Arroces Results */}

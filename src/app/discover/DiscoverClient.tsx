@@ -85,7 +85,7 @@ export function DiscoverClient({
       </div>
 
       {/* Tabs (solo si hay búsqueda activa) */}
-      {initialQ && (
+      {(initialQ || initialTab !== "todo") && (
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide">
             {tabs.map(t => (
