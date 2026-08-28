@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { LikeButton } from "@/components/domain/LikeButton"
 import { ShareButton } from "@/components/domain/ShareButton"
 import { MessageCircle, X, ChevronLeft, ChevronRight, User } from "lucide-react"
+import { PostOptionsMenu } from "./PostOptionsMenu"
 import { CommentSection } from "@/components/domain/CommentSection"
 import { getComments } from "@/app/actions/interactions"
 import Link from "next/link"
@@ -66,7 +67,10 @@ export function SocialElaborationModal({ isOpen, onClose, item, currentUserId }:
             </div>
             <span className="font-bold text-sm">@{item.author?.username}</span>
           </Link>
-          <button onClick={onClose} className="p-2"><X className="w-5 h-5"/></button>
+          <div className="flex items-center gap-1">
+            {isOwner && <PostOptionsMenu entityType={item.entity_type} entityId={item.id} allowComments={item.allow_comments ?? true} onDeleted={onClose} />}
+            <button onClick={onClose} className="p-2"><X className="w-5 h-5"/></button>
+          </div>
         </div>
 
         {/* LEFT: MEDIA */}
