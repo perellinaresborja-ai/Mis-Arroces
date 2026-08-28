@@ -12,13 +12,13 @@ export function GenericSearchPicker({
   fetchResults
 }: { 
   title: string, 
-  icon: any, 
+  icon: React.ElementType, 
   placeholder: string, 
-  onSelect: (item: any) => void,
-  fetchResults: (q: string) => Promise<any[]>
+  onSelect: (item: { id: string, title: string, subtitle?: string, avatarUrl?: string | null, iconUrl?: string | null }) => void,
+  fetchResults: (q: string) => Promise<Array<{ id: string, title: string, subtitle?: string, avatarUrl?: string | null, iconUrl?: string | null }>>
 }) {
   const [query, setQuery] = useState('')
-  const [results, setResults] = useState<any[]>([])
+  const [results, setResults] = useState<Array<{ id: string, title: string, subtitle?: string, avatarUrl?: string | null, iconUrl?: string | null }>>([])
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
@@ -83,7 +83,7 @@ export function GenericSearchPicker({
 }
 
 // Specialized Pickers that just inject fetchLogic
-export function MentionPicker({ onSelect }: { onSelect: (u: any) => void }) {
+export function MentionPicker({ onSelect }: { onSelect: (u: { id: string, title: string, subtitle?: string, avatarUrl?: string | null }) => void }) {
   const supabase = createClient()
   return <GenericSearchPicker 
     title="Mención" icon={UserIcon} placeholder="Buscar usuario..."
@@ -93,14 +93,14 @@ export function MentionPicker({ onSelect }: { onSelect: (u: any) => void }) {
       return (data || []).map(u => ({
         id: u.id,
         title: u.username,
-        subtitle: u.display_name,
-        avatarUrl: (u.media as any)?.storage_path ? `https://zvesoygqssyyojqyswwm.supabase.co/storage/v1/object/public/recipe_media/${(u.media as any).storage_path}` : null
+        subtitle: u.display_name || undefined,
+        avatarUrl: ((u.media as unknown) as { storage_path?: string })?.storage_path ? `https://zvesoygqssyyojqyswwm.supabase.co/storage/v1/object/public/recipe_media/${(u.media as any).storage_path}` : undefined
       }))
     }}
   />
 }
 
-export function RecipePicker({ onSelect }: { onSelect: (r: any) => void }) {
+export function RecipePicker({ onSelect }: { onSelect: (r: { id: string, title: string, subtitle?: string, iconUrl?: string | null }) => void }) {
   const supabase = createClient()
   return <GenericSearchPicker 
     title="Receta" icon={ChefHat} placeholder="Buscar receta..."
@@ -110,14 +110,14 @@ export function RecipePicker({ onSelect }: { onSelect: (r: any) => void }) {
       return (data || []).map(r => ({
         id: r.id,
         title: r.name,
-        subtitle: (r.profiles as any)?.username ? `por @${(r.profiles as any).username}` : '',
-        iconUrl: ((r.recipe_media?.[0] as any)?.media as any)?.storage_path ? `https://zvesoygqssyyojqyswwm.supabase.co/storage/v1/object/public/recipe_media/${((r.recipe_media?.[0] as any)?.media as any)?.storage_path}` : null
+        subtitle: ((r.profiles as unknown) as { username?: string })?.username ? `por @${(r.profiles as any).username}` : '',
+        iconUrl: ((((r.recipe_media?.[0] as unknown) as { media?: { storage_path?: string } })?.media)?.storage_path) ? `https://zvesoygqssyyojqyswwm.supabase.co/storage/v1/object/public/recipe_media/${((((r.recipe_media?.[0] as unknown) as { media?: { storage_path?: string } })?.media)?.storage_path)}` : undefined
       }))
     }}
   />
 }
 
-export function IngredientPicker({ onSelect }: { onSelect: (i: any) => void }) {
+export function IngredientPicker({ onSelect }: { onSelect: (i: { id: string, title: string }) => void }) {
   const supabase = createClient()
   return <GenericSearchPicker 
     title="Ingrediente" icon={Apple} placeholder="Buscar ingrediente..."
@@ -132,7 +132,40 @@ export function IngredientPicker({ onSelect }: { onSelect: (i: any) => void }) {
   />
 }
 
-export function LocationPicker({ onSelect }: { onSelect: (loc: any) => void }) {
+
+export function SessionPicker({ onSelect }: { onSelect: (s: { id: string, title: string, subtitle?: string, iconUrl?: string | null }) => void }) {
+  const supabase = createClient()
+  return <GenericSearchPicker 
+    title="Sesión" icon={ChefHat} placeholder="Buscar sesión..."
+    onSelect={onSelect}
+    fetchResults={async (q) => {
+      const { data } = await supabase.from('cooking_sessions').select('id, recipe_id').limit(10)
+      return (data || []).map((s: { id: string, recipe_id: string }) => ({
+        id: s.id,
+        title: "Sesión " + s.id.substring(0, 5),
+        subtitle: "Receta: " + s.recipe_id.substring(0, 5)
+      }))
+    }}
+  />
+}
+
+export function ProfilePicker({ onSelect }: { onSelect: (u: { id: string, title: string, subtitle?: string, avatarUrl?: string | null }) => void }) {
+  const supabase = createClient()
+  return <GenericSearchPicker 
+    title="Perfil" icon={UserIcon} placeholder="Buscar perfil..."
+    onSelect={onSelect}
+    fetchResults={async (q) => {
+      const { data } = await supabase.from('profiles').select('id, username, display_name').ilike('username', `%${q}%`).limit(10)
+      return (data || []).map((u: { id: string, username: string, display_name: string | null }) => ({
+        id: u.id,
+        title: u.username,
+        subtitle: u.display_name || '',
+      }))
+    }}
+  />
+}
+
+export function LocationPicker({ onSelect }: { onSelect: (loc: { id: string, title: string }) => void }) {
   // Mock manual location since Places API is blocked
   const [loc, setLoc] = useState('')
   return (

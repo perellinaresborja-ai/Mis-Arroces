@@ -1,9 +1,7 @@
 const fs = require('fs');
-const code = fs.readFileSync('src/components/domain/StoriesViewer.tsx', 'utf8');
-const lines = code.split('\n');
-let inMedia = false;
-for (let i = 0; i < lines.length; i++) {
-  if (lines[i].includes('SharedStoryRenderer')) {
-    console.log(i, lines[i]);
+const lines = fs.readFileSync('src/components/domain/SharedStoryRenderer.tsx', 'utf8').split('\n');
+lines.forEach((l, i) => {
+  if (l.includes('\`')) {
+    console.log(i + ': ' + l);
   }
-}
+});

@@ -6,7 +6,7 @@ import { createClient } from '@/lib/supabase/client';
 import { createStory } from '@/app/actions/stories';
 import { SharedStoryRenderer } from './SharedStoryRenderer';
 import { DraggableOverlay } from './stories/DraggableOverlay';
-import { MentionPicker, RecipePicker, IngredientPicker, LocationPicker, GenericSearchPicker } from './stories/StickerPickers';
+import { MentionPicker, RecipePicker, IngredientPicker, LocationPicker, GenericSearchPicker, SessionPicker, ProfilePicker } from './stories/StickerPickers';
 import { User, ChefHat, MapPin, AlignLeft, Apple } from 'lucide-react';
 
 export function StoryCreator({ 
@@ -36,6 +36,7 @@ export function StoryCreator({
   const [drawSize, setDrawSize] = useState(5);
   const isDrawing = useRef(false);
   const ctxRef = useRef<CanvasRenderingContext2D | null>(null);
+  const [canvasUndoStack, setCanvasUndoStack] = useState<ImageData[]>([]);
 
   // Text state
   const [textVal, setTextVal] = useState('');
@@ -80,6 +81,12 @@ export function StoryCreator({
   };
 
   const handlePointerUp = () => {
+    if (isDrawing.current && canvasRef.current) {
+      const ctx = canvasRef.current.getContext('2d');
+      if (ctx) {
+        setCanvasUndoStack(prev => [...prev, ctx.getImageData(0, 0, 400, 711)].slice(-20)); // keep last 20
+      }
+    }
     isDrawing.current = false;
     ctxRef.current = null;
   };
@@ -94,20 +101,24 @@ export function StoryCreator({
     setTextVal(''); setMode('EDIT');
   };
 
-  const handleStickerSelect = (type: string, data: any) => {
+  const handleStickerSelect = (type: string, data: { id: string, title: string }) => {
     saveHistory();
-    let payload: any = {};
-    if (type === 'MENTION') payload = { username: data.title, userId: data.id };
-    if (type === 'LOCATION') payload = { name: data.title };
-    if (type === 'RECIPE') payload = { title: data.title, recipeId: data.id };
-    if (type === 'INGREDIENT') payload = { name: data.title, ingredientId: data.id };
-    if (type === 'SESSION') payload = { authorName: data.title, sessionId: data.id };
-    if (type === 'PROFILE') payload = { username: data.title, profileId: data.id };
     
-    setOverlays([...overlays, {
-      id: type+'_'+Date.now(), type: type as any, x: 0.5, y: 0.5, scale: 1, rotation: 0, zIndex: overlays.length + 10, payload
-    }]);
+    
+    let newOverlay: StoryOverlay | null = null;
+    const common = { id: type+'_'+Date.now(), x: 0.5, y: 0.5, scale: 1, rotation: 0, zIndex: overlays.length + 10 };
+    if (type === 'MENTION') newOverlay = { ...common, type: 'MENTION', payload: { username: data.title, userId: data.id } };
+    if (type === 'LOCATION') newOverlay = { ...common, type: 'LOCATION', payload: { name: data.title } };
+    if (type === 'RECIPE') newOverlay = { ...common, type: 'RECIPE', payload: { title: data.title, recipeId: data.id } };
+    if (type === 'INGREDIENT') newOverlay = { ...common, type: 'INGREDIENT', payload: { name: data.title, ingredientId: data.id } };
+    if (type === 'SESSION') newOverlay = { ...common, type: 'SESSION', payload: { authorName: data.title, sessionId: data.id } };
+    if (type === 'PROFILE') newOverlay = { ...common, type: 'PROFILE', payload: { username: data.title, userId: data.id } };
+    
+    if (newOverlay) {
+      setOverlays([...overlays, newOverlay]);
+    }
     setActiveStickerType(null);
+
     setMode('EDIT');
   };
 
@@ -190,7 +201,7 @@ export function StoryCreator({
             </div>
             
             <div className="mt-auto space-y-4">
-              <select value={privacy} onChange={e => setPrivacy(e.target.value as any)} className="w-full bg-zinc-900 text-white rounded-xl p-3 border-none outline-none">
+              <select value={privacy} onChange={e => setPrivacy(e.target.value as 'PUBLIC'|'FOLLOWERS')} className="w-full bg-zinc-900 text-white rounded-xl p-3 border-none outline-none">
                 <option value="PUBLIC">🌎 Público (Cualquiera)</option>
                 <option value="FOLLOWERS">👥 Solo Seguidores</option>
               </select>
@@ -232,7 +243,24 @@ export function StoryCreator({
               <button onClick={() => {
                 const ctx = canvasRef.current?.getContext('2d');
                 if (ctx) ctx.clearRect(0,0,400,711);
+                setCanvasUndoStack([]);
               }} className="flex-1 bg-zinc-800 text-white p-3 rounded-xl">Borrar Todo</button>
+              <button onClick={() => {
+                if (canvasUndoStack.length > 0) {
+                  const ctx = canvasRef.current?.getContext('2d');
+                  if (ctx) {
+                    const newStack = [...canvasUndoStack];
+                    newStack.pop(); // remove current state
+                    if (newStack.length > 0) {
+                      ctx.putImageData(newStack[newStack.length - 1], 0, 0);
+                    } else {
+                      ctx.clearRect(0,0,400,711);
+                    }
+                    setCanvasUndoStack(newStack);
+                  }
+                }
+              }} className="flex-1 bg-zinc-800 text-white p-3 rounded-xl">Deshacer</button>
+  
               <button onClick={() => setMode('EDIT')} className="flex-1 bg-white text-black font-bold p-3 rounded-xl">Hecho</button>
             </div>
           </div>
@@ -247,6 +275,10 @@ export function StoryCreator({
                 <button onClick={() => setActiveStickerType('LOCATION')} className="bg-zinc-900 text-white p-4 rounded-xl flex items-center justify-center gap-2"><MapPin size={18}/> Ubicación</button>
                 <button onClick={() => setActiveStickerType('RECIPE')} className="bg-zinc-900 text-white p-4 rounded-xl flex items-center justify-center gap-2"><ChefHat size={18}/> Receta</button>
                 <button onClick={() => setActiveStickerType('INGREDIENT')} className="bg-zinc-900 text-white p-4 rounded-xl flex items-center justify-center gap-2"><Apple size={18}/> Ingrediente</button>
+
+                <button onClick={() => setActiveStickerType('SESSION')} className="bg-zinc-900 text-white p-4 rounded-xl flex items-center justify-center gap-2"><ChefHat size={18}/> Sesión</button>
+                <button onClick={() => setActiveStickerType('PROFILE')} className="bg-zinc-900 text-white p-4 rounded-xl flex items-center justify-center gap-2"><User size={18}/> Perfil</button>
+
                 <button onClick={() => { saveHistory(); setOverlays([...overlays, { id: 'poll_'+Date.now(), type: 'POLL', x:0.5, y:0.5, scale:1, rotation:0, zIndex: overlays.length+10, payload: { question: '¿Te gusta?', optionA: 'Sí', optionB: 'No' } }]); setMode('EDIT'); }} className="bg-zinc-900 text-white p-4 rounded-xl col-span-2 font-bold">📊 Encuesta</button>
                 <button onClick={() => { saveHistory(); setOverlays([...overlays, { id: 'q_'+Date.now(), type: 'QUESTION', x:0.5, y:0.5, scale:1, rotation:0, zIndex: overlays.length+10, payload: { question: 'Hazme una pregunta' } }]); setMode('EDIT'); }} className="bg-zinc-900 text-white p-4 rounded-xl col-span-2 font-bold">❓ Pregunta</button>
                 <button onClick={() => { saveHistory(); setOverlays([...overlays, { id: 's_'+Date.now(), type: 'SLIDER', x:0.5, y:0.5, scale:1, rotation:0, zIndex: overlays.length+10, payload: { question: '¿Qué tal?', emoji: '😍' } }]); setMode('EDIT'); }} className="bg-zinc-900 text-white p-4 rounded-xl col-span-2 font-bold">😍 Slider</button>
@@ -261,7 +293,10 @@ export function StoryCreator({
                   {activeStickerType === 'RECIPE' && <RecipePicker onSelect={(r) => handleStickerSelect('RECIPE', r)} />}
                   {activeStickerType === 'INGREDIENT' && <IngredientPicker onSelect={(i) => handleStickerSelect('INGREDIENT', i)} />}
                   {activeStickerType === 'LOCATION' && <LocationPicker onSelect={(l) => handleStickerSelect('LOCATION', l)} />}
-                  {/* SESSION and PROFILE can reuse Mention/Recipe patterns */}
+                  
+                  {activeStickerType === 'SESSION' && <SessionPicker onSelect={(s) => handleStickerSelect('SESSION', s)} />}
+                  {activeStickerType === 'PROFILE' && <ProfilePicker onSelect={(p) => handleStickerSelect('PROFILE', p)} />}
+
                 </div>
               </div>
             )}
