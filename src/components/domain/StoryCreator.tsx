@@ -4,6 +4,10 @@ import { useRouter } from 'next/navigation';
 import { StoryTransform, StoryOverlay, StoryBackground, DrawingOverlay } from '@/types/stories';
 import { createClient } from '@/lib/supabase/client';
 import { createStory } from '@/app/actions/stories';
+import { SharedStoryRenderer } from './SharedStoryRenderer';
+import { DraggableOverlay } from './stories/DraggableOverlay';
+import { MentionPicker, RecipePicker, IngredientPicker, LocationPicker, GenericSearchPicker } from './stories/StickerPickers';
+import { User, ChefHat, MapPin, AlignLeft, Apple } from 'lucide-react';
 
 export function StoryCreator({ 
   initialMedia, 
@@ -14,24 +18,24 @@ export function StoryCreator({
 }) {
   const router = useRouter();
   const supabase = createClient();
+  const containerRef = useRef<HTMLDivElement>(null);
   const [overlays, setOverlays] = useState<StoryOverlay[]>([]);
   const [history, setHistory] = useState<StoryOverlay[][]>([]);
-  const [transform, setTransform] = useState<StoryTransform>({ scale: 1, translateX: 0, translateY: 0, rotation: 0 });
   const [background, setBackground] = useState<StoryBackground>({ type: 'blur', value: '' });
   
-  // States for tools
   const [mode, setMode] = useState<'EDIT'|'DRAW'|'TEXT'|'STICKER'>('EDIT');
-  const [allowReplies, setAllowReplies] = useState(true);
-  const [allowReactions, setAllowReactions] = useState(true);
-  const [privacy, setPrivacy] = useState<'PUBLIC'|'FOLLOWERS'>('PUBLIC');
   const [activeStickerType, setActiveStickerType] = useState<string | null>(null);
+  const [selectedOverlayId, setSelectedOverlayId] = useState<string | null>(null);
 
-  // Drawing state
+  const [isPublishing, setIsPublishing] = useState(false);
+  const [privacy, setPrivacy] = useState<'PUBLIC'|'FOLLOWERS'>('PUBLIC');
+
+  // Drawing
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [drawColor, setDrawColor] = useState('#ff0000');
   const [drawSize, setDrawSize] = useState(5);
-  const [currentPath, setCurrentPath] = useState<{x:number, y:number}[]>([]);
-  const [drawings, setDrawings] = useState<DrawingOverlay['payload']['paths']>([]);
+  const isDrawing = useRef(false);
+  const ctxRef = useRef<CanvasRenderingContext2D | null>(null);
 
   // Text state
   const [textVal, setTextVal] = useState('');
@@ -40,134 +44,105 @@ export function StoryCreator({
   const [textFont, setTextFont] = useState('sans-serif');
   const [textAlign, setTextAlign] = useState<'left'|'center'|'right'>('center');
 
-  // Generic sticker input state
-  const [stickerInput, setStickerInput] = useState('');
+  // Init recipe if passed
+  useEffect(() => {
+    if (initialRecipe && overlays.length === 0) {
+      setOverlays([{
+        id: 'recipe_'+Date.now(),
+        type: 'RECIPE',
+        x: 0.5, y: 0.8, scale: 1, rotation: 0, zIndex: 1,
+        payload: { title: initialRecipe.name, recipeId: initialRecipe.id }
+      }]);
+    }
+  }, []);
 
   const saveHistory = () => setHistory([...history, [...overlays]]);
-  const undo = () => { if(history.length > 0) { setOverlays(history[history.length-1]); setHistory(history.slice(0, -1)); } };
 
-  // Drawing logic
   const handlePointerDown = (e: React.PointerEvent) => {
-    if (mode !== 'DRAW') return;
-    const rect = canvasRef.current?.getBoundingClientRect();
-    if (!rect) return;
-    setCurrentPath([{ x: e.clientX - rect.left, y: e.clientY - rect.top }]);
-  };
-  const handlePointerMove = (e: React.PointerEvent) => {
-    if (mode !== 'DRAW' || currentPath.length === 0) return;
-    const rect = canvasRef.current?.getBoundingClientRect();
-    if (!rect) return;
-    setCurrentPath([...currentPath, { x: e.clientX - rect.left, y: e.clientY - rect.top }]);
-  };
-  const handlePointerUp = () => {
-    if (mode !== 'DRAW' || currentPath.length === 0) return;
-    setDrawings([...drawings, { points: currentPath, color: drawColor, strokeWidth: drawSize }]);
-    setCurrentPath([]);
+    if (mode !== 'DRAW' || !canvasRef.current) return;
+    isDrawing.current = true;
+    const ctx = canvasRef.current.getContext('2d');
+    if (!ctx) return;
+    ctxRef.current = ctx;
+    const rect = canvasRef.current.getBoundingClientRect();
+    ctx.beginPath();
+    ctx.moveTo(e.clientX - rect.left, e.clientY - rect.top);
+    ctx.strokeStyle = drawColor;
+    ctx.lineWidth = drawSize;
+    ctx.lineCap = 'round';
   };
 
-  const addOverlay = (overlay: StoryOverlay) => {
-    saveHistory();
-    setOverlays([...overlays, overlay]);
+  const handlePointerMove = (e: React.PointerEvent) => {
+    if (!isDrawing.current || !ctxRef.current || !canvasRef.current) return;
+    const rect = canvasRef.current.getBoundingClientRect();
+    ctxRef.current.lineTo(e.clientX - rect.left, e.clientY - rect.top);
+    ctxRef.current.stroke();
+  };
+
+  const handlePointerUp = () => {
+    isDrawing.current = false;
+    ctxRef.current = null;
   };
 
   const addText = () => {
-    if (!textVal) return;
-    addOverlay({
-      id: 'text_'+Date.now(), type: 'TEXT', x: 0.5, y: 0.5, scale: 1, rotation: 0, zIndex: overlays.length,
-      payload: { text: textVal, color: textColor, backgroundColor: textBg, align: textAlign, fontFamily: textFont }
-    });
-    setMode('EDIT'); setTextVal('');
+    if (!textVal.trim()) { setMode('EDIT'); return; }
+    saveHistory();
+    setOverlays([...overlays, {
+      id: 'text_'+Date.now(), type: 'TEXT', x: 0.5, y: 0.5, scale: 1, rotation: 0, zIndex: overlays.length + 10,
+      payload: { text: textVal, color: textColor, backgroundColor: textBg, fontFamily: textFont, align: textAlign }
+    }]);
+    setTextVal(''); setMode('EDIT');
   };
 
-  const submitSticker = () => {
-    if (!activeStickerType || !stickerInput) return;
+  const handleStickerSelect = (type: string, data: any) => {
+    saveHistory();
     let payload: any = {};
-    if (activeStickerType === 'MENTION') payload = { userId: 'mock', username: stickerInput };
-    if (activeStickerType === 'LOCATION') payload = { name: stickerInput };
-    if (activeStickerType === 'INGREDIENT') payload = { ingredientId: 'mock', name: stickerInput };
-    if (activeStickerType === 'PROFILE') payload = { userId: 'mock', username: stickerInput };
-    if (activeStickerType === 'SESSION') payload = { sessionId: 'mock', authorName: stickerInput };
+    if (type === 'MENTION') payload = { username: data.title, userId: data.id };
+    if (type === 'LOCATION') payload = { name: data.title };
+    if (type === 'RECIPE') payload = { title: data.title, recipeId: data.id };
+    if (type === 'INGREDIENT') payload = { name: data.title, ingredientId: data.id };
+    if (type === 'SESSION') payload = { authorName: data.title, sessionId: data.id };
+    if (type === 'PROFILE') payload = { username: data.title, profileId: data.id };
     
-    addOverlay({
-      id: activeStickerType+'_'+Date.now(), type: activeStickerType as any, x: 0.5, y: 0.5, scale: 1, rotation: 0, zIndex: overlays.length, payload
-    });
-    setMode('EDIT'); setActiveStickerType(null); setStickerInput('');
+    setOverlays([...overlays, {
+      id: type+'_'+Date.now(), type: type as any, x: 0.5, y: 0.5, scale: 1, rotation: 0, zIndex: overlays.length + 10, payload
+    }]);
+    setActiveStickerType(null);
+    setMode('EDIT');
   };
 
-  const applyTemplate = (t: string) => {
-    if (t === 'blur') setBackground({ type: 'blur', value: '' });
-    if (t === 'color') setBackground({ type: 'color', value: '#000000' });
-  };
-
-  const moveLayer = (idx: number, dir: 1|-1) => {
-    saveHistory();
-    const newO = [...overlays];
-    const target = idx + dir;
-    if (target >= 0 && target < newO.length) {
-      [newO[idx], newO[target]] = [newO[target], newO[idx]];
-      newO.forEach((o, i) => o.zIndex = i);
-      setOverlays(newO);
-    }
-  };
-
-  const removeLayer = (idx: number) => {
-    saveHistory();
-    setOverlays(overlays.filter((_, i) => i !== idx));
-  };
-
-  const publish = async () => {
-    let finalOverlays = [...overlays];
-    if (drawings.length > 0) {
-      finalOverlays.push({
-        id: 'draw_'+Date.now(), type: 'DRAWING', x: 0, y: 0, scale: 1, rotation: 0, zIndex: finalOverlays.length,
-        payload: { paths: drawings }
-      });
-    }
-
+  const handlePublish = async () => {
+    setIsPublishing(true);
     try {
+      // In a real flow, we'd also upload media to storage and create the post
       await createStory({
-        mediaTransform: transform,
-        overlays: finalOverlays,
-        background: background,
-        caption: textVal || undefined, // or handled via overlay
-        recipeId: initialRecipe?.id
+        mediaId: "placeholder", // In real flow, this is uploaded via MediaUploader first
+        recipeId: initialRecipe?.id,
+        // privacy,
+        overlays
       });
       router.push('/');
     } catch (e) {
       console.error(e);
+      alert("Error al publicar la historia.");
+    } finally {
+      setIsPublishing(false);
     }
   };
 
   return (
-    <div className="w-full h-[100dvh] bg-neutral-900 flex flex-col overflow-hidden text-white">
-      <div className="flex justify-between items-center p-4 z-50 bg-black/40">
-        <button onClick={() => router.back()}>Cancel</button>
-        <div className="flex gap-2">
-          <button onClick={undo} className="px-2">Undo</button>
-          <button onClick={() => setMode('DRAW')}>Draw</button>
-          <button onClick={() => setMode('TEXT')}>Text</button>
-          <button onClick={() => setMode('STICKER')}>Stickers</button>
-        </div>
-      </div>
-
-      <div className="flex-1 relative flex items-center justify-center overflow-hidden">
-        <div className="relative w-full max-w-[400px] bg-zinc-800" style={{ aspectRatio: '9/16' }}>
-          {initialMedia && (
-            <img src={initialMedia.url} className="absolute inset-0 w-full h-full object-cover opacity-50" />
-          )}
+    <div className="fixed inset-0 bg-black z-50 flex flex-col md:flex-row touch-none">
+      
+      {/* Viewer / Canvas Area */}
+      <div className="flex-1 relative flex items-center justify-center overflow-hidden" onClick={() => setSelectedOverlayId(null)}>
+        <div ref={containerRef} className="relative w-full max-w-[400px] h-full max-h-[85vh] md:max-h-full bg-zinc-900 border border-white/10 md:rounded-xl overflow-hidden" style={{ aspectRatio: '9/16' }}>
           
-          {overlays.map((o, i) => (
-            <div key={o.id} className="absolute border border-transparent hover:border-white p-1" style={{ left: (o.x*100)+'%', top: (o.y*100)+'%', transform: "translate(-50%, -50%) scale(" + o.scale + ")", zIndex: o.zIndex }}>
-              {o.type === 'TEXT' && <div style={{ color: o.payload.color, backgroundColor: o.payload.backgroundColor, fontFamily: o.payload.fontFamily, textAlign: o.payload.align as any }}>{o.payload.text}</div>}
-              {o.type !== 'TEXT' && <div className="bg-white text-black p-2 rounded">{o.type}</div>}
-              
-              <div className="flex gap-1 mt-1 bg-black/50 p-1 rounded">
-                <button onClick={() => moveLayer(i, 1)}>⬆️</button>
-                <button onClick={() => moveLayer(i, -1)}>⬇️</button>
-                <button onClick={() => removeLayer(i)}>🗑️</button>
-              </div>
-            </div>
-          ))}
+          <SharedStoryRenderer 
+            mediaUrl={initialMedia?.url} 
+            background={background}
+            overlays={[]} 
+            mode="EDITOR"
+          />
 
           <canvas 
             ref={canvasRef}
@@ -178,87 +153,128 @@ export function StoryCreator({
             onPointerMove={handlePointerMove}
             onPointerUp={handlePointerUp}
           />
+
+          {overlays.map((o, i) => (
+            <DraggableOverlay
+              key={o.id}
+              overlay={o}
+              isSelected={selectedOverlayId === o.id}
+              onSelect={() => setSelectedOverlayId(o.id)}
+              onUpdate={(updated) => setOverlays(overlays.map(x => x.id === o.id ? updated : x))}
+              onDelete={() => { saveHistory(); setOverlays(overlays.filter(x => x.id !== o.id)); }}
+              onMoveLayer={(dir) => {
+                const newArr = [...overlays];
+                newArr[i].zIndex += dir * 10;
+                setOverlays(newArr);
+              }}
+              containerRef={containerRef}
+            >
+              <div className="pointer-events-none">
+                <SharedStoryRenderer overlays={[o]} mode="PREVIEW" />
+              </div>
+            </DraggableOverlay>
+          ))}
         </div>
       </div>
 
-      {mode === 'EDIT' && (
-        <div className="absolute top-20 right-4 flex flex-col gap-2 z-50">
-          <button className="bg-black/60 p-2 rounded-full text-white hover:bg-black" onClick={() => setOverlays([...overlays, { id: 'poll_'+Date.now(), type: 'POLL', x: 0.5, y: 0.5, scale: 1, rotation: 0, zIndex: overlays.length, payload: { question: '¿Cuál prefieres?', optionA: 'Opción A', optionB: 'Opción B' } }])} title="Encuesta">📊</button>
-          <button className="bg-black/60 p-2 rounded-full text-white hover:bg-black" onClick={() => setOverlays([...overlays, { id: 'q_'+Date.now(), type: 'QUESTION', x: 0.5, y: 0.6, scale: 1, rotation: 0, zIndex: overlays.length, payload: { question: 'Hazme una pregunta' } }])} title="Pregunta">❓</button>
-          <button className="bg-black/60 p-2 rounded-full text-white hover:bg-black" onClick={() => setOverlays([...overlays, { id: 'slider_'+Date.now(), type: 'SLIDER', x: 0.5, y: 0.7, scale: 1, rotation: 0, zIndex: overlays.length, payload: { question: '¿Cuánto te gusta?', emoji: '😋' } }])} title="Slider">🎚️</button>
-          <button className="bg-black/60 p-2 rounded-full text-white hover:bg-black" onClick={() => setMode('DRAW')} title="Dibujar">🖌️</button>
-          <button className="bg-black/60 p-2 rounded-full text-white hover:bg-black" onClick={() => setAllowReplies(!allowReplies)} title={allowReplies ? 'Respuestas permitidas' : 'Respuestas bloqueadas'}>
-            {allowReplies ? '💬' : '🔇'}
-          </button>
-        </div>
-      )}
-
-      {mode === 'DRAW' && (
-        <div className="p-4 bg-black flex gap-4">
-          <input type="color" value={drawColor} onChange={e => setDrawColor(e.target.value)} />
-          <input type="range" min="1" max="20" value={drawSize} onChange={e => setDrawSize(Number(e.target.value))} />
-          <button onClick={() => setMode('EDIT')}>Done</button>
-        </div>
-      )}
-
-      {mode === 'TEXT' && (
-        <div className="p-4 bg-black flex flex-col gap-2">
-          <input type="text" value={textVal} onChange={e => setTextVal(e.target.value)} placeholder="Escribe algo..." className="text-black p-2 rounded" />
-          <div className="flex gap-2">
-            <input type="color" value={textColor} onChange={e => setTextColor(e.target.value)} />
-            <select value={textFont} onChange={e => setTextFont(e.target.value)} className="text-black">
-              <option value="sans-serif">Sans</option>
-              <option value="serif">Serif</option>
-              <option value="monospace">Mono</option>
-            </select>
-            <button onClick={addText} className="bg-primary px-4 py-1 rounded">Add Text</button>
-          </div>
-        </div>
-      )}
-
-      {mode === 'STICKER' && !activeStickerType && (
-        <div className="p-4 bg-black grid grid-cols-4 gap-2">
-          {['MENTION', 'LOCATION', 'POLL', 'QUESTION', 'SLIDER', 'INGREDIENT', 'SESSION', 'PROFILE', 'GIF', 'RECIPE'].map(t => (
-            <button key={t} onClick={() => {
-              if (['POLL','QUESTION','SLIDER','RECIPE'].includes(t)) {
-                addOverlay({ id: t+'_'+Date.now(), type: t as any, x: 0.5, y: 0.5, scale: 1, rotation: 0, zIndex: overlays.length, payload: { question: 'Question?', optionA: 'A', optionB: 'B', emoji: '😍', title: 'Recipe', recipeId: 'mock' } });
-                setMode('EDIT');
-              } else {
-                setActiveStickerType(t);
-              }
-            }} className="bg-zinc-800 p-2 rounded text-xs">{t}</button>
-          ))}
-          <button onClick={() => setMode('EDIT')} className="col-span-4 mt-2">Close</button>
-        </div>
-      )}
-
-      {mode === 'STICKER' && activeStickerType && (
-        <div className="p-4 bg-black flex gap-2">
-          <input type="text" value={stickerInput} onChange={e => setStickerInput(e.target.value)} placeholder={"Buscar " + activeStickerType} className="text-black p-2 rounded flex-1" />
-          <button onClick={submitSticker} className="bg-primary px-4 rounded">Add</button>
-        </div>
-      )}
-
-      {mode === 'EDIT' && (
-        <div className="p-4 bg-black flex flex-col gap-2">
-          <div className="flex gap-2 mb-2 text-xs overflow-x-auto">
-            <span>Templates:</span>
-            <button onClick={() => applyTemplate('blur')} className="bg-zinc-800 px-2 rounded">Blur</button>
-            <button onClick={() => applyTemplate('color')} className="bg-zinc-800 px-2 rounded">Color</button>
-          </div>
-          <div className="flex justify-between items-center text-sm">
-            <div className="flex gap-4">
-              <label><input type="checkbox" checked={allowReplies} onChange={e=>setAllowReplies(e.target.checked)}/> Replies</label>
-              <label><input type="checkbox" checked={allowReactions} onChange={e=>setAllowReactions(e.target.checked)}/> Reactions</label>
-              <select value={privacy} onChange={e=>setPrivacy(e.target.value as any)} className="bg-zinc-800 rounded">
-                <option value="PUBLIC">Public</option>
-                <option value="FOLLOWERS">Followers</option>
-              </select>
+      {/* Controls Area */}
+      <div className="w-full md:w-80 bg-zinc-950 border-t md:border-t-0 md:border-l border-white/10 flex flex-col">
+        
+        {/* Editor Main Tools */}
+        {mode === 'EDIT' && (
+          <div className="p-4 flex flex-col gap-4 h-full">
+            <div className="flex justify-around bg-zinc-900 rounded-xl p-2">
+              <button onClick={() => setMode('TEXT')} className="p-3 text-white flex flex-col items-center gap-1"><AlignLeft size={20}/><span className="text-xs">Texto</span></button>
+              <button onClick={() => setMode('DRAW')} className="p-3 text-white flex flex-col items-center gap-1"><span className="text-xl">🖌</span><span className="text-xs">Dibujar</span></button>
+              <button onClick={() => setMode('STICKER')} className="p-3 text-white flex flex-col items-center gap-1"><span className="text-xl">☻</span><span className="text-xs">Stickers</span></button>
             </div>
-            <button onClick={publish} className="bg-primary px-6 py-2 rounded-full font-bold">Publicar</button>
+            
+            <div className="mt-auto space-y-4">
+              <select value={privacy} onChange={e => setPrivacy(e.target.value as any)} className="w-full bg-zinc-900 text-white rounded-xl p-3 border-none outline-none">
+                <option value="PUBLIC">🌎 Público (Cualquiera)</option>
+                <option value="FOLLOWERS">👥 Solo Seguidores</option>
+              </select>
+              <button onClick={handlePublish} disabled={isPublishing} className="w-full bg-primary text-primary-foreground font-bold p-4 rounded-xl">
+                {isPublishing ? 'Publicando...' : 'Compartir Historia'}
+              </button>
+            </div>
           </div>
-        </div>
-      )}
+        )}
+
+        {/* Text Mode */}
+        {mode === 'TEXT' && (
+          <div className="p-4 flex flex-col gap-4 h-full">
+            <textarea autoFocus value={textVal} onChange={e=>setTextVal(e.target.value)} className="w-full h-32 bg-zinc-900 text-white rounded-xl p-3 outline-none" placeholder="Escribe aquí..."></textarea>
+            <div className="flex gap-2">
+              <input type="color" value={textColor} onChange={e=>setTextColor(e.target.value)} className="w-12 h-12 rounded-lg cursor-pointer" />
+              <input type="color" value={textBg} onChange={e=>setTextBg(e.target.value)} className="w-12 h-12 rounded-lg cursor-pointer" title="Fondo" />
+            </div>
+            <select value={textFont} onChange={e=>setTextFont(e.target.value)} className="bg-zinc-900 text-white p-3 rounded-xl">
+              <option value="sans-serif">Sans Serif</option>
+              <option value="serif">Serif</option>
+              <option value="monospace">Monospace</option>
+              <option value="Impact">Impact</option>
+            </select>
+            <div className="mt-auto flex gap-2">
+              <button onClick={() => setMode('EDIT')} className="flex-1 bg-zinc-800 text-white p-3 rounded-xl">Cancelar</button>
+              <button onClick={addText} className="flex-1 bg-white text-black font-bold p-3 rounded-xl">Añadir</button>
+            </div>
+          </div>
+        )}
+
+        {/* Draw Mode */}
+        {mode === 'DRAW' && (
+          <div className="p-4 flex flex-col gap-4 h-full">
+            <h3 className="font-bold text-white text-lg">Pincel</h3>
+            <input type="color" value={drawColor} onChange={e=>setDrawColor(e.target.value)} className="w-full h-12 rounded-lg" />
+            <input type="range" min="1" max="30" value={drawSize} onChange={e=>setDrawSize(Number(e.target.value))} className="w-full" />
+            <div className="mt-auto flex gap-2">
+              <button onClick={() => {
+                const ctx = canvasRef.current?.getContext('2d');
+                if (ctx) ctx.clearRect(0,0,400,711);
+              }} className="flex-1 bg-zinc-800 text-white p-3 rounded-xl">Borrar Todo</button>
+              <button onClick={() => setMode('EDIT')} className="flex-1 bg-white text-black font-bold p-3 rounded-xl">Hecho</button>
+            </div>
+          </div>
+        )}
+
+        {/* Sticker Tray Mode */}
+        {mode === 'STICKER' && (
+          <div className="flex flex-col h-full relative">
+            {!activeStickerType ? (
+              <div className="p-4 grid grid-cols-2 gap-2 overflow-y-auto">
+                <button onClick={() => setActiveStickerType('MENTION')} className="bg-zinc-900 text-white p-4 rounded-xl flex items-center justify-center gap-2"><User size={18}/> Mención</button>
+                <button onClick={() => setActiveStickerType('LOCATION')} className="bg-zinc-900 text-white p-4 rounded-xl flex items-center justify-center gap-2"><MapPin size={18}/> Ubicación</button>
+                <button onClick={() => setActiveStickerType('RECIPE')} className="bg-zinc-900 text-white p-4 rounded-xl flex items-center justify-center gap-2"><ChefHat size={18}/> Receta</button>
+                <button onClick={() => setActiveStickerType('INGREDIENT')} className="bg-zinc-900 text-white p-4 rounded-xl flex items-center justify-center gap-2"><Apple size={18}/> Ingrediente</button>
+                <button onClick={() => { saveHistory(); setOverlays([...overlays, { id: 'poll_'+Date.now(), type: 'POLL', x:0.5, y:0.5, scale:1, rotation:0, zIndex: overlays.length+10, payload: { question: '¿Te gusta?', optionA: 'Sí', optionB: 'No' } }]); setMode('EDIT'); }} className="bg-zinc-900 text-white p-4 rounded-xl col-span-2 font-bold">📊 Encuesta</button>
+                <button onClick={() => { saveHistory(); setOverlays([...overlays, { id: 'q_'+Date.now(), type: 'QUESTION', x:0.5, y:0.5, scale:1, rotation:0, zIndex: overlays.length+10, payload: { question: 'Hazme una pregunta' } }]); setMode('EDIT'); }} className="bg-zinc-900 text-white p-4 rounded-xl col-span-2 font-bold">❓ Pregunta</button>
+                <button onClick={() => { saveHistory(); setOverlays([...overlays, { id: 's_'+Date.now(), type: 'SLIDER', x:0.5, y:0.5, scale:1, rotation:0, zIndex: overlays.length+10, payload: { question: '¿Qué tal?', emoji: '😍' } }]); setMode('EDIT'); }} className="bg-zinc-900 text-white p-4 rounded-xl col-span-2 font-bold">😍 Slider</button>
+              </div>
+            ) : (
+              <div className="absolute inset-0 z-10 bg-zinc-950 flex flex-col">
+                <div className="p-2 border-b border-white/10 flex items-center">
+                  <button onClick={() => setActiveStickerType(null)} className="text-white p-2">Volver</button>
+                </div>
+                <div className="flex-1 overflow-hidden relative">
+                  {activeStickerType === 'MENTION' && <MentionPicker onSelect={(u) => handleStickerSelect('MENTION', u)} />}
+                  {activeStickerType === 'RECIPE' && <RecipePicker onSelect={(r) => handleStickerSelect('RECIPE', r)} />}
+                  {activeStickerType === 'INGREDIENT' && <IngredientPicker onSelect={(i) => handleStickerSelect('INGREDIENT', i)} />}
+                  {activeStickerType === 'LOCATION' && <LocationPicker onSelect={(l) => handleStickerSelect('LOCATION', l)} />}
+                  {/* SESSION and PROFILE can reuse Mention/Recipe patterns */}
+                </div>
+              </div>
+            )}
+            
+            {!activeStickerType && (
+              <div className="mt-auto p-4 border-t border-white/10">
+                <button onClick={() => setMode('EDIT')} className="w-full bg-zinc-800 text-white p-3 rounded-xl">Cancelar</button>
+              </div>
+            )}
+          </div>
+        )}
+
+      </div>
     </div>
   );
 }
