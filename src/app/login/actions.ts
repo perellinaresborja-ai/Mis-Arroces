@@ -40,7 +40,7 @@ export async function login(formData: FormData) {
   }
 
   revalidatePath("/", "layout")
-  redirect("/cookbook")
+  redirect("/")
 }
 
 export async function signup(formData: FormData) {
@@ -53,7 +53,7 @@ export async function signup(formData: FormData) {
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
-    options: { emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://www.misarroces.es'}/auth/callback?next=/cookbook` }
+    options: { emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://www.misarroces.es'}/auth/callback?next=/` }
   })
 
   if (error) {
@@ -77,7 +77,7 @@ export async function signup(formData: FormData) {
 
   revalidatePath("/", "layout")
   if (data.session) {
-    redirect("/cookbook")
+    redirect("/")
   } else {
     redirect("/login?message=Cuenta creada. Revisa tu correo para confirmar tu cuenta.")
   }
