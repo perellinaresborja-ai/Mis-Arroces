@@ -270,3 +270,21 @@ export async function toggleSaveRecipe(recipeId: string, saved: boolean) {
   revalidatePath('/recipes/' + recipeId);
   revalidatePath('/cookbook');
 }
+
+
+export async function deleteRecipe(recipeId: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error("Unauthorized")
+
+  const { error } = await supabase
+    .from('recipes')
+    .delete()
+    .eq('id', recipeId)
+    .eq('owner_id', user.id)
+
+  if (error) {
+    console.error("Delete recipe error:", error)
+    throw new Error(error.message)
+  }
+}
