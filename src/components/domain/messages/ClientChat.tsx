@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { MessageBubble } from "@/components/domain/messages/MessageBubble"
 import { MessageInput } from "@/components/domain/messages/MessageInput"
+import { updateReadStatus } from "@/app/actions/messaging"
 
 export function ClientChat({ initialMessages, userId, conversationId, myStatus, otherStatus, otherUserId }: { conversationId: string, initialMessages: Record<string, unknown>[], userId: string, myStatus: string, otherStatus?: string, otherUserId?: string }) {
   const [messages, setMessages] = useState<Record<string, unknown>[]>(initialMessages)
@@ -33,6 +34,14 @@ export function ClientChat({ initialMessages, userId, conversationId, myStatus, 
       
     return () => { supabase.removeChannel(channel) }
   }, [conversationId, supabase])
+
+  useEffect(() => {
+    updateReadStatus(conversationId).then(() => {
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('messages_read'));
+      }
+    });
+  }, [messages, conversationId]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })

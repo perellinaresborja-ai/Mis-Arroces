@@ -22,7 +22,13 @@ export function UnreadBadge() {
       })
       .subscribe()
 
-    return () => { supabase.removeChannel(channel) }
+    const handleRead = () => fetchCount();
+    window.addEventListener('messages_read', handleRead);
+
+    return () => { 
+      supabase.removeChannel(channel);
+      window.removeEventListener('messages_read', handleRead);
+    }
   }, [])
 
   if (count === 0) return null
