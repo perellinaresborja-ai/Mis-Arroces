@@ -36,6 +36,9 @@ export function StoryCreator({ initialRecipeId, initialSessionId }: StoryCreator
   const [transform, setTransform] = useState<StoryTransform>({ scale: 1, translateX: 0, translateY: 0, rotation: 0 })
   const [background, setBackground] = useState<StoryBackground>({ type: 'blur', value: '' })
   const [overlays, setOverlays] = useState<StoryOverlay[]>([])
+  const [isDrawingMode, setIsDrawingMode] = useState(false)
+  const [allowReplies, setAllowReplies] = useState(true)
+  const [allowReactions, setAllowReactions] = useState(true)
   
   // Undo/Redo
   const [history, setHistory] = useState<EditorState[]>([])

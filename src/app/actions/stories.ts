@@ -294,3 +294,38 @@ export async function toggleStoryReaction(storyId: string, reaction: string) {
 
   return { success: true, action: 'added' }
 }
+
+export async function createStoryHighlight(name: string, storyIds: string[], coverUrl?: string) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Unauthorized");
+  
+  const { data: highlight, error } = await supabase.from('story_highlights').insert({
+    user_id: user.id,
+    name,
+    cover_url: coverUrl
+  }).select().single();
+  
+  if (error) throw error;
+  
+  if (storyIds.length > 0) {
+    const inserts = storyIds.map((id, index) => ({
+      highlight_id: highlight.id,
+      story_id: id,
+      display_order: index
+    }));
+    await supabase.from('highlight_stories').insert(inserts);
+  }
+  return highlight;
+}
+
+export async function voteStoryPoll(pollId: string, option: 'A' | 'B') {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return;
+  await supabase.from('story_poll_votes').insert({
+    poll_id: pollId,
+    user_id: user.id,
+    selected_option: option
+  });
+}
