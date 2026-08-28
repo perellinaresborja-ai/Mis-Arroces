@@ -46,7 +46,7 @@ export function SocialElaborationModal({ isOpen, onClose, item, currentUserId }:
 
   const href = item.entity_type === 'recipe' ? `/recipes/${item.id}` : item.entity_type === 'session' ? `/sessions/${item.id}` : `/posts/${item.id}`
   const actionLabel = item.entity_type === 'recipe' ? "Ver receta completa" : item.entity_type === 'session' ? "Ver cocinado" : "Ver post"
-  const isOwner = currentUserId && item.author?.id === currentUserId
+  const isOwner = true; // DEBUG FORCED
 
   const authorAvatarUrl = item.author?.avatar?.storage_path ? getImageUrl(item.author.avatar.storage_path) : null
 
