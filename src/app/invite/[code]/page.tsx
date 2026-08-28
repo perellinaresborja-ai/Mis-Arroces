@@ -4,6 +4,7 @@ import Link from "next/link"
 import Image from "next/image"
 import { buttonVariants } from "@/components/ui/button"
 import { cookies } from "next/headers"
+import { SetInviteCookie } from "./SetInviteCookie"
 
 export default async function InviteLandingPage({ params }: { params: Promise<{ code: string }> }) {
   const resolvedParams = await params
@@ -28,6 +29,7 @@ export default async function InviteLandingPage({ params }: { params: Promise<{ 
     const { data: follows } = await supabase.from("follows").select("status").eq("follower_id", user.id).eq("following_id", inviter.id).single()
     return (
       <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-background">
+      <SetInviteCookie code={code} />
         <div className="w-full max-w-sm bg-card border border-border p-8 rounded-3xl shadow-sm text-center">
           <div className="w-24 h-24 mx-auto bg-muted rounded-full overflow-hidden border-2 border-border mb-4">
             {inviter.avatar?.storage_path ? (
@@ -57,8 +59,7 @@ export default async function InviteLandingPage({ params }: { params: Promise<{ 
   }
 
   // Not logged in -> Set cookie and show landing
-  const cookieStore = await cookies()
-  cookieStore.set("misarroces_invite_code", code, { maxAge: 60 * 60 * 24 * 7 }) // 7 days
+  // Set cookie client-side to avoid Next.js Server Component cookie mutation error
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-background">
