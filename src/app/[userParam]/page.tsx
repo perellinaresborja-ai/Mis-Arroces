@@ -297,7 +297,7 @@ export default async function PublicProfilePage({
                   <ProfileGridCard 
                     key={`${item.entity_type}-${item.id}`} 
                     item={item} 
-
+                    currentUserId={user?.id || null}
                   />
                 ))}
               </div>
