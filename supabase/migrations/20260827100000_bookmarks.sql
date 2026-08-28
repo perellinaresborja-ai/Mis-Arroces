@@ -1,4 +1,4 @@
-CREATE TABLE bookmarks (
+CREATE TABLE IF NOT EXISTS bookmarks (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
     entity_type TEXT NOT NULL CHECK (entity_type IN ('recipe', 'post', 'session')),
@@ -8,4 +8,10 @@ CREATE TABLE bookmarks (
 );
 
 ALTER TABLE bookmarks ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Users can manage their own bookmarks" ON bookmarks FOR ALL USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can manage their own bookmarks" ON bookmarks;
+CREATE POLICY "Users can manage their own bookmarks"
+ON bookmarks
+FOR ALL
+USING (auth.uid() = user_id)
+WITH CHECK (auth.uid() = user_id);

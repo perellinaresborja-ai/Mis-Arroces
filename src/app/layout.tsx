@@ -4,6 +4,9 @@ import "./globals.css";
 import { BottomNav } from "@/components/domain/BottomNav";
 import { DesktopNav } from "@/components/domain/DesktopNav";
 import { AuthPromptProvider } from "@/components/providers/AuthPromptProvider";
+import { createClient } from "@/lib/supabase/server";
+import { checkPendingLegal } from "@/app/actions/legal";
+import { LegalConsentGate } from "@/components/domain/LegalConsentGate";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -49,15 +52,24 @@ export const viewport: Viewport = {
   themeColor: "#F7F2E8", // Cream background
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  let pendingLegal = false;
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      pendingLegal = await checkPendingLegal(user.id);
+    }
+  } catch(e) {}
   return (
     <html lang="es">
       <body className={`${inter.className} antialiased bg-background text-foreground safe-area-pt safe-area-pb overflow-x-hidden`}>
         <AuthPromptProvider>
+          <LegalConsentGate pendingLegal={pendingLegal} />
           {/* Desktop Header */}
           <DesktopNav />
           

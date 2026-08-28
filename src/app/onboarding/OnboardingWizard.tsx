@@ -7,10 +7,13 @@ import { Input } from "@/components/ui/input"
 import { completeOnboardingAction, updateOnboardingProfile } from "./actions"
 import { Camera, Check, UserPlus } from "lucide-react"
 import { toggleFollow } from "@/app/actions/social"
+import { acceptActiveLegalDocuments } from "@/app/actions/legal"
+import Link from "next/link"
 
 export function OnboardingWizard({ initialProfile, inviter, suggestions, inviteCode }: any) {
   const router = useRouter()
   const [step, setStep] = useState(1)
+  const [legalAccepted, setLegalAccepted] = useState(false)
   const [loading, setLoading] = useState(false)
   const [following, setFollowing] = useState<Set<string>>(new Set())
   const [error, setError] = useState<string | null>(null)
@@ -69,8 +72,9 @@ export function OnboardingWizard({ initialProfile, inviter, suggestions, inviteC
         <div className="flex gap-2">
           <div className={`h-2 w-12 rounded-full ${step >= 1 ? 'bg-primary' : 'bg-muted'}`} />
           <div className={`h-2 w-12 rounded-full ${step >= 2 ? 'bg-primary' : 'bg-muted'}`} />
+          <div className={`h-2 w-12 rounded-full ${step >= 3 ? 'bg-primary' : 'bg-muted'}`} />
         </div>
-        <div className="text-sm font-bold text-muted-foreground">Paso {step} de 2</div>
+        <div className="text-sm font-bold text-muted-foreground">Paso {step} de 3</div>
       </div>
 
       {error && (

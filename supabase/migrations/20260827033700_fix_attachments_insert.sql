@@ -1,3 +1,4 @@
+DROP POLICY IF EXISTS "Users can insert message attachments for own messages" ON message_attachments;
 CREATE POLICY "Users can insert message attachments for own messages" ON message_attachments
 FOR INSERT TO authenticated
 WITH CHECK (
@@ -8,6 +9,7 @@ WITH CHECK (
   )
 );
 
+DROP POLICY IF EXISTS "Users can delete message attachments for own messages" ON message_attachments;
 CREATE POLICY "Users can delete message attachments for own messages" ON message_attachments
 FOR DELETE TO authenticated
 USING (
