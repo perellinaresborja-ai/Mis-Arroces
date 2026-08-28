@@ -188,7 +188,7 @@ export function CookForm({ recipeId, initialData }: { recipeId: string, initialD
                 <Clock className="w-4 h-4 mr-2" /> Programar
               </Button>
               <Button type="button" className="flex-1 md:flex-none h-12 rounded-xl font-bold" onClick={() => submitWithAction('PUBLISH')} disabled={isSubmitting}>
-                {isCurrentlyScheduled ? "Publicar ahora" : "Publicar sesión"}
+                {isCurrentlyScheduled ? "Publicar ahora" : "Publicar"}
               </Button>
             </>
           )}
