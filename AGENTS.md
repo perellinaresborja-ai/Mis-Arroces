@@ -18,3 +18,5 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - No usar diseños de bloque a sangre (flush sin bordes ni redondeo) para los contenedores principales (por ejemplo, barra de historias, publicaciones).
 
 - REFUERZO: TODAS las tarjetas e interfaces deben tener cantos redondeados (rounded-2xl o rounded-3xl), sin excepciones.
+
+- REFUERZO: Cuando se hace algo, se hace para que funcione, no de adorno. Todo botón, menú o interfaz visual debe tener su funcionalidad real implementada por detrás (base de datos, páginas, etc.) en el mismo momento. No dejar "alertas" ni cosas a medias simulando que funcionan.
