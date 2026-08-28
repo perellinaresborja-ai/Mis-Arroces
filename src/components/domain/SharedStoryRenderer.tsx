@@ -1,10 +1,15 @@
 "use client"
 
-import { CSSProperties } from "react"
+import { CSSProperties, useEffect } from "react"
 import { StoryOverlay, StoryTransform, StoryBackground } from "@/types/stories"
 import { MapPin, Utensils } from "lucide-react"
 
 interface SharedStoryRendererProps {
+  isVideo?: boolean;
+  videoRef?: React.RefObject<HTMLVideoElement | null>;
+  onTimeUpdate?: () => void;
+  onEnded?: () => void;
+  isPaused?: boolean;
   mediaUrl?: string | null;
   transform?: StoryTransform | null;
   background?: StoryBackground | null;
@@ -22,7 +27,18 @@ export function SharedStoryRenderer({
   mode,
   onOverlayClick,
   selectedOverlayId
-}: SharedStoryRendererProps) {
+, isVideo, videoRef, onTimeUpdate, onEnded, isPaused}: SharedStoryRendererProps) {
+  
+  // Pause/play effect
+  useEffect(() => {
+    if (isVideo && videoRef?.current) {
+      if (isPaused) {
+        videoRef.current.pause();
+      } else {
+        videoRef.current.play().catch(e => console.log('Autoplay prevented', e));
+      }
+    }
+  }, [isPaused, isVideo, videoRef]);
   
   const containerStyle: CSSProperties = {
     position: 'relative',
@@ -66,9 +82,22 @@ export function SharedStoryRenderer({
       )}
       
       {/* Main Media Layer */}
-      {mediaUrl && (
+      {mediaUrl && isVideo && (
+        <video 
+          ref={videoRef}
+          src={mediaUrl}
+          style={mediaStyle}
+          autoPlay
+          playsInline
+          muted={mode === 'EDITOR'} // Mute in editor
+          onTimeUpdate={onTimeUpdate}
+          onEnded={onEnded}
+          loop={mode === 'EDITOR'}
+        />
+      )}
+      {mediaUrl && !isVideo && (
         /* eslint-disable-next-line @next/next/no-img-element */
-        <img src={mediaUrl} alt="Story Media" style={mediaStyle} />
+        <img src={mediaUrl} alt="Story Media" style={mediaStyle} draggable={false} />
       )}
 
       {/* Overlays Layer */}

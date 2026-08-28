@@ -25,10 +25,12 @@ type EditorState = {
 export function StoryCreator({ initialRecipeId, initialSessionId }: StoryCreatorProps) {
   const router = useRouter()
   const supabase = createClient()
+  const videoRef = useRef<HTMLVideoElement>(null);
   
   const [currentUser, setCurrentUser] = useState<any>(null)
   const [mediaFile, setMediaFile] = useState<File | null>(null)
   const [mediaUrl, setMediaUrl] = useState<string | null>(null)
+  const isVideo = mediaFile?.type.startsWith('video/') || mediaUrl?.match(/\.(mp4|webm|ogg)$/i) !== null;
   
   // State
   const [transform, setTransform] = useState<StoryTransform>({ scale: 1, translateX: 0, translateY: 0, rotation: 0 })
@@ -388,6 +390,8 @@ export function StoryCreator({ initialRecipeId, initialSessionId }: StoryCreator
             overlays={overlays}
             onOverlayClick={(o) => setSelectedOverlayId(o.id)}
             selectedOverlayId={selectedOverlayId}
+            isVideo={!!isVideo}
+            videoRef={videoRef}
           />
           
           {/* END ACCESSIBILITY CONTROLS */}

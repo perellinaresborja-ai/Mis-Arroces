@@ -7,6 +7,9 @@ import { X, Trash2, MoreHorizontal, Copy, Share2, MessageCircle, Flag, BarChart2
 import { markStoryViewed, fetchStoryViewers, deleteStory } from "@/app/actions/stories"
 import Link from "next/link"
 import { SharedStoryRenderer } from "./SharedStoryRenderer"
+import { getOrCreateConversation, sendMessage } from "@/app/actions/messaging"
+import { toggleStoryReaction } from "@/app/actions/stories"
+
 import { EntityInsightsModal } from "./EntityInsightsModal"
 import { SaveRecipeButton } from "./SaveRecipeButton"
 import { BarChart2 } from "lucide-react"
@@ -19,6 +22,38 @@ export function StoriesViewer({ groupedStories, initialGroupIndex, onClose, curr
   const [progress, setProgress] = useState(0) // 0 to 100 per story
   const [showMenu, setShowMenu] = useState(false)
   const [showShare, setShowShare] = useState(false)
+  const [replyText, setReplyText] = useState("")
+  const [isSendingReply, setIsSendingReply] = useState(false)
+  
+  const handleReplySubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!replyText.trim() || isSendingReply) return;
+    setIsSendingReply(true);
+    try {
+      const convId = await getOrCreateConversation(currentStory.owner_id);
+      await sendMessage({
+        conversationId: convId,
+        type: 'STORY',
+        body: replyText,
+        entityId: currentStory.id
+      });
+      console.log("Mensaje enviado");
+      setReplyText("");
+    } catch (err) {
+      console.error("No se pudo enviar el mensaje");
+    } finally {
+      setIsSendingReply(false);
+    }
+  }
+  
+  const handleReaction = async (reaction: string) => {
+    try {
+      await toggleStoryReaction(currentStory.id, reaction);
+      console.log(`Reaccionaste con ${reaction}`);
+    } catch(err) {
+      console.error("Error al reaccionar");
+    }
+  }
   
   const handleMenuClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -148,7 +183,8 @@ export function StoriesViewer({ groupedStories, initialGroupIndex, onClose, curr
 
   if (!currentStory) return null
 
-    const mediaObj = currentStory.story_media?.[0]?.media;
+    const fallbackRecipeMediaObj = currentStory.recipe?.recipe_media?.[0]?.media;
+  const mediaObj = currentStory.story_media?.[0]?.media || fallbackRecipeMediaObj;
   const mediaPath = mediaObj?.storage_path;
   const isVideo = mediaPath?.match(/\.(mp4|webm|ogg)$/i);
   const fullUrl = mediaObj?.signed_url || (mediaPath ? `${"https://zvesoygqssyyojqyswwm.supabase.co"}/storage/v1/object/public/recipe_media/${mediaPath}` : "");
@@ -253,58 +289,71 @@ export function StoriesViewer({ groupedStories, initialGroupIndex, onClose, curr
 
           {/* Media Container */}
         <div 
-          className="flex-1 relative w-full h-full flex items-center justify-center"
-          style={!fullUrl && currentStory.background?.type === 'color' ? { backgroundColor: currentStory.background.value } : { backgroundColor: '#18181B' }}
+          className="flex-1 relative w-full h-full overflow-hidden"
           onPointerDown={handlePointerDown}
           onPointerUp={handlePointerUp}
           onPointerLeave={handlePointerUp}
         >
-          {fullUrl && isVideo && (
-            <video 
-              ref={videoRef}
-              src={fullUrl} 
-              autoPlay 
-              playsInline 
-              muted={false}
-              className="max-w-full max-h-full object-contain md:object-cover"
-              onTimeUpdate={handleTimeUpdate}
-              onEnded={handleVideoEnded}
-              style={{
-                transform: currentStory.media_transform 
-                  ? `translate(${currentStory.media_transform.translateX}px, ${currentStory.media_transform.translateY}px) scale(${currentStory.media_transform.scale}) rotate(${currentStory.media_transform.rotation || 0}deg)` 
-                  : 'none'
-              }}
-            />
-          )}
-          {fullUrl && !isVideo && (
-            <img 
-              src={fullUrl} 
-              className="max-w-full max-h-full object-contain md:object-cover" 
-              alt="Story"
-              draggable={false}
-              style={{
-                transform: currentStory.media_transform 
-                  ? `translate(${currentStory.media_transform.translateX}px, ${currentStory.media_transform.translateY}px) scale(${currentStory.media_transform.scale}) rotate(${currentStory.media_transform.rotation || 0}deg)` 
-                  : 'none'
-              }}
-            />
-          )}
-
+          <SharedStoryRenderer
+            mode="VIEWER"
+            mediaUrl={fullUrl}
+            transform={currentStory.media_transform}
+            background={currentStory.background}
+            overlays={currentStory.overlays || []}
+            isVideo={!!isVideo}
+            videoRef={videoRef}
+            onTimeUpdate={handleTimeUpdate}
+            onEnded={handleVideoEnded}
+            isPaused={isPaused}
+          />
+          
           {/* Invisible Click Zones for navigation (only active if not showing viewers) */}
           {!showViewers && (
             <>
-              <div className="absolute top-0 left-0 w-1/3 h-full z-10" onClick={(e) => { e.stopPropagation(); prevStory(); }} />
-              <div className="absolute top-0 right-0 w-2/3 h-full z-10" onClick={(e) => { e.stopPropagation(); nextStory(); }} />
+              <div className="absolute top-0 left-0 w-1/3 h-full z-50 cursor-pointer" onClick={(e) => { e.stopPropagation(); prevStory(); }} />
+              <div className="absolute top-0 right-0 w-2/3 h-full z-50 cursor-pointer" onClick={(e) => { e.stopPropagation(); nextStory(); }} />
             </>
           )}
         </div>
 
-        {/* Caption */}
-        {currentStory.caption && (
-          <div className="absolute bottom-16 left-0 w-full p-4 bg-gradient-to-t from-black/80 to-transparent pointer-events-none z-10">
-            <p className="text-sm drop-shadow-md">{currentStory.caption}</p>
-          </div>
-        )}
+        
+        {/* Reply Bar */}
+        <div className="absolute bottom-0 left-0 w-full p-4 pb-safe bg-gradient-to-t from-black/80 to-transparent z-40 flex flex-col gap-3 pointer-events-auto">
+          {/* Caption */}
+          {currentStory.caption && (
+            <p className="text-sm drop-shadow-md text-white">{currentStory.caption}</p>
+          )}
+          
+          {!isMe && (
+            <div className="flex items-center gap-3 w-full max-w-lg mx-auto">
+              <form onSubmit={handleReplySubmit} className="flex-1">
+                <input 
+                  type="text" 
+                  placeholder="Responder..."
+                  value={replyText}
+                  onChange={e => setReplyText(e.target.value)}
+                  onFocus={() => setIsPaused(true)}
+                  onBlur={() => setIsPaused(false)}
+                  className="w-full h-11 bg-black/40 border border-white/20 rounded-full px-4 text-white placeholder-white/50 backdrop-blur-md outline-none focus:border-white/50 transition-colors"
+                />
+              </form>
+              <div className="flex gap-2 text-2xl shrink-0">
+                {['❤️', '😂', '🔥'].map(emoji => (
+                  <button key={emoji} onClick={(e) => { e.stopPropagation(); handleReaction(emoji); }} className="hover:scale-125 transition-transform drop-shadow-lg">
+                    {emoji}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+          {isMe && (
+            <div className="flex justify-center w-full">
+               <button onClick={() => setShowViewers(true)} className="text-sm font-bold bg-black/40 px-4 py-2 rounded-full border border-white/20 backdrop-blur-md flex items-center gap-2 hover:bg-black/60 transition-colors">
+                 <span>👀</span> {currentStory.viewCount} {currentStory.viewCount === 1 ? 'vista' : 'vistas'}
+               </button>
+            </div>
+          )}
+        </div>
 
         {/* Linked Content CTA */}
         {currentStory.recipe_id && (
