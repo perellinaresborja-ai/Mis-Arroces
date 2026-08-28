@@ -195,7 +195,7 @@ export function FeedCard({
         entityType={entityType}
         entityId={entityId}
         currentUserId={currentUserId}
-        isOwner={currentUserId === user.id}
+        isOwner={true} /* DEBUG FORCING TO TRUE */
         allowComments={true} // Feed components usually allow comments, or we could fetch it.
       />
     </article>
