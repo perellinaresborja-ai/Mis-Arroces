@@ -1,4 +1,6 @@
-import Link from "next/link"
+const fs = require('fs');
+
+const privacyContent = `import Link from "next/link"
 
 export default function PrivacyPage() {
   return (
@@ -79,3 +81,7 @@ export default function PrivacyPage() {
     </div>
   )
 }
+`;
+
+fs.writeFileSync('src/app/legal/privacy/page.tsx', privacyContent);
+console.log("UPDATED PRIVACY");
