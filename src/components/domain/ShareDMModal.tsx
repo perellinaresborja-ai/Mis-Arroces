@@ -19,7 +19,7 @@ export function ShareDMModal({ isOpen, onClose, entityType, entityId }: { isOpen
         const { data: { user } } = await supabase.auth.getUser()
         if (!user) return
     
-        let query = supabase.from("profiles").select("id, username, avatar_media_id").neq("id", user.id).limit(10)
+        let query = supabase.from("profiles").select("id, username, avatar:media_assets!fk_profiles_avatar(storage_path)").neq("id", user.id).limit(10)
         if (search.trim()) query = query.ilike("username", `%${search}%`)
     
         const { data } = await query
@@ -64,8 +64,8 @@ export function ShareDMModal({ isOpen, onClose, entityType, entityId }: { isOpen
             {isLoading ? <Loader2 className="w-5 h-5 animate-spin mx-auto text-muted-foreground" /> : users.map((u: Record<string, unknown>) => (
               <div key={u.id as string} className="flex items-center justify-between p-2 hover:bg-muted/50 rounded-xl">
                 <div className="flex items-center gap-3">
-                  {u.avatar_media_id ? (
-                    <img src={u.avatar_media_id as string} className="w-10 h-10 rounded-full border border-border object-cover" alt="" />
+                  {(u.avatar as any)?.storage_path ? (
+                    <img src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/recipe_media/${(u.avatar as any).storage_path}`} className="w-10 h-10 rounded-full border border-border object-cover" alt="" />
                   ) : (
                     <div className="w-10 h-10 rounded-full border border-border bg-muted flex items-center justify-center">
                       {(u.username as string)?.charAt(0).toUpperCase()}
