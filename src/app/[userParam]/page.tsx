@@ -10,7 +10,6 @@ import { MessageCircle, Settings, Lock, User, Grid, Clapperboard, UserSquare, Li
 import { ShareButton } from "@/components/domain/ShareButton"
 import { ProfileShareModal } from "@/components/domain/ProfileShareModal"
 import { ProfileAvatar } from "@/components/domain/ProfileAvatar"
-import { InviteButton } from "@/components/domain/InviteButton"
 import { ProfileFollowButton } from "@/components/domain/ProfileFollowButton"
 
 import { ViewTracker } from "@/components/domain/ViewTracker"
@@ -172,8 +171,7 @@ export default async function PublicProfilePage({
     </span>
   )}
 </Link>
-                  <InviteButton inviteCode={profile.invite_code} />
-                <Link href="/settings" className="flex items-center justify-center w-10 h-10 bg-black/60 rounded-full hover:bg-black transition text-white backdrop-blur-sm shadow-sm" title="Configuración">
+                                  <Link href="/settings" className="flex items-center justify-center w-10 h-10 bg-black/60 rounded-full hover:bg-black transition text-white backdrop-blur-sm shadow-sm" title="Configuración">
                   <Settings className="w-5 h-5" />
                 </Link>
               </>
