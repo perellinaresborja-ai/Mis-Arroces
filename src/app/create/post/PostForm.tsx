@@ -38,7 +38,7 @@ export function PostForm({ recipes }: { recipes: { id: string, name: string }[] 
     } catch (err: any) {
       console.error(err)
       setIsSubmitting(false)
-      setErrorMsg(err.message || "Error al publicar. Int�ntalo de nuevo.")
+      setErrorMsg(err.message || "Error al publicar. Inténtalo de nuevo.")
     }
   }
 
@@ -85,7 +85,7 @@ export function PostForm({ recipes }: { recipes: { id: string, name: string }[] 
       <div className="space-y-2">
         <Label htmlFor="visibility">Privacidad</Label>
         <select name="visibility" id="visibility" className="w-full h-12 px-3 rounded-xl border border-input bg-background">
-          <option value="PUBLIC">P�blico</option>
+          <option value="PUBLIC">Público</option>
           <option value="FOLLOWERS">Solo Seguidores</option>
           <option value="PRIVATE">Solo Yo / Personas Concretas</option>
         </select>
