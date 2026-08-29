@@ -139,7 +139,7 @@ export function FeedCard({
       {/* Media */}
       {media.length > 0 && (
         <div className="rounded-2xl overflow-hidden border border-border/50">
-          <MediaCarousel items={media} />
+          <MediaCarousel items={media} href={href} />
         </div>
       )}
 
