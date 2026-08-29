@@ -7,7 +7,10 @@ import { useForm, useFieldArray } from "react-hook-form"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { NutritionSection } from "@/components/domain/NutritionSection"
+import { calculateNutrition } from "@/lib/nutrition"
 import { EscandalloSection } from "@/components/domain/EscandalloSection"
+
 import { AddToCartButton } from "@/components/domain/AddToCartButton"
 import { Save, Plus, Trash2, GripVertical, ChevronDown, ChevronUp, Check, Clock, EyeOff, Calendar } from "lucide-react"
 import { updateRecipeFull } from "@/app/actions/recipes"
@@ -200,8 +203,35 @@ export default function EditRecipeForm({ recipe, catalogs }: { recipe: any, cata
   const isCurrentlyScheduled = recipe.status === 'PUBLISHED' && recipe.scheduled_for && new Date(recipe.scheduled_for) > new Date();
   const isCurrentlyPublished = recipe.status === 'PUBLISHED' && !isCurrentlyScheduled;
 
+  
+  const watchedIngredients = watch('ingredients');
+  const watchedPortions = watch('portions');
+  
+  const computedRecipeIngredients = React.useMemo(() => {
+    return watchedIngredients.map((wi: any) => {
+      // attempt to match ingredient by canonical_ingredient_id or display_text
+      let matchedIng = null;
+      if (wi.canonical_ingredient_id) {
+        matchedIng = catalogs?.ingredients?.find((i: any) => i.id === wi.canonical_ingredient_id);
+      }
+      if (!matchedIng && wi.display_text) {
+        const query = wi.display_text.trim().toLowerCase();
+        matchedIng = catalogs?.ingredients?.find((i: any) => query.includes(i.normalized_name));
+      }
+      return {
+        ...wi,
+        ingredient: matchedIng,
+        ingredient_allergens: matchedIng?.ingredient_allergens
+      };
+    });
+  }, [watchedIngredients, catalogs]);
+
+  const nutritionResult = React.useMemo(() => {
+    return calculateNutrition(computedRecipeIngredients as any, catalogs?.units as any, watchedPortions || 1);
+  }, [computedRecipeIngredients, catalogs, watchedPortions]);
+  
   return (
-    <form onSubmit={(e) => e.preventDefault()} className="space-y-8 pb-32">
+  <form onSubmit={(e) => e.preventDefault()} className="space-y-8 pb-32">
       <div className="space-y-8">
         {/* Basic Info */}
         <CollapsibleSection title="Información Básica" defaultOpen={true}>
@@ -379,7 +409,8 @@ export default function EditRecipeForm({ recipe, catalogs }: { recipe: any, cata
           </div>
           </CollapsibleSection>
 
-          <EscandalloSection recipeId={recipe.id} initialIngredients={ingFields} catalogs={catalogs} baseServings={Number(watch("base_servings") || 2)} setValue={setValue} />
+          <NutritionSection result={nutritionResult} servings={watchedPortions || 1} />
+        <EscandalloSection recipeId={recipe.id} initialIngredients={ingFields} catalogs={catalogs} baseServings={Number(watch("base_servings") || 2)} setValue={setValue} />
 
           {/* Steps */}
         <CollapsibleSection title="Pasos de Elaboración" rightAction={<Button type="button" variant="outline" size="sm" onClick={() => appendStep({ instruction: "", duration_minutes: "", notes: "" })}>

@@ -4,6 +4,8 @@ import Link from "next/link"
 import { createClient } from "@/lib/supabase/server"
 import { Button } from "@/components/ui/button"
 import { formatUnitSymbol } from "@/lib/utils"
+import { calculateNutrition } from "@/lib/nutrition"
+import { NutritionSection } from "@/components/domain/NutritionSection"
 import { Pencil, Clock, Flame, Users, Beaker, ChefHat, Hourglass } from "lucide-react"
 import { FeedCard } from "@/components/domain/FeedCard"
 import { WantToCookButton } from "@/components/domain/WantToCookButton"
@@ -33,6 +35,8 @@ export default async function RecipeDetailPage({
       ingredients:recipe_ingredients(
         *,
         unit:units(name),
+        ingredient:ingredients(*),
+        ingredient_allergens(allergens(*)),
         canonical:ingredients(normalized_name)
       )
     `)

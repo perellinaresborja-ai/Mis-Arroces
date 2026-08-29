@@ -50,12 +50,13 @@ export async function createQuickRecipe(formData: FormData) {
 export async function getCatalogs() {
   const supabase = await createClient()
   
-  const [styles, varieties, vessels, heats, units] = await Promise.all([
+  const [styles, varieties, vessels, heats, units, ingredients] = await Promise.all([
     supabase.from("rice_styles").select("*"),
     supabase.from("rice_varieties").select("*"),
     supabase.from("vessel_types").select("*"),
     supabase.from("heat_sources").select("*"),
     supabase.from("units").select("*"),
+    supabase.from("ingredients").select("id, normalized_name, kcal_per_100, protein_g_per_100, carbs_g_per_100, fat_g_per_100, fiber_g_per_100, salt_g_per_100, nutrition_complete, default_grams_per_unit, ingredient_allergens(allergens(*))"),
   ])
 
   return {
@@ -64,6 +65,7 @@ export async function getCatalogs() {
     vessels: vessels.data || [],
     heats: heats.data || [],
     units: units.data || [],
+    ingredients: ingredients?.data || [],
   }
 }
 
