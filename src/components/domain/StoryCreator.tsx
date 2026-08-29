@@ -30,6 +30,8 @@ export function StoryCreator({
   const [isPublishing, setIsPublishing] = useState(false);
   const [isPollModalOpen, setIsPollModalOpen] = useState(false);
   const [isQuestionModalOpen, setIsQuestionModalOpen] = useState(false);
+  const [isSliderModalOpen, setIsSliderModalOpen] = useState(false);
+  const [sliderForm, setSliderForm] = useState({ prompt: '', emoji: '😋' });
   const [questionPrompt, setQuestionPrompt] = useState('');
   const [pollForm, setPollForm] = useState({ question: '', optionA: 'Sí', optionB: 'No' });
   const [privacy, setPrivacy] = useState<'PUBLIC'|'FOLLOWERS'>('PUBLIC');
@@ -285,7 +287,7 @@ export function StoryCreator({
 
                 <button onClick={() => { setMode('EDIT'); setIsPollModalOpen(true); }} className="bg-zinc-900 text-white p-4 rounded-xl col-span-2 font-bold">📊 Encuesta</button>
                 <button onClick={() => { setMode('EDIT'); setIsQuestionModalOpen(true); }} className="bg-zinc-900 text-white p-4 rounded-xl col-span-2 font-bold">❓ Pregunta</button>
-                <button onClick={() => { saveHistory(); setOverlays([...overlays, { id: 's_'+Date.now(), type: 'SLIDER', x:0.5, y:0.5, scale:1, rotation:0, zIndex: overlays.length+10, payload: { question: '¿Qué tal?', emoji: '😍' } }]); setMode('EDIT'); }} className="bg-zinc-900 text-white p-4 rounded-xl col-span-2 font-bold">😍 Slider</button>
+                <button onClick={() => { setMode('EDIT'); setIsSliderModalOpen(true); }} className="bg-zinc-900 text-white p-4 rounded-xl col-span-2 font-bold">😍 Slider</button>
               </div>
             ) : (
               <div className="absolute inset-0 z-10 bg-zinc-950 flex flex-col">
