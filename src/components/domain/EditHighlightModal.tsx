@@ -3,9 +3,9 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 
-export function EditHighlightModal({ highlight, archivedStories, onClose }: { highlight: any, archivedStories: any[], onClose: () => void }) {
+export function EditHighlightModal({ highlight, archivedStories, onClose }: { highlight: { id: string, name: string, stories?: { id: string }[] }, archivedStories: { id: string, story_media?: { storage_path: string }[] }[], onClose: () => void }) {
   const [name, setName] = useState(highlight.name)
-  const [selectedIds, setSelectedIds] = useState<string[]>(highlight.stories?.map((s:any) => s.id) || [])
+  const [selectedIds, setSelectedIds] = useState<string[]>(highlight.stories?.map((s: { id: string }) => s.id) || [])
   const [loading, setLoading] = useState(false)
   const router = useRouter()
   const supabase = createClient()

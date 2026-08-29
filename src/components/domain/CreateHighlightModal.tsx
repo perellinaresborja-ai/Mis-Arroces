@@ -3,7 +3,7 @@ import { useState } from "react"
 import { createStoryHighlight } from "@/app/actions/stories"
 import { useRouter } from "next/navigation"
 
-export function CreateHighlightModal({ archivedStories, onClose }: { archivedStories: any[], onClose: () => void }) {
+export function CreateHighlightModal({ archivedStories, onClose }: { archivedStories: { id: string, story_media?: { storage_path: string }[] }[], onClose: () => void }) {
   const [name, setName] = useState("")
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
@@ -18,7 +18,7 @@ export function CreateHighlightModal({ archivedStories, onClose }: { archivedSto
     setLoading(true)
     try {
       const coverUrl = archivedStories.find(s => s.id === selectedIds[0])?.story_media?.[0]?.storage_path 
-        ? "https://zvesoygqssyyojqyswwm.supabase.co/storage/v1/object/public/story_media/" + archivedStories.find((s:any) => s.id === selectedIds[0]).story_media[0].storage_path
+        ? "https://zvesoygqssyyojqyswwm.supabase.co/storage/v1/object/public/story_media/" + archivedStories.find((s: { id: string, story_media?: { storage_path: string }[] }) => s.id === selectedIds[0])?.story_media?.[0]?.storage_path
         : undefined;
       await createStoryHighlight(name, selectedIds, coverUrl)
       router.refresh()

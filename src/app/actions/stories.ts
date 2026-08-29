@@ -150,7 +150,7 @@ export async function fetchActiveStories() {
 
   // Group by owner
   const userMap = new Map()
-  data.forEach((story: any) => {
+  data.forEach((story: {owner_id: string, [key: string]: unknown}) => {
     if (!userMap.has(story.owner_id)) {
       userMap.set(story.owner_id, {
         author: story.author,
@@ -162,7 +162,7 @@ export async function fetchActiveStories() {
     const userGroup = userMap.get(story.owner_id)
     
     // Check if seen by current user
-    const hasSeen = user ? story.story_views?.some((v: any) => v.viewer_id === user.id) : false;
+    const hasSeen = user ? story.story_views?.some((v: {viewer_id: string}) => v.viewer_id === user.id) : false;
     
     // An owner doesn't count their own story as unseen
     const isOwner = user && user.id === story.owner_id;
@@ -231,7 +231,7 @@ export async function fetchStoryViewers(storyId: string) {
     .eq("story_id", storyId)
     .order("created_at", { ascending: false })
     
-  return data?.map((v: any) => v.viewer) || []
+  return data?.map((v: {viewer: unknown}) => v.viewer) || []
 }
 
 
@@ -250,7 +250,7 @@ export async function deleteStory(storyId: string) {
 
   // Delete media from storage if it exists in story_media bucket
   if (story.story_media && story.story_media.length > 0) {
-    const paths = story.story_media.map((sm: any) => sm.media?.storage_path).filter(Boolean)
+    const paths = story.story_media.map((sm: {media?: {storage_path?: string}}) => sm.media?.storage_path).filter(Boolean)
     if (paths.length > 0) {
       await supabase.storage.from("story_media").remove(paths)
     }
@@ -465,4 +465,124 @@ export async function getSliderResults(overlayId: string) {
   let total = 0; let count = votes.length; let myValue = null;
   votes.forEach(v => { total += v.value; if (user && v.user_id === user.id) myValue = v.value; });
   return { average: count > 0 ? Math.round(total / count) : 0, count, myValue };
+}
+
+export async function getArchivedStories() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return [];
+  
+  const { data, error } = await supabase
+    .from('stories')
+    .select('*, author:profiles!stories_owner_id_fkey(*), story_media(media_id, media:media_assets(storage_path))')
+    .eq('owner_id', user.id)
+    .lte('expires_at', new Date().toISOString())
+    .order('created_at', { ascending: false });
+    
+  if (error) throw error;
+  return data;
+}
+
+export async function getStoryInsights(storyId: string) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Unauthorized");
+  
+  const { data: story } = await supabase.from('stories').select('owner_id, overlays').eq('id', storyId).single();
+  if (!story || story.owner_id !== user.id) throw new Error("Not authorized");
+  
+  // Get Views & Reach
+  const { data: views } = await supabase.from('story_views').select('viewer_id').eq('story_id', storyId);
+  const totalViews = views?.length || 0;
+  const reach = new Set(views?.map(v => v.viewer_id)).size;
+  
+  // Get Analytics (Reactions, Clicks)
+  const { data: events } = await supabase.from('analytics_events')
+    .select('event_type, visitor_id')
+    .eq('entity_id', storyId)
+    .in('event_type', ['STORY_REACTION', 'RECIPE_CLICK_FROM_STORY']);
+    
+  const reactions = events?.filter(e => e.event_type === 'STORY_REACTION').length || 0;
+  const recipeClicks = events?.filter(e => e.event_type === 'RECIPE_CLICK_FROM_STORY').length || 0;
+  
+  // Get Polls if any
+  const polls = [];
+  const overlays = (story.overlays || []) as any[];
+  for (const ov of overlays) {
+    if (ov.type === 'POLL') {
+      const pollId = ov.payload?.pollId || ov.id;
+      const { data: pollData } = await supabase.from('story_polls').select('question, option_a, option_b').eq('id', pollId).single();
+      if (pollData) {
+        const { data: votes } = await supabase.from('story_poll_votes').select('option').eq('poll_id', pollId);
+        const total = votes?.length || 0;
+        const countA = votes?.filter(v => v.option === 'A').length || 0;
+        const countB = votes?.filter(v => v.option === 'B').length || 0;
+        polls.push({
+          question: pollData.question,
+          optionA: pollData.option_a,
+          optionB: pollData.option_b,
+          percentA: total ? Math.round((countA/total)*100) : 0,
+          percentB: total ? Math.round((countB/total)*100) : 0,
+          total
+        });
+      }
+    }
+  }
+  
+  // Get Sliders if any
+  const sliders = [];
+  for (const ov of overlays) {
+    if (ov.type === 'SLIDER') {
+      const { data: responses } = await supabase.from('story_slider_responses').select('value').eq('overlay_id', ov.id);
+      const total = responses?.length || 0;
+      const avg = total ? Math.round(responses!.reduce((acc, curr) => acc + curr.value, 0) / total) : 0;
+      sliders.push({
+        prompt: ov.payload?.question || '',
+        emoji: ov.payload?.emoji || '😍',
+        average: avg,
+        total
+      });
+    }
+  }
+  
+  // Message replies (Question or Text reply)
+  // We approximate by counting messages where payload->>story_id = storyId. Wait, messaging entityId is STORY and storyId.
+  // In our DB, how are story replies stored? 
+  // Let's assume there is an analytics event STORY_REPLY for now to get a simple count.
+  const { data: replyEvents } = await supabase.from('analytics_events')
+    .select('id')
+    .eq('entity_id', storyId)
+    .in('event_type', ['STORY_REPLY', 'STORY_QUESTION_REPLY']);
+    
+  const replies = replyEvents?.length || 0;
+  
+  return {
+    views: totalViews,
+    reach,
+    reactions,
+    replies,
+    recipeClicks,
+    polls,
+    sliders
+  };
+}
+
+export async function updateHighlight(highlightId: string, name: string, coverUrl?: string) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  const { data: h } = await supabase.from('story_highlights').select('user_id').eq('id', highlightId).single();
+  if (h?.user_id !== user?.id) throw new Error("Unauthorized");
+  
+  await supabase.from('story_highlights').update({ name, cover_url: coverUrl }).eq('id', highlightId);
+  return true;
+}
+
+export async function deleteHighlight(highlightId: string) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  const { data: h } = await supabase.from('story_highlights').select('user_id').eq('id', highlightId).single();
+  if (h?.user_id !== user?.id) throw new Error("Unauthorized");
+  
+  await supabase.from('story_highlights').delete().eq('id', highlightId);
+  return true;
 }

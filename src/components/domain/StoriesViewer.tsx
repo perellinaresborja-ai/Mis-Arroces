@@ -1,4 +1,6 @@
 "use client"
+import { StoryOwnerMenu } from "./StoryOwnerMenu"
+import { StoryInsightsModal } from "./StoryInsightsModal"
 import { ShareDMModal } from "./ShareDMModal"
 
 import { useState, useEffect, useRef } from "react"
@@ -15,9 +17,11 @@ import { SaveRecipeButton } from "./SaveRecipeButton"
 import { BarChart2 } from "lucide-react"
 import { trackClickAction } from "@/app/actions/tracking"
 
-export function StoriesViewer({ groupedStories, initialGroupIndex, onClose, currentUser }: any) {
+export function StoriesViewer({ groupedStories: _groupedStories, initialGroupIndex: _initialGroupIndex, stories, initialIndex, onClose, currentUser, currentUserId }: { groupedStories?: any[], initialGroupIndex?: number, stories?: any[], initialIndex?: number, onClose: () => void, currentUser?: any, currentUserId?: string }) {
+  const groupedStories = _groupedStories || [{ author: stories?.[0]?.author || stories?.[0]?.profiles || { id: stories?.[0]?.owner_id }, stories: stories || [] }];
+  const initialGroupIndex = _initialGroupIndex || 0;
   const [groupIndex, setGroupIndex] = useState(initialGroupIndex)
-  const [storyIndex, setStoryIndex] = useState(0)
+  const [storyIndex, setStoryIndex] = useState(initialIndex || 0)
   const [isPaused, setIsPaused] = useState(false)
   const [progress, setProgress] = useState(0) // 0 to 100 per story
   const [showMenu, setShowMenu] = useState(false)
@@ -56,10 +60,14 @@ export function StoriesViewer({ groupedStories, initialGroupIndex, onClose, curr
   }
   
   const handleMenuClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setIsPaused(true);
-    setShowMenu(true);
-  }
+      e.stopPropagation();
+      setIsPaused(true);
+      if (isMe) {
+        setOwnerMenuOpen(true);
+      } else {
+        setShowMenu(true);
+      }
+    }
   
   const closeMenu = (e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
@@ -73,13 +81,15 @@ export function StoriesViewer({ groupedStories, initialGroupIndex, onClose, curr
     alert('Enlace copiado');
     closeMenu();
   }
-  const [viewers, setViewers] = useState<any[]>([])
-  const [showViewers, setShowViewers] = useState(false)
+  const [viewers, setViewers] = useState<{id: string, username: string, display_name?: string, avatar?: {storage_path: string}}[]>([]);
+  const [showViewers, setShowViewers] = useState(false);
+  const [ownerMenuOpen, setOwnerMenuOpen] = useState(false);
+  const [highlightModalOpen, setHighlightModalOpen] = useState(false);
   const [insightsOpen, setInsightsOpen] = useState(false)
 
   const currentGroup = groupedStories[groupIndex]
   const currentStory = currentGroup?.stories[storyIndex]
-  const isMe = currentUser?.id === currentGroup?.author?.id || currentUser?.id === currentStory?.owner_id;
+  const isMe = (currentUser?.id || currentUserId) === currentGroup?.author?.id || (currentUser?.id || currentUserId) === currentStory?.owner_id;
   // console.log("DEBUG ISME", { isMe, currentUserId: currentUser?.id, authorId: currentGroup?.author?.id, ownerId: currentStory?.owner_id });
 
   // Navigate next/prev story
@@ -125,7 +135,7 @@ export function StoriesViewer({ groupedStories, initialGroupIndex, onClose, curr
   // Handle fetching viewers for owner
   useEffect(() => {
     if (isMe && currentStory) {
-      fetchStoryViewers(currentStory.id).then(setViewers)
+      fetchStoryViewers(currentStory.id).then((v) => setViewers(v as any))
     }
   }, [currentStory, isMe])
 
@@ -198,7 +208,7 @@ export function StoriesViewer({ groupedStories, initialGroupIndex, onClose, curr
         
         {/* Progress Bars */}
         <div className="absolute top-0 left-0 w-full z-50 flex gap-1 p-2 bg-gradient-to-b from-black/50 to-transparent pt-safe pointer-events-none">
-          {currentGroup.stories.map((s: any, idx: number) => {
+          {currentGroup.stories.map((s: {id: string}, idx: number) => {
             let width = "0%"
             if (idx < storyIndex) width = "100%"
             else if (idx === storyIndex) width = `${progress}%`
@@ -213,7 +223,7 @@ export function StoriesViewer({ groupedStories, initialGroupIndex, onClose, curr
 
         {/* Header */}
         <div className="absolute top-4 left-0 w-full z-50 flex items-center justify-between px-4 pt-safe mt-2">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-1 min-w-0">
             <div className="w-10 h-10 rounded-full bg-muted overflow-hidden flex items-center justify-center shrink-0">
               {currentGroup.author?.avatar?.storage_path ? (
                 <img src={`${"https://zvesoygqssyyojqyswwm.supabase.co"}/storage/v1/object/public/recipe_media/${currentGroup.author.avatar.storage_path}`} className="w-full h-full object-cover" />
@@ -221,13 +231,13 @@ export function StoriesViewer({ groupedStories, initialGroupIndex, onClose, curr
                 <span className="font-bold text-muted-foreground text-sm">{(currentGroup.author?.display_name || currentGroup.author?.username || "?").charAt(0).toUpperCase()}</span>
               )}
             </div>
-            <div className="flex flex-col drop-shadow-md">
-              <span className="font-bold text-sm leading-tight">{currentGroup.author?.display_name || currentGroup.author?.username}</span>
-              <span className="text-xs text-white/80">{formatRelativeTime(currentStory.created_at)}</span>
+            <div className="flex flex-col drop-shadow-md min-w-0 flex-1 overflow-hidden">
+              <span className="font-bold text-sm leading-tight truncate">{currentGroup.author?.display_name || currentGroup.author?.username}</span>
+              <span className="text-xs text-white/80 truncate">{formatRelativeTime(currentStory.created_at)}</span>
             </div>
           </div>
           
-                      <div className="flex gap-2 relative z-50 pointer-events-auto">
+                      <div className="flex gap-2 relative z-50 pointer-events-auto shrink-0">
               <button onClick={handleMenuClick} className="p-2 hover:bg-black/20 rounded-full transition-colors backdrop-blur-sm">
                 <MoreHorizontal className="w-6 h-6 drop-shadow-md text-white" />
               </button>
@@ -452,9 +462,7 @@ export function StoriesViewer({ groupedStories, initialGroupIndex, onClose, curr
                     key={emoji}
                     onClick={async () => {
                       try {
-                        const { votePoll } = await import('@/app/actions/stories');
-                        // Using votePoll as a generic upsert into story_reactions since we built it that way
-                        await votePoll(currentStory.id, "REACTION", emoji as any);
+                        await handleReaction(emoji);
                         alert('Reacción ' + emoji + ' enviada');
                       } catch (err) {
                         console.error(err);
@@ -491,7 +499,24 @@ export function StoriesViewer({ groupedStories, initialGroupIndex, onClose, curr
         )}
 
         {/* Viewers Modal (Owner only) */}
-        {showViewers && isMe && (
+        
+          {ownerMenuOpen && (
+            <StoryOwnerMenu 
+              storyId={currentStory.id} 
+              onClose={() => { setOwnerMenuOpen(false); setIsPaused(false); }} 
+              onDeleted={onClose}
+              onOpenInsights={() => { setInsightsOpen(true); }}
+              onOpenHighlight={() => { setHighlightModalOpen(true); }}
+            />
+          )}
+          {insightsOpen && (
+            <StoryInsightsModal 
+              storyId={currentStory.id}
+              onClose={() => { setInsightsOpen(false); setIsPaused(false); }}
+            />
+          )}
+
+          {showViewers && isMe && (
           <div className="absolute bottom-0 left-0 w-full h-[60%] bg-zinc-900/95 backdrop-blur-xl rounded-t-3xl z-40 flex flex-col border-t border-white/10">
             <div className="flex justify-between items-center p-4 border-b border-white/10">
               <h3 className="font-bold text-sm flex items-center gap-2"><EyeIcon className="w-4 h-4" /> Vistas ({viewers.length})</h3>

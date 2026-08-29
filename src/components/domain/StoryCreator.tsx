@@ -58,7 +58,7 @@ export function StoryCreator({
         id: 'recipe_'+Date.now(),
         type: 'RECIPE',
         x: 0.5, y: 0.8, scale: 1, rotation: 0, zIndex: 1,
-        payload: { title: initialRecipe.name, recipeId: initialRecipe.id }
+        payload: { title: initialRecipe.name, recipeId: initialRecipe.id, coverUrl: initialRecipe.coverUrl, displayStyle: 'card' }
       }]);
     }
   }, []);
@@ -107,7 +107,7 @@ export function StoryCreator({
     setTextVal(''); setMode('EDIT');
   };
 
-  const handleStickerSelect = (type: string, data: { id: string, title: string }) => {
+  const handleStickerSelect = (type: string, data: { id: string, title: string, coverUrl?: string }) => {
     saveHistory();
     
     
@@ -115,7 +115,7 @@ export function StoryCreator({
     const common = { id: type+'_'+Date.now(), x: 0.5, y: 0.5, scale: 1, rotation: 0, zIndex: overlays.length + 10 };
     if (type === 'MENTION') newOverlay = { ...common, type: 'MENTION', payload: { username: data.title, userId: data.id } };
     if (type === 'LOCATION') newOverlay = { ...common, type: 'LOCATION', payload: { name: data.title } };
-    if (type === 'RECIPE') newOverlay = { ...common, type: 'RECIPE', payload: { title: data.title, recipeId: data.id } };
+    if (type === 'RECIPE') newOverlay = { ...common, type: 'RECIPE', payload: { title: data.title, recipeId: data.id, displayStyle: 'compact', coverUrl: data.coverUrl } };
     if (type === 'INGREDIENT') newOverlay = { ...common, type: 'INGREDIENT', payload: { name: data.title, ingredientId: data.id } };
     if (type === 'SESSION') newOverlay = { ...common, type: 'SESSION', payload: { authorName: data.title, sessionId: data.id } };
     if (type === 'PROFILE') newOverlay = { ...common, type: 'PROFILE', payload: { username: data.title, userId: data.id } };
@@ -198,7 +198,35 @@ export function StoryCreator({
       <div className="w-full md:w-80 bg-zinc-950 border-t md:border-t-0 md:border-l border-white/10 flex flex-col">
         
         {/* Editor Main Tools */}
-        {mode === 'EDIT' && (
+        
+      {/* Recipe Style Selector */}
+      {selectedOverlayId && overlays.find(o => o.id === selectedOverlayId)?.type === 'RECIPE' && (
+        <div className="absolute bottom-[20%] left-1/2 -translate-x-1/2 bg-black/80 backdrop-blur-sm px-4 py-2 rounded-2xl flex gap-3 z-[100] border border-white/20 shadow-2xl">
+          {['card', 'compact', 'text'].map(style => {
+            const ov = overlays.find(o => o.id === selectedOverlayId);
+            const isActive = ov?.type === 'RECIPE' && ov.payload.displayStyle === style;
+            return (
+              <button 
+                key={style}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setOverlays(overlays.map(o => {
+    if (o.id === selectedOverlayId && o.type === 'RECIPE') {
+      return { ...o, payload: { ...o.payload, displayStyle: style as 'card'|'compact'|'text' } };
+    }
+    return o;
+  }));
+                }}
+                className={`px-4 py-1.5 rounded-xl text-sm font-bold capitalize transition-colors ${isActive ? 'bg-primary text-white' : 'text-white/70 hover:bg-white/20'}`}
+              >
+                {style}
+              </button>
+            )
+          })}
+        </div>
+      )}
+
+      {mode === 'EDIT' && (
           <div className="p-4 flex flex-col gap-4 h-full">
             <div className="flex justify-around bg-zinc-900 rounded-xl p-2">
               <button onClick={() => setMode('TEXT')} className="p-3 text-white flex flex-col items-center gap-1"><AlignLeft size={20}/><span className="text-xs">Texto</span></button>

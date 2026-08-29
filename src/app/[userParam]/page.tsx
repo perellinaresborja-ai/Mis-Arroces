@@ -1,5 +1,6 @@
 // @ts-nocheck
 import { createClient } from "@/lib/supabase/server"
+import { getProfileHighlights } from "@/app/actions/highlights"
 import { notFound, redirect } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
@@ -52,6 +53,11 @@ export default async function PublicProfilePage({
     : null
 
   const isSelf = user?.id === profile.id
+  
+  let highlights: any[] = []
+  if (isSelf || canViewPrivate) {
+    highlights = await getProfileHighlights(profile.id)
+  }
   let hasActiveShoppingItems = false
   if (isSelf) {
     const { data: list } = await supabase
@@ -258,8 +264,12 @@ export default async function PublicProfilePage({
           
         </div>
       </header>
-
-      <div className="px-1 md:px-0 mx-auto pb-6 w-full">
+        {(isSelf || (canViewPrivate && highlights.length > 0)) && (
+          <div className="w-full px-4 mb-4">
+            <ProfileHighlightsClient highlights={highlights} isMe={isSelf} currentUserId={user?.id} />
+          </div>
+        )}
+        <div className="px-1 md:px-0 mx-auto pb-6 w-full">
         <div className="flex justify-center border-t border-border mb-4">
           <Link href="?tab=posts" scroll={false} className={`flex items-center gap-2 px-4 sm:px-6 py-4 text-xs font-bold uppercase tracking-widest transition-colors ${tab === 'posts' ? 'text-foreground border-t-[3px] border-primary -mt-[2px]' : 'text-muted-foreground hover:text-foreground border-t-[3px] border-transparent -mt-[2px]'}`}>
             <Grid className="w-4 h-4 sm:w-5 sm:h-5" />

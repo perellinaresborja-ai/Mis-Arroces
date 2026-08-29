@@ -1,9 +1,49 @@
 "use client"
 import React from 'react';
 
-import { CSSProperties, useEffect } from "react"
+import { CSSProperties, useEffect, Dispatch, SetStateAction } from "react"
 import { StoryOverlay, StoryTransform, StoryBackground, PollOverlay, QuestionOverlay, SliderOverlay, RecipeOverlay, SessionOverlay, MentionOverlay, ProfileOverlay, LocationOverlay, IngredientOverlay, GifOverlay, TextOverlay } from "@/types/stories"
 import { MapPin, Utensils } from "lucide-react"
+
+interface PollResultData {
+  countA?: number;
+  countB?: number;
+  total?: number;
+  percentA?: number;
+  percentB?: number;
+  myVote?: string | null;
+  a?: number;
+  b?: number;
+  userVoted?: string | null;
+}
+interface SliderResultData {
+  average: number;
+  total?: number;
+  count?: number;
+  userValue: number | null;
+}
+
+export interface RenderContext {
+  pollResults?: Record<string, PollResultData>;
+  isVoting?: Record<string, boolean>;
+  handleVote?: (pollId: string, option: string) => Promise<void>;
+  questionReplies?: Record<string, string>;
+  setQuestionReplies?: React.Dispatch<React.SetStateAction<Record<string, string>>>;
+  isSendingQ?: Record<string, boolean>;
+  setIsSendingQ?: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
+  sentQ?: Record<string, boolean>;
+  setSentQ?: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
+  handleQuestionReply?: (qId: string, prompt: string) => Promise<void>;
+  sliderResults?: Record<string, SliderResultData>;
+  setSliderResults?: React.Dispatch<React.SetStateAction<Record<string, SliderResultData>>>;
+  sliderValues?: Record<string, number>;
+  setSliderValues?: React.Dispatch<React.SetStateAction<Record<string, number>>>;
+  handleSliderRelease?: (sId: string, val: number, prompt: string) => Promise<void>;
+  onPauseRequest?: () => void;
+  onResumeRequest?: () => void;
+  storyId?: string;
+}
+
 
 interface SharedStoryRendererProps {
   storyId?: string;
@@ -33,12 +73,12 @@ export function SharedStoryRenderer({
   onOverlayClick,
   selectedOverlayId
 , isVideo, videoRef, onTimeUpdate, onEnded, isPaused, onPauseRequest, onResumeRequest}: SharedStoryRendererProps) {
-  const [pollResults, setPollResults] = React.useState<Record<string, any>>({});
+  const [pollResults, setPollResults] = React.useState<Record<string, PollResultData>>({});
   const [isVoting, setIsVoting] = React.useState<Record<string, boolean>>({});
   const [questionReplies, setQuestionReplies] = React.useState<Record<string, string>>({});
   const [isSendingQ, setIsSendingQ] = React.useState<Record<string, boolean>>({});
   const [sentQ, setSentQ] = React.useState<Record<string, boolean>>({});
-  const [sliderResults, setSliderResults] = React.useState<Record<string, any>>({});
+  const [sliderResults, setSliderResults] = React.useState<Record<string, SliderResultData>>({});
   const [sliderValues, setSliderValues] = React.useState<Record<string, number>>({});
 
   React.useEffect(() => {
@@ -46,7 +86,7 @@ export function SharedStoryRenderer({
       const fetchPolls = async () => {
         try {
           const { getPollResults } = await import('@/app/actions/stories');
-          const results: Record<string, any> = {};
+          const results: Record<string, PollResultData> = {};
           for (const ov of overlays || []) {
             if (ov.type === 'POLL') {
               const pollId = ov.payload.pollId || ov.id;
@@ -179,8 +219,30 @@ export function SharedStoryRenderer({
   )
 }
 
-function renderOverlayContent(overlay: StoryOverlay, mode: string, ctx?: any) {
-  const { storyId, questionReplies, setQuestionReplies, isSendingQ, setIsSendingQ, sentQ, setSentQ, onPauseRequest, onResumeRequest, sliderResults, setSliderResults, sliderValues, setSliderValues } = ctx || {};
+function renderOverlayContent(overlay: StoryOverlay, mode: string, ctx?: RenderContext) {
+    const safeCtx = ctx || {};
+    const safeQuestionReplies = safeCtx.questionReplies || {};
+    const safeSentQ = safeCtx.sentQ || {};
+    const safeIsSendingQ = safeCtx.isSendingQ || {};
+    const safePollResults = safeCtx.pollResults || {};
+    const safeSliderResults = safeCtx.sliderResults || {};
+    const safeSliderValues = safeCtx.sliderValues || {};
+    const safeIsVoting = safeCtx.isVoting || {};
+  
+    const storyId = safeCtx.storyId;
+    const questionReplies = safeCtx.questionReplies || {};
+    const setQuestionReplies = safeCtx.setQuestionReplies || (() => {});
+    const isSendingQ = safeCtx.isSendingQ || {};
+    const setIsSendingQ = safeCtx.setIsSendingQ || (() => {});
+    const sentQ = safeCtx.sentQ || {};
+    const setSentQ = safeCtx.setSentQ || (() => {});
+    const onPauseRequest = safeCtx.onPauseRequest || (() => {});
+    const onResumeRequest = safeCtx.onResumeRequest || (() => {});
+    const sliderResults = safeCtx.sliderResults || {};
+    const setSliderResults = safeCtx.setSliderResults || (() => {});
+    const sliderValues = safeCtx.sliderValues || {};
+    const setSliderValues = safeCtx.setSliderValues || (() => {});
+  
   switch (overlay.type) {
     case 'TEXT': {
       const p = overlay.payload;
@@ -200,15 +262,46 @@ function renderOverlayContent(overlay: StoryOverlay, mode: string, ctx?: any) {
     }
     case 'RECIPE': {
       const p = overlay.payload;
-      const handleClick = () => { if (mode === 'VIEWER') window.location.href = '/recipes/' + p.recipeId; };
-      if (p.displayStyle === 'compact') {
-        return <div onClick={handleClick} className="bg-card border border-border text-foreground px-3 py-1 rounded-full font-bold flex items-center gap-2 shadow-xl cursor-pointer text-xs"><Utensils className="w-3 h-3"/> {p.title}</div>;
+      const style = p.displayStyle || 'compact';
+
+      const handleClick = (e: React.MouseEvent) => { 
+        e.stopPropagation();
+        if (mode === 'VIEWER') window.location.href = '/recipes/' + p.recipeId; 
+      };
+
+      if (style === 'compact') {
+        return (
+          <div onClick={handleClick} className="bg-card border border-border text-foreground px-3 py-1.5 rounded-full font-bold flex items-center gap-2 shadow-xl cursor-pointer text-sm pointer-events-auto transition-transform hover:scale-105">
+            <span className="truncate max-w-[150px]">{p.title || 'Receta'}</span>
+            <span className="text-primary text-xs ml-1 border-l pl-2 border-border/50">Ver</span>
+          </div>
+        );
       }
-      if (p.displayStyle === 'text') {
-        return <div onClick={handleClick} className="text-white font-bold text-lg drop-shadow-md cursor-pointer">{p.title} ↗</div>;
+
+      if (style === 'text') {
+        return (
+          <div onClick={handleClick} className="text-white drop-shadow-md px-2 py-1 flex flex-col items-center cursor-pointer pointer-events-auto hover:opacity-80 transition-opacity">
+            <span className="font-bold text-lg">{p.title || 'Receta'}</span>
+            <span className="text-xs bg-black/40 px-2 py-0.5 rounded-full mt-1">Ver receta ➔</span>
+          </div>
+        );
       }
-      // Default Card
-      return <div onClick={handleClick} className="bg-card/95 border border-border text-foreground px-4 py-2 rounded-xl font-bold flex items-center gap-2 shadow-xl cursor-pointer"><Utensils className="w-5 h-5"/> <div><div className="text-xs text-muted-foreground">Receta</div><div className="text-sm">{p.title}</div></div></div>;
+
+      return (
+        <div onClick={handleClick} className="bg-card rounded-2xl overflow-hidden shadow-2xl border border-border flex flex-col w-48 cursor-pointer pointer-events-auto transition-transform hover:scale-105">
+          <div className="h-28 bg-muted relative">
+            {p.coverUrl ? (
+              <img src={p.coverUrl} className="w-full h-full object-cover" alt={p.title} />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center text-muted-foreground"><Utensils size={32} opacity={0.5}/></div>
+            )}
+          </div>
+          <div className="p-3 flex flex-col gap-1 text-center bg-card">
+            <span className="font-bold text-foreground text-sm truncate">{p.title || 'Receta'}</span>
+            <span className="text-xs font-semibold text-primary">Ver receta</span>
+          </div>
+        </div>
+      );
     }
     case 'INGREDIENT': {
       const p = overlay.payload;
@@ -253,7 +346,7 @@ function renderOverlayContent(overlay: StoryOverlay, mode: string, ctx?: any) {
         if (mode === 'VIEWER' && storyId) {
           const val = (questionReplies[qId] || '').trim();
           if (!val) return;
-          setIsSendingQ((prev: any) => ({...prev, [qId]: true}));
+          setIsSendingQ((prev: Record<string, any>) => ({...prev, [qId]: true}));
           try {
             const { submitQuestionReply } = await import('@/app/actions/stories');
             // We need the ownerId. We don't have it directly from storyId unless passed or fetched.
@@ -262,11 +355,11 @@ function renderOverlayContent(overlay: StoryOverlay, mode: string, ctx?: any) {
             // Wait, submitQuestionReply signature: (storyId, ownerId, question, answer). Let's pass a dummy for ownerId and let the backend find it, or modify the backend to find it.
             // Actually, submitQuestionReply can just fetch the owner_id from storyId!
             await submitQuestionReply(storyId, 'DUMMY_OWNER', p.question, val);
-            setSentQ((prev: any) => ({...prev, [qId]: true}));
+            setSentQ((prev: Record<string, any>) => ({...prev, [qId]: true}));
           } catch (e: any) {
             alert(e.message || 'Error al enviar');
           } finally {
-            setIsSendingQ((prev: any) => ({...prev, [qId]: false}));
+            setIsSendingQ((prev: Record<string, any>) => ({...prev, [qId]: false}));
           }
         }
       }
@@ -281,8 +374,8 @@ function renderOverlayContent(overlay: StoryOverlay, mode: string, ctx?: any) {
               <div className="flex gap-2">
                 <input 
                   type="text" 
-                  value={questionReplies[qId] || ''}
-                  onChange={e => setQuestionReplies((prev: any) => ({...prev, [qId]: e.target.value}))}
+                  value={safeQuestionReplies[qId] || ''}
+                  onChange={e => setQuestionReplies((prev: Record<string, any>) => ({...prev, [qId]: (e.target as HTMLInputElement).value}))}
                   onFocus={() => { if(onPauseRequest) onPauseRequest(); }}
                   onBlur={() => { if(onResumeRequest) onResumeRequest(); }}
                   disabled={isSendingQ[qId]}
@@ -314,14 +407,14 @@ function renderOverlayContent(overlay: StoryOverlay, mode: string, ctx?: any) {
       const sId = overlay.id;
       const res = sliderResults?.[sId] || { average: 0, count: 0 };
       const currentVal = sliderValues?.[sId] ?? 50;
-      const handleChangeEnd = async (e: any) => {
+      const handleChangeEnd = async (e: React.ChangeEvent<HTMLInputElement> | React.MouseEvent | React.TouchEvent) => {
         if (mode === 'VIEWER' && storyId) {
-          const val = Number(e.target.value);
+          const val = Number((e.target as HTMLInputElement).value);
           try {
             const { upsertSliderValue, getSliderResults } = await import('@/app/actions/stories');
             await upsertSliderValue(storyId, sId, val);
             const newRes = await getSliderResults(sId);
-            setSliderResults((prev: any) => ({...prev, [sId]: newRes}));
+            setSliderResults((prev: Record<string, any>) => ({...prev, [sId]: newRes}));
           } catch (err: any) {
             console.error(err);
             alert(err.message || 'Error al guardar');
@@ -340,8 +433,8 @@ function renderOverlayContent(overlay: StoryOverlay, mode: string, ctx?: any) {
               min="0" max="100" 
               value={currentVal} 
               onChange={e => {
-                const val = Number(e.target.value);
-                setSliderValues((prev: any) => ({...prev, [sId]: val}));
+                const val = Number((e.target as HTMLInputElement).value);
+                setSliderValues((prev: Record<string, any>) => ({...prev, [sId]: val}));
               }}
               onPointerDown={() => { if(onPauseRequest) onPauseRequest(); }}
               onPointerUp={handleChangeEnd}
@@ -349,10 +442,10 @@ function renderOverlayContent(overlay: StoryOverlay, mode: string, ctx?: any) {
               className="flex-1 accent-primary cursor-grab h-2 bg-muted rounded-lg appearance-none" 
             />
           </div>
-          {res.count > 0 && mode === 'VIEWER' && (
+          {(res?.count || 0) > 0 && mode === 'VIEWER' && (
             <div className="w-full mt-2 text-xs text-muted-foreground flex justify-between px-2 font-semibold">
               <span>Promedio: {res.average}</span>
-              <span>{res.count} votos</span>
+              <span>{(res?.count || 0)} votos</span>
             </div>
           )}
         </div>

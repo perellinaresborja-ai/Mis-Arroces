@@ -15,7 +15,7 @@ export default async function StoryArchivePage() {
   // Fetch expired or archived stories for this user
   const { data: stories } = await supabase
     .from("stories")
-    .select("*, story_media(*)")
+    .select("*, author:profiles!stories_owner_id_fkey(*), story_media(*)")
     .eq("owner_id", user.id)
     .lte("expires_at", new Date().toISOString())
     .order("created_at", { ascending: false })
