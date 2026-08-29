@@ -7,7 +7,14 @@ export async function getProfileHighlights(userId: string) {
   
   const { data, error } = await supabase
     .from('story_highlights')
-    .select('id, name, cover_url')
+    .select(`
+      id, name, cover_url, user_id,
+      highlight_stories (
+        story_id,
+        display_order,
+        stories (*, author:profiles!stories_owner_id_fkey(*), story_media(media_id, media:media_assets(storage_path)))
+      )
+    `)
     .eq('user_id', userId)
     .order('created_at', { ascending: true });
     
@@ -15,7 +22,16 @@ export async function getProfileHighlights(userId: string) {
     console.error("Error fetching highlights:", error);
     return [];
   }
-  return data;
+  return data.map(h => {
+    const sortedHS = (h.highlight_stories || []).sort((a: any, b: any) => a.display_order - b.display_order);
+    return {
+      id: h.id,
+      name: h.name,
+      cover_url: h.cover_url,
+      user_id: h.user_id,
+      stories: sortedHS.map((hs: any) => hs.stories).filter(Boolean)
+    };
+  });
 }
 
 export async function getHighlightStories(highlightId: string) {

@@ -18,7 +18,7 @@ export function CreateHighlightModal({ archivedStories, onClose }: { archivedSto
     setLoading(true)
     try {
       const coverUrl = archivedStories.find(s => s.id === selectedIds[0])?.story_media?.[0]?.storage_path 
-        ? "https://zvesoygqssyyojqyswwm.supabase.co/storage/v1/object/public/story_media/" + archivedStories.find((s: { id: string, story_media?: { storage_path: string }[] }) => s.id === selectedIds[0])?.story_media?.[0]?.storage_path
+        ? "https://zvesoygqssyyojqyswwm.supabase.co/storage/v1/object/public/recipe_media/" + archivedStories.find((s: { id: string, story_media?: { storage_path: string }[] }) => s.id === selectedIds[0])?.story_media?.[0]?.storage_path
         : undefined;
       await createStoryHighlight(name, selectedIds, coverUrl)
       router.refresh()
@@ -51,7 +51,7 @@ export function CreateHighlightModal({ archivedStories, onClose }: { archivedSto
               onClick={() => toggle(s.id)}
             >
               {s.story_media?.[0]?.storage_path && (
-                <img src={"https://zvesoygqssyyojqyswwm.supabase.co/storage/v1/object/public/story_media/" + s.story_media[0].storage_path} className="w-full h-full object-cover" />
+                <img src={"https://zvesoygqssyyojqyswwm.supabase.co/storage/v1/object/public/recipe_media/" + s.story_media[0].storage_path} className="w-full h-full object-cover" />
               )}
             </div>
           ))}

@@ -1,6 +1,7 @@
 // @ts-nocheck
 import { createClient } from "@/lib/supabase/server"
 import { getProfileHighlights } from "@/app/actions/highlights"
+import { getArchivedStories } from "@/app/actions/stories"
 import { notFound, redirect } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
@@ -55,8 +56,12 @@ export default async function PublicProfilePage({
   const isSelf = user?.id === profile.id
   
   let highlights: any[] = []
+  let archivedStories: any[] = []
   if (isSelf || canViewPrivate) {
     highlights = await getProfileHighlights(profile.id)
+  }
+  if (isSelf) {
+    archivedStories = await getArchivedStories()
   }
   let hasActiveShoppingItems = false
   if (isSelf) {
@@ -266,7 +271,7 @@ export default async function PublicProfilePage({
       </header>
         {(isSelf || (canViewPrivate && highlights.length > 0)) && (
           <div className="w-full px-4 mb-4">
-            <ProfileHighlightsClient highlights={highlights} isMe={isSelf} currentUserId={user?.id} />
+            <ProfileHighlightsClient highlights={highlights} archivedStories={archivedStories} isMe={isSelf} />
           </div>
         )}
         <div className="px-1 md:px-0 mx-auto pb-6 w-full">

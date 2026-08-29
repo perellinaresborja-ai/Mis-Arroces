@@ -19,7 +19,12 @@ export function EditHighlightModal({ highlight, archivedStories, onClose }: { hi
     setLoading(true)
     try {
       // 1. Update highlight name
-      await supabase.from('story_highlights').update({ name }).eq('id', highlight.id)
+      const path = archivedStories.find(s => s.id === selectedIds[0])?.story_media?.[0]?.storage_path;
+      const coverUrl = path ? ('https://zvesoygqssyyojqyswwm.supabase.co/storage/v1/object/public/recipe_media/' + path) : undefined;
+      // Re-replaced properly
+      const updateData: any = { name };
+      if (coverUrl) updateData.cover_url = coverUrl;
+      await supabase.from('story_highlights').update(updateData).eq('id', highlight.id)
       
       // 2. Delete old relations
       await supabase.from('highlight_stories').delete().eq('highlight_id', highlight.id)
