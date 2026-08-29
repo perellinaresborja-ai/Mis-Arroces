@@ -52,6 +52,12 @@ export function StoriesViewer({ groupedStories: _groupedStories, initialGroupInd
   }
   
   const handleReaction = async (reaction: string) => {
+    const id = Date.now() + Math.random();
+    setFloatingEmojis(prev => [...prev, { id, emoji: reaction, x: Math.random() * 40 - 20 }]);
+    setTimeout(() => {
+      setFloatingEmojis(prev => prev.filter(e => e.id !== id));
+    }, 2000);
+
     try {
       await toggleStoryReaction(currentStory.id, reaction);
       console.log(`Reaccionaste con ${reaction}`);
@@ -83,7 +89,8 @@ export function StoriesViewer({ groupedStories: _groupedStories, initialGroupInd
     closeMenu();
   }
   const [viewers, setViewers] = useState<{id: string, username: string, display_name?: string, avatar?: {storage_path: string}}[]>([]);
-  const [showViewers, setShowViewers] = useState(false);
+  const [showViewers, setShowViewers] = useState(false)
+  const [floatingEmojis, setFloatingEmojis] = useState<{id: number, emoji: string, x: number}[]>([]);
   const [ownerMenuOpen, setOwnerMenuOpen] = useState(false);
   const [highlightModalOpen, setHighlightModalOpen] = useState(false);
   const [insightsOpen, setInsightsOpen] = useState(false)
@@ -350,11 +357,11 @@ export function StoriesViewer({ groupedStories: _groupedStories, initialGroupInd
                 />
               </form>
               <div className="flex gap-2 text-2xl shrink-0">
-                {['❤️', '😂', '🔥'].map(emoji => (
-                  <button key={emoji} onClick={(e) => { e.stopPropagation(); handleReaction(emoji); }} className="hover:scale-125 transition-transform drop-shadow-lg">
-                    {emoji}
-                  </button>
-                ))}
+                {['❤️', '😂', '😮', '😢', '🔥', '👏'].map(emoji => (
+                    <button key={emoji} onClick={(e) => { e.stopPropagation(); handleReaction(emoji); }} className="hover:scale-125 transition-transform drop-shadow-lg">
+                      {emoji}
+                    </button>
+                  ))}
               </div>
             </div>
           )}
