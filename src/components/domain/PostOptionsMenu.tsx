@@ -109,9 +109,11 @@ export function PostOptionsMenu({
                 <PlusCircle className="w-4 h-4" /> Compartir en tu Historia
               </button>
             )}
-            <button onClick={handleFijar} className="flex items-center gap-3 w-full text-left px-4 py-3 text-sm hover:bg-muted font-medium border-b border-border transition-colors text-foreground">
-              {isPinned ? <PinOff className="w-4 h-4" /> : <Pin className="w-4 h-4" />} {isPinned ? "Desfijar de la cuadrícula" : "Fijar en la cuadrícula"}
-            </button>
+            {!hidePin && (
+              <button onClick={handleFijar} className="flex items-center gap-3 w-full text-left px-4 py-3 text-sm hover:bg-muted font-medium border-b border-border transition-colors text-foreground">
+                {isPinned ? <PinOff className="w-4 h-4" /> : <Pin className="w-4 h-4" />} {isPinned ? "Desfijar de la cuadrícula" : "Fijar en la cuadrícula"}
+              </button>
+            )}
 
             <button onClick={handleGuardar} className="flex items-center gap-3 w-full text-left px-4 py-3 text-sm hover:bg-muted font-medium border-b border-border transition-colors text-foreground">
               <Bookmark className="w-4 h-4" /> Guardar
