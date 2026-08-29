@@ -1,57 +1,35 @@
 const fs = require('fs');
+
 let code = fs.readFileSync('src/components/domain/StoriesViewer.tsx', 'utf8');
 
-if (!code.includes('StoryOwnerMenu')) {
-  code = code.replace(
-    /import \{ X, ChevronRight, ChevronLeft, EyeIcon, BarChart2 \} from "lucide-react"/,
-    `import { X, ChevronRight, ChevronLeft, EyeIcon, BarChart2, MoreHorizontal } from "lucide-react"\nimport { StoryOwnerMenu } from "./StoryOwnerMenu"\nimport { StoryInsightsModal } from "./StoryInsightsModal"`
-  );
-}
+// 1. Remove Pointer event handlers completely
+code = code.replace(/const handlePointerDown = \(\) => setIsPaused\(true\)\n\s*const handlePointerUp = \(\) => setIsPaused\(false\)\n\s*/, '');
 
-if (!code.includes('ownerMenuOpen')) {
-  code = code.replace(
-    /const \[showViewers, setShowViewers\] = useState\(false\);/,
-    `const [showViewers, setShowViewers] = useState(false);\n  const [ownerMenuOpen, setOwnerMenuOpen] = useState(false);\n  const [highlightModalOpen, setHighlightModalOpen] = useState(false);`
-  );
-}
+// 2. Remove pointer handlers from Media Container
+code = code.replace(/className="flex-1 relative w-full h-full overflow-hidden"\n\s*onPointerDown=\{handlePointerDown\}\n\s*onPointerUp=\{handlePointerUp\}\n\s*onPointerLeave=\{handlePointerUp\}/, 'className="flex-1 relative w-full h-full overflow-hidden"');
 
-const menuBtn = `{isMe && (
-              <button onClick={(e) => { e.stopPropagation(); setOwnerMenuOpen(true); setIsPaused(true); }} className="w-8 h-8 flex items-center justify-center text-white drop-shadow-md">
-                <MoreHorizontal className="w-6 h-6" />
-              </button>
-            )}`;
-            
-if (!code.includes('setOwnerMenuOpen(true)')) {
-  code = code.replace(
-    /<button onClick=\{onClose\} className="w-8 h-8 flex items-center justify-center text-white drop-shadow-md">/,
-    menuBtn + '\n            ' + `<button onClick={onClose} className="w-8 h-8 flex items-center justify-center text-white drop-shadow-md">`
-  );
-}
-
-const modals = `
-          {ownerMenuOpen && (
-            <StoryOwnerMenu 
-              storyId={currentStory.id} 
-              onClose={() => { setOwnerMenuOpen(false); setIsPaused(false); }} 
-              onDeleted={onClose}
-              onOpenInsights={() => { setInsightsOpen(true); }}
-              onOpenHighlight={() => { setHighlightModalOpen(true); }}
+// 3. Replace the click zones with the new architecture
+code = code.replace(
+  /\{\/\* Invisible Click Zones for navigation \(only active if not showing viewers\) \*\/\}\n\s*\{!showViewers && \(\n\s*<>\n\s*<div className="absolute top-0 left-0 w-1\/3 h-full z-50 cursor-pointer" onClick=\{\(e\) => \{ e\.stopPropagation\(\); prevStory\(\); \}\} \/>\n\s*<div className="absolute top-0 right-0 w-2\/3 h-full z-50 cursor-pointer" onClick=\{\(e\) => \{ e\.stopPropagation\(\); nextStory\(\); \}\} \/>\n\s*<\/>\n\s*\)\}/,
+  `{/* LEFT NAV ZONE */}
+            <div 
+              aria-label="Historia anterior"
+              className="absolute left-0 top-[10%] bottom-[20%] w-[25%] z-[5] cursor-pointer"
+              onClick={(e) => { e.stopPropagation(); prevStory(); }}
             />
-          )}
-          {insightsOpen && (
-            <StoryInsightsModal 
-              storyId={currentStory.id}
-              onClose={() => { setInsightsOpen(false); setIsPaused(false); }}
-            />
-          )}
-`;
+            {/* RIGHT NAV ZONE */}
+            <div 
+              aria-label="Historia siguiente"
+              className="absolute right-0 top-[10%] bottom-[20%] w-[25%] z-[5] cursor-pointer"
+              onClick={(e) => { e.stopPropagation(); nextStory(); }}
+            />`
+);
 
-if (!code.includes('ownerMenuOpen && (')) {
-  code = code.replace(
-    /\{showViewers && isMe && \(/,
-    modals + '\n          {showViewers && isMe && ('
-  );
-}
+// 4. Ensure X button closes and stops propagation robustly
+code = code.replace(
+  /<button onClick=\{\(\) => \{ stop\(\); close\(\); \}\} className="hover:scale-110 transition-transform">/,
+  `<button onClick={(e) => { e.stopPropagation(); stop(); close(); }} className="hover:scale-110 transition-transform relative z-50 pointer-events-auto">`
+);
 
 fs.writeFileSync('src/components/domain/StoriesViewer.tsx', code);
-console.log('Patched StoriesViewer');
+console.log('Fixed StoriesViewer navigation architecture');

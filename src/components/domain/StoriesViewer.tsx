@@ -301,9 +301,6 @@ export function StoriesViewer({ groupedStories: _groupedStories, initialGroupInd
           {/* Media Container */}
         <div 
           className="flex-1 relative w-full h-full overflow-hidden"
-          onPointerDown={handlePointerDown}
-          onPointerUp={handlePointerUp}
-          onPointerLeave={handlePointerUp}
         >
           <SharedStoryRenderer storyId={currentStory.id} mode="VIEWER"
             mediaUrl={fullUrl}
@@ -317,13 +314,18 @@ export function StoriesViewer({ groupedStories: _groupedStories, initialGroupInd
             isPaused={isPaused}
           />
           
-          {/* Invisible Click Zones for navigation (only active if not showing viewers) */}
-          {!showViewers && (
-            <>
-              <div className="absolute top-0 left-0 w-1/3 h-full z-50 cursor-pointer" onClick={(e) => { e.stopPropagation(); prevStory(); }} />
-              <div className="absolute top-0 right-0 w-2/3 h-full z-50 cursor-pointer" onClick={(e) => { e.stopPropagation(); nextStory(); }} />
-            </>
-          )}
+          {/* LEFT NAV ZONE */}
+            <div 
+              aria-label="Historia anterior"
+              className="absolute left-0 top-[10%] bottom-[20%] w-[25%] z-[5] cursor-pointer"
+              onClick={(e) => { e.stopPropagation(); prevStory(); }}
+            />
+            {/* RIGHT NAV ZONE */}
+            <div 
+              aria-label="Historia siguiente"
+              className="absolute right-0 top-[10%] bottom-[20%] w-[25%] z-[5] cursor-pointer"
+              onClick={(e) => { e.stopPropagation(); nextStory(); }}
+            />
         </div>
 
         
