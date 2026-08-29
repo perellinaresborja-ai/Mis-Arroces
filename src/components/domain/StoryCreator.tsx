@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { StoryTransform, StoryOverlay, StoryBackground, DrawingOverlay } from '@/types/stories';
 import { createClient } from '@/lib/supabase/client';
 import { createStory } from '@/app/actions/stories';
+import { globalStoryDraftUrl, globalStoryDraftType, globalStoryDraftFile, clearGlobalStoryDraft } from '@/lib/story-draft';
 import { SharedStoryRenderer } from './SharedStoryRenderer';
 import { DraggableOverlay } from './stories/DraggableOverlay';
 import { MentionPicker, RecipePicker, IngredientPicker, LocationPicker, GenericSearchPicker, SessionPicker, ProfilePicker } from './stories/StickerPickers';
@@ -22,6 +23,29 @@ export function StoryCreator({
   const [overlays, setOverlays] = useState<StoryOverlay[]>([]);
   const [history, setHistory] = useState<StoryOverlay[][]>([]); const [redoHistory, setRedoHistory] = useState<StoryOverlay[][]>([]);
   const [background, setBackground] = useState<StoryBackground>({ type: 'blur', value: '' });
+  const [draftMediaUrl, setDraftMediaUrl] = useState<string | undefined>(initialMedia?.url);
+  const [draftMediaType, setDraftMediaType] = useState<'IMAGE'|'VIDEO'|undefined>(initialMedia?.type);
+
+  useEffect(() => {
+    if (globalStoryDraftUrl && !initialMedia) {
+      setDraftMediaUrl(globalStoryDraftUrl);
+      setDraftMediaType(globalStoryDraftType || 'IMAGE');
+      // Set mode to EDIT since we have media
+      setMode('EDIT');
+    } else if (!initialMedia && !initialRecipe) {
+      // If there's no media and no recipe, default to TEXT mode
+      setMode('TEXT');
+    }
+  }, []);
+  
+  // Important: We need a cleanup when unmounting to free memory if needed, 
+  // but if we are publishing we might need it. Let's just keep it in memory for now until it's published or we leave.
+  useEffect(() => {
+    return () => {
+      // We don't automatically clear here because they might be navigating to sticker pickers etc.
+    };
+  }, []);
+  
   
   const [mode, setMode] = useState<'EDIT'|'DRAW'|'TEXT'|'STICKER'>('EDIT');
   const [activeStickerType, setActiveStickerType] = useState<string | null>(null);
@@ -128,12 +152,34 @@ export function StoryCreator({
     setMode('EDIT');
   };
 
+  const uploadDraftIfNeeded = async () => {
+    if (globalStoryDraftFile) {
+      const ext = globalStoryDraftFile.name.split('.').pop();
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${ext}`;
+      const { data, error } = await supabase.storage.from('media').upload(`stories/${fileName}`, globalStoryDraftFile);
+      if (error) { console.error(error); return undefined; }
+      
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return undefined;
+      const { data: assetData, error: dbError } = await supabase.from('media_assets').insert({
+        storage_path: data.path,
+        media_type: globalStoryDraftType === 'VIDEO' ? 'VIDEO' : 'IMAGE',
+        mime_type: globalStoryDraftFile.type,
+        owner_id: user.id
+      }).select().single();
+      
+      if (dbError) { console.error(dbError); return undefined; }
+      return assetData.id;
+    }
+    return undefined;
+  }
+
   const handlePublish = async () => {
     setIsPublishing(true);
     try {
       // In a real flow, we'd also upload media to storage and create the post
       await createStory({
-        mediaId: "placeholder", // In real flow, this is uploaded via MediaUploader first
+        mediaId: await uploadDraftIfNeeded() || undefined,
         recipeId: initialRecipe?.id,
         // privacy,
         overlays
@@ -155,7 +201,7 @@ export function StoryCreator({
         <div ref={containerRef} className="relative w-full max-w-[400px] h-full max-h-[85vh] md:max-h-full bg-zinc-900 border border-white/10 md:rounded-xl overflow-hidden" style={{ aspectRatio: '9/16' }}>
           
           <SharedStoryRenderer 
-            mediaUrl={initialMedia?.url} 
+            mediaUrl={draftMediaUrl} 
             background={background}
             overlays={[]} 
             mode="EDITOR"

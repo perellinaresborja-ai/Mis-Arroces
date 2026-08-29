@@ -1,48 +1,85 @@
 const fs = require('fs');
-let sc = fs.readFileSync('src/components/domain/StoryCreator.tsx', 'utf8');
 
-// Replace imports
-sc = sc.replace(/MentionPicker, RecipePicker, IngredientPicker, LocationPicker, GenericSearchPicker/g, 'MentionPicker, RecipePicker, IngredientPicker, LocationPicker, GenericSearchPicker, SessionPicker, ProfilePicker');
+let code = fs.readFileSync('src/components/domain/StoryCreator.tsx', 'utf8');
 
-// Replace comment
-sc = sc.replace(/\{\/\* SESSION and PROFILE can reuse Mention\/Recipe patterns \*\/\}/g, `
-                  {activeStickerType === 'SESSION' && <SessionPicker onSelect={(s) => handleStickerSelect('SESSION', s)} />}
-                  {activeStickerType === 'PROFILE' && <ProfilePicker onSelect={(p) => handleStickerSelect('PROFILE', p)} />}
-`);
+code = code.replace(
+  /import \{ createStory \} from '@\/app\/actions\/stories';/,
+  `import { createStory } from '@/app/actions/stories';
+import { globalStoryDraftUrl, globalStoryDraftType, globalStoryDraftFile, clearGlobalStoryDraft } from '@/lib/story-draft';`
+);
 
-// Also add buttons for them
-const buttons = `
-                <button onClick={() => setActiveStickerType('SESSION')} className="bg-zinc-900 text-white p-4 rounded-xl flex items-center justify-center gap-2"><ChefHat size={18}/> Sesión</button>
-                <button onClick={() => setActiveStickerType('PROFILE')} className="bg-zinc-900 text-white p-4 rounded-xl flex items-center justify-center gap-2"><User size={18}/> Perfil</button>
-`;
-sc = sc.replace(/<button onClick=\{\(\) => setActiveStickerType\('INGREDIENT'\)\}.*?<\/button>/g, match => match + '\n' + buttons);
+code = code.replace(
+  /const \[background, setBackground\] = useState<StoryBackground>\(\{ type: 'blur', value: '' \}\);/,
+  `const [background, setBackground] = useState<StoryBackground>({ type: 'blur', value: '' });
+  const [draftMediaUrl, setDraftMediaUrl] = useState<string | undefined>(initialMedia?.url);
+  const [draftMediaType, setDraftMediaType] = useState<'IMAGE'|'VIDEO'|undefined>(initialMedia?.type);
 
-// Fix the "any" types in StoryCreator handleStickerSelect
-sc = sc.replace(/const handleStickerSelect = \(type: string, data: any\) => \{/g, `const handleStickerSelect = (type: string, data: { id: string, title: string }) => {`);
-sc = sc.replace(/let payload: any = \{\};/g, `let payload: Record<string, unknown> = {};`);
+  useEffect(() => {
+    if (globalStoryDraftUrl && !initialMedia) {
+      setDraftMediaUrl(globalStoryDraftUrl);
+      setDraftMediaType(globalStoryDraftType || 'IMAGE');
+      // Set mode to EDIT since we have media
+      setMode('EDIT');
+    } else if (!initialMedia && !initialRecipe) {
+      // If there's no media and no recipe, default to TEXT mode
+      setMode('TEXT');
+    }
+  }, []);
+  
+  // Important: We need a cleanup when unmounting to free memory if needed, 
+  // but if we are publishing we might need it. Let's just keep it in memory for now until it's published or we leave.
+  useEffect(() => {
+    return () => {
+      // We don't automatically clear here because they might be navigating to sticker pickers etc.
+    };
+  }, []);
+  `
+);
 
-// Add display styles for Recipe if mode is EDIT
-// Wait, I can just add a quick style selector for recipes when selected.
-// But the prompt says "Creator: selector visual". If I implement that, I'd put it in the "Controls Area" when `mode === 'EDIT'` and `selectedOverlayId` is a RECIPE.
-const recipeStyleControls = `
-          <div className="flex justify-between items-center mt-2">
-             <div className="text-white text-xs">Recipe Style:</div>
-             <select onChange={e => {
-               const idx = overlays.findIndex(o => o.id === selectedOverlayId);
-               if (idx !== -1 && overlays[idx].type === 'RECIPE') {
-                 const newArr = [...overlays];
-                 newArr[idx] = { ...newArr[idx], payload: { ...newArr[idx].payload, displayStyle: e.target.value } } as any;
-                 setOverlays(newArr);
-               }
-             }} className="bg-zinc-900 text-white p-1 rounded">
-               <option value="card">Card</option>
-               <option value="compact">Compact</option>
-               <option value="text">Text</option>
-             </select>
-          </div>
-`;
+// We must replace `initialMedia?.url` with `draftMediaUrl` when passed to SharedStoryRenderer
+code = code.replace(
+  /mediaUrl=\{initialMedia\?\.url\}/,
+  `mediaUrl={draftMediaUrl}`
+);
 
-// Where to put recipeStyleControls? In DraggableOverlay controls? Or globally when selected?
-// I'll skip the UI selector for now to ensure everything passes TypeScript without blowing up, actually I'll just change `RecipeOverlay` payload directly to have `displayStyle`.
+// Replace "placeholder" upload with actual Supabase upload
+code = code.replace(
+  /mediaId: "placeholder", \/\/ In real flow, this is uploaded via MediaUploader first/,
+  `mediaId: await uploadDraftIfNeeded(),`
+);
 
-fs.writeFileSync('src/components/domain/StoryCreator.tsx', sc);
+// Add upload logic
+code = code.replace(
+  /const handlePublish = async \(\) => \{/,
+  `const uploadDraftIfNeeded = async () => {
+    if (globalStoryDraftFile) {
+      const ext = globalStoryDraftFile.name.split('.').pop();
+      const fileName = \`\${Date.now()}-\${Math.random().toString(36).substring(7)}.\${ext}\`;
+      const { data, error } = await supabase.storage.from('media').upload(\`stories/\${fileName}\`, globalStoryDraftFile);
+      if (error) { console.error(error); return null; }
+      
+      const { data: assetData, error: dbError } = await supabase.from('media_assets').insert({
+        storage_path: data.path,
+        media_type: globalStoryDraftType === 'VIDEO' ? 'VIDEO' : 'IMAGE'
+      }).select().single();
+      
+      if (dbError) { console.error(dbError); return null; }
+      return assetData.id;
+    }
+    return undefined;
+  }
+
+  const handlePublish = async () => {`
+);
+
+// Clear draft on publish
+code = code.replace(
+  /router\.push\('\/'\);\n\s*\} catch \(err\) \{/,
+  `clearGlobalStoryDraft();
+        router.push('/');
+      } catch (err) {`
+);
+
+
+fs.writeFileSync('src/components/domain/StoryCreator.tsx', code);
+console.log('Fixed StoryCreator.tsx draft handling');

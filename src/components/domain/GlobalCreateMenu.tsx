@@ -3,11 +3,14 @@ import { useState, useRef, useEffect } from "react"
 import { Plus, Image as ImageIcon, Clock, ChefHat } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
+import { setGlobalStoryDraft } from "@/lib/story-draft"
+import { AlignLeft } from "lucide-react"
 
 export function GlobalCreateMenu() {
   const [isOpen, setIsOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
   const router = useRouter()
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -49,13 +52,27 @@ export function GlobalCreateMenu() {
     }
   ]
 
-  const handleNavigate = (href: string) => {
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setGlobalStoryDraft(file);
+    setIsOpen(false);
+    router.push("/create/story");
+    e.target.value = "";
+  }
+
+  const handleNavigate = (option: any) => {
+    if (option.isFilePicker) {
+      fileInputRef.current?.click();
+      return;
+    }
     setIsOpen(false)
-    router.push(href)
+    router.push(option.href)
   }
 
   return (
     <div className="relative" ref={menuRef}>
+      <input type="file" ref={fileInputRef} className="hidden" accept="image/*,video/*" onChange={handleFileChange} />
       <button 
         onClick={() => setIsOpen(!isOpen)}
         className={cn(
@@ -72,7 +89,7 @@ export function GlobalCreateMenu() {
             {options.map((option) => (
               <button
                 key={option.label}
-                onClick={() => handleNavigate(option.href)}
+                onClick={() => handleNavigate(option)}
                 className="flex items-center gap-3 w-full p-3 rounded-xl hover:bg-muted transition-colors text-left font-semibold text-sm"
               >
                 <option.icon className="w-5 h-5 text-muted-foreground" />
