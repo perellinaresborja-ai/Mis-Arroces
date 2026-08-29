@@ -77,7 +77,7 @@ export function GlobalCreateMenu() {
         onClick={() => setIsOpen(!isOpen)}
         className={cn(
           "w-9 h-9 rounded-full flex items-center justify-center transition-colors border-2 hover:opacity-80 shrink-0",
-          isOpen ? "bg-primary text-primary-foreground border-primary" : "bg-card text-foreground border-border"
+          "bg-primary text-primary-foreground border-primary"
         )}
       >
         <Plus className="w-5 h-5" strokeWidth={2.5} />

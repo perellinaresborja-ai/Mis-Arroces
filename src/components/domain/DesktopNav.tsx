@@ -97,10 +97,10 @@ export function DesktopNav() {
             <Link href="/me" className={cn("transition-colors hover:opacity-80", pathname === "/me" || pathname.startsWith("/me/") ? "opacity-100" : "opacity-80")}>
               {avatarUrl ? (
                 <div className={cn(
-                  "w-9 h-9 rounded-full overflow-hidden border-2 flex items-center justify-center shrink-0",
+                  "relative w-9 h-9 rounded-full overflow-hidden border-2 flex items-center justify-center shrink-0",
                   (pathname === "/me" || pathname.startsWith("/me/")) ? "border-primary" : "border-transparent"
                 )}>
-                  <MediaImage src={avatarUrl} alt="Perfil" className="w-full h-full object-cover" fill={true} unoptimized={true} />
+                  <MediaImage src={avatarUrl} alt="Perfil" fallbackType="avatar" className="w-full h-full object-cover" fill={true} unoptimized={true} />
                 </div>
               ) : (
                 <div className={cn(
