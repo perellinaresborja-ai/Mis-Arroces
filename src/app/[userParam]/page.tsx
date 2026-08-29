@@ -54,6 +54,16 @@ export default async function PublicProfilePage({
     : null
 
   const isSelf = user?.id === profile.id
+
+  let followStatus = null
+  if (user && !isSelf) {
+    const { data: follow } = await supabase.from("follows").select("status").match({ follower_id: user.id, following_id: profile.id }).single()
+    if (follow) followStatus = follow.status
+  }
+
+  const canViewPrivate = isSelf || (profile.privacy_level === "PUBLIC") || (followStatus === "ACCEPTED")
+  const visibilityFilter = isSelf ? ["PUBLIC", "PRIVATE", "FOLLOWERS"] : ["PUBLIC", "FOLLOWERS"]
+
   
   let highlights: any[] = []
   let archivedStories: any[] = []
@@ -74,15 +84,6 @@ export default async function PublicProfilePage({
       hasActiveShoppingItems = list.shopping_list_items.some((i: any) => !i.is_checked)
     }
   }
-
-  let followStatus = null
-  if (user && !isSelf) {
-    const { data: follow } = await supabase.from("follows").select("status").match({ follower_id: user.id, following_id: profile.id }).single()
-    if (follow) followStatus = follow.status
-  }
-
-  const canViewPrivate = isSelf || (profile.privacy_level === "PUBLIC") || (followStatus === "ACCEPTED")
-  const visibilityFilter = isSelf ? ["PUBLIC", "PRIVATE", "FOLLOWERS"] : ["PUBLIC", "FOLLOWERS"]
 
   // Counts
   const [
