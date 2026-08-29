@@ -48,6 +48,20 @@ export function StoryCreator({
   
   
   const [mode, setMode] = useState<'EDIT'|'DRAW'|'TEXT'|'STICKER'>('EDIT');
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setGlobalStoryDraft(file);
+    const url = URL.createObjectURL(file);
+    setDraftMediaUrl(url);
+    if (file.type.startsWith("video/")) {
+      setDraftMediaType("VIDEO");
+    } else {
+      setDraftMediaType("IMAGE");
+    }
+    setMode('EDIT');
+  };
   const [activeStickerType, setActiveStickerType] = useState<string | null>(null);
   const [selectedOverlayId, setSelectedOverlayId] = useState<string | null>(null);
 
