@@ -474,7 +474,7 @@ export function StoriesViewer({ groupedStories: _groupedStories, initialGroupInd
                     onClick={async () => {
                       try {
                         await handleReaction(emoji);
-                        alert('Reacción ' + emoji + ' enviada');
+                        
                       } catch (err) {
                         console.error(err);
                       }
