@@ -41,9 +41,9 @@ export function NotificationPanel({ onClose, onRead }: { onClose: () => void, on
     // Routing logic
     if (notif.type === 'NEW_MESSAGE') { router.push(`/messages/${notif.payload?.conversation_id}`); }
     else if (notif.type === 'FOLLOW' || notif.type === 'FOLLOW_ACCEPT') {
-      const url = notif.actor?.username ? `/@${notif.actor.username}` : `/${notif.actor?.id}`;
-      router.push(url);
-    } else if (notif.type === 'FOLLOW_REQUEST') {
+        // The user requested that we do not open the profile page when clicking "started following you".
+        // Just marking it as read is enough.
+      } else if (notif.type === 'FOLLOW_REQUEST') {
       router.push(`/profile/requests`)
     } else if (notif.type === 'LIKE' || notif.type === 'COMMENT' || notif.type === 'REPLY' || notif.type === 'MENTION' || notif.type === 'TAG' || notif.type === 'REACTION') {
       if (notif.entity_type === 'recipe') router.push(`/recipes/${notif.entity_id}`)
