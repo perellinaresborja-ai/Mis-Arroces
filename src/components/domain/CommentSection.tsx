@@ -117,7 +117,7 @@ function CommentThread({
         {avatar && <MediaImage src={avatar} alt={comment.author.username} className="w-full h-full object-cover" fill={true} />}
       </Link>
       <div className="flex-1">
-        <div className="bg-muted/50 rounded-2xl p-3 inline-block min-w-[200px] pr-8">
+        <div className="bg-muted/50 rounded-2xl p-3 w-full">
           <div className="flex items-center gap-1.5 mb-1">
             <Link href={"/@" + comment.author.username} className="font-bold text-sm hover:underline">
               {comment.author.display_name}
@@ -147,17 +147,16 @@ function CommentThread({
         </div>
 
         <div className="flex items-center gap-4 mt-1 px-3 text-xs text-muted-foreground font-medium">
-          
-          {allowComments && !comment.is_deleted && (
-            <button onClick={() => onReply(comment.id, comment.author.username)} className="hover:text-foreground">
-              Responder
-            </button>
-          )}
-
           {!comment.is_deleted && (
             <button onClick={handleLike} disabled={isPending} className="flex items-center gap-1 hover:text-foreground">
               <PaellaLike active={isLiked} className="w-4 h-4" />
               {likeCount > 0 && <span className={cn(isLiked && "text-primary")}>{likeCount}</span>}
+            </button>
+          )}
+
+          {allowComments && !comment.is_deleted && (
+            <button onClick={() => onReply(comment.id, comment.author.username)} className="hover:text-foreground">
+              Responder
             </button>
           )}
           
@@ -171,7 +170,6 @@ function CommentThread({
               </button>
             </>
           )}
-
         </div>
 
         {replies.length > 0 && (
@@ -284,17 +282,16 @@ function CommentReply({
           </p>
         </div>
         <div className="flex items-center gap-4 mt-1 px-2 text-[11px] text-muted-foreground font-medium">
-          
-          {allowComments && !comment.is_deleted && (
-            <button onClick={onReply} className="hover:text-foreground">
-              Responder
-            </button>
-          )}
-
           {!comment.is_deleted && (
             <button onClick={handleLike} disabled={isPending} className="flex items-center gap-1 hover:text-foreground">
               <PaellaLike active={isLiked} className="w-4 h-4" />
               {likeCount > 0 && <span className={cn(isLiked && "text-primary")}>{likeCount}</span>}
+            </button>
+          )}
+
+          {allowComments && !comment.is_deleted && (
+            <button onClick={onReply} className="hover:text-foreground">
+              Responder
             </button>
           )}
           
@@ -372,7 +369,31 @@ export function CommentSection({ entityType, entityId, comments, currentUserId, 
     <div className="space-y-6">
       
 
-      {allowComments ? (
+      
+
+      <div className="space-y-4">
+        {topLevelComments.filter(c => !c.is_deleted).map(comment => (
+          <CommentThread
+            key={comment.id}
+            comment={comment}
+            replies={localComments.filter(r => r.parent_id === comment.id && !r.is_deleted)}
+            entityType={entityType}
+            currentUserId={currentUserId}
+            allowComments={allowComments}
+            onReply={(id, username) => {
+              setReplyingTo({ id, username })
+              if (!newComment.includes(`@${username}`)) {
+                setNewComment(`@${username} ` + newComment)
+              }
+              window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' })
+            }}
+            onDelete={handleDelete}
+          />
+        ))}
+      </div>
+    
+      <div className="sticky bottom-0 bg-background/95 backdrop-blur pt-2 pb-safe-bottom z-10 w-full mt-4 border-t border-border/50">
+        {allowComments ? (
         <form onSubmit={handleSubmit} className="space-y-2 mb-6">
           {replyingTo && (
             <div className="flex items-center justify-between bg-primary/10 text-primary text-sm px-3 py-2 rounded-lg">
@@ -435,27 +456,7 @@ export function CommentSection({ entityType, entityId, comments, currentUserId, 
           Los comentarios están desactivados para esta publicación.
         </div>
       )}
-
-      <div className="space-y-4">
-        {topLevelComments.filter(c => !c.is_deleted).map(comment => (
-          <CommentThread
-            key={comment.id}
-            comment={comment}
-            replies={localComments.filter(r => r.parent_id === comment.id && !r.is_deleted)}
-            entityType={entityType}
-            currentUserId={currentUserId}
-            allowComments={allowComments}
-            onReply={(id, username) => {
-              setReplyingTo({ id, username })
-              if (!newComment.includes(`@${username}`)) {
-                setNewComment(`@${username} ` + newComment)
-              }
-              window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' })
-            }}
-            onDelete={handleDelete}
-          />
-        ))}
       </div>
-    </div>
+</div>
   )
 }
