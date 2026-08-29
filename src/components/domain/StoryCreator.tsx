@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { StoryTransform, StoryOverlay, StoryBackground, DrawingOverlay } from '@/types/stories';
 import { createClient } from '@/lib/supabase/client';
 import { createStory } from '@/app/actions/stories';
-import { globalStoryDraftUrl, globalStoryDraftType, globalStoryDraftFile, clearGlobalStoryDraft } from '@/lib/story-draft';
+import { globalStoryDraftUrl, globalStoryDraftType, globalStoryDraftFile, clearGlobalStoryDraft, setGlobalStoryDraft } from '@/lib/story-draft';
 import { SharedStoryRenderer } from './SharedStoryRenderer';
 import { DraggableOverlay } from './stories/DraggableOverlay';
 import { MentionPicker, RecipePicker, IngredientPicker, LocationPicker, GenericSearchPicker, SessionPicker, ProfilePicker } from './stories/StickerPickers';
