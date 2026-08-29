@@ -1,3 +1,4 @@
+DROP POLICY IF EXISTS "Users can update their own conversation member record" ON conversation_members;
 -- Allow users to update their own conversation_members row (e.g. last_read_at, status)
 CREATE POLICY "Users can update their own conversation member record" 
 ON conversation_members 

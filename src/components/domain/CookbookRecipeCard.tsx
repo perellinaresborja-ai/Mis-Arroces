@@ -5,6 +5,7 @@ import Link from "next/link"
 import { Trash2 } from "lucide-react"
 import { deleteRecipe } from "@/app/actions/recipes"
 import { useRouter } from "next/navigation"
+import { MediaImage } from "./MediaImage"
 
 export function CookbookRecipeCard({ recipe, tab }: { recipe: any, tab: string }) {
   const router = useRouter()
@@ -13,7 +14,7 @@ export function CookbookRecipeCard({ recipe, tab }: { recipe: any, tab: string }
   const mediaArray = recipe.recipe_media
   const sorted = mediaArray ? [...mediaArray].sort((a: any, b: any) => (a.display_order||0) - (b.display_order||0)) : []
   const path = sorted[0]?.media?.storage_path
-  const coverUrl = path ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/recipe_media/${path}` : null
+  const coverUrl = path ? `https://zvesoygqssyyojqyswwm.supabase.co/storage/v1/object/public/recipe_media/${path}` : null
 
   const handleDelete = async (e: React.MouseEvent) => {
     e.preventDefault()
@@ -39,13 +40,13 @@ export function CookbookRecipeCard({ recipe, tab }: { recipe: any, tab: string }
         href={`/recipes/${recipe.id}`}
         className="aspect-square bg-muted cursor-pointer overflow-hidden border border-border/50 rounded-xl relative block"
       >
-        {coverUrl ? (
-          <img src={coverUrl} alt={recipe.name} className="w-full h-full object-cover transition-transform group-hover:scale-105" />
-        ) : (
-          <div className="w-full h-full flex flex-col items-center justify-center p-2 text-center bg-card">
-            <span className="text-xs font-medium line-clamp-3 text-muted-foreground">{recipe.name}</span>
-          </div>
-        )}
+        <MediaImage 
+          src={coverUrl} 
+          alt={recipe.name} 
+          variant="feed"
+          fallbackType="recipe"
+          className="w-full h-full object-cover transition-transform group-hover:scale-105" 
+        />
         
         {tab === 'mine' && (
           <div className="absolute top-1.5 left-1.5 z-10 flex gap-1">

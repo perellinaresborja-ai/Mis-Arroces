@@ -1,6 +1,6 @@
-// @ts-nocheck
 "use client"
-
+import { MediaImage } from "@/components/domain/MediaImage"
+// @ts-nocheck
 import React, { useState, useTransition, useRef, useEffect } from "react"
 import { createComment, deleteComment, editComment, toggleCommentLike } from "@/app/actions/interactions"
 import { usePathname, useRouter } from "next/navigation"
@@ -114,7 +114,7 @@ function CommentThread({
   return (
     <div className="flex gap-3">
       <Link href={"/@" + comment.author.username} className="w-8 h-8 rounded-full bg-muted shrink-0 overflow-hidden block mt-1">
-        {avatar && <img src={avatar} alt={comment.author.username} className="w-full h-full object-cover" />}
+        {avatar && <MediaImage src={avatar} alt={comment.author.username} className="w-full h-full object-cover" fill={true} />}
       </Link>
       <div className="flex-1">
         <div className="bg-muted/50 rounded-2xl p-3 inline-block min-w-[200px] pr-8">
@@ -269,7 +269,7 @@ function CommentReply({
   return (
     <div className="flex gap-3">
       <Link href={"/@" + comment.author.username} className="w-6 h-6 rounded-full bg-muted shrink-0 overflow-hidden block">
-        {avatar && <img src={avatar} alt={comment.author.username} className="w-full h-full object-cover" />}
+        {avatar && <MediaImage src={avatar} alt={comment.author.username} className="w-full h-full object-cover" fill={true} />}
       </Link>
       <div className="flex-1">
         <div className="bg-muted/50 rounded-2xl p-2.5 inline-block min-w-[150px] pr-6">
@@ -416,9 +416,7 @@ export function CommentSection({ entityType, entityId, comments, currentUserId, 
                 style={{ height: '40px' }}
                 maxLength={1000}
                 disabled={isPending}
-                  onClick={() => {
-                    if (!currentUserId) showAuthPrompt("Crea tu cuenta para participar en la conversación.")
-                  }}
+                  
                   readOnly={!currentUserId}
               />
               <button 

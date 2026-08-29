@@ -1,5 +1,5 @@
 "use client"
-
+import { MediaImage } from "@/components/domain/MediaImage"
 import { useState, useEffect } from "react"
 import { LikeButton } from "@/components/domain/LikeButton"
 import { ShareButton } from "@/components/domain/ShareButton"
@@ -63,7 +63,7 @@ export function SocialElaborationModal({ isOpen, onClose, item, currentUserId }:
         <div className="md:hidden flex items-center justify-between p-3 border-b border-border bg-card shrink-0">
           <Link href={`/@${item.author?.username}`} className="flex items-center gap-2 hover:opacity-80 transition-opacity">
             <div className="w-8 h-8 rounded-full bg-muted overflow-hidden">
-              {authorAvatarUrl ? <img src={authorAvatarUrl} alt="Avatar" className="w-full h-full object-cover"/> : <User className="w-full h-full p-1.5 text-muted-foreground"/>}
+              {authorAvatarUrl ? <MediaImage src={authorAvatarUrl} alt="Avatar" className="w-full h-full object-cover" fill={true} /> : <User className="w-full h-full p-1.5 text-muted-foreground"/>}
             </div>
             <span className="font-bold text-sm">@{item.author?.username}</span>
           </Link>
@@ -111,7 +111,7 @@ export function SocialElaborationModal({ isOpen, onClose, item, currentUserId }:
            <div className="hidden md:flex items-center justify-between p-4 border-b border-border shrink-0">
              <Link href={`/@${item.author?.username}`} className="flex items-center gap-2 hover:opacity-80 transition-opacity">
                <div className="w-10 h-10 rounded-full bg-muted overflow-hidden">
-                 {authorAvatarUrl ? <img src={authorAvatarUrl} alt="Avatar" className="w-full h-full object-cover"/> : <User className="w-full h-full p-2 text-muted-foreground"/>}
+                 {authorAvatarUrl ? <MediaImage src={authorAvatarUrl} alt="Avatar" className="w-full h-full object-cover" fill={true} /> : <User className="w-full h-full p-2 text-muted-foreground"/>}
                </div>
                <div>
                  <div className="font-bold text-sm leading-tight">{item.author?.display_name || `@${item.author?.username}`}</div>

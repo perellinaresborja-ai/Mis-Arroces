@@ -1,4 +1,5 @@
 "use client"
+import { MediaImage } from "@/components/domain/MediaImage"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useEffect, useState } from "react"
@@ -100,7 +101,7 @@ export function DesktopNav() {
                   "w-9 h-9 rounded-full overflow-hidden border-2 flex items-center justify-center shrink-0",
                   (pathname === "/me" || pathname.startsWith("/me/")) ? "border-primary" : "border-transparent"
                 )}>
-                  <img src={avatarUrl} alt="Perfil" className="w-full h-full object-cover" />
+                  <MediaImage src={avatarUrl} alt="Perfil" className="w-full h-full object-cover" fill={true} />
                 </div>
               ) : (
                 <div className={cn(

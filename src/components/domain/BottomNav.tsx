@@ -1,4 +1,5 @@
 "use client"
+import { MediaImage } from "@/components/domain/MediaImage"
 import { UnreadBadge } from "@/components/domain/messages/UnreadBadge";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -86,7 +87,7 @@ export function BottomNav() {
                     "w-7 h-7 rounded-full overflow-hidden border-2",
                     isActive ? "border-foreground" : "border-transparent"
                   )}>
-                    <img src={avatarUrl} alt="Perfil" className="w-full h-full object-cover" />
+                    <MediaImage src={avatarUrl} alt="Perfil" className="w-full h-full object-cover" fill={true} />
                   </div>
                 ) : (
                   <Icon className="h-6 w-6" strokeWidth={isActive ? 2.5 : 2} />

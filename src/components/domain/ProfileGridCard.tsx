@@ -4,6 +4,7 @@ import { MessageCircle, Pin } from "lucide-react"
 import { PaellaIcon } from "@/components/icons/PaellaIcon"
 import { SocialElaborationModal } from "./SocialElaborationModal"
 import { useState } from "react"
+import { MediaImage } from "./MediaImage"
 
 export function ProfileGridCard({ item, currentUserId }: { item: any, currentUserId: string | undefined }) {
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -15,7 +16,7 @@ export function ProfileGridCard({ item, currentUserId }: { item: any, currentUse
     const sorted = [...mediaList].sort((a: any, b: any) => (a.display_order || 0) - (b.display_order || 0))
     imagePath = sorted[0]?.media?.storage_path
   }
-  const imageUrl = imagePath ? `${"https://zvesoygqssyyojqyswwm.supabase.co"}/storage/v1/object/public/recipe_media/${imagePath}` : null
+  const imageUrl = imagePath ? `https://zvesoygqssyyojqyswwm.supabase.co/storage/v1/object/public/recipe_media/${imagePath}` : null
 
   // determine link
   let badge = null
@@ -31,14 +32,13 @@ export function ProfileGridCard({ item, currentUserId }: { item: any, currentUse
         className="w-full h-full group relative aspect-square bg-muted cursor-pointer overflow-hidden border border-border/50 rounded-xl"
         onClick={() => setIsModalOpen(true)}
       >
-        {imageUrl ? (
-           <img src={imageUrl} alt={item.name || item.content} className="w-full h-full object-cover transition-transform group-hover:scale-105" />
-        ) : (
-          <div className="w-full h-full flex flex-col items-center justify-center p-2 text-center bg-card">
-            <span className="text-xs font-medium line-clamp-3 text-muted-foreground">{item.name || item.content}</span>
-          </div>
-        )}
-        
+        <MediaImage 
+          src={imageUrl} 
+          alt={item.name || item.content || "Media"} 
+          variant="feed"
+          fallbackType="recipe"
+          className="w-full h-full object-cover transition-transform group-hover:scale-105" 
+        />
         
         {item.is_pinned && (
           <div className="absolute top-1.5 left-1.5 z-10 bg-black/60 text-white p-1 rounded-md backdrop-blur-sm shadow-sm pointer-events-none">
@@ -47,7 +47,6 @@ export function ProfileGridCard({ item, currentUserId }: { item: any, currentUse
         )}
         
         {/* Subtle badge for specific content types */}
-
         {badge && (
           <div className="absolute top-1.5 right-1.5 z-10 bg-black/60 text-white p-1 rounded-md backdrop-blur-sm shadow-sm pointer-events-none">
             {badge === 'Cocinado' ? (
@@ -80,4 +79,3 @@ export function ProfileGridCard({ item, currentUserId }: { item: any, currentUse
     </>
   )
 }
-

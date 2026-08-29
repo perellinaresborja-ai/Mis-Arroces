@@ -69,7 +69,7 @@ export function NotificationBell({ className }: { className?: string }) {
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 md:mt-2 bottom-full mb-2 md:bottom-auto md:mb-0 w-[95vw] md:w-[400px] z-[100] max-h-[85vh] md:max-h-[500px]">
+        <div className="fixed inset-x-2 top-[70px] md:absolute md:inset-x-auto md:right-0 md:top-full md:mt-2 w-auto md:w-[400px] z-[100] max-h-[80vh] md:max-h-[500px]">
           <NotificationPanel 
             onClose={() => setIsOpen(false)} 
             onRead={() => fetchUnread()} 
