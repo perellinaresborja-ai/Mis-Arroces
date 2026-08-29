@@ -4,9 +4,23 @@ import { useState } from "react"
 import Link from "next/link"
 import { ProfileAvatar } from "@/components/domain/ProfileAvatar"
 import { StoriesViewer } from "./StoriesViewer"
+import { useRef } from "react"
+import { useRouter } from "next/navigation"
+import { setGlobalStoryDraft } from "@/lib/story-draft"
 
 export function StoriesBar({ groupedStories, currentUser }: { groupedStories: any[], currentUser: any }) {
   const [activeGroupIndex, setActiveGroupIndex] = useState<number | null>(null)
+  const router = useRouter()
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setGlobalStoryDraft(file);
+    router.push("/create/story");
+    // Reset input
+    e.target.value = "";
+  }
   
   // Si currentUser no tiene historias activas, añadimos un placeholder de "Tu historia" 
   // para que siempre salga el botón de crear.
@@ -23,15 +37,16 @@ export function StoriesBar({ groupedStories, currentUser }: { groupedStories: an
   return (
     <>
       <div className="w-full bg-card border border-border p-4 rounded-3xl flex gap-4 overflow-x-auto hide-scrollbar shadow-sm">
+        <input type="file" ref={fileInputRef} className="hidden" accept="image/*,video/*" onChange={handleFileChange} />
         
         {/* Create Story Button - Only if I don't have active stories, otherwise it's combined with my avatar */}
         {!hasMyStories && currentUser && (
-          <Link href="/create/story" className="flex flex-col items-center gap-1 min-w-[72px] cursor-pointer hover:opacity-80 shrink-0">
+          <button onClick={() => fileInputRef.current?.click()} className="flex flex-col items-center gap-1 min-w-[72px] cursor-pointer hover:opacity-80 shrink-0">
             <div className="w-16 h-16 rounded-full bg-muted border-2 border-dashed border-[#E69A21]/50 flex items-center justify-center text-[#E69A21]">
               <span className="text-2xl font-light">+</span>
             </div>
             <span className="text-xs font-medium text-center truncate w-16">Tu historia</span>
-          </Link>
+          </button>
         )}
 
                 {groupedStories.map((group, i) => {
@@ -62,7 +77,10 @@ export function StoriesBar({ groupedStories, currentUser }: { groupedStories: an
               </div>
               
               {isMe && (
-                <div className="absolute top-10 right-0 w-5 h-5 bg-[#E69A21] text-white rounded-full border-2 border-background flex items-center justify-center text-xs font-bold shadow-sm pointer-events-none">
+                <div 
+                  onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }}
+                  className="absolute top-10 right-0 w-5 h-5 bg-[#E69A21] text-white rounded-full border-2 border-background flex items-center justify-center text-xs font-bold shadow-sm cursor-pointer hover:scale-110 transition-transform"
+                >
                   +
                 </div>
               )}
