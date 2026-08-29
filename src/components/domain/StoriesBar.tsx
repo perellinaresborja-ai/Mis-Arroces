@@ -27,7 +27,7 @@ export function StoriesBar({ groupedStories, currentUser }: { groupedStories: an
         {/* Create Story Button - Only if I don't have active stories, otherwise it's combined with my avatar */}
         {!hasMyStories && currentUser && (
           <Link href="/create/story" className="flex flex-col items-center gap-1 min-w-[72px] cursor-pointer hover:opacity-80 shrink-0">
-            <div className="w-16 h-16 rounded-full bg-muted border-2 border-dashed border-primary/50 flex items-center justify-center text-primary/50">
+            <div className="w-16 h-16 rounded-full bg-muted border-2 border-dashed border-[#E69A21]/50 flex items-center justify-center text-[#E69A21]">
               <span className="text-2xl font-light">+</span>
             </div>
             <span className="text-xs font-medium text-center truncate w-16">Tu historia</span>
@@ -62,7 +62,7 @@ export function StoriesBar({ groupedStories, currentUser }: { groupedStories: an
               </div>
               
               {isMe && (
-                <div className="absolute top-10 right-0 w-5 h-5 bg-primary text-primary-foreground rounded-full border-2 border-background flex items-center justify-center text-xs font-bold shadow-sm pointer-events-none">
+                <div className="absolute top-10 right-0 w-5 h-5 bg-[#E69A21] text-white rounded-full border-2 border-background flex items-center justify-center text-xs font-bold shadow-sm pointer-events-none">
                   +
                 </div>
               )}
