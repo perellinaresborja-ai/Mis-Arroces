@@ -1,3 +1,4 @@
+import { BackButton } from "@/components/domain/BackButton"
 import { createClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
 import { EditSessionClient } from "./EditSessionClient"
@@ -19,7 +20,7 @@ export default async function EditSessionPage(props: { params: Promise<{ id: str
 
   return (
     <div className="max-w-2xl mx-auto p-4 pt-12 md:pt-24 min-h-screen">
-      <h1 className="text-2xl font-bold mb-6">Editar Cocinado</h1>
+      <div className="flex items-center mb-6"><BackButton /><h1 className="text-2xl font-bold">Editar Cocinado</h1></div>
       <EditSessionClient session={session} />
     </div>
   )

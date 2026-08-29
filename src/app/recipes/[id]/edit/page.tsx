@@ -1,3 +1,4 @@
+import { BackButton } from "@/components/domain/BackButton"
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
 import { getCatalogs } from "@/app/actions/recipes"
@@ -42,7 +43,7 @@ export default async function EditRecipePage({
   return (
     <div className="min-h-screen bg-background pb-24">
       <header className="bg-card border-b border-border p-4 sticky top-0 z-10 flex items-center justify-between">
-        <h1 className="font-bold truncate pr-4 text-foreground">Editar: {recipe.name}</h1>
+        <div className="flex items-center min-w-0"><BackButton /><h1 className="font-bold truncate pr-4 text-foreground">Editar: {recipe.name}</h1></div>
       </header>
       <main className="p-4 md:p-8 max-w-4xl mx-auto w-full">
         <EditRecipeForm recipe={recipe} catalogs={catalogs} />
