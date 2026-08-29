@@ -37,7 +37,7 @@ export function StoriesBar({ groupedStories, currentUser }: { groupedStories: an
   return (
     <>
       <div className="w-full bg-card border border-border p-4 rounded-3xl flex gap-4 overflow-x-auto hide-scrollbar shadow-sm">
-        <input type="file" ref={fileInputRef} className="hidden" accept="image/*,video/*" onChange={handleFileChange} />
+        <input type="file" ref={fileInputRef} className="opacity-0 absolute w-0 h-0 pointer-events-none -z-50" accept="image/*,video/*" onChange={handleFileChange} />
         
         {/* Create Story Button - Only if I don't have active stories, otherwise it's combined with my avatar */}
         {!hasMyStories && currentUser && (

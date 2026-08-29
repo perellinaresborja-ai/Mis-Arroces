@@ -72,7 +72,7 @@ export function GlobalCreateMenu() {
 
   return (
     <div className="relative" ref={menuRef}>
-      <input type="file" ref={fileInputRef} className="hidden" accept="image/*,video/*" onChange={handleFileChange} />
+      <input type="file" ref={fileInputRef} className="opacity-0 absolute w-0 h-0 pointer-events-none -z-50" accept="image/*,video/*" onChange={handleFileChange} />
       <button 
         onClick={() => setIsOpen(!isOpen)}
         className={cn(
