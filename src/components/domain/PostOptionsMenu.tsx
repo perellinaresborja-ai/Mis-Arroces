@@ -11,13 +11,15 @@ export function PostOptionsMenu({
   entityId, 
   allowComments, 
   onDeleted,
-  isPinned
+  isPinned,
+  hidePin
 }: { 
   entityType: string
   entityId: string
   allowComments: boolean
   onDeleted?: () => void 
   isPinned?: boolean
+  hidePin?: boolean
 }) {
   const [showMenu, setShowMenu] = useState(false)
   const router = useRouter()
