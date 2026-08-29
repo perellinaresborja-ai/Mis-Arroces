@@ -16,6 +16,7 @@ interface MediaImageProps {
   variant?: 'avatar' | 'feed' | 'detail' | 'story' | 'highlight'
   fallbackType?: 'avatar' | 'recipe' | 'none'
   isPrivate?: boolean
+  unoptimized?: boolean
 }
 
 export function MediaImage({
@@ -29,7 +30,8 @@ export function MediaImage({
   priority = false,
   variant = 'feed',
   fallbackType = 'none',
-  isPrivate = false
+  isPrivate = false,
+  unoptimized = false
 }: MediaImageProps) {
   const [error, setError] = useState(false)
 
@@ -69,7 +71,7 @@ export function MediaImage({
   // If private (signed URL), we can bypass optimization to avoid cache explosion,
   // or rely on default behavior. Since Signed URLs change every hour, optimizing them
   // fills the Next.js cache. We set unoptimized = true for private to be safe, unless Next.js 14 handles it.
-  const unoptimized = isPrivate;
+  const shouldUnoptimize = unoptimized || isPrivate;
 
   if (fill) {
     return (
@@ -80,7 +82,7 @@ export function MediaImage({
         sizes={defaultSizes}
         priority={priority}
         className={className}
-        unoptimized={unoptimized}
+        unoptimized={shouldUnoptimize}
         onError={() => setError(true)}
       />
     )
@@ -95,7 +97,7 @@ export function MediaImage({
       sizes={defaultSizes}
       priority={priority}
       className={className}
-      unoptimized={unoptimized}
+      unoptimized={shouldUnoptimize}
       onError={() => setError(true)}
     />
   )

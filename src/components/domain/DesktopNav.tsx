@@ -24,11 +24,10 @@ export function DesktopNav() {
           .eq('id', user.id)
           .single();
           
-        // @ts-ignore
-        if (data?.avatar?.storage_path) {
-          // @ts-ignore
-          setAvatarUrl(`https://zvesoygqssyyojqyswwm.supabase.co/storage/v1/object/public/recipe_media/${data.avatar.storage_path}`);
-        }
+        const avatarPath = Array.isArray(data?.avatar) ? data.avatar[0]?.storage_path : data?.avatar?.storage_path;
+          if (avatarPath) {
+            setAvatarUrl(`https://zvesoygqssyyojqyswwm.supabase.co/storage/v1/object/public/recipe_media/${avatarPath}`);
+          }
       }
     };
     fetchUser();
@@ -101,7 +100,7 @@ export function DesktopNav() {
                   "w-9 h-9 rounded-full overflow-hidden border-2 flex items-center justify-center shrink-0",
                   (pathname === "/me" || pathname.startsWith("/me/")) ? "border-primary" : "border-transparent"
                 )}>
-                  <MediaImage src={avatarUrl} alt="Perfil" className="w-full h-full object-cover" fill={true} />
+                  <MediaImage src={avatarUrl} alt="Perfil" className="w-full h-full object-cover" fill={true} unoptimized={true} />
                 </div>
               ) : (
                 <div className={cn(

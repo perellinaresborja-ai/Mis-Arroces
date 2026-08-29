@@ -22,11 +22,10 @@ export function BottomNav() {
           .eq('id', user.id)
           .single();
           
-        // @ts-ignore
-        if (data?.avatar?.storage_path) {
-          // @ts-ignore
-          setAvatarUrl(`https://zvesoygqssyyojqyswwm.supabase.co/storage/v1/object/public/recipe_media/${data.avatar.storage_path}`);
-        }
+        const avatarPath = Array.isArray(data?.avatar) ? data.avatar[0]?.storage_path : data?.avatar?.storage_path;
+          if (avatarPath) {
+            setAvatarUrl(`https://zvesoygqssyyojqyswwm.supabase.co/storage/v1/object/public/recipe_media/${avatarPath}`);
+          }
       }
     };
     fetchUser();
@@ -87,7 +86,7 @@ export function BottomNav() {
                     "w-7 h-7 rounded-full overflow-hidden border-2",
                     isActive ? "border-foreground" : "border-transparent"
                   )}>
-                    <MediaImage src={avatarUrl} alt="Perfil" className="w-full h-full object-cover" fill={true} />
+                    <MediaImage src={avatarUrl} alt="Perfil" className="w-full h-full object-cover" fill={true} unoptimized={true} />
                   </div>
                 ) : (
                   <Icon className="h-6 w-6" strokeWidth={isActive ? 2.5 : 2} />
