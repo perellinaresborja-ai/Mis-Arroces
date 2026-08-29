@@ -48,7 +48,6 @@ export function StoryCreator({
   
   
   const [mode, setMode] = useState<'EDIT'|'DRAW'|'TEXT'|'STICKER'>('EDIT');
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -289,8 +288,10 @@ export function StoryCreator({
       {mode === 'EDIT' && (
           <div className="p-4 flex flex-col gap-4 h-full">
             <div className="flex justify-around bg-zinc-900 rounded-xl p-2">
-                <input type="file" ref={fileInputRef} className="opacity-0 absolute w-0 h-0 pointer-events-none -z-50" accept="image/*,video/*" onChange={handleFileChange} />
-                <button onClick={() => fileInputRef.current?.click()} className="p-3 text-white flex flex-col items-center gap-1"><ImageIcon size={20}/><span className="text-xs">Cambiar</span></button>
+                <label className="p-3 text-white flex flex-col items-center gap-1 cursor-pointer m-0">
+                  <input type="file" className="sr-only" accept="image/*,video/*" onChange={handleFileChange} />
+                  <ImageIcon size={20}/><span className="text-xs">Cambiar</span>
+                </label>
               <button onClick={() => setMode('TEXT')} className="p-3 text-white flex flex-col items-center gap-1"><AlignLeft size={20}/><span className="text-xs">Texto</span></button>
               <button onClick={() => setMode('DRAW')} className="p-3 text-white flex flex-col items-center gap-1"><span className="text-xl">🖌</span><span className="text-xs">Dibujar</span></button>
               <button onClick={() => setMode('STICKER')} className="p-3 text-white flex flex-col items-center gap-1"><span className="text-xl">☻</span><span className="text-xs">Stickers</span></button>

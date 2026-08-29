@@ -10,8 +10,6 @@ export function GlobalCreateMenu() {
   const [isOpen, setIsOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
   const router = useRouter()
-  const fileInputRef = useRef<HTMLInputElement>(null)
-
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
@@ -62,17 +60,13 @@ export function GlobalCreateMenu() {
   }
 
   const handleNavigate = (option: any) => {
-    if (option.isFilePicker) {
-      fileInputRef.current?.click();
-      return;
-    }
+    
     setIsOpen(false)
     router.push(option.href)
   }
 
   return (
     <div className="relative" ref={menuRef}>
-      <input type="file" ref={fileInputRef} className="opacity-0 absolute w-0 h-0 pointer-events-none -z-50" accept="image/*,video/*" onChange={handleFileChange} />
       <button 
         onClick={() => setIsOpen(!isOpen)}
         className={cn(
@@ -86,15 +80,26 @@ export function GlobalCreateMenu() {
       {isOpen && (
         <div className="absolute right-0 top-12 w-56 bg-card border border-border shadow-lg rounded-2xl p-2 z-50 animate-in fade-in zoom-in-95 duration-100">
           <div className="flex flex-col gap-1">
-            {options.map((option) => (
-              <button
-                key={option.label}
-                onClick={() => handleNavigate(option)}
-                className="flex items-center gap-3 w-full p-3 rounded-xl hover:bg-muted transition-colors text-left font-semibold text-sm"
-              >
-                <option.icon className="w-5 h-5 text-muted-foreground" />
-                {option.label}
-              </button>
+            {options.map((option: any) => (
+              option.isFilePicker ? (
+                <label
+                  key={option.label}
+                  className="flex items-center gap-3 w-full p-3 rounded-xl hover:bg-muted transition-colors text-left font-semibold text-sm cursor-pointer m-0"
+                >
+                  <input type="file" className="sr-only" accept="image/*,video/*" onChange={handleFileChange} />
+                  <option.icon className="w-5 h-5 text-muted-foreground" />
+                  {option.label}
+                </label>
+              ) : (
+                <button
+                  key={option.label}
+                  onClick={() => handleNavigate(option)}
+                  className="flex items-center gap-3 w-full p-3 rounded-xl hover:bg-muted transition-colors text-left font-semibold text-sm"
+                >
+                  <option.icon className="w-5 h-5 text-muted-foreground" />
+                  {option.label}
+                </button>
+              )
             ))}
           </div>
         </div>
