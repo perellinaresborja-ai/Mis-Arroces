@@ -1,10 +1,12 @@
 "use client"
+import React from 'react';
 
 import { CSSProperties, useEffect } from "react"
 import { StoryOverlay, StoryTransform, StoryBackground, PollOverlay, QuestionOverlay, SliderOverlay, RecipeOverlay, SessionOverlay, MentionOverlay, ProfileOverlay, LocationOverlay, IngredientOverlay, GifOverlay, TextOverlay } from "@/types/stories"
 import { MapPin, Utensils } from "lucide-react"
 
 interface SharedStoryRendererProps {
+  storyId?: string;
   isVideo?: boolean;
   videoRef?: React.RefObject<HTMLVideoElement | null>;
   onTimeUpdate?: () => void;
@@ -20,6 +22,7 @@ interface SharedStoryRendererProps {
 }
 
 export function SharedStoryRenderer({
+  storyId,
   mediaUrl,
   transform,
   background,
@@ -28,6 +31,30 @@ export function SharedStoryRenderer({
   onOverlayClick,
   selectedOverlayId
 , isVideo, videoRef, onTimeUpdate, onEnded, isPaused}: SharedStoryRendererProps) {
+  const [pollResults, setPollResults] = React.useState<Record<string, any>>({});
+  const [isVoting, setIsVoting] = React.useState<Record<string, boolean>>({});
+
+  React.useEffect(() => {
+    if (mode === 'VIEWER' && storyId) {
+      const fetchPolls = async () => {
+        try {
+          const { getPollResults } = await import('@/app/actions/stories');
+          const results: Record<string, any> = {};
+          for (const ov of overlays || []) {
+            if (ov.type === 'POLL') {
+              const pollId = ov.payload.pollId || ov.id;
+              results[pollId] = await getPollResults(pollId);
+            }
+          }
+          setPollResults(results);
+        } catch (e) {
+          console.error('Error fetching poll results', e);
+        }
+      };
+      fetchPolls();
+    }
+  }, [storyId, mode]);
+
   
   // Pause/play effect
   useEffect(() => {

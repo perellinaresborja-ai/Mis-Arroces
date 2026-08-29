@@ -294,8 +294,7 @@ export function StoriesViewer({ groupedStories, initialGroupIndex, onClose, curr
           onPointerUp={handlePointerUp}
           onPointerLeave={handlePointerUp}
         >
-          <SharedStoryRenderer
-            mode="VIEWER"
+          <SharedStoryRenderer storyId={currentStory.id} mode="VIEWER"
             mediaUrl={fullUrl}
             transform={currentStory.media_transform}
             background={currentStory.background}

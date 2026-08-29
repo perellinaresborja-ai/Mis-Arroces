@@ -20,7 +20,7 @@ export function StoryCreator({
   const supabase = createClient();
   const containerRef = useRef<HTMLDivElement>(null);
   const [overlays, setOverlays] = useState<StoryOverlay[]>([]);
-  const [history, setHistory] = useState<StoryOverlay[][]>([]);
+  const [history, setHistory] = useState<StoryOverlay[][]>([]); const [redoHistory, setRedoHistory] = useState<StoryOverlay[][]>([]);
   const [background, setBackground] = useState<StoryBackground>({ type: 'blur', value: '' });
   
   const [mode, setMode] = useState<'EDIT'|'DRAW'|'TEXT'|'STICKER'>('EDIT');
@@ -28,6 +28,8 @@ export function StoryCreator({
   const [selectedOverlayId, setSelectedOverlayId] = useState<string | null>(null);
 
   const [isPublishing, setIsPublishing] = useState(false);
+  const [isPollModalOpen, setIsPollModalOpen] = useState(false);
+  const [pollForm, setPollForm] = useState({ question: '', optionA: 'Sí', optionB: 'No' });
   const [privacy, setPrivacy] = useState<'PUBLIC'|'FOLLOWERS'>('PUBLIC');
 
   // Drawing
@@ -279,7 +281,7 @@ export function StoryCreator({
                 <button onClick={() => setActiveStickerType('SESSION')} className="bg-zinc-900 text-white p-4 rounded-xl flex items-center justify-center gap-2"><ChefHat size={18}/> Sesión</button>
                 <button onClick={() => setActiveStickerType('PROFILE')} className="bg-zinc-900 text-white p-4 rounded-xl flex items-center justify-center gap-2"><User size={18}/> Perfil</button>
 
-                <button onClick={() => { saveHistory(); setOverlays([...overlays, { id: 'poll_'+Date.now(), type: 'POLL', x:0.5, y:0.5, scale:1, rotation:0, zIndex: overlays.length+10, payload: { question: '¿Te gusta?', optionA: 'Sí', optionB: 'No' } }]); setMode('EDIT'); }} className="bg-zinc-900 text-white p-4 rounded-xl col-span-2 font-bold">📊 Encuesta</button>
+                <button onClick={() => { setMode('EDIT'); setIsPollModalOpen(true); }} className="bg-zinc-900 text-white p-4 rounded-xl col-span-2 font-bold">📊 Encuesta</button>
                 <button onClick={() => { saveHistory(); setOverlays([...overlays, { id: 'q_'+Date.now(), type: 'QUESTION', x:0.5, y:0.5, scale:1, rotation:0, zIndex: overlays.length+10, payload: { question: 'Hazme una pregunta' } }]); setMode('EDIT'); }} className="bg-zinc-900 text-white p-4 rounded-xl col-span-2 font-bold">❓ Pregunta</button>
                 <button onClick={() => { saveHistory(); setOverlays([...overlays, { id: 's_'+Date.now(), type: 'SLIDER', x:0.5, y:0.5, scale:1, rotation:0, zIndex: overlays.length+10, payload: { question: '¿Qué tal?', emoji: '😍' } }]); setMode('EDIT'); }} className="bg-zinc-900 text-white p-4 rounded-xl col-span-2 font-bold">😍 Slider</button>
               </div>
