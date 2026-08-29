@@ -408,29 +408,33 @@ export async function submitQuestionReply(storyId: string, ownerId: string, ques
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error("Unauthorized")
+
+  // Check story existence and rules
+  const { data: story } = await supabase.from('stories').select('owner_id, expires_at, allow_replies').eq('id', storyId).single();
+  if (!story) throw new Error("Story not found");
   
-  // Create conversation or use existing
-  let { data: convs } = await supabase.rpc('get_conversation_with_user', { other_user_id: ownerId })
-  let conversationId = convs?.[0]?.id
-
-  if (!conversationId) {
-    const { data: newConv } = await supabase.from('conversations').insert({}).select().single()
-    if (newConv) {
-      conversationId = newConv.id
-      await supabase.from('conversation_members').insert([
-        { conversation_id: conversationId, user_id: user.id },
-        { conversation_id: conversationId, user_id: ownerId }
-      ])
-    }
+  if (new Date(story.expires_at) < new Date()) {
+    throw new Error("Story expirada");
   }
 
-  if (conversationId) {
-    await supabase.from('messages').insert({
-      conversation_id: conversationId,
-      sender_id: user.id,
-      content: `Respuesta a tu pregunta "${question}": ${answer}`,
-      message_type: 'STORY_REPLY',
-      metadata: { story_id: storyId }
-    })
+  if (!story.allow_replies) {
+    throw new Error("Las respuestas están desactivadas para esta historia");
   }
+
+  const { data: isBlocked } = await supabase.rpc('is_blocked', { uid1: user.id, uid2: story.owner_id });
+  if (isBlocked) throw new Error("Action denied");
+
+  const { getOrCreateConversation, sendMessage } = await import('@/app/actions/messaging');
+  const conv = await getOrCreateConversation(story.owner_id);
+  
+  await sendMessage({
+    conversationId: conv.id,
+    type: 'STORY',
+    body: `Respondida a pregunta: "${question}"\n\n${answer}`,
+    entityId: storyId
+  });
+
+  return true;
 }
+
+
