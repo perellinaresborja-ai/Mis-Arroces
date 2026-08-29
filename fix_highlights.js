@@ -1,23 +1,61 @@
 const fs = require('fs');
-let c = fs.readFileSync('src/components/domain/ProfileHighlightsClient.tsx', 'utf8');
 
-if (!c.includes('import { EditHighlightModal }')) {
-  c = c.replace(/import \{ CreateHighlightModal \} from "\.\/CreateHighlightModal"/, 'import { CreateHighlightModal } from "./CreateHighlightModal"\nimport { EditHighlightModal } from "./EditHighlightModal"');
+let code = fs.readFileSync('src/app/actions/highlights.ts', 'utf8');
+
+code += `\n
+export async function addStoryToHighlight(highlightId: string, storyId: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error("Unauthorized");
   
-  c = c.replace(/const \[selectedHighlight, setSelectedHighlight\] = useState<any \| null>\(null\)/, `const [selectedHighlight, setSelectedHighlight] = useState<any | null>(null)
-  const [editingHighlight, setEditingHighlight] = useState<any | null>(null)`);
+  // Verify ownership
+  const { data: h } = await supabase.from('story_highlights').select('user_id').eq('id', highlightId).single();
+  if (h?.user_id !== user.id) throw new Error("Unauthorized");
 
-  c = c.replace(/\{h\.cover_url \? <img src=\{h\.cover_url\} className="w-full h-full object-cover"\/> : <div className="w-full h-full bg-muted-foreground\/20" \/>\}/g, `{h.cover_url ? <img src={h.cover_url} className="w-full h-full object-cover"/> : <div className="w-full h-full bg-muted-foreground/20" />}
-                 {isMe && <button onClick={(e) => { e.stopPropagation(); setEditingHighlight(h); }} className="absolute -top-1 -right-1 bg-zinc-900 border border-white/20 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs z-10 hover:scale-110 transition-transform">✎</button>}`);
-                 
-  // the div around the img needs position relative for absolute positioning of pencil
-  c = c.replace(/<div className="w-full h-full rounded-full bg-card overflow-hidden">/g, '<div className="w-full h-full rounded-full bg-card overflow-hidden relative">');
-
-  c = c.replace(/\{showCreate && \(/, `{editingHighlight && (
-        <EditHighlightModal highlight={editingHighlight} archivedStories={archivedStories} onClose={() => setEditingHighlight(null)} />
-      )}
-
-      {showCreate && (`);
-
-  fs.writeFileSync('src/components/domain/ProfileHighlightsClient.tsx', c);
+  // Get max display_order
+  const { data: existing } = await supabase.from('highlight_stories').select('display_order').eq('highlight_id', highlightId).order('display_order', { ascending: false }).limit(1).maybeSingle();
+  
+  const nextOrder = existing ? existing.display_order + 1 : 0;
+  
+  // Insert (ON CONFLICT DO NOTHING relies on unique constraint, but we can just use insert and catch error)
+  const { error } = await supabase.from('highlight_stories').insert({
+    highlight_id: highlightId,
+    story_id: storyId,
+    display_order: nextOrder
+  });
+  
+  if (error && error.code !== '23505') { // Ignore unique violation if already added
+    console.error(error);
+    return false;
+  }
+  return true;
 }
+
+export async function createAndAddHighlight(name: string, storyId: string, coverUrl?: string) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Unauthorized");
+  
+  const { data: highlight, error } = await supabase.from('story_highlights').insert({
+    user_id: user.id,
+    name,
+    cover_url: coverUrl
+  }).select().single();
+  
+  if (error) {
+    console.error(error);
+    return null;
+  }
+  
+  await supabase.from('highlight_stories').insert({
+    highlight_id: highlight.id,
+    story_id: storyId,
+    display_order: 0
+  });
+  
+  return highlight;
+}
+`;
+
+fs.writeFileSync('src/app/actions/highlights.ts', code);
+console.log('Fixed highlights actions');

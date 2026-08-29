@@ -2,6 +2,7 @@
 import { StoryOwnerMenu } from "./StoryOwnerMenu"
 import { StoryInsightsModal } from "./StoryInsightsModal"
 import { ShareDMModal } from "./ShareDMModal"
+import { AddToHighlightModal } from "./AddToHighlightModal"
 
 import { useState, useEffect, useRef } from "react"
 import { formatRelativeTime } from "@/lib/utils"
@@ -507,6 +508,14 @@ export function StoriesViewer({ groupedStories: _groupedStories, initialGroupInd
               onDeleted={onClose}
               onOpenInsights={() => { setInsightsOpen(true); }}
               onOpenHighlight={() => { setHighlightModalOpen(true); }}
+            />
+          )}
+          {highlightModalOpen && isMe && (
+            <AddToHighlightModal 
+              storyId={currentStory.id}
+              coverUrl={mediaPath}
+              currentUserId={currentUser?.id || currentUserId || ''}
+              onClose={() => { setHighlightModalOpen(false); setIsPaused(false); }}
             />
           )}
           {insightsOpen && (
