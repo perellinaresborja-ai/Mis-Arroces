@@ -141,8 +141,8 @@ export function OwnerRecipeActions({ recipeId, status, scheduledFor, primaryMedi
                 <Calendar className="w-4 h-4 mr-2 text-muted-foreground" /> Programar
               </Button>
               <Link href={`/recipes/${recipeId}/edit`}>
-                <Button variant="secondary" className="font-semibold shadow-sm">
-                  <Pencil className="w-4 h-4 mr-2 text-muted-foreground" /> Editar
+                <Button className="font-bold bg-[#E69A21] hover:bg-[#E69A21]/90 text-white border-0 shadow-sm">
+                  <Pencil className="w-4 h-4 mr-2" /> Editar
                 </Button>
               </Link>
             <EntityInsightsModal 
@@ -157,8 +157,8 @@ export function OwnerRecipeActions({ recipeId, status, scheduledFor, primaryMedi
           {isPublished && (
             <>
               <Link href={`/recipes/${recipeId}/edit`}>
-                <Button variant="secondary" className="font-bold shadow-sm">
-                  <Pencil className="w-4 h-4 mr-2 text-muted-foreground" /> Editar
+                <Button className="font-bold bg-[#E69A21] hover:bg-[#E69A21]/90 text-white border-0 shadow-sm">
+                  <Pencil className="w-4 h-4 mr-2" /> Editar
                 </Button>
               </Link>
               <Button variant="secondary" onClick={handleShareStory} disabled={isLoading} className="font-semibold shadow-sm">
@@ -173,8 +173,8 @@ export function OwnerRecipeActions({ recipeId, status, scheduledFor, primaryMedi
           {isScheduled && (
             <>
               <Link href={`/recipes/${recipeId}/edit`}>
-                <Button variant="secondary" className="font-bold shadow-sm">
-                  <Pencil className="w-4 h-4 mr-2 text-muted-foreground" /> Editar
+                <Button className="font-bold bg-[#E69A21] hover:bg-[#E69A21]/90 text-white border-0 shadow-sm">
+                  <Pencil className="w-4 h-4 mr-2" /> Editar
                 </Button>
               </Link>
               <Button onClick={handlePublishNow} disabled={isLoading} className="font-bold bg-[#E69A21] hover:bg-[#E69A21]/90 text-white border-0 shadow-sm">
