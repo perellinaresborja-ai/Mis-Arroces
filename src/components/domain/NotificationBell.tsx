@@ -56,7 +56,14 @@ export function NotificationBell({ className }: { className?: string }) {
   return (
     <div className={cn("relative", className)} ref={wrapperRef}>
       <button 
-        onClick={() => setIsOpen(!isOpen)} 
+        onClick={() => {
+          const nextOpen = !isOpen;
+          setIsOpen(nextOpen);
+          if (nextOpen && unreadCount > 0) {
+            setUnreadCount(0); // Optimistic clear
+            import('@/app/actions/notifications').then(m => m.markAllNotificationsRead());
+          }
+        }} 
         className="relative p-2 rounded-full hover:bg-muted/50 transition-colors"
         aria-label="Notificaciones"
       >
