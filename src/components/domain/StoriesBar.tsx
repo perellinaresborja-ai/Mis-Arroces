@@ -11,6 +11,13 @@ import { setGlobalStoryDraft } from "@/lib/story-draft"
 export function StoriesBar({ groupedStories, currentUser }: { groupedStories: any[], currentUser: any }) {
   const [activeGroupIndex, setActiveGroupIndex] = useState<number | null>(null)
   const router = useRouter()
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const handleAddClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    fileInputRef.current?.click();
+  }
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -54,16 +61,12 @@ export function StoriesBar({ groupedStories, currentUser }: { groupedStories: an
                 </div>
               </div>
               
-              <div className="absolute bottom-0 right-0 w-6 h-6 bg-[#E69A21] text-white rounded-full border-[3px] border-background flex items-center justify-center text-sm font-bold shadow-sm z-10">
-                <span className="pointer-events-none">+</span>
-                <input 
-                  onClick={(e) => e.stopPropagation()} 
-                  type="file" 
-                  className="absolute inset-[-15px] w-[calc(100%+30px)] h-[calc(100%+30px)] opacity-0 cursor-pointer" 
-                  accept="image/*,video/*" 
-                  onChange={handleFileChange} 
-                />
-              </div>
+              <button 
+                onClick={handleAddClick}
+                className="absolute bottom-0 right-0 w-6 h-6 bg-[#E69A21] text-white rounded-full border-[3px] border-background flex items-center justify-center text-sm font-bold shadow-sm z-10 cursor-pointer hover:scale-110 transition-transform before:absolute before:-inset-4 before:content-['']"
+              >
+                +
+              </button>
             </div>
             <span className="text-xs font-bold text-center truncate w-16">Tu historia</span>
           </div>
@@ -97,16 +100,12 @@ export function StoriesBar({ groupedStories, currentUser }: { groupedStories: an
                 </div>
                 
                 {isMe && (
-                  <div className="absolute bottom-0 right-0 w-6 h-6 bg-[#E69A21] text-white rounded-full border-[3px] border-background flex items-center justify-center text-sm font-bold shadow-sm z-10">
-                    <span className="pointer-events-none">+</span>
-                    <input 
-                      onClick={(e) => e.stopPropagation()} 
-                      type="file" 
-                      className="absolute inset-[-15px] w-[calc(100%+30px)] h-[calc(100%+30px)] opacity-0 cursor-pointer" 
-                      accept="image/*,video/*" 
-                      onChange={handleFileChange} 
-                    />
-                  </div>
+                  <button 
+                    onClick={handleAddClick}
+                    className="absolute bottom-0 right-0 w-6 h-6 bg-[#E69A21] text-white rounded-full border-[3px] border-background flex items-center justify-center text-sm font-bold shadow-sm z-10 cursor-pointer hover:scale-110 transition-transform before:absolute before:-inset-4 before:content-['']"
+                  >
+                    +
+                  </button>
                 )}
               </div>
 
@@ -126,7 +125,14 @@ export function StoriesBar({ groupedStories, currentUser }: { groupedStories: an
           currentUser={currentUser}
         />
       )}
+
+      <input 
+        ref={fileInputRef} 
+        type="file" 
+        className="hidden" 
+        accept="image/*,video/*" 
+        onChange={handleFileChange} 
+      />
     </>
   )
 }
-

@@ -26,10 +26,20 @@ export function StoriesViewer({ groupedStories: _groupedStories, initialGroupInd
   const initialGroupIndex = _initialGroupIndex || 0;
   const [groupIndex, setGroupIndex] = useState(initialGroupIndex)
   const router = useRouter();
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  
+  const handleAddClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsPaused(true); // Pause stories while they pick a file
+    fileInputRef.current?.click();
+  }
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) return;
+    if (!file) {
+      setIsPaused(false); // Unpause if they cancel
+      return;
+    }
     setGlobalStoryDraft(file);
     router.push("/create/story");
     e.target.value = "";
@@ -259,12 +269,12 @@ export function StoriesViewer({ groupedStories: _groupedStories, initialGroupInd
           
                       <div className="flex gap-2 relative z-50 pointer-events-auto shrink-0 items-center">
               {isMe && (
-                <div 
-                  className="relative w-10 h-10 flex items-center justify-center mr-1 bg-black/40 hover:bg-black/60 rounded-full transition-colors backdrop-blur-sm border border-white/20 text-white"
+                <button 
+                  onClick={handleAddClick}
+                  className="w-10 h-10 flex items-center justify-center mr-1 bg-black/40 hover:bg-black/60 rounded-full cursor-pointer transition-colors backdrop-blur-sm border border-white/20 text-white"
                 >
-                  <Plus className="w-5 h-5 drop-shadow-md pointer-events-none" />
-                  <input onClick={(e) => e.stopPropagation()} type="file" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" accept="image/*,video/*" onChange={handleFileChange} />
-                </div>
+                  <Plus className="w-5 h-5 drop-shadow-md" />
+                </button>
               )}
               <button onClick={handleMenuClick} className="p-2 hover:bg-black/20 rounded-full transition-colors backdrop-blur-sm">
                 <MoreHorizontal className="w-6 h-6 drop-shadow-md text-white" />
@@ -591,6 +601,14 @@ export function StoriesViewer({ groupedStories: _groupedStories, initialGroupInd
           {e.emoji === 'PAELLA' ? <PaellaIcon className="w-12 h-12 text-primary drop-shadow-md" /> : e.emoji}
         </div>
       ))}
+
+      <input 
+        ref={fileInputRef} 
+        type="file" 
+        className="hidden" 
+        accept="image/*,video/*" 
+        onChange={handleFileChange} 
+      />
 
     </div>
   )
