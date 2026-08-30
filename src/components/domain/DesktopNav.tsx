@@ -63,7 +63,7 @@ export function DesktopNav() {
       <div className="flex h-16 items-center justify-between w-full max-w-7xl mx-auto px-4 md:px-8">
         
         <Link href="/" className="flex items-center gap-2">
-            <div className="relative w-56 h-12">
+            <div className="relative w-64 h-14">
               <Image src="/logohor.png" alt="Mis Arroces Logo" fill sizes="300px" className="object-contain object-left" priority />
             </div>
           </Link>

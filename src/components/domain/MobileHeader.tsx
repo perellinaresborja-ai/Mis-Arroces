@@ -23,9 +23,9 @@ export function MobileHeader() {
   if (pathname === "/login" || pathname === "/forgot-password" || pathname.includes("/edit") || pathname.includes("/create")) return null;
 
   return (
-    <div className="md:hidden sticky top-0 z-40 flex items-center justify-between p-4 bg-background/95 backdrop-blur border-b border-border">
+    <div className="md:hidden sticky top-0 z-40 flex h-16 items-center justify-between px-4 py-2 bg-background/95 backdrop-blur border-b border-border">
       <Link href="/">
-        <div className="relative w-32 h-8">
+        <div className="relative w-40 h-12">
           <Image src="/logohor.png" alt="Mis Arroces Logo" fill sizes="150px" className="object-contain object-left" priority />
         </div>
       </Link>
