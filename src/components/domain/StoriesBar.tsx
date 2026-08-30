@@ -55,7 +55,7 @@ export function StoriesBar({ groupedStories, currentUser }: { groupedStories: an
             
             <label 
               onClick={(e) => e.stopPropagation()}
-              className="absolute top-10 right-0 w-5 h-5 bg-[#E69A21] text-white rounded-full border-2 border-background flex items-center justify-center text-xs font-bold shadow-sm cursor-pointer hover:scale-110 transition-transform"
+              className="absolute top-9 -right-0.5 w-6 h-6 bg-[#E69A21] text-white rounded-full border-[3px] border-background flex items-center justify-center text-sm font-bold shadow-sm cursor-pointer hover:scale-110 transition-transform z-10 before:absolute before:-inset-4 before:content-['']"
             >
               <input onClick={(e) => e.stopPropagation()} type="file" className="sr-only" accept="image/*,video/*" onChange={handleFileChange} />
               +
@@ -93,7 +93,7 @@ export function StoriesBar({ groupedStories, currentUser }: { groupedStories: an
               {isMe && (
                 <label 
                     onClick={(e) => e.stopPropagation()}
-                    className="absolute top-10 right-0 w-5 h-5 bg-[#E69A21] text-white rounded-full border-2 border-background flex items-center justify-center text-xs font-bold shadow-sm cursor-pointer hover:scale-110 transition-transform"
+                    className="absolute top-9 -right-0.5 w-6 h-6 bg-[#E69A21] text-white rounded-full border-[3px] border-background flex items-center justify-center text-sm font-bold shadow-sm cursor-pointer hover:scale-110 transition-transform z-10 before:absolute before:-inset-4 before:content-['']"
                   >
                     <input onClick={(e) => e.stopPropagation()} type="file" className="sr-only" accept="image/*,video/*" onChange={handleFileChange} />
                     +

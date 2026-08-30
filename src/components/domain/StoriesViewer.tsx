@@ -16,13 +16,24 @@ import { toggleStoryReaction } from "@/app/actions/stories"
 
 import { EntityInsightsModal } from "./EntityInsightsModal"
 import { SaveRecipeButton } from "./SaveRecipeButton"
-import { BarChart2 } from "lucide-react"
+import { BarChart2, Plus } from "lucide-react"
 import { trackClickAction } from "@/app/actions/tracking"
+import { useRouter } from "next/navigation"
+import { setGlobalStoryDraft } from "@/lib/story-draft"
 
 export function StoriesViewer({ groupedStories: _groupedStories, initialGroupIndex: _initialGroupIndex, stories, initialIndex, onClose, currentUser, currentUserId }: { groupedStories?: any[], initialGroupIndex?: number, stories?: any[], initialIndex?: number, onClose: () => void, currentUser?: any, currentUserId?: string }) {
   const groupedStories = _groupedStories || [{ author: stories?.[0]?.author || stories?.[0]?.profiles || { id: stories?.[0]?.owner_id }, stories: stories || [] }];
   const initialGroupIndex = _initialGroupIndex || 0;
   const [groupIndex, setGroupIndex] = useState(initialGroupIndex)
+  const router = useRouter();
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setGlobalStoryDraft(file);
+    router.push("/create/story");
+    e.target.value = "";
+  }
   const [storyIndex, setStoryIndex] = useState(initialIndex || 0)
   const [isPaused, setIsPaused] = useState(false)
   const [progress, setProgress] = useState(0) // 0 to 100 per story
@@ -246,7 +257,17 @@ export function StoriesViewer({ groupedStories: _groupedStories, initialGroupInd
             </div>
           </div>
           
-                      <div className="flex gap-2 relative z-50 pointer-events-auto shrink-0">
+                      <div className="flex gap-2 relative z-50 pointer-events-auto shrink-0 items-center">
+              {isMe && (
+                <label 
+                  onClick={(e) => e.stopPropagation()}
+                  className="flex items-center gap-1 px-3 py-1.5 mr-1 bg-black/40 hover:bg-black/60 rounded-full cursor-pointer transition-colors backdrop-blur-sm border border-white/20 text-white"
+                >
+                  <Plus className="w-4 h-4 drop-shadow-md" />
+                  <span className="text-xs font-bold drop-shadow-md">Añadir</span>
+                  <input onClick={(e) => e.stopPropagation()} type="file" className="sr-only" accept="image/*,video/*" onChange={handleFileChange} />
+                </label>
+              )}
               <button onClick={handleMenuClick} className="p-2 hover:bg-black/20 rounded-full transition-colors backdrop-blur-sm">
                 <MoreHorizontal className="w-6 h-6 drop-shadow-md text-white" />
               </button>
