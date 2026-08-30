@@ -313,13 +313,7 @@ export function StoryCreator({
           <button 
             onClick={(e) => {
               e.stopPropagation();
-              const hasChanges = draftMediaUrl || overlays.length > 0 || textVal.trim() !== '';
-              if (hasChanges) {
-                setShowDiscardDialog(true);
-              } else {
-                clearGlobalStoryDraft();
-                router.back();
-              }
+              setShowDiscardDialog(true);
             }}
             className="absolute top-4 right-4 z-[100] w-8 h-8 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center text-white hover:bg-black/60 transition-colors pointer-events-auto"
           >
