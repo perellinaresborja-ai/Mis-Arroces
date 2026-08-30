@@ -261,10 +261,9 @@ export function StoriesViewer({ groupedStories: _groupedStories, initialGroupInd
               {isMe && (
                 <label 
                   onClick={(e) => e.stopPropagation()}
-                  className="flex items-center gap-1 px-3 py-1.5 mr-1 bg-black/40 hover:bg-black/60 rounded-full cursor-pointer transition-colors backdrop-blur-sm border border-white/20 text-white"
+                  className="w-10 h-10 flex items-center justify-center mr-1 bg-black/40 hover:bg-black/60 rounded-full cursor-pointer transition-colors backdrop-blur-sm border border-white/20 text-white"
                 >
-                  <Plus className="w-4 h-4 drop-shadow-md" />
-                  <span className="text-xs font-bold drop-shadow-md">Añadir</span>
+                  <Plus className="w-5 h-5 drop-shadow-md" />
                   <input onClick={(e) => e.stopPropagation()} type="file" className="sr-only" accept="image/*,video/*" onChange={handleFileChange} />
                 </label>
               )}
