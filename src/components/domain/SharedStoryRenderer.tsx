@@ -138,7 +138,7 @@ export function SharedStoryRenderer({
     position: 'absolute',
     width: '100%',
     height: '100%',
-    objectFit: 'contain',
+    objectFit: 'cover',
     transform: transform ? ('translate(' + transform.translateX + 'px, ' + transform.translateY + 'px) scale(' + transform.scale + ')') : 'none',
   }
 
