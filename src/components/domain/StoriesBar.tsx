@@ -44,7 +44,7 @@ export function StoriesBar({ groupedStories, currentUser }: { groupedStories: an
             <div className="w-16 h-16 rounded-full bg-muted border-2 border-dashed border-[#E69A21]/50 flex items-center justify-center text-[#E69A21]">
               <span className="text-2xl font-light">+</span>
             </div>
-            <span className="text-xs font-medium text-center truncate w-16">Tu historia</span>
+            <span className="text-xs font-medium text-center truncate w-full px-1">Subir historia</span>
             </label>
           )}
 
