@@ -322,6 +322,7 @@ export function StoryCreator({
           
           <SharedStoryRenderer 
             mediaUrl={draftMediaUrl} 
+            isVideo={draftMediaType === 'VIDEO'}
             background={background}
             overlays={[]} 
             mode="EDITOR"
