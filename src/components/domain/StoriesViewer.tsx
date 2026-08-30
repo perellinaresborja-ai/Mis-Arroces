@@ -563,11 +563,6 @@ export function StoriesViewer({ groupedStories: _groupedStories, initialGroupInd
               )}
             </div>
           
-      {floatingEmojis.map(e => (
-        <div key={e.id} className="absolute bottom-20 left-1/2 text-4xl animate-float-up pointer-events-none drop-shadow-xl z-50 flex items-center justify-center w-12 h-12" style={{ marginLeft: `${e.x}px` }}>
-          {e.emoji === 'PAELLA' ? <PaellaIcon className="w-12 h-12 text-primary" /> : e.emoji}
-        </div>
-      ))}
 </div>
         )}
 
@@ -579,6 +574,12 @@ export function StoriesViewer({ groupedStories: _groupedStories, initialGroupInd
         entityType="STORY" 
         entityId={currentStory.id} 
       />
+      {floatingEmojis.map(e => (
+        <div key={e.id} className="absolute bottom-20 left-1/2 text-4xl animate-float-up pointer-events-none drop-shadow-xl z-50 flex items-center justify-center w-12 h-12" style={{ marginLeft: `${e.x}px` }}>
+          {e.emoji === 'PAELLA' ? <PaellaIcon className="w-12 h-12 text-primary drop-shadow-md" /> : e.emoji}
+        </div>
+      ))}
+
     </div>
   )
 }
