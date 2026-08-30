@@ -216,7 +216,7 @@ export function SharedStoryRenderer({
   )
 }
 
-function renderOverlayContent(overlay: StoryOverlay, mode: string, ctx?: RenderContext) {
+export function renderOverlayContent(overlay: StoryOverlay, mode: string, ctx?: RenderContext) {
     const safeCtx = ctx || {};
     const safeQuestionReplies = safeCtx.questionReplies || {};
     const safeSentQ = safeCtx.sentQ || {};

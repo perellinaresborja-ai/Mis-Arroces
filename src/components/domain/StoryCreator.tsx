@@ -6,7 +6,7 @@ import { StoryTransform, StoryOverlay, StoryBackground, DrawingOverlay } from '@
 import { createClient } from '@/lib/supabase/client';
 import { createStory } from '@/app/actions/stories';
 import { globalStoryDraftUrl, globalStoryDraftType, globalStoryDraftFile, clearGlobalStoryDraft, setGlobalStoryDraft } from '@/lib/story-draft';
-import { SharedStoryRenderer } from './SharedStoryRenderer';
+import { SharedStoryRenderer, renderOverlayContent } from './SharedStoryRenderer';
 import { DraggableOverlay } from './stories/DraggableOverlay';
 import { MentionPicker, RecipePicker, IngredientPicker, LocationPicker, GenericSearchPicker, SessionPicker, ProfilePicker } from './stories/StickerPickers';
 import { Camera, User, ChefHat, MapPin, AlignLeft, AlignCenter, AlignRight, Apple, Image as ImageIcon } from 'lucide-react';
@@ -364,7 +364,7 @@ export function StoryCreator({
               containerRef={containerRef}
             >
               <div className="pointer-events-none">
-                <SharedStoryRenderer overlays={[o]} mode="PREVIEW" />
+                {renderOverlayContent(o, "PREVIEW")}
               </div>
             </DraggableOverlay>
           ))}
