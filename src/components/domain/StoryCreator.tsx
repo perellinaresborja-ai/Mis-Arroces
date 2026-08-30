@@ -376,7 +376,7 @@ export function StoryCreator({
       {mode === 'EDIT' && (
           <div className="p-4 flex flex-col gap-4 h-full">
 
-            <div className="flex bg-zinc-900 rounded-xl p-1 gap-1">
+            <div className={`flex bg-zinc-900 rounded-xl p-1 gap-1 ${!draftMediaUrl ? 'opacity-50 pointer-events-none' : ''}`}>
               <label className="flex-1 py-2 text-white flex flex-col items-center justify-center gap-1 cursor-pointer m-0 hover:bg-white/10 rounded-lg transition-colors">
                 <input type="file" className="sr-only" accept="image/*,video/*" onChange={handleFileChange} />
                 <div className="h-6 flex items-center justify-center"><Camera size={20}/></div>

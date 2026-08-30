@@ -182,7 +182,7 @@ export function SharedStoryRenderer({
             top: (overlay.y * 100 + '%'),
             transform: ('translate(-50%, -50%) scale(' + overlay.scale + ') rotate(' + overlay.rotation + 'deg)'),
             zIndex: overlay.zIndex + 10,
-            pointerEvents: (mode === 'EDITOR' || ['POLL', 'QUESTION', 'SLIDER', 'MENTION', 'LOCATION', 'RECIPE', 'INGREDIENT', 'SESSION', 'PROFILE'].includes(overlay.type)) ? 'auto' : 'none',
+            pointerEvents: (mode === 'EDITOR' || ['POLL', 'QUESTION', 'SLIDER', 'MENTION', 'LOCATION', 'RECIPE', 'INGREDIENT', 'SESSION', 'PROFILE', 'TEXT'].includes(overlay.type)) ? 'auto' : 'none',
             cursor: mode === 'EDITOR' ? 'grab' : 'default',
             boxShadow: isSelected ? '0 0 0 2px #3b82f6' : 'none', // highlight if selected
           }
@@ -192,7 +192,7 @@ export function SharedStoryRenderer({
               key={overlay.id} 
               style={overlayStyle}
               onClick={(e) => {
-                if (['POLL', 'QUESTION', 'SLIDER', 'MENTION', 'LOCATION', 'RECIPE', 'INGREDIENT', 'SESSION', 'PROFILE'].includes(overlay.type)) {
+                if (['POLL', 'QUESTION', 'SLIDER', 'MENTION', 'LOCATION', 'RECIPE', 'INGREDIENT', 'SESSION', 'PROFILE', 'TEXT'].includes(overlay.type)) {
                   e.stopPropagation();
                 }
                 if (mode === 'EDITOR' && onOverlayClick) {
@@ -243,9 +243,30 @@ function renderOverlayContent(overlay: StoryOverlay, mode: string, ctx?: RenderC
   switch (overlay.type) {
     case 'TEXT': {
       const p = overlay.payload;
+      
+      const renderRichText = (txt: string) => {
+        if (!txt) return null;
+        const words = txt.split(/(\s+)/);
+        return words.map((w, i) => {
+          const cleanW = w.replace(/[.,!?;:]$/, '');
+          const punctuation = w.slice(cleanW.length);
+          
+          if (cleanW.startsWith('@') && cleanW.length > 1) {
+            return <React.Fragment key={i}><span className="underline decoration-2 underline-offset-4 cursor-pointer" onClick={(e) => { e.stopPropagation(); if(mode==='VIEWER') window.location.href = '/' + cleanW.substring(1); }}>{cleanW}</span>{punctuation}</React.Fragment>;
+          }
+          if (cleanW.startsWith('#') && cleanW.length > 1) {
+            return <React.Fragment key={i}><span className="underline decoration-2 underline-offset-4 cursor-pointer" onClick={(e) => { e.stopPropagation(); if(mode==='VIEWER') window.location.href = '/discover?q=' + encodeURIComponent(cleanW); }}>{cleanW}</span>{punctuation}</React.Fragment>;
+          }
+          if (cleanW.startsWith('http://') || cleanW.startsWith('https://')) {
+            return <React.Fragment key={i}><a href={cleanW} target="_blank" rel="noopener noreferrer" className="underline decoration-2 underline-offset-4 cursor-pointer" onClick={(e) => e.stopPropagation()}>{cleanW}</a>{punctuation}</React.Fragment>;
+          }
+          return w;
+        });
+      };
+
       return (
-        <div className="px-4 py-2 font-bold text-center whitespace-pre-wrap break-words" style={{ color: p.color, backgroundColor: p.backgroundColor, fontFamily: p.fontFamily, textAlign: p.align, textShadow: '1px 1px 2px rgba(0,0,0,0.5)' }}>
-          {p.text}
+        <div className="px-4 py-2 font-bold text-center whitespace-pre-wrap break-words pointer-events-auto" style={{ color: p.color, backgroundColor: p.backgroundColor, fontFamily: p.fontFamily, textAlign: p.align, textShadow: p.backgroundColor === 'transparent' ? '2px 2px 4px rgba(0,0,0,0.8)' : 'none' }}>
+          {renderRichText(p.text)}
         </div>
       );
     }
