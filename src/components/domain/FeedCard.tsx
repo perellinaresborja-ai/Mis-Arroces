@@ -199,9 +199,13 @@ export function FeedCard({
       </footer>
 
       {/* Inline Comments Modal */}
-      <CommentsModal
+      <FeedCommentsInline
         isOpen={isCommentsOpen}
-        onClose={() => setIsCommentsOpen(false)}
+        entityType={entityType}
+        entityId={entityId}
+        currentUserId={currentUserId}
+        allowComments={true}
+      /> setIsCommentsOpen(false)}
         entityType={entityType}
         entityId={entityId}
         currentUserId={currentUserId}
