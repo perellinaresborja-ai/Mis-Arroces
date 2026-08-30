@@ -41,25 +41,30 @@ export function StoriesBar({ groupedStories, currentUser }: { groupedStories: an
         {!hasMyStories && currentUser && (
           <div 
             onClick={() => router.push("/create/story")}
-            className="flex flex-col items-center gap-1 min-w-[72px] cursor-pointer hover:opacity-80 shrink-0 relative"
+            className="flex flex-col items-center gap-1 min-w-[72px] cursor-pointer hover:opacity-80 shrink-0"
           >
-            <div className="w-16 h-16 rounded-full p-0.5 border-2 border-transparent">
-              <div className="w-full h-full rounded-full overflow-hidden bg-muted flex items-center justify-center">
-                {currentUser?.avatar?.storage_path ? (
-                  <img src={`${process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://zvesoygqssyyojqyswwm.supabase.co'}/storage/v1/object/public/recipe_media/${currentUser.avatar.storage_path}`} className="w-full h-full object-cover" />
-                ) : (
-                  <span className="font-bold text-muted-foreground">{(currentUser?.display_name || currentUser?.username || "?").charAt(0).toUpperCase()}</span>
-                )}
+            <div className="relative">
+              <div className="w-16 h-16 rounded-full p-0.5 border-2 border-transparent">
+                <div className="w-full h-full rounded-full overflow-hidden bg-muted flex items-center justify-center">
+                  {currentUser?.avatar?.storage_path ? (
+                    <img src={`${process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://zvesoygqssyyojqyswwm.supabase.co'}/storage/v1/object/public/recipe_media/${currentUser.avatar.storage_path}`} className="w-full h-full object-cover" />
+                  ) : (
+                    <span className="font-bold text-muted-foreground">{(currentUser?.display_name || currentUser?.username || "?").charAt(0).toUpperCase()}</span>
+                  )}
+                </div>
+              </div>
+              
+              <div className="absolute bottom-0 right-0 w-6 h-6 bg-[#E69A21] text-white rounded-full border-[3px] border-background flex items-center justify-center text-sm font-bold shadow-sm z-10">
+                <span className="pointer-events-none">+</span>
+                <input 
+                  onClick={(e) => e.stopPropagation()} 
+                  type="file" 
+                  className="absolute inset-[-15px] w-[calc(100%+30px)] h-[calc(100%+30px)] opacity-0 cursor-pointer" 
+                  accept="image/*,video/*" 
+                  onChange={handleFileChange} 
+                />
               </div>
             </div>
-            
-            <label 
-              onClick={(e) => e.stopPropagation()}
-              className="absolute top-9 -right-0.5 w-6 h-6 bg-[#E69A21] text-white rounded-full border-[3px] border-background flex items-center justify-center text-sm font-bold shadow-sm cursor-pointer hover:scale-110 transition-transform z-10 before:absolute before:-inset-4 before:content-['']"
-            >
-              <input onClick={(e) => e.stopPropagation()} type="file" className="sr-only" accept="image/*,video/*" onChange={handleFileChange} />
-              +
-            </label>
             <span className="text-xs font-bold text-center truncate w-16">Tu historia</span>
           </div>
         )}
@@ -76,29 +81,34 @@ export function StoriesBar({ groupedStories, currentUser }: { groupedStories: an
             <div 
               key={group.author.id} 
               onClick={() => handleOpenStories(i)}
-              className="flex flex-col items-center gap-1 min-w-[72px] cursor-pointer hover:opacity-80 shrink-0 relative"
+              className="flex flex-col items-center gap-1 min-w-[72px] cursor-pointer hover:opacity-80 shrink-0"
             >
-              <div className={`w-16 h-16 rounded-full p-0.5 border-2 ${group.allSeen ? 'border-border' : 'border-primary'}`}>
-                <div className="w-full h-full rounded-full overflow-hidden bg-muted flex items-center justify-center">
-                  {coverMedia ? (
-                    <img src={`https://zvesoygqssyyojqyswwm.supabase.co/storage/v1/object/public/recipe_media/${coverMedia}`} className="w-full h-full object-cover" />
-                  ) : group.author?.avatar?.storage_path ? (
-                    <img src={`https://zvesoygqssyyojqyswwm.supabase.co/storage/v1/object/public/recipe_media/${group.author.avatar.storage_path}`} className="w-full h-full object-cover" />
-                  ) : (
-                    <span className="font-bold text-muted-foreground">{(group.author?.display_name || group.author?.username || "?").charAt(0).toUpperCase()}</span>
-                  )}
+              <div className="relative">
+                <div className={`w-16 h-16 rounded-full p-0.5 border-2 ${group.allSeen ? 'border-border' : 'border-primary'}`}>
+                  <div className="w-full h-full rounded-full overflow-hidden bg-muted flex items-center justify-center">
+                    {coverMedia ? (
+                      <img src={`https://zvesoygqssyyojqyswwm.supabase.co/storage/v1/object/public/recipe_media/${coverMedia}`} className="w-full h-full object-cover" />
+                    ) : group.author?.avatar?.storage_path ? (
+                      <img src={`https://zvesoygqssyyojqyswwm.supabase.co/storage/v1/object/public/recipe_media/${group.author.avatar.storage_path}`} className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="font-bold text-muted-foreground">{(group.author?.display_name || group.author?.username || "?").charAt(0).toUpperCase()}</span>
+                    )}
+                  </div>
                 </div>
+                
+                {isMe && (
+                  <div className="absolute bottom-0 right-0 w-6 h-6 bg-[#E69A21] text-white rounded-full border-[3px] border-background flex items-center justify-center text-sm font-bold shadow-sm z-10">
+                    <span className="pointer-events-none">+</span>
+                    <input 
+                      onClick={(e) => e.stopPropagation()} 
+                      type="file" 
+                      className="absolute inset-[-15px] w-[calc(100%+30px)] h-[calc(100%+30px)] opacity-0 cursor-pointer" 
+                      accept="image/*,video/*" 
+                      onChange={handleFileChange} 
+                    />
+                  </div>
+                )}
               </div>
-              
-              {isMe && (
-                <label 
-                    onClick={(e) => e.stopPropagation()}
-                    className="absolute top-9 -right-0.5 w-6 h-6 bg-[#E69A21] text-white rounded-full border-[3px] border-background flex items-center justify-center text-sm font-bold shadow-sm cursor-pointer hover:scale-110 transition-transform z-10 before:absolute before:-inset-4 before:content-['']"
-                  >
-                    <input onClick={(e) => e.stopPropagation()} type="file" className="sr-only" accept="image/*,video/*" onChange={handleFileChange} />
-                    +
-                  </label>
-              )}
 
               <span className={`text-xs text-center truncate w-16 \${group.allSeen ? 'text-muted-foreground' : 'font-bold'}`}>
                 {isMe ? "Tu historia" : group.author?.display_name?.split(" ")[0] || group.author?.username}
