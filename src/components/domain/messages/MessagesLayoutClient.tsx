@@ -9,7 +9,7 @@ export function MessagesLayoutClient({ convs, children }: { convs: Record<string
   return (
     <div className="fixed inset-0 md:top-[64px] flex w-full max-w-5xl mx-auto border-x border-border/50 overflow-hidden bg-background z-40">
       {/* LEFT SIDEBAR (Inbox) - Visible always on Desktop, visible ONLY on Root on Mobile */}
-      <div className={`${isRoot ? 'flex' : 'hidden'} md:flex flex-col w-full md:w-[350px] shrink-0 border-r border-border h-full`}>
+      <div className={`${isRoot ? 'flex' : 'hidden'} flex-col w-full shrink-0 h-full`}>
         <div className="p-4 border-b border-border sticky top-0 bg-background/95 z-10">
           <h1 className="text-2xl font-bold">Mensajes</h1>
         </div>
@@ -54,7 +54,7 @@ export function MessagesLayoutClient({ convs, children }: { convs: Record<string
       </div>
 
       {/* RIGHT SIDEBAR (Chat) - Visible always on Desktop, visible ONLY on Chat on Mobile */}
-      <div className={`${!isRoot ? 'flex' : 'hidden'} md:flex flex-col flex-1 min-h-0 h-full relative`}>
+      <div className={`${!isRoot ? 'flex' : 'hidden'} flex-col flex-1 min-h-0 h-full relative`}>
         {children}
       </div>
     </div>
