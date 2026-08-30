@@ -8,7 +8,7 @@ import { globalStoryDraftUrl, globalStoryDraftType, globalStoryDraftFile, clearG
 import { SharedStoryRenderer } from './SharedStoryRenderer';
 import { DraggableOverlay } from './stories/DraggableOverlay';
 import { MentionPicker, RecipePicker, IngredientPicker, LocationPicker, GenericSearchPicker, SessionPicker, ProfilePicker } from './stories/StickerPickers';
-import { User, ChefHat, MapPin, AlignLeft, Apple, Image as ImageIcon } from 'lucide-react';
+import { Camera, User, ChefHat, MapPin, AlignLeft, Apple, Image as ImageIcon } from 'lucide-react';
 
 export function StoryCreator({ 
   initialMedia, 
@@ -219,6 +219,16 @@ export function StoryCreator({
             overlays={[]} 
             mode="EDITOR"
           />
+          {!draftMediaUrl && (
+            <div className="absolute inset-0 z-50 flex items-center justify-center pointer-events-none">
+              <label className="bg-primary hover:bg-primary/90 text-primary-foreground w-24 h-24 rounded-full flex flex-col items-center justify-center cursor-pointer pointer-events-auto transition-transform hover:scale-105 shadow-2xl">
+                <input type="file" className="sr-only" accept="image/*,video/*" onChange={handleFileChange} />
+                <Camera size={40} />
+                <span className="text-sm font-bold mt-1">Subir</span>
+              </label>
+            </div>
+          )}
+
 
           <canvas 
             ref={canvasRef}
@@ -290,7 +300,7 @@ export function StoryCreator({
             <div className="flex justify-around bg-zinc-900 rounded-xl p-2">
                 <label className="p-3 text-white flex flex-col items-center gap-1 cursor-pointer m-0">
                   <input type="file" className="sr-only" accept="image/*,video/*" onChange={handleFileChange} />
-                  <ImageIcon size={20}/><span className="text-xs">Cambiar</span>
+                  <Camera size={20}/><span className="text-xs">Cambiar</span>
                 </label>
               <button onClick={() => setMode('TEXT')} className="p-3 text-white flex flex-col items-center gap-1"><AlignLeft size={20}/><span className="text-xs">Texto</span></button>
               <button onClick={() => setMode('DRAW')} className="p-3 text-white flex flex-col items-center gap-1"><span className="text-xl">🖌</span><span className="text-xs">Dibujar</span></button>
