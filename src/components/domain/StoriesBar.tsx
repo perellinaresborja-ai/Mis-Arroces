@@ -129,7 +129,7 @@ export function StoriesBar({ groupedStories, currentUser }: { groupedStories: an
       <input 
         ref={fileInputRef} 
         type="file" 
-        className="hidden" 
+        className="sr-only" 
         accept="image/*,video/*" 
         onChange={handleFileChange} 
       />

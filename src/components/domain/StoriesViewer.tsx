@@ -605,7 +605,7 @@ export function StoriesViewer({ groupedStories: _groupedStories, initialGroupInd
       <input 
         ref={fileInputRef} 
         type="file" 
-        className="hidden" 
+        className="sr-only" 
         accept="image/*,video/*" 
         onChange={handleFileChange} 
       />
