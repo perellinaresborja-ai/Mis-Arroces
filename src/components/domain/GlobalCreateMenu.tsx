@@ -39,7 +39,7 @@ export function GlobalCreateMenu() {
       href: "/create/post"
     },
     {
-      label: "Historia",
+      label: "Subir historia",
       icon: Clock,
       href: "/create/story"
     },
