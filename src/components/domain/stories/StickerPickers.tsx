@@ -37,7 +37,7 @@ export function GenericSearchPicker({
   }, [query])
 
   return (
-    <div className="flex flex-col w-full h-full bg-background rounded-t-2xl p-4 animate-in slide-in-from-bottom">
+    <div className="flex flex-col w-full h-full bg-card rounded-t-2xl p-4 animate-in slide-in-from-bottom">
       <div className="flex items-center gap-2 mb-4">
         <Icon className="w-5 h-5 text-primary" />
         <h3 className="font-bold">{title}</h3>
@@ -54,8 +54,9 @@ export function GenericSearchPicker({
         />
       </div>
       <div className="flex-1 overflow-y-auto flex flex-col gap-2 pb-safe">
-        {loading && <p className="text-center text-sm text-muted-foreground">Buscando...</p>}
-        {!loading && results.length === 0 && query.length >= 2 && <p className="text-center text-sm text-muted-foreground">No se encontraron resultados.</p>}
+        {loading && <p className="text-center text-sm text-muted-foreground mt-4">Buscando...</p>}
+        {!loading && results.length === 0 && query.trim().length < 2 && <p className="text-center text-sm text-muted-foreground mt-4">Escribe para buscar...</p>}
+        {!loading && results.length === 0 && query.trim().length >= 2 && <p className="text-center text-sm text-muted-foreground mt-4">No se encontraron resultados.</p>}
         {!loading && results.map(item => (
           <button 
             key={item.id} 

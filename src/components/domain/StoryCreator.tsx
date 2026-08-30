@@ -586,9 +586,6 @@ export function StoryCreator({
                 <button onClick={() => setActiveStickerType('SESSION')} className="bg-muted hover:bg-muted/80 text-foreground p-4 rounded-2xl flex items-center justify-center gap-2 transition-colors font-medium"><ChefHat size={18} className="text-primary"/> Sesión</button>
                 <button onClick={() => setActiveStickerType('PROFILE')} className="bg-muted hover:bg-muted/80 text-foreground p-4 rounded-2xl flex items-center justify-center gap-2 transition-colors font-medium"><User size={18} className="text-primary"/> Perfil</button>
 
-                <button onClick={() => { setMode('EDIT'); setIsPollModalOpen(true); }} className="bg-muted hover:bg-muted/80 text-foreground p-4 rounded-2xl col-span-2 font-bold transition-colors">📊 Encuesta</button>
-                <button onClick={() => { setMode('EDIT'); setIsQuestionModalOpen(true); }} className="bg-muted hover:bg-muted/80 text-foreground p-4 rounded-2xl col-span-2 font-bold transition-colors">❓ Pregunta</button>
-                <button onClick={() => { setMode('EDIT'); setIsSliderModalOpen(true); }} className="bg-muted hover:bg-muted/80 text-foreground p-4 rounded-2xl col-span-2 font-bold transition-colors">😍 Slider</button>
               </div>
             ) : (
               <div className="absolute inset-0 z-10 bg-card flex flex-col">
