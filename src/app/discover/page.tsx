@@ -177,8 +177,8 @@ export default async function DiscoverPage(props: { searchParams?: Promise<{ q?:
               {homeData.users.map((u) => {
                 const avatar = getAvatarUrl(u.avatar?.storage_path)
                 return (
-                  <Link key={u.id} href={`/@${u.username}`} className="flex flex-col items-center gap-2 shrink-0 w-20 group">
-                    <div className="w-16 h-16 rounded-full bg-muted border-2 border-border overflow-hidden group-hover:border-primary transition-colors">
+                  <Link key={u.id} href={`/@${u.username}`} className="flex flex-col items-center gap-2 shrink-0 w-24 group">
+                    <div className="w-20 h-20 md:w-24 md:h-24 rounded-full bg-muted border-2 border-border overflow-hidden group-hover:border-primary transition-colors shadow-sm">
                       {avatar ? (
                         <img src={avatar} alt={u.username} className="w-full h-full object-cover" />
                       ) : (
@@ -279,7 +279,7 @@ export default async function DiscoverPage(props: { searchParams?: Promise<{ q?:
           {(tab === "todo" || tab === "arroces") && searchResults.recipes.length > 0 && (
             <section className="space-y-4">
               {tab === "todo" && <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wider">Arroces</h3>}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-3 gap-2 md:gap-4">
                 {searchResults.recipes.map((r) => {
                   const media = r.recipe_media?.[0]?.media?.storage_path
                   const imgUrl = media ? `${"https://zvesoygqssyyojqyswwm.supabase.co"}/storage/v1/object/public/recipe_media/${media}` : null
@@ -297,7 +297,7 @@ export default async function DiscoverPage(props: { searchParams?: Promise<{ q?:
                           </div>
                         )}
                       </div>
-                      <div className="p-3">
+                      <div className="p-2 md:p-3">
                         <h3 className="font-bold text-sm line-clamp-1">{r.name}</h3>
                         <p className="text-xs text-muted-foreground line-clamp-1">por {r.author?.display_name}</p>
                       </div>
