@@ -11,20 +11,10 @@ import { setGlobalStoryDraft } from "@/lib/story-draft"
 export function StoriesBar({ groupedStories, currentUser }: { groupedStories: any[], currentUser: any }) {
   const [activeGroupIndex, setActiveGroupIndex] = useState<number | null>(null)
   const router = useRouter()
-  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const handleAddClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    fileInputRef.current?.click();
-  }
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setGlobalStoryDraft(file);
     router.push("/create/story");
-    // Reset input
-    e.target.value = "";
   }
   
   // Si currentUser no tiene historias activas, añadimos un placeholder de "Tu historia" 
@@ -125,14 +115,6 @@ export function StoriesBar({ groupedStories, currentUser }: { groupedStories: an
           currentUser={currentUser}
         />
       )}
-
-      <input 
-        ref={fileInputRef} 
-        type="file" 
-        className="sr-only" 
-        accept="image/*,video/*" 
-        onChange={handleFileChange} 
-      />
     </>
   )
 }
