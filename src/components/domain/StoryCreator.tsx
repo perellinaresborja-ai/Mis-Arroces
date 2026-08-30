@@ -35,8 +35,9 @@ export function StoryCreator({
       // Set mode to EDIT since we have media
       setMode('EDIT');
     } else if (!initialMedia && !initialRecipe) {
-      // If there's no media and no recipe, default to TEXT mode
-      setMode('TEXT');
+      // Always default to EDIT so the user sees the 'Subir' file picker first,
+      // and can manually click 'Texto' if they want a text-only story.
+      setMode('EDIT');
     }
   }, []);
   
@@ -283,7 +284,7 @@ export function StoryCreator({
             overlays={[]} 
             mode="EDITOR"
           />
-          {!draftMediaUrl && (
+          {!draftMediaUrl && overlays.length === 0 && mode === 'EDIT' && (
             <div className="absolute inset-0 z-50 flex items-center justify-center pointer-events-none">
               <label className="bg-primary hover:bg-primary/90 text-primary-foreground w-24 h-24 rounded-full flex flex-col items-center justify-center cursor-pointer pointer-events-auto transition-transform hover:scale-105 shadow-2xl">
                 <input type="file" className="sr-only" accept="image/*,video/*" onChange={handleFileChange} />
@@ -387,7 +388,7 @@ export function StoryCreator({
       {mode === 'EDIT' && (
           <div className="p-4 flex flex-col gap-4 h-full">
 
-            <div className={`flex bg-zinc-900 rounded-xl p-1 gap-1 ${!draftMediaUrl ? 'opacity-50 pointer-events-none' : ''}`}>
+            <div className="flex bg-zinc-900 rounded-xl p-1 gap-1">
               <label className="flex-1 py-2 text-white flex flex-col items-center justify-center gap-1 cursor-pointer m-0 hover:bg-white/10 rounded-lg transition-colors">
                 <input type="file" className="sr-only" accept="image/*,video/*" onChange={handleFileChange} />
                 <div className="h-6 flex items-center justify-center"><Camera size={20}/></div>
