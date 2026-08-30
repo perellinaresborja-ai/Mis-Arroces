@@ -351,14 +351,24 @@ export function StoryCreator({
       {mode === 'EDIT' && (
           <div className="p-4 flex flex-col gap-4 h-full">
 
-            <div className="flex justify-around bg-zinc-900 rounded-xl p-2">
-                <label className="p-3 text-white flex flex-col items-center gap-1 cursor-pointer m-0">
-                  <input type="file" className="sr-only" accept="image/*,video/*" onChange={handleFileChange} />
-                  <Camera size={20}/><span className="text-xs">Comparte</span>
-                </label>
-              <button onClick={() => setMode('TEXT')} className="p-3 text-white flex flex-col items-center gap-1"><AlignLeft size={20}/><span className="text-xs">Texto</span></button>
-              <button onClick={() => setMode('DRAW')} className="p-3 text-white flex flex-col items-center gap-1"><span className="text-xl">🖌</span><span className="text-xs">Dibujar</span></button>
-              <button onClick={() => setMode('STICKER')} className="p-3 text-white flex flex-col items-center gap-1"><span className="text-xl">☻</span><span className="text-xs">Stickers</span></button>
+            <div className="flex bg-zinc-900 rounded-xl p-1 gap-1">
+              <label className="flex-1 py-2 text-white flex flex-col items-center justify-center gap-1 cursor-pointer m-0 hover:bg-white/10 rounded-lg transition-colors">
+                <input type="file" className="sr-only" accept="image/*,video/*" onChange={handleFileChange} />
+                <div className="h-6 flex items-center justify-center"><Camera size={20}/></div>
+                <span className="text-xs font-semibold">Archivo</span>
+              </label>
+              <button onClick={() => setMode('TEXT')} className="flex-1 py-2 text-white flex flex-col items-center justify-center gap-1 hover:bg-white/10 rounded-lg transition-colors">
+                <div className="h-6 flex items-center justify-center"><AlignLeft size={20}/></div>
+                <span className="text-xs font-semibold">Texto</span>
+              </button>
+              <button onClick={() => setMode('DRAW')} className="flex-1 py-2 text-white flex flex-col items-center justify-center gap-1 hover:bg-white/10 rounded-lg transition-colors">
+                <div className="h-6 flex items-center justify-center"><span className="text-xl leading-none">🖌</span></div>
+                <span className="text-xs font-semibold">Dibujar</span>
+              </button>
+              <button onClick={() => setMode('STICKER')} className="flex-1 py-2 text-white flex flex-col items-center justify-center gap-1 hover:bg-white/10 rounded-lg transition-colors">
+                <div className="h-6 flex items-center justify-center"><span className="text-xl leading-none">☻</span></div>
+                <span className="text-xs font-semibold">Stickers</span>
+              </button>
             </div>
             
             <div className="mt-auto space-y-4">
