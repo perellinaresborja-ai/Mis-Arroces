@@ -7,7 +7,7 @@ export function MessagesLayoutClient({ convs, children }: { convs: Record<string
   const isRoot = pathname === '/messages'
 
   return (
-    <div className="fixed inset-0 md:top-[64px] flex w-full max-w-5xl mx-auto border-x border-border/50 overflow-hidden bg-background z-40">
+    <div className="fixed inset-0 md:top-[64px] flex w-full max-w-2xl mx-auto md:border-x border-border/50 overflow-hidden bg-background z-40">
       {/* LEFT SIDEBAR (Inbox) - Visible always on Desktop, visible ONLY on Root on Mobile */}
       <div className={`${isRoot ? 'flex' : 'hidden'} flex-col w-full shrink-0 h-full`}>
         <div className="p-4 border-b border-border sticky top-0 bg-background/95 z-10">
