@@ -198,22 +198,14 @@ export function FeedCard({
         <div className="flex-1" />
       </footer>
 
-      {/* Inline Comments Modal */}
+      {/* Inline Comments */}
       <FeedCommentsInline
         isOpen={isCommentsOpen}
         entityType={entityType}
         entityId={entityId}
         currentUserId={currentUserId}
         allowComments={true}
-      /> setIsCommentsOpen(false)}
-        entityType={entityType}
-        entityId={entityId}
-        currentUserId={currentUserId}
-        isOwner={currentUserId === user.id}
-        allowComments={true} // Feed components usually allow comments, or we could fetch it.
       />
     </article>
   )
 }
-
-
