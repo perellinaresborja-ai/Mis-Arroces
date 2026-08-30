@@ -215,22 +215,22 @@ export default async function DiscoverPage(props: { searchParams?: Promise<{ q?:
               <h2 className="text-xl font-bold">Arroces populares</h2>
               <Link href="/discover?tab=arroces" className="text-sm font-semibold text-primary hover:underline">Ver todos &gt;</Link>
             </div>
-            <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide snap-x">
+            <div className="grid grid-cols-3 gap-1 md:gap-4 pb-4">
               {homeData.popular.map((r) => {
                 const media = r.recipe_media?.[0]?.media?.storage_path
                 const imgUrl = media ? `${"https://zvesoygqssyyojqyswwm.supabase.co"}/storage/v1/object/public/recipe_media/${media}` : null
                 return (
-                  <Link key={r.id} href={`/recipes/${r.id}`} className="snap-start shrink-0 w-64 group block bg-card rounded-2xl overflow-hidden border border-border hover:border-primary/50 transition-colors">
-                    <div className="aspect-[4/3] bg-muted relative overflow-hidden">
+                  <Link key={r.id} href={`/recipes/${r.id}`} className="group block bg-card border border-border rounded-2xl overflow-hidden hover:border-primary/50 transition-colors">
+                    <div className="aspect-square bg-muted relative">
                       {imgUrl ? (
-                        <img src={imgUrl} alt={r.name} className="w-full h-full object-cover md:group-hover:scale-105 transition-transform duration-500" />
+                        <img src={imgUrl} alt={r.name} className="w-full h-full object-cover" />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center bg-sand/30 text-muted-foreground/50">Sin foto</div>
                       )}
                     </div>
-                    <div className="p-4">
-                      <h3 className="font-bold text-base line-clamp-1 mb-1">{r.name}</h3>
-                      <p className="text-xs text-muted-foreground">@{r.author?.username}</p>
+                    <div className="p-2 md:p-3">
+                      <h3 className="font-bold text-sm line-clamp-1">{r.name}</h3>
+                      <p className="text-[10px] md:text-xs text-muted-foreground line-clamp-1">@{r.author?.username}</p>
                     </div>
                   </Link>
                 )
@@ -243,22 +243,22 @@ export default async function DiscoverPage(props: { searchParams?: Promise<{ q?:
               <h2 className="text-xl font-bold">Últimos arroces</h2>
               <Link href="/discover?tab=arroces" className="text-sm font-semibold text-primary hover:underline">Ver todos &gt;</Link>
             </div>
-            <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide snap-x">
+            <div className="grid grid-cols-3 gap-1 md:gap-4 pb-4">
               {homeData.recent.map((r) => {
                 const media = r.recipe_media?.[0]?.media?.storage_path
                 const imgUrl = media ? `${"https://zvesoygqssyyojqyswwm.supabase.co"}/storage/v1/object/public/recipe_media/${media}` : null
                 return (
-                  <Link key={r.id} href={`/recipes/${r.id}`} className="snap-start shrink-0 w-64 group block bg-card rounded-2xl overflow-hidden border border-border hover:border-primary/50 transition-colors">
-                    <div className="aspect-[4/3] bg-muted relative overflow-hidden">
+                  <Link key={r.id} href={`/recipes/${r.id}`} className="group block bg-card border border-border rounded-2xl overflow-hidden hover:border-primary/50 transition-colors">
+                    <div className="aspect-square bg-muted relative">
                       {imgUrl ? (
-                        <img src={imgUrl} alt={r.name} className="w-full h-full object-cover md:group-hover:scale-105 transition-transform duration-500" />
+                        <img src={imgUrl} alt={r.name} className="w-full h-full object-cover" />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center bg-sand/30 text-muted-foreground/50">Sin foto</div>
                       )}
                     </div>
-                    <div className="p-4">
-                      <h3 className="font-bold text-base line-clamp-1 mb-1">{r.name}</h3>
-                      <p className="text-xs text-muted-foreground">@{r.author?.username}</p>
+                    <div className="p-2 md:p-3">
+                      <h3 className="font-bold text-sm line-clamp-1">{r.name}</h3>
+                      <p className="text-[10px] md:text-xs text-muted-foreground line-clamp-1">@{r.author?.username}</p>
                     </div>
                   </Link>
                 )
