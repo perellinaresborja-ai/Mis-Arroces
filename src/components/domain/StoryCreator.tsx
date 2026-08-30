@@ -9,7 +9,7 @@ import { globalStoryDraftUrl, globalStoryDraftType, globalStoryDraftFile, clearG
 import { SharedStoryRenderer } from './SharedStoryRenderer';
 import { DraggableOverlay } from './stories/DraggableOverlay';
 import { MentionPicker, RecipePicker, IngredientPicker, LocationPicker, GenericSearchPicker, SessionPicker, ProfilePicker } from './stories/StickerPickers';
-import { Camera, User, ChefHat, MapPin, AlignLeft, Apple, Image as ImageIcon } from 'lucide-react';
+import { Camera, User, ChefHat, MapPin, AlignLeft, AlignCenter, AlignRight, Apple, Image as ImageIcon } from 'lucide-react';
 
 export function StoryCreator({ 
   initialMedia, 
@@ -370,7 +370,7 @@ export function StoryCreator({
 
           {/* Inline Text Editor Overlay */}
           {mode === 'TEXT' && (
-            <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 pointer-events-auto touch-none" onClick={() => setMode('EDIT')}>
+            <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 pointer-events-auto touch-none" onClick={addText}>
               <textarea 
                 autoFocus 
                 value={textVal} 
@@ -495,9 +495,15 @@ export function StoryCreator({
             <div className="flex flex-col gap-1">
               <span className="text-xs text-white/50">Alineación</span>
               <div className="flex gap-2">
-                <button onClick={() => setTextAlign('left')} className={`flex-1 p-2 rounded-lg ${textAlign === 'left' ? 'bg-primary' : 'bg-zinc-900'}`}>Izq</button>
-                <button onClick={() => setTextAlign('center')} className={`flex-1 p-2 rounded-lg ${textAlign === 'center' ? 'bg-primary' : 'bg-zinc-900'}`}>Cen</button>
-                <button onClick={() => setTextAlign('right')} className={`flex-1 p-2 rounded-lg ${textAlign === 'right' ? 'bg-primary' : 'bg-zinc-900'}`}>Der</button>
+                <button onClick={() => setTextAlign('left')} className={`flex-1 p-2 rounded-xl flex justify-center items-center transition-colors ${textAlign === 'left' ? 'bg-primary text-white' : 'bg-zinc-900 text-white hover:bg-zinc-800'}`}>
+                  <AlignLeft size={20} />
+                </button>
+                <button onClick={() => setTextAlign('center')} className={`flex-1 p-2 rounded-xl flex justify-center items-center transition-colors ${textAlign === 'center' ? 'bg-primary text-white' : 'bg-zinc-900 text-white hover:bg-zinc-800'}`}>
+                  <AlignCenter size={20} />
+                </button>
+                <button onClick={() => setTextAlign('right')} className={`flex-1 p-2 rounded-xl flex justify-center items-center transition-colors ${textAlign === 'right' ? 'bg-primary text-white' : 'bg-zinc-900 text-white hover:bg-zinc-800'}`}>
+                  <AlignRight size={20} />
+                </button>
               </div>
             </div>
 
