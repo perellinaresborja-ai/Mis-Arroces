@@ -6,7 +6,7 @@ import { ShareButton } from "@/components/domain/ShareButton"
 import { LikeButton } from "@/components/domain/LikeButton"
 import { MediaCarousel } from "@/components/domain/MediaCarousel"
 import { MessageCircle, Bookmark } from "lucide-react"
-import { CommentsModal } from "@/components/domain/CommentsModal"
+import { FeedCommentsInline } from "@/components/domain/FeedCommentsInline"
 import { PostOptionsMenu } from "@/components/domain/PostOptionsMenu"
 import { cn, formatRelativeTime } from "@/lib/utils"
 import { useAuthPrompt } from "@/components/providers/AuthPromptProvider"
@@ -184,7 +184,7 @@ export function FeedCard({
               showAuthPrompt("Crea tu cuenta para participar en la conversación.")
               return
             }
-            setIsCommentsOpen(true)
+            setIsCommentsOpen(!isCommentsOpen)
           }} className="flex items-center gap-1.5 hover:opacity-70 transition-opacity">
           <MessageCircle className="w-6 h-6 transition-colors hover:text-primary" />
           {commentCount > 0 && <span className="text-sm font-medium">{commentCount}</span>}
