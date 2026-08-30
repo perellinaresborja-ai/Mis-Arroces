@@ -151,6 +151,8 @@ export function StoryCreator({
   const [textFont, setTextFont] = useState('sans-serif');
   const [textAlign, setTextAlign] = useState<'left'|'center'|'right'>('center');
 
+  const [showDiscardDialog, setShowDiscardDialog] = useState(false);
+
   // Init recipe if passed
   useEffect(() => {
     if (initialRecipe && overlays.length === 0) {
@@ -279,15 +281,45 @@ export function StoryCreator({
         onClick={() => {
           const hasChanges = draftMediaUrl || overlays.length > 0;
           if (hasChanges) {
-            if (!window.confirm("¿Descartar historia? Si sales ahora, perderás los cambios.")) return;
+            setShowDiscardDialog(true);
+          } else {
+            clearGlobalStoryDraft();
+            router.back();
           }
-          clearGlobalStoryDraft();
-          router.back();
         }}
         className="absolute top-4 left-4 z-[100] w-10 h-10 bg-black/50 backdrop-blur-md rounded-full flex items-center justify-center text-white hover:bg-black/80 transition-colors"
       >
         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
       </button>
+
+      {/* Discard Dialog Modal */}
+      {showDiscardDialog && (
+        <div className="absolute inset-0 z-[200] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm pointer-events-auto">
+          <div className="bg-card border border-border w-full max-w-xs rounded-3xl p-6 shadow-2xl flex flex-col gap-5 text-center animate-in fade-in zoom-in-95 duration-200">
+            <div>
+              <h3 className="text-xl font-bold font-serif text-charcoal mb-1.5">¿Descartar historia?</h3>
+              <p className="text-muted-foreground text-sm">Si sales ahora, perderás todos los cambios que hayas hecho.</p>
+            </div>
+            <div className="flex flex-col gap-2.5 mt-2">
+              <button 
+                onClick={() => {
+                  clearGlobalStoryDraft();
+                  router.back();
+                }}
+                className="w-full py-3 bg-destructive hover:bg-destructive/90 text-destructive-foreground font-bold rounded-2xl transition-colors"
+              >
+                Descartar cambios
+              </button>
+              <button 
+                onClick={() => setShowDiscardDialog(false)}
+                className="w-full py-3 bg-muted hover:bg-muted/80 text-foreground font-bold rounded-2xl transition-colors"
+              >
+                Seguir editando
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Viewer / Canvas Area */}
       <div className="flex-1 relative flex items-center justify-center overflow-hidden" onClick={() => setSelectedOverlayId(null)}>
