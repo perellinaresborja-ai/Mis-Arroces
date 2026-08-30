@@ -24,9 +24,12 @@ export function MobileHeader() {
 
   return (
     <div className="md:hidden sticky top-0 z-40 flex h-16 items-center justify-between px-4 py-0 bg-background/95 backdrop-blur border-b border-border">
-      <Link href="/">
-        <div className="relative w-56 h-14">
-          <Image src="/logohor.png" alt="Mis Arroces Logo" fill sizes="250px" className="object-contain object-left" priority />
+      <Link href="/" className="flex items-center gap-1 shrink-0">
+        <div className="relative w-10 h-10 shrink-0">
+          <Image src="/logopaellaicono.png" alt="Mis Arroces Icono" fill sizes="80px" className="object-contain" priority />
+        </div>
+        <div className="relative w-40 h-9 shrink-0">
+          <Image src="/logoextto.png" alt="Mis Arroces Texto" fill sizes="180px" className="object-contain object-left" priority />
         </div>
       </Link>
       <div className="flex items-center gap-4">

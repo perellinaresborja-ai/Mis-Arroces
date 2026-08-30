@@ -62,9 +62,12 @@ export function DesktopNav() {
     <header className="hidden md:flex sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="flex h-16 items-center justify-between w-full max-w-7xl mx-auto px-4 md:px-8">
         
-        <Link href="/" className="flex items-center gap-2">
-            <div className="relative w-64 h-14">
-              <Image src="/logohor.png" alt="Mis Arroces Logo" fill sizes="300px" className="object-contain object-left" priority />
+        <Link href="/" className="flex items-center gap-1">
+            <div className="relative w-12 h-12 shrink-0">
+              <Image src="/logopaellaicono.png" alt="Mis Arroces Icono" fill sizes="100px" className="object-contain" priority />
+            </div>
+            <div className="relative w-48 h-10 shrink-0">
+              <Image src="/logoextto.png" alt="Mis Arroces Texto" fill sizes="200px" className="object-contain object-left" priority />
             </div>
           </Link>
 
