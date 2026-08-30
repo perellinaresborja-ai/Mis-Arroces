@@ -71,11 +71,19 @@ export function StoryCreator({
   useEffect(() => {
     // prevent default pinch zoom on the whole page when editing story
     const handler = (e: Event) => e.preventDefault();
-    document.addEventListener('gesturestart', handler);
-    document.addEventListener('gesturechange', handler);
+    document.addEventListener('gesturestart', handler, { passive: false });
+    document.addEventListener('gesturechange', handler, { passive: false });
+    
+    // Also block native touchmove zoom if possible on the body
+    const touchHandler = (e: TouchEvent) => {
+      if (e.touches.length > 1) e.preventDefault();
+    };
+    document.addEventListener('touchmove', touchHandler, { passive: false });
+
     return () => {
       document.removeEventListener('gesturestart', handler);
       document.removeEventListener('gesturechange', handler);
+      document.removeEventListener('touchmove', touchHandler);
     };
   }, []);
 
@@ -94,14 +102,16 @@ export function StoryCreator({
   };
 
   const bindBackgroundGestures = useGesture({
-    onDrag: ({ offset: [x, y], target, last }) => {
+    onDrag: ({ offset: [x, y], target, event, last }) => {
+      if (event && typeof event.preventDefault === 'function') event.preventDefault();
       if ((target as HTMLElement).closest('.draggable-overlay')) return;
       mediaTransformRef.current.translateX = x;
       mediaTransformRef.current.translateY = y;
       updateDOMTransform(mediaTransformRef.current);
       if (last) setMediaTransform({ ...mediaTransformRef.current });
     },
-    onPinch: ({ offset: [d, a], target, last }) => {
+    onPinch: ({ offset: [d, a], target, event, last }) => {
+      if (event && typeof event.preventDefault === 'function') event.preventDefault();
       if ((target as HTMLElement).closest('.draggable-overlay')) return;
       mediaTransformRef.current.scale = d;
       mediaTransformRef.current.rotation = a;
@@ -109,6 +119,7 @@ export function StoryCreator({
       if (last) setMediaTransform({ ...mediaTransformRef.current });
     }
   }, {
+    eventOptions: { passive: false },
     drag: { from: () => [mediaTransformRef.current.translateX, mediaTransformRef.current.translateY] },
     pinch: { 
       from: () => [mediaTransformRef.current.scale, mediaTransformRef.current.rotation],
