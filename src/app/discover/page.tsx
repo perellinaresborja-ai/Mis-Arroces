@@ -154,7 +154,7 @@ export default async function DiscoverPage(props: { searchParams?: Promise<{ q?:
   }
 
   return (
-    <div className="p-4 md:p-8 space-y-8 max-w-3xl mx-auto pb-24">
+    <div className="p-4 md:p-8 space-y-8 max-w-7xl mx-auto w-full pb-24">
       
       {/* Search Header */}
       <DiscoverClient 
