@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useRef, useEffect } from 'react';
+import { useGesture } from '@use-gesture/react';
 import { useRouter } from 'next/navigation';
 import { StoryTransform, StoryOverlay, StoryBackground, DrawingOverlay } from '@/types/stories';
 import { createClient } from '@/lib/supabase/client';
@@ -25,6 +26,7 @@ export function StoryCreator({
   const [background, setBackground] = useState<StoryBackground>({ type: 'blur', value: '' });
   const [draftMediaUrl, setDraftMediaUrl] = useState<string | undefined>(initialMedia?.url);
   const [draftMediaType, setDraftMediaType] = useState<'IMAGE'|'VIDEO'|undefined>(initialMedia?.type);
+  const [mediaTransform, setMediaTransform] = useState({ translateX: 0, translateY: 0, scale: 1, rotation: 0 });
 
   useEffect(() => {
     if (globalStoryDraftUrl && !initialMedia) {
@@ -65,6 +67,36 @@ export function StoryCreator({
   const [selectedOverlayId, setSelectedOverlayId] = useState<string | null>(null);
 
   const [isPublishing, setIsPublishing] = useState(false);
+
+  useEffect(() => {
+    // prevent default pinch zoom on the whole page when editing story
+    const handler = (e: Event) => e.preventDefault();
+    document.addEventListener('gesturestart', handler);
+    document.addEventListener('gesturechange', handler);
+    return () => {
+      document.removeEventListener('gesturestart', handler);
+      document.removeEventListener('gesturechange', handler);
+    };
+  }, []);
+
+  const bindBackgroundGestures = useGesture({
+    onDrag: ({ offset: [x, y], target }) => {
+      // Only drag background if not dragging an overlay
+      if ((target as HTMLElement).closest('.draggable-overlay')) return;
+      setMediaTransform(prev => ({ ...prev, translateX: x, translateY: y }));
+    },
+    onPinch: ({ offset: [d, a], target }) => {
+      if ((target as HTMLElement).closest('.draggable-overlay')) return;
+      setMediaTransform(prev => ({ ...prev, scale: d, rotation: a }));
+    }
+  }, {
+    drag: { from: () => [mediaTransform.translateX, mediaTransform.translateY] },
+    pinch: { 
+      from: () => [mediaTransform.scale, mediaTransform.rotation],
+      scaleBounds: { min: 0.1, max: 10 }
+    }
+  });
+
   const [isPollModalOpen, setIsPollModalOpen] = useState(false);
   const [isQuestionModalOpen, setIsQuestionModalOpen] = useState(false);
   const [isSliderModalOpen, setIsSliderModalOpen] = useState(false);
@@ -192,6 +224,8 @@ export function StoryCreator({
     try {
       // In a real flow, we'd also upload media to storage and create the post
       await createStory({
+        mediaTransform,
+        background,
         mediaId: await uploadDraftIfNeeded() || undefined,
         recipeId: initialRecipe?.id,
         // privacy,
@@ -211,7 +245,7 @@ export function StoryCreator({
       
       {/* Viewer / Canvas Area */}
       <div className="flex-1 relative flex items-center justify-center overflow-hidden" onClick={() => setSelectedOverlayId(null)}>
-        <div ref={containerRef} className="relative w-full max-w-[400px] h-full max-h-[85vh] md:max-h-full bg-zinc-900 border border-white/10 md:rounded-xl overflow-hidden" style={{ aspectRatio: '9/16' }}>
+        <div ref={containerRef} {...bindBackgroundGestures()} className="relative w-full max-w-[400px] touch-none h-full max-h-[85vh] md:max-h-full bg-zinc-900 border border-white/10 md:rounded-xl overflow-hidden" style={{ aspectRatio: '9/16' }}>
           
           <SharedStoryRenderer 
             mediaUrl={draftMediaUrl} 

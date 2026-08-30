@@ -129,8 +129,8 @@ export function SharedStoryRenderer({
   const mediaStyle: CSSProperties = {
     width: '100%',
     height: '100%',
-    objectFit: 'cover',
-    transform: transform ? ('translate(' + transform.translateX + 'px, ' + transform.translateY + 'px) scale(' + transform.scale + ')') : 'none',
+    objectFit: 'contain',
+    transform: transform ? ('translate(' + (transform.translateX||0) + 'px, ' + (transform.translateY||0) + 'px) scale(' + (transform.scale||1) + ') rotate(' + (transform.rotation||0) + 'deg)') : 'none',
     filter: background?.type === 'blur' ? 'blur(10px) brightness(0.8)' : 'none',
   }
 
