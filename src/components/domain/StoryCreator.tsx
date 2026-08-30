@@ -276,22 +276,6 @@ export function StoryCreator({
   return (
     <div className="fixed inset-0 bg-black z-50 flex flex-col md:flex-row touch-none">
       
-      {/* Close Button */}
-      <button 
-        onClick={() => {
-          const hasChanges = draftMediaUrl || overlays.length > 0;
-          if (hasChanges) {
-            setShowDiscardDialog(true);
-          } else {
-            clearGlobalStoryDraft();
-            router.back();
-          }
-        }}
-        className="absolute top-4 left-4 z-[100] w-10 h-10 bg-black/50 backdrop-blur-md rounded-full flex items-center justify-center text-white hover:bg-black/80 transition-colors"
-      >
-        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
-      </button>
-
       {/* Discard Dialog Modal */}
       {showDiscardDialog && (
         <div className="absolute inset-0 z-[200] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm pointer-events-auto">
@@ -324,6 +308,23 @@ export function StoryCreator({
       {/* Viewer / Canvas Area */}
       <div className="flex-1 relative flex items-center justify-center overflow-hidden" onClick={() => setSelectedOverlayId(null)}>
         <div ref={containerRef} {...bindBackgroundGestures()} className="relative w-full max-w-[400px] touch-none h-full max-h-[85vh] md:max-h-full bg-zinc-900 border border-white/10 md:rounded-xl overflow-hidden" style={{ aspectRatio: '9/16' }}>
+          
+          {/* Close Button Inside Card */}
+          <button 
+            onClick={(e) => {
+              e.stopPropagation();
+              const hasChanges = draftMediaUrl || overlays.length > 0 || textVal.trim() !== '';
+              if (hasChanges) {
+                setShowDiscardDialog(true);
+              } else {
+                clearGlobalStoryDraft();
+                router.back();
+              }
+            }}
+            className="absolute top-4 right-4 z-[100] w-8 h-8 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center text-white hover:bg-black/60 transition-colors pointer-events-auto"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+          </button>
           
           <SharedStoryRenderer 
             mediaUrl={draftMediaUrl} 
