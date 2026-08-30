@@ -23,7 +23,7 @@ export default async function RecipeDetailPage({
   const supabase = await createClient()
 
   // Fetch recipe with related data
-  const { data: recipe } = await supabase
+  const { data: recipe, error } = await supabase
     .from("recipes")
     .select(`
       *,
@@ -36,12 +36,15 @@ export default async function RecipeDetailPage({
         *,
         unit:units(name),
         ingredient:ingredients(*),
-        ingredient_allergens(allergens(*)),
         canonical:ingredients(normalized_name)
       )
     `)
     .eq("id", resolvedParams.id)
     .single()
+
+  if (error) {
+    console.error("Error fetching recipe in /recipes/[id]:", error);
+  }
 
   if (!recipe) redirect("/cookbook")
 
@@ -238,7 +241,7 @@ export default async function RecipeDetailPage({
           <div className="md:col-span-5">
             <h2 className="text-2xl font-bold mb-6 font-serif text-charcoal">Ingredientes</h2>
             <ul className="space-y-4 max-w-[380px]">
-                {recipe.ingredients?.sort((a: any, b: any) => a.display_order - b.display_order).map((ing: any) => (
+                {[...(recipe.ingredients || [])].sort((a: any, b: any) => a.display_order - b.display_order).map((ing: any) => (
                   <li key={ing.id} className="flex justify-between items-baseline text-[15px] pb-2 border-b border-border/30 last:border-0">
                     <span className="text-foreground/90">{ing.display_text}</span>
                     {ing.normalized_quantity && (
@@ -259,7 +262,7 @@ export default async function RecipeDetailPage({
             <h2 className="text-2xl font-bold mb-8 font-serif text-charcoal">Elaboración</h2>
             {recipe.steps && recipe.steps.length > 0 ? (
               <div className="space-y-10">
-                {recipe.steps.sort((a: any, b: any) => a.step_number - b.step_number).map((step: any) => {
+                {[...recipe.steps].sort((a: any, b: any) => a.step_number - b.step_number).map((step: any) => {
                   const stepImageUrl = step.media?.storage_path 
                     ? `${"https://zvesoygqssyyojqyswwm.supabase.co"}/storage/v1/object/public/recipe_media/${step.media.storage_path}`
                     : null;
