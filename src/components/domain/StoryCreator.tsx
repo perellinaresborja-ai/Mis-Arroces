@@ -313,6 +313,31 @@ export function StoryCreator({
               </div>
             </DraggableOverlay>
           ))}
+
+          {/* Inline Text Editor Overlay */}
+          {mode === 'TEXT' && (
+            <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 pointer-events-auto touch-none" onClick={() => setMode('EDIT')}>
+              <textarea 
+                autoFocus 
+                value={textVal} 
+                onChange={e=>setTextVal(e.target.value)}
+                onClick={e=>e.stopPropagation()}
+                className="w-full bg-transparent outline-none resize-none text-center leading-tight font-bold whitespace-pre-wrap break-words"
+                style={{ 
+                  color: textColor, 
+                  backgroundColor: textBg === 'transparent' ? 'transparent' : textBg, 
+                  fontFamily: textFont, 
+                  textAlign: textAlign,
+                  fontSize: '2rem',
+                  padding: textBg !== 'transparent' ? '0.5rem 1rem' : '0',
+                  borderRadius: '0.5rem',
+                  textShadow: textBg === 'transparent' ? '2px 2px 4px rgba(0,0,0,0.8)' : 'none'
+                }}
+                rows={3}
+                placeholder="Escribe algo..."
+              />
+            </div>
+          )}
         </div>
       </div>
 
@@ -386,17 +411,42 @@ export function StoryCreator({
         {/* Text Mode */}
         {mode === 'TEXT' && (
           <div className="p-4 flex flex-col gap-4 h-full">
-            <textarea autoFocus value={textVal} onChange={e=>setTextVal(e.target.value)} className="w-full h-32 bg-zinc-900 text-white rounded-xl p-3 outline-none" placeholder="Escribe aquí..."></textarea>
-            <div className="flex gap-2">
-              <input type="color" value={textColor} onChange={e=>setTextColor(e.target.value)} className="w-12 h-12 rounded-lg cursor-pointer" />
-              <input type="color" value={textBg} onChange={e=>setTextBg(e.target.value)} className="w-12 h-12 rounded-lg cursor-pointer" title="Fondo" />
+            <div className="flex gap-4 items-center">
+              <div className="flex flex-col gap-1 items-center">
+                <span className="text-xs text-white/50">Texto</span>
+                <input type="color" value={textColor} onChange={e=>setTextColor(e.target.value)} className="w-12 h-12 rounded-lg cursor-pointer" />
+              </div>
+              <div className="flex flex-col gap-1 items-center">
+                <span className="text-xs text-white/50">Fondo</span>
+                <input type="color" value={textBg === 'transparent' ? '#000000' : textBg} onChange={e=>setTextBg(e.target.value)} className="w-12 h-12 rounded-lg cursor-pointer" />
+              </div>
+              <button 
+                onClick={() => setTextBg(textBg === 'transparent' ? '#000000' : 'transparent')} 
+                className={`ml-auto p-3 rounded-xl font-bold text-sm transition-colors ${textBg === 'transparent' ? 'bg-zinc-800 text-white' : 'bg-primary text-primary-foreground'}`}
+              >
+                {textBg === 'transparent' ? 'Sin Fondo' : 'Con Fondo'}
+              </button>
             </div>
-            <select value={textFont} onChange={e=>setTextFont(e.target.value)} className="bg-zinc-900 text-white p-3 rounded-xl">
-              <option value="sans-serif">Sans Serif</option>
-              <option value="serif">Serif</option>
-              <option value="monospace">Monospace</option>
-              <option value="Impact">Impact</option>
-            </select>
+            
+            <div className="flex flex-col gap-1">
+              <span className="text-xs text-white/50">Tipografía</span>
+              <select value={textFont} onChange={e=>setTextFont(e.target.value)} className="bg-zinc-900 text-white p-3 rounded-xl outline-none">
+                <option value="sans-serif">Sans Serif</option>
+                <option value="serif">Serif</option>
+                <option value="monospace">Monospace</option>
+                <option value="Impact">Impact</option>
+              </select>
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <span className="text-xs text-white/50">Alineación</span>
+              <div className="flex gap-2">
+                <button onClick={() => setTextAlign('left')} className={`flex-1 p-2 rounded-lg ${textAlign === 'left' ? 'bg-primary' : 'bg-zinc-900'}`}>Izq</button>
+                <button onClick={() => setTextAlign('center')} className={`flex-1 p-2 rounded-lg ${textAlign === 'center' ? 'bg-primary' : 'bg-zinc-900'}`}>Cen</button>
+                <button onClick={() => setTextAlign('right')} className={`flex-1 p-2 rounded-lg ${textAlign === 'right' ? 'bg-primary' : 'bg-zinc-900'}`}>Der</button>
+              </div>
+            </div>
+
             <div className="mt-auto flex gap-2">
               <button onClick={() => setMode('EDIT')} className="flex-1 bg-zinc-800 text-white p-3 rounded-xl">Cancelar</button>
               <button onClick={addText} className="flex-1 bg-white text-black font-bold p-3 rounded-xl">Añadir</button>
