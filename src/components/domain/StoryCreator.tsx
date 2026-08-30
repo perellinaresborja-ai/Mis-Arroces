@@ -79,20 +79,39 @@ export function StoryCreator({
     };
   }, []);
 
+  const mediaTransformRef = useRef({ translateX: 0, translateY: 0, scale: 1, rotation: 0 });
+  
+  useEffect(() => {
+    mediaTransformRef.current = { ...mediaTransform };
+  }, [mediaTransform]);
+
+  const updateDOMTransform = (t: { translateX: number, translateY: number, scale: number, rotation: number }) => {
+    const el = document.getElementById('story-media-layer');
+    const bg = document.getElementById('story-media-bg-layer');
+    const tStr = `translate(${t.translateX}px, ${t.translateY}px) scale(${t.scale}) rotate(${t.rotation}deg)`;
+    if (el) el.style.transform = tStr;
+    if (bg) bg.style.transform = tStr;
+  };
+
   const bindBackgroundGestures = useGesture({
-    onDrag: ({ offset: [x, y], target }) => {
-      // Only drag background if not dragging an overlay
+    onDrag: ({ offset: [x, y], target, last }) => {
       if ((target as HTMLElement).closest('.draggable-overlay')) return;
-      setMediaTransform(prev => ({ ...prev, translateX: x, translateY: y }));
+      mediaTransformRef.current.translateX = x;
+      mediaTransformRef.current.translateY = y;
+      updateDOMTransform(mediaTransformRef.current);
+      if (last) setMediaTransform({ ...mediaTransformRef.current });
     },
-    onPinch: ({ offset: [d, a], target }) => {
+    onPinch: ({ offset: [d, a], target, last }) => {
       if ((target as HTMLElement).closest('.draggable-overlay')) return;
-      setMediaTransform(prev => ({ ...prev, scale: d, rotation: a }));
+      mediaTransformRef.current.scale = d;
+      mediaTransformRef.current.rotation = a;
+      updateDOMTransform(mediaTransformRef.current);
+      if (last) setMediaTransform({ ...mediaTransformRef.current });
     }
   }, {
-    drag: { from: () => [mediaTransform.translateX, mediaTransform.translateY] },
+    drag: { from: () => [mediaTransformRef.current.translateX, mediaTransformRef.current.translateY] },
     pinch: { 
-      from: () => [mediaTransform.scale, mediaTransform.rotation],
+      from: () => [mediaTransformRef.current.scale, mediaTransformRef.current.rotation],
       scaleBounds: { min: 0.1, max: 10 }
     }
   });
@@ -331,6 +350,20 @@ export function StoryCreator({
 
       {mode === 'EDIT' && (
           <div className="p-4 flex flex-col gap-4 h-full">
+            <div className="flex justify-around bg-zinc-900 rounded-xl p-1 mb-0">
+              <button onClick={() => {
+                const t = { translateX: 0, translateY: 0, scale: 1, rotation: 0 };
+                mediaTransformRef.current = t;
+                setMediaTransform(t);
+                updateDOMTransform(t);
+              }} className="p-2 text-white flex-1 text-center text-xs font-bold border-r border-white/10 hover:bg-white/10 rounded-l-xl transition-colors">Ajustar</button>
+              <button onClick={() => {
+                const t = { translateX: 0, translateY: 0, scale: 1.8, rotation: 0 };
+                mediaTransformRef.current = t;
+                setMediaTransform(t);
+                updateDOMTransform(t);
+              }} className="p-2 text-white flex-1 text-center text-xs font-bold hover:bg-white/10 rounded-r-xl transition-colors">Llenar</button>
+            </div>
             <div className="flex justify-around bg-zinc-900 rounded-xl p-2">
                 <label className="p-3 text-white flex flex-col items-center gap-1 cursor-pointer m-0">
                   <input type="file" className="sr-only" accept="image/*,video/*" onChange={handleFileChange} />

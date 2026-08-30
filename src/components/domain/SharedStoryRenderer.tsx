@@ -127,9 +127,10 @@ export function SharedStoryRenderer({
   }
 
   const mediaStyle: CSSProperties = {
+    position: 'absolute',
     width: '100%',
     height: '100%',
-    objectFit: 'contain',
+    objectFit: 'cover',
     transform: transform ? ('translate(' + (transform.translateX||0) + 'px, ' + (transform.translateY||0) + 'px) scale(' + (transform.scale||1) + ') rotate(' + (transform.rotation||0) + 'deg)') : 'none',
     filter: background?.type === 'blur' ? 'blur(10px) brightness(0.8)' : 'none',
   }
@@ -138,8 +139,8 @@ export function SharedStoryRenderer({
     position: 'absolute',
     width: '100%',
     height: '100%',
-    objectFit: 'cover',
-    transform: transform ? ('translate(' + transform.translateX + 'px, ' + transform.translateY + 'px) scale(' + transform.scale + ')') : 'none',
+    objectFit: 'contain',
+    transform: transform ? ('translate(' + (transform.translateX||0) + 'px, ' + (transform.translateY||0) + 'px) scale(' + (transform.scale||1) + ') rotate(' + (transform.rotation||0) + 'deg)') : 'none',
   }
 
   return (
@@ -147,6 +148,7 @@ export function SharedStoryRenderer({
       {/* Background Layer */}
       {mediaUrl && background?.type === 'blur' && (
         <img 
+          id={mode === 'EDITOR' ? 'story-media-bg-layer' : undefined}
           src={mediaUrl} 
           alt="story background"
           style={mediaStyle}
@@ -157,6 +159,7 @@ export function SharedStoryRenderer({
       {mediaUrl && (
         isVideo ? (
           <video
+            id={mode === 'EDITOR' ? 'story-media-layer' : undefined}
             ref={videoRef}
             src={mediaUrl}
             style={actualMediaStyle}
@@ -167,6 +170,7 @@ export function SharedStoryRenderer({
           />
         ) : (
           <img 
+            id={mode === 'EDITOR' ? 'story-media-layer' : undefined}
             src={mediaUrl} 
             alt="story content"
             style={actualMediaStyle}
