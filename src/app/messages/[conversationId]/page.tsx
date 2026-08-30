@@ -44,7 +44,7 @@ export default async function ConversationPage({ params }: { params: { conversat
   return (
     <div className="flex flex-col h-full w-full bg-background relative">
       <div className="flex items-center gap-3 p-4 border-b border-border bg-card shrink-0 sticky top-0 z-10">
-        <div className="md:hidden"><BackButton /></div>
+        <div><BackButton /></div>
         {otherMember?.user?.avatar?.storage_path ? (
           <img src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/recipe_media/${otherMember.user.avatar.storage_path}`} className="w-10 h-10 rounded-full object-cover shrink-0" alt="" />
         ) : (
