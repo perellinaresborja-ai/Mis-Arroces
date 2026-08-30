@@ -25,7 +25,7 @@ export default async function CreateStoryPage(props: { searchParams?: Promise<{ 
     if (media) {
       const ma = (media as unknown as { media_assets?: { storage_path: string } }).media_assets;
       if (ma) {
-        recipeMedia = { url: supabase.storage.from('media').getPublicUrl(ma.storage_path).data.publicUrl };
+        recipeMedia = { url: supabase.storage.from('recipe_media').getPublicUrl(ma.storage_path).data.publicUrl };
       }
     }
   }

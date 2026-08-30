@@ -169,7 +169,7 @@ export function StoryCreator({
     if (globalStoryDraftFile) {
       const ext = globalStoryDraftFile.name.split('.').pop();
       const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${ext}`;
-      const { data, error } = await supabase.storage.from('media').upload(`stories/${fileName}`, globalStoryDraftFile);
+      const { data, error } = await supabase.storage.from('recipe_media').upload(`stories/${fileName}`, globalStoryDraftFile);
       if (error) { console.error(error); return undefined; }
       
       const { data: { user } } = await supabase.auth.getUser();
