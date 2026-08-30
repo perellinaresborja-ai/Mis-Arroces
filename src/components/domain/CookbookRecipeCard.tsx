@@ -57,16 +57,16 @@ export function CookbookRecipeCard({ recipe, tab }: { recipe: any, tab: string }
             )}
           </div>
         )}
-
-        {tab === 'mine' && (
-          <button 
-            onClick={handleDelete}
-            className="absolute top-2 right-2 z-20 bg-black/50 hover:bg-destructive text-white p-1.5 rounded-full transition-colors"
-          >
-            <Trash2 className="w-4 h-4" />
-          </button>
-        )}
       </Link>
+
+      {tab === 'mine' && (
+        <button 
+          onClick={handleDelete}
+          className="absolute top-2 right-2 z-20 bg-black/50 hover:bg-destructive text-white p-1.5 rounded-full transition-colors"
+        >
+          <Trash2 className="w-4 h-4" />
+        </button>
+      )}
     </div>
   )
 }
