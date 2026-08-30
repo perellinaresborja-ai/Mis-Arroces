@@ -367,9 +367,20 @@ export function StoriesViewer({ groupedStories: _groupedStories, initialGroupInd
             </div>
           )}
           {isMe && (
-            <div className="flex justify-center w-full">
-               <button onClick={() => setShowViewers(true)} className="text-sm font-bold bg-black/40 px-4 py-2 rounded-full border border-white/20 backdrop-blur-md flex items-center gap-2 hover:bg-black/60 transition-colors">
-                 <span>👀</span> {currentStory.viewCount} {currentStory.viewCount === 1 ? 'vista' : 'vistas'}
+            <div className="flex justify-center w-full gap-2 mt-2">
+               <button 
+                 onClick={(e) => { e.stopPropagation(); setShowViewers(true); setIsPaused(true); }}
+                 className="flex items-center gap-2 px-4 py-2 bg-black/40 hover:bg-black/60 backdrop-blur-md rounded-full text-sm font-bold border border-white/20 transition-colors"
+               >
+                 <EyeIcon className="w-4 h-4" />
+                 Visto por {currentStory.viewCount || viewers.length}
+               </button>
+               <button 
+                 onClick={(e) => { e.stopPropagation(); setInsightsOpen(true); setIsPaused(true); }}
+                 className="flex items-center gap-2 px-4 py-2 bg-black/40 hover:bg-black/60 backdrop-blur-md rounded-full text-sm font-bold border border-white/20 transition-colors"
+               >
+                 <BarChart2 className="w-4 h-4" />
+                 Estadísticas
                </button>
             </div>
           )}
@@ -489,25 +500,7 @@ export function StoriesViewer({ groupedStories: _groupedStories, initialGroupInd
           </div>
         )}
 
-        {/* Owner Viewers Footer */}
-        {isMe && (
-          <div className="absolute bottom-4 left-0 w-full flex justify-center z-30 gap-2">
-            <button 
-              onClick={(e) => { e.stopPropagation(); setShowViewers(true); setIsPaused(true); }}
-              className="flex items-center gap-2 px-4 py-1.5 bg-black/40 hover:bg-black/60 backdrop-blur-md rounded-full text-xs font-bold transition-colors"
-            >
-              <EyeIcon className="w-4 h-4" />
-              Visto por {currentStory.viewCount || viewers.length}
-            </button>
-            <button 
-              onClick={(e) => { e.stopPropagation(); setInsightsOpen(true); setIsPaused(true); }}
-              className="flex items-center gap-2 px-4 py-1.5 bg-black/40 hover:bg-black/60 backdrop-blur-md rounded-full text-xs font-bold transition-colors"
-            >
-              <BarChart2 className="w-4 h-4" />
-              Estadísticas
-            </button>
-          </div>
-        )}
+
 
         {/* Viewers Modal (Owner only) */}
         
