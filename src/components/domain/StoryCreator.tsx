@@ -300,7 +300,7 @@ export function StoryCreator({
             <div className="flex justify-around bg-zinc-900 rounded-xl p-2">
                 <label className="p-3 text-white flex flex-col items-center gap-1 cursor-pointer m-0">
                   <input type="file" className="sr-only" accept="image/*,video/*" onChange={handleFileChange} />
-                  <Camera size={20}/><span className="text-xs">Cambiar</span>
+                  <Camera size={20}/><span className="text-xs">Comparte</span>
                 </label>
               <button onClick={() => setMode('TEXT')} className="p-3 text-white flex flex-col items-center gap-1"><AlignLeft size={20}/><span className="text-xs">Texto</span></button>
               <button onClick={() => setMode('DRAW')} className="p-3 text-white flex flex-col items-center gap-1"><span className="text-xl">🖌</span><span className="text-xs">Dibujar</span></button>
