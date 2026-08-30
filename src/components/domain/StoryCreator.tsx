@@ -23,7 +23,7 @@ export function StoryCreator({
   const containerRef = useRef<HTMLDivElement>(null);
   const [overlays, setOverlays] = useState<StoryOverlay[]>([]);
   const [history, setHistory] = useState<StoryOverlay[][]>([]); const [redoHistory, setRedoHistory] = useState<StoryOverlay[][]>([]);
-  const [background, setBackground] = useState<StoryBackground>({ type: 'blur', value: '' });
+  const [background, setBackground] = useState<StoryBackground>({ type: 'color', value: '#18181B' });
   const [draftMediaUrl, setDraftMediaUrl] = useState<string | undefined>(initialMedia?.url);
   const [draftMediaType, setDraftMediaType] = useState<'IMAGE'|'VIDEO'|undefined>(initialMedia?.type);
   const [mediaTransform, setMediaTransform] = useState({ translateX: 0, translateY: 0, scale: 1, rotation: 0 });
@@ -350,20 +350,7 @@ export function StoryCreator({
 
       {mode === 'EDIT' && (
           <div className="p-4 flex flex-col gap-4 h-full">
-            <div className="flex justify-around bg-zinc-900 rounded-xl p-1 mb-0">
-              <button onClick={() => {
-                const t = { translateX: 0, translateY: 0, scale: 1, rotation: 0 };
-                mediaTransformRef.current = t;
-                setMediaTransform(t);
-                updateDOMTransform(t);
-              }} className="p-2 text-white flex-1 text-center text-xs font-bold border-r border-white/10 hover:bg-white/10 rounded-l-xl transition-colors">Ajustar</button>
-              <button onClick={() => {
-                const t = { translateX: 0, translateY: 0, scale: 1.8, rotation: 0 };
-                mediaTransformRef.current = t;
-                setMediaTransform(t);
-                updateDOMTransform(t);
-              }} className="p-2 text-white flex-1 text-center text-xs font-bold hover:bg-white/10 rounded-r-xl transition-colors">Llenar</button>
-            </div>
+
             <div className="flex justify-around bg-zinc-900 rounded-xl p-2">
                 <label className="p-3 text-white flex flex-col items-center gap-1 cursor-pointer m-0">
                   <input type="file" className="sr-only" accept="image/*,video/*" onChange={handleFileChange} />

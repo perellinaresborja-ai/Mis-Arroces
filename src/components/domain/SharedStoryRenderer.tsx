@@ -146,14 +146,7 @@ export function SharedStoryRenderer({
   return (
     <div style={containerStyle}>
       {/* Background Layer */}
-      {mediaUrl && background?.type === 'blur' && (
-        <img 
-          id={mode === 'EDITOR' ? 'story-media-bg-layer' : undefined}
-          src={mediaUrl} 
-          alt="story background"
-          style={mediaStyle}
-        />
-      )}
+
       
       {/* Media Layer */}
       {mediaUrl && (
