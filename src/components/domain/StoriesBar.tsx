@@ -39,15 +39,30 @@ export function StoriesBar({ groupedStories, currentUser }: { groupedStories: an
         
         {/* Create Story Button - Only if I don't have active stories, otherwise it's combined with my avatar */}
         {!hasMyStories && currentUser && (
-          <label className="flex flex-col items-center gap-1 min-w-[72px] cursor-pointer hover:opacity-80 shrink-0">
-            <input type="file" className="sr-only" accept="image/*,video/*" onChange={handleFileChange} />
-            <div className="w-16 h-16 rounded-full bg-muted border-2 border-dashed border-[#E69A21]/50 flex items-center justify-center text-[#E69A21]">
-              <span className="text-2xl font-light">+</span>
+          <div 
+            onClick={() => router.push("/create/story")}
+            className="flex flex-col items-center gap-1 min-w-[72px] cursor-pointer hover:opacity-80 shrink-0 relative"
+          >
+            <div className="w-16 h-16 rounded-full p-0.5 border-2 border-transparent">
+              <div className="w-full h-full rounded-full overflow-hidden bg-muted flex items-center justify-center">
+                {currentUser?.avatar?.storage_path ? (
+                  <img src={`${process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://zvesoygqssyyojqyswwm.supabase.co'}/storage/v1/object/public/recipe_media/${currentUser.avatar.storage_path}`} className="w-full h-full object-cover" />
+                ) : (
+                  <span className="font-bold text-muted-foreground">{(currentUser?.display_name || currentUser?.username || "?").charAt(0).toUpperCase()}</span>
+                )}
+              </div>
             </div>
-            <span className="text-xs font-medium text-center truncate w-full px-1">Subir historia</span>
+            
+            <label 
+              onClick={(e) => e.stopPropagation()}
+              className="absolute top-10 right-0 w-5 h-5 bg-[#E69A21] text-white rounded-full border-2 border-background flex items-center justify-center text-xs font-bold shadow-sm cursor-pointer hover:scale-110 transition-transform"
+            >
+              <input onClick={(e) => e.stopPropagation()} type="file" className="sr-only" accept="image/*,video/*" onChange={handleFileChange} />
+              +
             </label>
-          )}
-
+            <span className="text-xs font-bold text-center truncate w-16">Tu historia</span>
+          </div>
+        )}
                 {groupedStories.map((group, i) => {
           const isMe = currentUser?.id === group.author.id;
           const showCreate = isMe && group.allSeen;
@@ -80,7 +95,7 @@ export function StoriesBar({ groupedStories, currentUser }: { groupedStories: an
                     onClick={(e) => e.stopPropagation()}
                     className="absolute top-10 right-0 w-5 h-5 bg-[#E69A21] text-white rounded-full border-2 border-background flex items-center justify-center text-xs font-bold shadow-sm cursor-pointer hover:scale-110 transition-transform"
                   >
-                    <input type="file" className="sr-only" accept="image/*,video/*" onChange={handleFileChange} />
+                    <input onClick={(e) => e.stopPropagation()} type="file" className="sr-only" accept="image/*,video/*" onChange={handleFileChange} />
                     +
                   </label>
               )}
