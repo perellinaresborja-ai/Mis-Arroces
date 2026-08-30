@@ -14,6 +14,38 @@ import { AddToCartButton } from "@/components/domain/AddToCartButton"
 import { LoHeCocinadoButton } from "@/components/domain/LoHeCocinadoButton"
 
 import { ViewTracker } from "@/components/domain/ViewTracker"
+
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
+  const resolvedParams = await params;
+  const supabase = await createClient();
+  const { data: recipe } = await supabase.from("recipes").select("name, description, profiles(username), recipe_media(media:media_assets(storage_path))").eq("id", resolvedParams.id).single();
+  
+  if (!recipe) return {};
+
+  const primaryMedia = (recipe.recipe_media?.[0] as any)?.media?.storage_path;
+  const imageUrl = primaryMedia 
+    ? `${"https://zvesoygqssyyojqyswwm.supabase.co"}/storage/v1/object/public/recipe_media/${primaryMedia}`
+    : "/logopaellaicono.png";
+
+  const authorName = (recipe.profiles as any)?.username || 'un chef arrocero';
+
+  return {
+    title: `${recipe.name} | Mis Arroces`,
+    description: recipe.description || `Deliciosa receta de ${recipe.name} por @${authorName}. Descubre cómo prepararla paso a paso en Mis Arroces.`,
+    openGraph: {
+      title: `${recipe.name} | Mis Arroces`,
+      description: recipe.description || `Aprende a preparar ${recipe.name} paso a paso.`,
+      images: [imageUrl]
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: `${recipe.name} | Mis Arroces`,
+      description: recipe.description || `Aprende a preparar ${recipe.name} paso a paso.`,
+      images: [imageUrl]
+    }
+  };
+}
+
 export default async function RecipeDetailPage({
   params
 }: {

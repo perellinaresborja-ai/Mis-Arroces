@@ -12,22 +12,23 @@ import { LegalConsentGate } from "@/components/domain/LegalConsentGate";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://www.misarroces.es'),
   title: {
     default: "Mis Arroces | La red social de los arroces",
     template: "%s | Mis Arroces"
   },
-  description: "Descubre, guarda y comparte las mejores recetas de arroces y paellas. nete a la comunidad de chefs arroceros.",
+  description: "Descubre, guarda y comparte las mejores recetas de arroces y paellas. Únete a la comunidad de chefs arroceros y muestra tus paellas al mundo.",
   manifest: "/manifest.json",
-  keywords: ["arroz", "paella", "recetas", "red social", "cocina", "chef"],
+  keywords: ["arroz", "paella", "recetas", "red social", "cocina", "chef", "paella valenciana", "gastronomía", "arroces"],
   openGraph: {
     type: "website",
     locale: "es_ES",
-    url: "https://misarroces.com",
+    url: "/",
     siteName: "Mis Arroces",
     title: "Mis Arroces | La red social de los arroces",
     description: "Descubre, guarda y comparte las mejores recetas de arroces y paellas.",
     images: [{
-      url: "/logohor.png",
+      url: "/logopaellaicono.png",
       width: 1200,
       height: 630,
       alt: "Mis Arroces Logo"
@@ -37,11 +38,18 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Mis Arroces | La red social de los arroces",
     description: "Descubre, guarda y comparte las mejores recetas de arroces y paellas.",
-    images: ["/logohor.png"]
+    images: ["/logopaellaicono.png"]
   },
   robots: {
     index: true,
-    follow: true
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    }
   }
 };
 

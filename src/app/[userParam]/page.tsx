@@ -16,6 +16,41 @@ import { ProfileAvatar } from "@/components/domain/ProfileAvatar"
 import { ProfileFollowButton } from "@/components/domain/ProfileFollowButton"
 
 import { ViewTracker } from "@/components/domain/ViewTracker"
+
+export async function generateMetadata({ params }: { params: Promise<{ userParam: string }> }) {
+  const resolvedParams = await params;
+  const rawParam = decodeURIComponent(resolvedParams.userParam);
+  const username = rawParam.startsWith("@") ? rawParam.substring(1) : rawParam;
+
+  const supabase = await createClient();
+  const { data: profile } = await supabase.from("profiles").select("display_name, bio, avatar:media_assets!fk_profiles_avatar(storage_path)").eq("username", username).single();
+
+  if (!profile) return {};
+
+  const avatarUrl = profile.avatar?.storage_path 
+    ? `${"https://zvesoygqssyyojqyswwm.supabase.co"}/storage/v1/object/public/recipe_media/${profile.avatar.storage_path}`
+    : "/logopaellaicono.png";
+
+  const title = profile.display_name ? `${profile.display_name} (@${username}) | Mis Arroces` : `@${username} | Mis Arroces`;
+  const description = profile.bio || `Descubre las elaboraciones, recetas y paellas de @${username} en Mis Arroces.`;
+
+  return {
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      images: [avatarUrl]
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: [avatarUrl]
+    }
+  };
+}
+
 export default async function PublicProfilePage({ 
   params,
   searchParams
