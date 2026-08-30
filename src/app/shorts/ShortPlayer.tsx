@@ -114,12 +114,12 @@ export function ShortPlayer({ short, currentUserId }: { short: any, currentUserI
             {short.caption && <p className="text-sm mb-3 line-clamp-2">{short.caption}</p>}
             
             {short.recipe_id && (
-              <Link href={`/recipes/${short.recipe_id}`} className="inline-flex items-center gap-1.5 bg-primary text-primary-foreground px-3 py-1.5 rounded-full text-xs font-bold shadow-lg hover:scale-105 transition-transform">
+              <Link href={`/recipes/${short.recipe_id}`} className="inline-flex items-center gap-1.5 bg-primary text-primary-foreground px-3 py-1.5 rounded-full text-xs font-bold shadow-lg md:hover:scale-105 transition-transform">
                 Ver Receta 🥘
               </Link>
             )}
             {!short.recipe_id && short.session_id && (
-              <Link href={`/sessions/${short.session_id}`} className="inline-flex items-center gap-1.5 bg-white text-black px-3 py-1.5 rounded-full text-xs font-bold shadow-lg hover:scale-105 transition-transform">
+              <Link href={`/sessions/${short.session_id}`} className="inline-flex items-center gap-1.5 bg-white text-black px-3 py-1.5 rounded-full text-xs font-bold shadow-lg md:hover:scale-105 transition-transform">
                 Ver Cocinado 👨‍🍳
               </Link>
             )}

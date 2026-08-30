@@ -58,7 +58,7 @@ export default async function PublicCookbookPage({
                 <div className="aspect-[4/3] bg-muted rounded-2xl overflow-hidden mb-3 relative border border-border/50">
                   {coverUrl ? (
                     /* eslint-disable-next-line @next/next/no-img-element */
-                    <img src={coverUrl} alt={r.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                    <img src={coverUrl} alt={r.name} className="w-full h-full object-cover md:group-hover:scale-105 transition-transform duration-500" />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center bg-sand/30 text-muted-foreground font-medium text-sm">
                       Sin foto

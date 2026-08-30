@@ -45,7 +45,7 @@ export function CookbookRecipeCard({ recipe, tab }: { recipe: any, tab: string }
           alt={recipe.name} 
           variant="feed"
           fallbackType="recipe"
-          className="w-full h-full object-cover transition-transform group-hover:scale-105" 
+          className="w-full h-full object-cover transition-transform md:group-hover:scale-105" 
         />
         
         {tab === 'mine' && (

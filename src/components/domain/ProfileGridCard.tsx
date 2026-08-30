@@ -37,7 +37,7 @@ export function ProfileGridCard({ item, currentUserId }: { item: any, currentUse
           alt={item.name || item.content || "Media"} 
           variant="feed"
           fallbackType="recipe"
-          className="w-full h-full object-cover transition-transform group-hover:scale-105" 
+          className="w-full h-full object-cover transition-transform md:group-hover:scale-105" 
         />
         
         {item.is_pinned && (

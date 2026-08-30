@@ -223,7 +223,7 @@ export default async function DiscoverPage(props: { searchParams?: Promise<{ q?:
                   <Link key={r.id} href={`/recipes/${r.id}`} className="snap-start shrink-0 w-64 group block bg-card rounded-2xl overflow-hidden border border-border hover:border-primary/50 transition-colors">
                     <div className="aspect-[4/3] bg-muted relative overflow-hidden">
                       {imgUrl ? (
-                        <img src={imgUrl} alt={r.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                        <img src={imgUrl} alt={r.name} className="w-full h-full object-cover md:group-hover:scale-105 transition-transform duration-500" />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center bg-sand/30 text-muted-foreground/50">Sin foto</div>
                       )}
@@ -251,7 +251,7 @@ export default async function DiscoverPage(props: { searchParams?: Promise<{ q?:
                   <Link key={r.id} href={`/recipes/${r.id}`} className="snap-start shrink-0 w-64 group block bg-card rounded-2xl overflow-hidden border border-border hover:border-primary/50 transition-colors">
                     <div className="aspect-[4/3] bg-muted relative overflow-hidden">
                       {imgUrl ? (
-                        <img src={imgUrl} alt={r.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                        <img src={imgUrl} alt={r.name} className="w-full h-full object-cover md:group-hover:scale-105 transition-transform duration-500" />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center bg-sand/30 text-muted-foreground/50">Sin foto</div>
                       )}
