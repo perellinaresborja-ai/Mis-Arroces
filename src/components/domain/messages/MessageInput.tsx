@@ -2,7 +2,7 @@
 import { useState, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Image as ImageIcon, Video, X, ArrowUp } from "lucide-react"
+import { Image as ImageIcon, Video, X, ArrowUp, Camera } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { notifyNewMessage } from "@/app/actions/messaging"
 
