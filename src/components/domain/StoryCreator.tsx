@@ -396,13 +396,13 @@ export function StoryCreator({
       </div>
 
       {/* Controls Area */}
-      <div className="w-full md:w-80 bg-zinc-950 border-t md:border-t-0 md:border-l border-white/10 flex flex-col">
+      <div className="w-full md:w-80 bg-card border-t md:border-t-0 md:border-l border-border flex flex-col">
         
         {/* Editor Main Tools */}
         
       {/* Recipe Style Selector */}
       {selectedOverlayId && overlays.find(o => o.id === selectedOverlayId)?.type === 'RECIPE' && (
-        <div className="absolute bottom-[20%] left-1/2 -translate-x-1/2 bg-black/80 backdrop-blur-sm px-4 py-2 rounded-2xl flex gap-3 z-[100] border border-white/20 shadow-2xl">
+        <div className="absolute bottom-[20%] left-1/2 -translate-x-1/2 bg-card/90 backdrop-blur-sm px-4 py-2 rounded-full flex gap-2 z-[100] border border-border shadow-xl">
           {['card', 'compact', 'text'].map(style => {
             const ov = overlays.find(o => o.id === selectedOverlayId);
             const isActive = ov?.type === 'RECIPE' && ov.payload.displayStyle === style;
@@ -412,13 +412,13 @@ export function StoryCreator({
                 onClick={(e) => {
                   e.stopPropagation();
                   setOverlays(overlays.map(o => {
-    if (o.id === selectedOverlayId && o.type === 'RECIPE') {
-      return { ...o, payload: { ...o.payload, displayStyle: style as 'card'|'compact'|'text' } };
-    }
-    return o;
-  }));
+                    if (o.id === selectedOverlayId && o.type === 'RECIPE') {
+                      return { ...o, payload: { ...o.payload, displayStyle: style as 'card'|'compact'|'text' } };
+                    }
+                    return o;
+                  }));
                 }}
-                className={`px-4 py-1.5 rounded-xl text-sm font-bold capitalize transition-colors ${isActive ? 'bg-primary text-white' : 'text-white/70 hover:bg-white/20'}`}
+                className={`px-4 py-1.5 rounded-full text-sm font-bold capitalize transition-colors ${isActive ? 'bg-foreground text-background' : 'text-muted-foreground hover:bg-muted'}`}
               >
                 {style}
               </button>
@@ -430,32 +430,32 @@ export function StoryCreator({
       {mode === 'EDIT' && (
           <div className="p-4 flex flex-col gap-4 h-full">
 
-            <div className="flex bg-zinc-900 rounded-xl p-1 gap-1">
-              <label className="flex-1 py-2 text-white flex flex-col items-center justify-center gap-1 cursor-pointer m-0 hover:bg-white/10 rounded-lg transition-colors">
+            <div className="grid grid-cols-4 gap-2">
+              <label className="flex flex-col items-center justify-center gap-1.5 p-3 bg-muted hover:bg-muted/80 rounded-2xl cursor-pointer transition-colors text-foreground">
                 <input type="file" className="sr-only" accept="image/*,video/*" onChange={handleFileChange} />
-                <div className="h-6 flex items-center justify-center"><Camera size={20}/></div>
-                <span className="text-xs font-semibold">Archivo</span>
+                <Camera size={22} className="text-primary"/>
+                <span className="text-[11px] font-bold">Archivo</span>
               </label>
-              <button onClick={() => setMode('TEXT')} className="flex-1 py-2 text-white flex flex-col items-center justify-center gap-1 hover:bg-white/10 rounded-lg transition-colors">
-                <div className="h-6 flex items-center justify-center"><AlignLeft size={20}/></div>
-                <span className="text-xs font-semibold">Texto</span>
+              <button onClick={() => setMode('TEXT')} className="flex flex-col items-center justify-center gap-1.5 p-3 bg-muted hover:bg-muted/80 rounded-2xl transition-colors text-foreground">
+                <AlignLeft size={22} className="text-primary"/>
+                <span className="text-[11px] font-bold">Texto</span>
               </button>
-              <button onClick={() => setMode('DRAW')} className="flex-1 py-2 text-white flex flex-col items-center justify-center gap-1 hover:bg-white/10 rounded-lg transition-colors">
-                <div className="h-6 flex items-center justify-center"><span className="text-xl leading-none">🖌</span></div>
-                <span className="text-xs font-semibold">Dibujar</span>
+              <button onClick={() => setMode('DRAW')} className="flex flex-col items-center justify-center gap-1.5 p-3 bg-muted hover:bg-muted/80 rounded-2xl transition-colors text-foreground">
+                <span className="text-2xl leading-none">🖌</span>
+                <span className="text-[11px] font-bold">Dibujar</span>
               </button>
-              <button onClick={() => setMode('STICKER')} className="flex-1 py-2 text-white flex flex-col items-center justify-center gap-1 hover:bg-white/10 rounded-lg transition-colors">
-                <div className="h-6 flex items-center justify-center"><span className="text-xl leading-none">☻</span></div>
-                <span className="text-xs font-semibold">Stickers</span>
+              <button onClick={() => setMode('STICKER')} className="flex flex-col items-center justify-center gap-1.5 p-3 bg-muted hover:bg-muted/80 rounded-2xl transition-colors text-foreground">
+                <span className="text-2xl leading-none">☻</span>
+                <span className="text-[11px] font-bold">Stickers</span>
               </button>
             </div>
             
             <div className="mt-auto space-y-4">
-              <select value={privacy} onChange={e => setPrivacy(e.target.value as 'PUBLIC'|'FOLLOWERS')} className="w-full bg-zinc-900 text-white rounded-xl p-3 border-none outline-none">
+              <select value={privacy} onChange={e => setPrivacy(e.target.value as 'PUBLIC'|'FOLLOWERS')} className="w-full bg-muted text-foreground font-medium rounded-2xl p-4 border border-border outline-none focus:border-primary">
                 <option value="PUBLIC">🌎 Público (Cualquiera)</option>
                 <option value="FOLLOWERS">👥 Solo Seguidores</option>
               </select>
-              <button onClick={handlePublish} disabled={isPublishing} className="w-full bg-primary text-primary-foreground font-bold p-4 rounded-xl">
+              <button onClick={handlePublish} disabled={isPublishing} className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold p-4 rounded-2xl transition-colors shadow-sm">
                 {isPublishing ? 'Publicando...' : 'Compartir Historia'}
               </button>
             </div>
@@ -464,27 +464,29 @@ export function StoryCreator({
 
         {/* Text Mode */}
         {mode === 'TEXT' && (
-          <div className="p-4 flex flex-col gap-4 h-full">
-            <div className="flex gap-4 items-center">
-              <div className="flex flex-col gap-1 items-center">
-                <span className="text-xs text-white/50">Texto</span>
-                <input type="color" value={textColor} onChange={e=>setTextColor(e.target.value)} className="w-12 h-12 rounded-lg cursor-pointer" />
-              </div>
-              <div className="flex flex-col gap-1 items-center">
-                <span className="text-xs text-white/50">Fondo</span>
-                <input type="color" value={textBg === 'transparent' ? '#000000' : textBg} onChange={e=>setTextBg(e.target.value)} className="w-12 h-12 rounded-lg cursor-pointer" />
+          <div className="p-5 flex flex-col gap-5 h-full">
+            <div className="flex justify-between items-center bg-muted p-2 rounded-2xl">
+              <div className="flex items-center gap-3 px-2">
+                <div className="flex flex-col gap-1 items-center">
+                  <span className="text-[10px] font-bold text-muted-foreground uppercase">Texto</span>
+                  <input type="color" value={textColor} onChange={e=>setTextColor(e.target.value)} className="w-8 h-8 rounded-full cursor-pointer overflow-hidden border-none p-0" />
+                </div>
+                <div className="flex flex-col gap-1 items-center">
+                  <span className="text-[10px] font-bold text-muted-foreground uppercase">Fondo</span>
+                  <input type="color" value={textBg === 'transparent' ? '#000000' : textBg} onChange={e=>setTextBg(e.target.value)} className="w-8 h-8 rounded-full cursor-pointer overflow-hidden border-none p-0" />
+                </div>
               </div>
               <button 
                 onClick={() => setTextBg(textBg === 'transparent' ? '#000000' : 'transparent')} 
-                className={`ml-auto p-3 rounded-xl font-bold text-sm transition-colors ${textBg === 'transparent' ? 'bg-zinc-800 text-white' : 'bg-primary text-primary-foreground'}`}
+                className={`px-4 py-3 rounded-xl font-bold text-xs transition-colors ${textBg === 'transparent' ? 'bg-background text-foreground shadow-sm' : 'bg-primary text-primary-foreground shadow-sm'}`}
               >
                 {textBg === 'transparent' ? 'Sin Fondo' : 'Con Fondo'}
               </button>
             </div>
             
-            <div className="flex flex-col gap-1">
-              <span className="text-xs text-white/50">Tipografía</span>
-              <select value={textFont} onChange={e=>setTextFont(e.target.value)} className="bg-zinc-900 text-white p-3 rounded-xl outline-none">
+            <div className="flex flex-col gap-1.5">
+              <span className="text-[10px] font-bold text-muted-foreground uppercase">Tipografía</span>
+              <select value={textFont} onChange={e=>setTextFont(e.target.value)} className="bg-muted text-foreground p-3.5 rounded-2xl outline-none focus:border focus:border-primary font-medium">
                 <option value="sans-serif">Sans Serif</option>
                 <option value="serif">Serif</option>
                 <option value="monospace">Monospace</option>
@@ -492,40 +494,62 @@ export function StoryCreator({
               </select>
             </div>
 
-            <div className="flex flex-col gap-1">
-              <span className="text-xs text-white/50">Alineación</span>
+            <div className="flex flex-col gap-1.5">
+              <span className="text-[10px] font-bold text-muted-foreground uppercase">Alineación</span>
               <div className="flex gap-2">
-                <button onClick={() => setTextAlign('left')} className={`flex-1 p-2 rounded-xl flex justify-center items-center transition-colors ${textAlign === 'left' ? 'bg-primary text-white' : 'bg-zinc-900 text-white hover:bg-zinc-800'}`}>
+                <button onClick={() => setTextAlign('left')} className={`flex-1 p-3 rounded-2xl flex justify-center items-center transition-colors ${textAlign === 'left' ? 'bg-primary text-primary-foreground' : 'bg-muted text-foreground hover:bg-muted/80'}`}>
                   <AlignLeft size={20} />
                 </button>
-                <button onClick={() => setTextAlign('center')} className={`flex-1 p-2 rounded-xl flex justify-center items-center transition-colors ${textAlign === 'center' ? 'bg-primary text-white' : 'bg-zinc-900 text-white hover:bg-zinc-800'}`}>
+                <button onClick={() => setTextAlign('center')} className={`flex-1 p-3 rounded-2xl flex justify-center items-center transition-colors ${textAlign === 'center' ? 'bg-primary text-primary-foreground' : 'bg-muted text-foreground hover:bg-muted/80'}`}>
                   <AlignCenter size={20} />
                 </button>
-                <button onClick={() => setTextAlign('right')} className={`flex-1 p-2 rounded-xl flex justify-center items-center transition-colors ${textAlign === 'right' ? 'bg-primary text-white' : 'bg-zinc-900 text-white hover:bg-zinc-800'}`}>
+                <button onClick={() => setTextAlign('right')} className={`flex-1 p-3 rounded-2xl flex justify-center items-center transition-colors ${textAlign === 'right' ? 'bg-primary text-primary-foreground' : 'bg-muted text-foreground hover:bg-muted/80'}`}>
                   <AlignRight size={20} />
                 </button>
               </div>
             </div>
 
-            <div className="mt-auto flex gap-2">
-              <button onClick={() => setMode('EDIT')} className="flex-1 bg-zinc-800 text-white p-3 rounded-xl">Cancelar</button>
-              <button onClick={addText} className="flex-1 bg-white text-black font-bold p-3 rounded-xl">Añadir</button>
+            <div className="mt-auto flex gap-3">
+              <button onClick={() => setMode('EDIT')} className="flex-1 bg-muted hover:bg-muted/80 text-foreground font-bold p-4 rounded-2xl transition-colors">Cancelar</button>
+              <button onClick={addText} className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground font-bold p-4 rounded-2xl transition-colors shadow-sm">Añadir</button>
             </div>
           </div>
         )}
 
         {/* Draw Mode */}
         {mode === 'DRAW' && (
-          <div className="p-4 flex flex-col gap-4 h-full">
-            <h3 className="font-bold text-white text-lg">Pincel</h3>
-            <input type="color" value={drawColor} onChange={e=>setDrawColor(e.target.value)} className="w-full h-12 rounded-lg" />
-            <input type="range" min="1" max="30" value={drawSize} onChange={e=>setDrawSize(Number(e.target.value))} className="w-full" />
-            <div className="mt-auto flex gap-2">
+          <div className="p-5 flex flex-col gap-6 h-full">
+            <div className="flex flex-col gap-3">
+              <span className="text-[10px] font-bold text-muted-foreground uppercase text-center">Color</span>
+              <div className="flex flex-wrap gap-3 justify-center">
+                {['#FFFFFF', '#000000', '#FF0000', '#00FF00', '#0000FF', '#FFFF00', '#FF00FF', '#00FFFF'].map(c => (
+                  <button key={c} onClick={()=>setDrawColor(c)} className="w-10 h-10 rounded-full border-2 border-border shadow-sm transition-transform hover:scale-110" style={{backgroundColor: c, borderColor: drawColor===c ? 'var(--primary)' : 'transparent'}} />
+                ))}
+              </div>
+            </div>
+            <div className="flex flex-col gap-3 mt-4">
+              <span className="text-[10px] font-bold text-muted-foreground uppercase text-center">Grosor</span>
+              <div className="flex gap-4 justify-center items-center px-4">
+                <button onClick={()=>setDrawSize(5)} className={`w-10 h-10 flex items-center justify-center rounded-full transition-colors ${drawSize===5?'bg-primary text-primary-foreground':'bg-muted text-foreground hover:bg-muted/80'}`}>
+                  <div className="w-2 h-2 rounded-full bg-current" />
+                </button>
+                <button onClick={()=>setDrawSize(10)} className={`w-10 h-10 flex items-center justify-center rounded-full transition-colors ${drawSize===10?'bg-primary text-primary-foreground':'bg-muted text-foreground hover:bg-muted/80'}`}>
+                  <div className="w-4 h-4 rounded-full bg-current" />
+                </button>
+                <button onClick={()=>setDrawSize(20)} className={`w-10 h-10 flex items-center justify-center rounded-full transition-colors ${drawSize===20?'bg-primary text-primary-foreground':'bg-muted text-foreground hover:bg-muted/80'}`}>
+                  <div className="w-6 h-6 rounded-full bg-current" />
+                </button>
+              </div>
+            </div>
+            
+            <div className="mt-auto flex flex-col gap-3">
               <button onClick={() => {
                 const ctx = canvasRef.current?.getContext('2d');
                 if (ctx) ctx.clearRect(0,0,400,711);
                 setCanvasUndoStack([]);
-              }} className="flex-1 bg-zinc-800 text-white p-3 rounded-xl">Borrar Todo</button>
+              }} className="p-3 bg-muted hover:bg-muted/80 text-foreground font-bold rounded-2xl transition-colors">
+                Borrar Todo
+              </button>
               <button onClick={() => {
                 if (canvasUndoStack.length > 0) {
                   const ctx = canvasRef.current?.getContext('2d');
@@ -540,9 +564,11 @@ export function StoryCreator({
                     setCanvasUndoStack(newStack);
                   }
                 }
-              }} className="flex-1 bg-zinc-800 text-white p-3 rounded-xl">Deshacer</button>
+              }} disabled={canvasUndoStack.length === 0} className="p-3 bg-muted hover:bg-muted/80 text-foreground font-bold rounded-2xl disabled:opacity-50 transition-colors">
+                Deshacer trazo
+              </button>
   
-              <button onClick={() => setMode('EDIT')} className="flex-1 bg-white text-black font-bold p-3 rounded-xl">Hecho</button>
+              <button onClick={() => setMode('EDIT')} className="mt-2 p-4 bg-primary hover:bg-primary/90 text-primary-foreground font-bold rounded-2xl transition-colors shadow-sm">Hecho</button>
             </div>
           </div>
         )}
@@ -552,39 +578,36 @@ export function StoryCreator({
           <div className="flex flex-col h-full relative">
             {!activeStickerType ? (
               <div className="p-4 grid grid-cols-2 gap-2 overflow-y-auto">
-                <button onClick={() => setActiveStickerType('MENTION')} className="bg-zinc-900 text-white p-4 rounded-xl flex items-center justify-center gap-2"><User size={18}/> Mención</button>
-                <button onClick={() => setActiveStickerType('LOCATION')} className="bg-zinc-900 text-white p-4 rounded-xl flex items-center justify-center gap-2"><MapPin size={18}/> Ubicación</button>
-                <button onClick={() => setActiveStickerType('RECIPE')} className="bg-zinc-900 text-white p-4 rounded-xl flex items-center justify-center gap-2"><ChefHat size={18}/> Receta</button>
-                <button onClick={() => setActiveStickerType('INGREDIENT')} className="bg-zinc-900 text-white p-4 rounded-xl flex items-center justify-center gap-2"><Apple size={18}/> Ingrediente</button>
+                <button onClick={() => setActiveStickerType('MENTION')} className="bg-muted hover:bg-muted/80 text-foreground p-4 rounded-2xl flex items-center justify-center gap-2 transition-colors font-medium"><User size={18} className="text-primary"/> Mención</button>
+                <button onClick={() => setActiveStickerType('LOCATION')} className="bg-muted hover:bg-muted/80 text-foreground p-4 rounded-2xl flex items-center justify-center gap-2 transition-colors font-medium"><MapPin size={18} className="text-primary"/> Ubicación</button>
+                <button onClick={() => setActiveStickerType('RECIPE')} className="bg-muted hover:bg-muted/80 text-foreground p-4 rounded-2xl flex items-center justify-center gap-2 transition-colors font-medium"><ChefHat size={18} className="text-primary"/> Receta</button>
+                <button onClick={() => setActiveStickerType('INGREDIENT')} className="bg-muted hover:bg-muted/80 text-foreground p-4 rounded-2xl flex items-center justify-center gap-2 transition-colors font-medium"><Apple size={18} className="text-primary"/> Ingrediente</button>
+                <button onClick={() => setActiveStickerType('SESSION')} className="bg-muted hover:bg-muted/80 text-foreground p-4 rounded-2xl flex items-center justify-center gap-2 transition-colors font-medium"><ChefHat size={18} className="text-primary"/> Sesión</button>
+                <button onClick={() => setActiveStickerType('PROFILE')} className="bg-muted hover:bg-muted/80 text-foreground p-4 rounded-2xl flex items-center justify-center gap-2 transition-colors font-medium"><User size={18} className="text-primary"/> Perfil</button>
 
-                <button onClick={() => setActiveStickerType('SESSION')} className="bg-zinc-900 text-white p-4 rounded-xl flex items-center justify-center gap-2"><ChefHat size={18}/> Sesión</button>
-                <button onClick={() => setActiveStickerType('PROFILE')} className="bg-zinc-900 text-white p-4 rounded-xl flex items-center justify-center gap-2"><User size={18}/> Perfil</button>
-
-                <button onClick={() => { setMode('EDIT'); setIsPollModalOpen(true); }} className="bg-zinc-900 text-white p-4 rounded-xl col-span-2 font-bold">📊 Encuesta</button>
-                <button onClick={() => { setMode('EDIT'); setIsQuestionModalOpen(true); }} className="bg-zinc-900 text-white p-4 rounded-xl col-span-2 font-bold">❓ Pregunta</button>
-                <button onClick={() => { setMode('EDIT'); setIsSliderModalOpen(true); }} className="bg-zinc-900 text-white p-4 rounded-xl col-span-2 font-bold">😍 Slider</button>
+                <button onClick={() => { setMode('EDIT'); setIsPollModalOpen(true); }} className="bg-muted hover:bg-muted/80 text-foreground p-4 rounded-2xl col-span-2 font-bold transition-colors">📊 Encuesta</button>
+                <button onClick={() => { setMode('EDIT'); setIsQuestionModalOpen(true); }} className="bg-muted hover:bg-muted/80 text-foreground p-4 rounded-2xl col-span-2 font-bold transition-colors">❓ Pregunta</button>
+                <button onClick={() => { setMode('EDIT'); setIsSliderModalOpen(true); }} className="bg-muted hover:bg-muted/80 text-foreground p-4 rounded-2xl col-span-2 font-bold transition-colors">😍 Slider</button>
               </div>
             ) : (
-              <div className="absolute inset-0 z-10 bg-zinc-950 flex flex-col">
-                <div className="p-2 border-b border-white/10 flex items-center">
-                  <button onClick={() => setActiveStickerType(null)} className="text-white p-2">Volver</button>
+              <div className="absolute inset-0 z-10 bg-card flex flex-col">
+                <div className="p-2 border-b border-border flex items-center">
+                  <button onClick={() => setActiveStickerType(null)} className="text-muted-foreground hover:text-foreground font-medium p-2 transition-colors">Volver</button>
                 </div>
                 <div className="flex-1 overflow-hidden relative">
                   {activeStickerType === 'MENTION' && <MentionPicker onSelect={(u) => handleStickerSelect('MENTION', u)} />}
                   {activeStickerType === 'RECIPE' && <RecipePicker onSelect={(r) => handleStickerSelect('RECIPE', r)} />}
                   {activeStickerType === 'INGREDIENT' && <IngredientPicker onSelect={(i) => handleStickerSelect('INGREDIENT', i)} />}
                   {activeStickerType === 'LOCATION' && <LocationPicker onSelect={(l) => handleStickerSelect('LOCATION', l)} />}
-                  
                   {activeStickerType === 'SESSION' && <SessionPicker onSelect={(s) => handleStickerSelect('SESSION', s)} />}
                   {activeStickerType === 'PROFILE' && <ProfilePicker onSelect={(p) => handleStickerSelect('PROFILE', p)} />}
-
                 </div>
               </div>
             )}
             
             {!activeStickerType && (
-              <div className="mt-auto p-4 border-t border-white/10">
-                <button onClick={() => setMode('EDIT')} className="w-full bg-zinc-800 text-white p-3 rounded-xl">Cancelar</button>
+              <div className="mt-auto p-4 border-t border-border">
+                <button onClick={() => setMode('EDIT')} className="w-full bg-muted hover:bg-muted/80 text-foreground font-bold p-4 rounded-2xl transition-colors">Cancelar</button>
               </div>
             )}
           </div>
