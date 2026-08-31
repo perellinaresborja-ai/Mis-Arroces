@@ -81,10 +81,16 @@ export function FeedFollowButton({
     }
   }
 
-  const handleBlock = async (e: React.MouseEvent) => {
+  const [showConfirm, setShowConfirm] = useState(false);
+
+  const handleBlock = (e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
-    if (!confirm("¿Seguro que quieres bloquear a este usuario? Ya no podréis veros mutuamente.")) return
+    setShowConfirm(true)
+  }
+
+  const confirmBlock = async () => {
+    setShowConfirm(false)
     setShowMenu(false)
     try {
       setIsPending(true)
@@ -129,6 +135,15 @@ export function FeedFollowButton({
           </button>
         </div>
       )}
+      <ConfirmModal
+        isOpen={showConfirm}
+        title="Bloquear usuario"
+        message="¿Seguro que quieres bloquear a este usuario? Ya no podréis veros mutuamente."
+        confirmText="Bloquear"
+        isDestructive={true}
+        onConfirm={confirmBlock}
+        onCancel={() => setShowConfirm(false)}
+      />
     </div>
   )
 }

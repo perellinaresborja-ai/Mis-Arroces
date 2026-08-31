@@ -5,6 +5,8 @@ import { MoreHorizontal, BarChart2, Share2, Link as LinkIcon, Star, Trash2, X } 
 import { deleteStory } from "@/app/actions/stories"
 
 
+import { ConfirmModal } from "@/components/ui/ConfirmModal"
+
 interface StoryOwnerMenuProps {
   storyId: string;
   onClose: () => void;
@@ -15,18 +17,21 @@ interface StoryOwnerMenuProps {
 
 export function StoryOwnerMenu({ storyId, onClose, onDeleted, onOpenInsights, onOpenHighlight }: StoryOwnerMenuProps) {
   const [isDeleting, setIsDeleting] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
 
-  const handleDelete = async () => {
-    if (!confirm("¿Seguro que quieres eliminar esta historia?")) return;
+  const confirmDelete = async () => {
     setIsDeleting(true);
     try {
       await deleteStory(storyId);
-      alert("Éxito");
       onDeleted();
     } catch (e: any) {
-      alert("Error");
+      alert("Error al eliminar la historia");
       setIsDeleting(false);
     }
+  };
+
+  const handleDelete = () => {
+    setShowConfirm(true);
   };
 
   const handleCopyLink = () => {
@@ -69,6 +74,15 @@ export function StoryOwnerMenu({ storyId, onClose, onDeleted, onOpenInsights, on
           Cancelar
         </button>
       </div>
+      <ConfirmModal 
+        isOpen={showConfirm}
+        title="Eliminar historia"
+        message="¿Estás seguro de que quieres eliminar esta historia de forma permanente?"
+        confirmText="Eliminar"
+        isDestructive={true}
+        onConfirm={confirmDelete}
+        onCancel={() => setShowConfirm(false)}
+      />
     </div>
   )
 }

@@ -46,8 +46,14 @@ export function EditHighlightModal({ highlight, archivedStories, onClose }: { hi
     }
   }
 
-  const handleDelete = async () => {
-    if (!confirm("¿Eliminar destacada? Las historias no se borrarán de tu archivo.")) return
+  const [showConfirm, setShowConfirm] = useState(false);
+
+  const handleDelete = () => {
+    setShowConfirm(true);
+  }
+
+  const confirmDelete = async () => {
+    setShowConfirm(false);
     setLoading(true)
     try {
       await supabase.from('story_highlights').delete().eq('id', highlight.id)
@@ -99,6 +105,16 @@ export function EditHighlightModal({ highlight, archivedStories, onClose }: { hi
           </div>
         </div>
       </div>
+      
+      <ConfirmModal
+        isOpen={showConfirm}
+        title="Eliminar destacada"
+        message="¿Eliminar destacada? Las historias no se borrarán de tu archivo."
+        confirmText="Eliminar"
+        isDestructive={true}
+        onConfirm={confirmDelete}
+        onCancel={() => setShowConfirm(false)}
+      />
     </div>
   )
 }

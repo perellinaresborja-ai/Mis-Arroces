@@ -12,6 +12,7 @@ import { AutocompleteMenu } from "./AutocompleteMenu"
 import { SocialTextRenderer } from "./SocialTextRenderer"
 import Link from "next/link"
 import { cn, formatRelativeTime } from "@/lib/utils"
+import { ConfirmModal } from "@/components/ui/ConfirmModal"
 import { useAuthPrompt } from "@/components/providers/AuthPromptProvider"
 
 interface Comment {
@@ -355,21 +356,33 @@ export function CommentSection({ entityType, entityId, comments, currentUserId, 
     })
   }
 
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+
   const handleDelete = (commentId: string) => {
-    if (confirm("¿Seguro que quieres eliminar este comentario?")) {
-      startTransition(async () => {
-        setLocalComments(prev => prev.map(c => c.id === commentId ? { ...c, is_deleted: true, content: "Comentario eliminado" } : c))
-        await deleteComment(entityType, commentId)
-        if (onCommentDeleted) onCommentDeleted(commentId)
-      })
-    }
+    setConfirmDeleteId(commentId);
+  }
+
+  const confirmDeleteAction = () => {
+    if (!confirmDeleteId) return;
+    startTransition(async () => {
+      setLocalComments(prev => prev.map(c => c.id === confirmDeleteId ? { ...c, is_deleted: true, content: "Comentario eliminado" } : c))
+      await deleteComment(entityType, confirmDeleteId)
+      if (onCommentDeleted) onCommentDeleted(confirmDeleteId)
+      setConfirmDeleteId(null)
+    })
   }
 
   return (
     <div className="space-y-6">
       
-
-      
+      <ConfirmModal
+        isOpen={!!confirmDeleteId}
+        onCancel={() => setConfirmDeleteId(null)}
+        onConfirm={confirmDeleteAction}
+        title="Eliminar comentario"
+        message="¿Estás seguro de que quieres eliminar este comentario? Esta acción no se puede deshacer."
+        confirmText="Eliminar"`nisDestructive={true}
+      />
 
       <div className="space-y-4">
         {topLevelComments.filter(c => !c.is_deleted).map(comment => (

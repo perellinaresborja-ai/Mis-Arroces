@@ -16,11 +16,16 @@ export function CookbookRecipeCard({ recipe, tab }: { recipe: any, tab: string }
   const path = sorted[0]?.media?.storage_path
   const coverUrl = path ? `https://zvesoygqssyyojqyswwm.supabase.co/storage/v1/object/public/recipe_media/${path}` : null
 
-  const handleDelete = async (e: React.MouseEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
-    if (!window.confirm("¿Estás seguro de que quieres eliminar esta receta? Esta acción no se puede deshacer.")) return;
-    
+  const [showConfirm, setShowConfirm] = useState(false);
+
+  const handleDelete = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setShowConfirm(true);
+  }
+
+  const confirmDelete = async () => {
+    setShowConfirm(false);
     setIsDeleting(true)
     try {
       await deleteRecipe(recipe.id)
@@ -67,6 +72,16 @@ export function CookbookRecipeCard({ recipe, tab }: { recipe: any, tab: string }
           <Trash2 className="w-4 h-4" />
         </button>
       )}
+
+      <ConfirmModal
+        isOpen={showConfirm}
+        title="Eliminar receta"
+        message="¿Estás seguro de que quieres eliminar esta receta? Esta acción no se puede deshacer."
+        confirmText="Eliminar"
+        isDestructive={true}
+        onConfirm={confirmDelete}
+        onCancel={() => setShowConfirm(false)}
+      />
     </div>
   )
 }

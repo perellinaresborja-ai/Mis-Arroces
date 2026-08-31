@@ -5,6 +5,7 @@ import { MoreHorizontal, Bookmark, MessageSquareOff, Edit2, Trash2 } from "lucid
 import { useRouter } from "next/navigation"
 import { toggleComments, deleteEntity, toggleBookmark, togglePin } from "@/app/actions/post_options"
 import { Pin, PinOff, PlusCircle } from "lucide-react"
+import { ConfirmModal } from "@/components/ui/ConfirmModal"
 
 export function PostOptionsMenu({ 
   entityType, 
@@ -80,9 +81,14 @@ export function PostOptionsMenu({
     }
   }
 
-  const handleEliminar = async () => {
-    if (!confirm("¿Seguro que quieres eliminar esta publicación de forma permanente?")) return;
+  const [showConfirm, setShowConfirm] = useState(false);
+  const handleEliminar = () => {
     setShowMenu(false);
+    setShowConfirm(true);
+  }
+
+  const confirmEliminar = async () => {
+    setShowConfirm(false);
     try {
       await deleteEntity(entityType, entityId);
       if (onDeleted) onDeleted();
@@ -132,6 +138,16 @@ export function PostOptionsMenu({
           </div>
         </>
       )}
+
+      <ConfirmModal
+        isOpen={showConfirm}
+        title="Eliminar publicación"
+        message="¿Seguro que quieres eliminar esta publicación de forma permanente?"
+        confirmText="Eliminar"
+        isDestructive={true}
+        onConfirm={confirmEliminar}
+        onCancel={() => setShowConfirm(false)}
+      />
     </div>
   )
 }

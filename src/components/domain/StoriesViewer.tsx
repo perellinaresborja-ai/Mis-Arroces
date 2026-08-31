@@ -16,6 +16,7 @@ import { toggleStoryReaction } from "@/app/actions/stories"
 
 import { EntityInsightsModal } from "./EntityInsightsModal"
 import { SaveRecipeButton } from "./SaveRecipeButton"
+import { ConfirmModal } from "@/components/ui/ConfirmModal"
 import { BarChart2, Plus } from "lucide-react"
 import { trackClickAction } from "@/app/actions/tracking"
 import { useRouter } from "next/navigation"
@@ -123,7 +124,23 @@ export function StoriesViewer({ groupedStories: _groupedStories, initialGroupInd
   // console.log("DEBUG ISME", { isMe, currentUserId: currentUser?.id, authorId: currentGroup?.author?.id, ownerId: currentStory?.owner_id });
 
   // Navigate next/prev story
-  const handleDelete = async (e: React.MouseEvent) => { e.stopPropagation(); setIsPaused(true); if(!confirm('¿Eliminar esta historia?')) { setIsPaused(false); return; } try { await deleteStory(currentStory.id); window.location.reload(); } catch(e) { alert('Error al eliminar la historia'); setIsPaused(false); } };
+  const [showConfirm, setShowConfirm] = useState(false);
+  const handleDelete = (e: React.MouseEvent) => { 
+    e.stopPropagation(); 
+    setIsPaused(true); 
+    setShowConfirm(true); 
+  };
+  
+  const confirmDelete = async () => {
+    try { 
+      await deleteStory(currentStory.id); 
+      window.location.reload(); 
+    } catch(e) { 
+      alert('Error al eliminar la historia'); 
+      setIsPaused(false); 
+      setShowConfirm(false);
+    } 
+  };
 
   const nextStory = () => {
     if (!currentGroup) return
@@ -611,6 +628,19 @@ export function StoriesViewer({ groupedStories: _groupedStories, initialGroupInd
         className="sr-only" 
         accept="image/*,video/*" 
         onChange={handleFileChange} 
+      />
+      
+      <ConfirmModal
+        isOpen={showConfirm}
+        title="Eliminar historia"
+        message="¿Estás seguro de que quieres eliminar esta historia de forma permanente?"
+        confirmText="Eliminar"
+        isDestructive={true}
+        onConfirm={confirmDelete}
+        onCancel={() => {
+          setShowConfirm(false);
+          setIsPaused(false);
+        }}
       />
 
     </div>
