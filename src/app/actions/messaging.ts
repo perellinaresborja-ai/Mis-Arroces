@@ -3,7 +3,7 @@
 import { createClient } from "@/lib/supabase/server"
 import { createClient as createAdminClient } from "@supabase/supabase-js"
 import { Database } from "@/types/database.types"
-import { revalidatePath } from "next/cache"
+import { revalidatePath, unstable_noStore } from "next/cache"
 import { createNotification } from "./notifications"
 
 export async function getOrCreateConversation(targetUserId: string) {
@@ -23,6 +23,8 @@ export async function getOrCreateConversation(targetUserId: string) {
 }
 
 export async function fetchConversations() {
+
+  unstable_noStore();
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error("Unauthorized")
