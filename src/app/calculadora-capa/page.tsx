@@ -6,7 +6,7 @@ import { calculateLayer, getRecommendedDiameter, getRecommendedRice, LayerType }
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Scaling, Info, Sparkles, ChefHat } from "lucide-react";
+import { Scaling, Info, ChefHat } from "lucide-react";
 
 export default function LayerCalculatorPage() {
   const [rice, setRice] = useState<string>('');
@@ -102,12 +102,9 @@ export default function LayerCalculatorPage() {
           </div>
         </div>
 
-        {/* TARJETA DE RESULTADOS MÁGICA */}
+        {/* TARJETA DE RESULTADOS */}
         <div className="bg-primary/5 border border-primary/20 rounded-3xl p-6 shadow-sm min-h-[250px]">
-          <div className="flex items-center gap-2 mb-4">
-            <Sparkles className="w-5 h-5 text-primary" />
-            <h3 className="text-sm font-bold text-primary uppercase tracking-wider">La magia</h3>
-          </div>
+          <h3 className="text-sm font-bold text-primary uppercase tracking-wider mb-4">Resultados</h3>
           
           <div className="flex flex-col gap-5">
             {!hasRice && !hasDia && !hasServ && (
