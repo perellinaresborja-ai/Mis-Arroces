@@ -173,7 +173,7 @@ export function StoriesViewer({ groupedStories: _groupedStories, initialGroupInd
   const videoRef = useRef<HTMLVideoElement>(null)
 
   useEffect(() => {
-    if (isPaused || showViewers) return
+    if (isPaused || showViewers || showMenu || ownerMenuOpen || showShare || highlightModalOpen || insightsOpen) return
 
     const isVideo = currentStory?.story_media?.[0]?.media?.storage_path?.match(/\.(mp4|webm|ogg)$/i)
     let timer: NodeJS.Timeout
@@ -197,7 +197,7 @@ export function StoriesViewer({ groupedStories: _groupedStories, initialGroupInd
     return () => {
       if (timer) clearInterval(timer)
     }
-  }, [currentStory, isPaused, showViewers]) // Dependencies
+  }, [currentStory, isPaused, showViewers, showMenu, ownerMenuOpen, showShare, highlightModalOpen, insightsOpen]) // Dependencies
 
   // Video progress
   const handleTimeUpdate = () => {
@@ -230,7 +230,10 @@ export function StoriesViewer({ groupedStories: _groupedStories, initialGroupInd
   const fullUrl = mediaObj?.signed_url || (mediaPath ? `${"https://zvesoygqssyyojqyswwm.supabase.co"}/storage/v1/object/public/recipe_media/${mediaPath}` : "");
 
   const handlePointerDown = () => setIsPaused(true)
-  const handlePointerUp = () => setIsPaused(false)
+  const handlePointerUp = () => {
+    if (showMenu || ownerMenuOpen || showShare || highlightModalOpen || insightsOpen) return;
+    setIsPaused(false)
+  }
 
   return (
     <div className="fixed inset-0 z-[100] bg-black text-white flex items-center justify-center overscroll-none touch-none">
