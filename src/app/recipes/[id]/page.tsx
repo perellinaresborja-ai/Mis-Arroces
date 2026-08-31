@@ -274,17 +274,17 @@ export default async function RecipeDetailPage({
         </div>
 
         {/* Bottom Section: Ingredients & Steps */}
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-8 md:gap-12 mt-12 md:mt-20 pt-10 border-t border-border">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16 mt-12 md:mt-20 pt-10 border-t border-border items-start">
           
-          {/* Ingredients */}
-          <div className="md:col-span-5">
+          {/* Ingredients & Nutrition (Left Column in Desktop) */}
+          <div className="w-full">
             <h2 className="text-2xl font-bold mb-6 font-serif text-charcoal">Ingredientes</h2>
-            <ul className="space-y-4 max-w-[380px]">
+            <ul className="space-y-4">
                 {[...(recipe.ingredients || [])].sort((a: any, b: any) => a.display_order - b.display_order).map((ing: any) => (
                   <li key={ing.id} className="flex justify-between items-baseline text-[15px] pb-2 border-b border-border/30 last:border-0">
-                    <span className="text-foreground/90">{ing.display_text}</span>
+                    <span className="text-foreground/90 pr-4">{ing.display_text}</span>
                     {ing.normalized_quantity && (
-                      <span className="font-bold text-charcoal shrink-0 ml-4">
+                      <span className="font-bold text-charcoal shrink-0">
                         {ing.normalized_quantity} {formatUnitSymbol(ing.unit?.name)}
                       </span>
                     )}
@@ -295,13 +295,13 @@ export default async function RecipeDetailPage({
                 <AddToCartButton recipeId={recipe.id} isAuthenticated={!!user} baseServings={recipe.base_servings} />
               </div>
               
-              <div className="mt-12">
+              <div className="mt-12 w-full">
                 <NutritionSection result={nutrition} servings={recipe.base_servings || 1} />
               </div>
             </div>
 
-            {/* Steps */}
-          <div className="md:col-span-7">
+            {/* Steps (Right Column in Desktop) */}
+          <div className="w-full">
             <h2 className="text-2xl font-bold mb-8 font-serif text-charcoal">Elaboración</h2>
             {recipe.steps && recipe.steps.length > 0 ? (
               <div className="space-y-10">
