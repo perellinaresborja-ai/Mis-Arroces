@@ -2,40 +2,32 @@
 
 import { useState } from "react";
 import { BackButton } from "@/components/domain/BackButton";
+import { calculateLayer, getRecommendedDiameter, getRecommendedRice, LayerType, DEFAULT_RICE_PER_PERSON } from "@/lib/paella-calculator";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Scaling, Info } from "lucide-react";
-import { 
-  calculateLayer, 
-  getRecommendedDiameter, 
-  getRecommendedRice, 
-  LayerType,
-  DEFAULT_RICE_PER_PERSON
-} from "@/lib/paella-calculator";
 
-type CalcMode = 'LAYER' | 'DIAMETER' | 'RICE';
-
-export default function CalculadoraCapaPage() {
-  const [mode, setMode] = useState<CalcMode>('LAYER');
+export default function LayerCalculatorPage() {
   const [rice, setRice] = useState<string>('');
   const [diameter, setDiameter] = useState<string>('');
-  const [layer, setLayer] = useState<LayerType>('Media');
-  
+  const [layer, setLayer] = useState<LayerType>('Fina');
   const [servings, setServings] = useState<string>('');
-  const [customRicePerPerson, setCustomRicePerPerson] = useState<string>(DEFAULT_RICE_PER_PERSON.toString());
+  const [rpp, setRpp] = useState<string>(DEFAULT_RICE_PER_PERSON.toString());
 
   const riceNum = Number(rice);
   const diaNum = Number(diameter);
   const servNum = Number(servings);
-  const rppNum = Number(customRicePerPerson) || DEFAULT_RICE_PER_PERSON;
+  const rppNum = Number(rpp) || DEFAULT_RICE_PER_PERSON;
 
-  const calculatedLayer = (mode === 'LAYER' && riceNum > 0 && diaNum > 0) ? calculateLayer(riceNum, diaNum) : layer;
-  const calculatedDiameter = (mode === 'DIAMETER' && riceNum > 0) ? getRecommendedDiameter(riceNum, layer) : diaNum;
-  const calculatedRice = (mode === 'RICE' && diaNum > 0) ? getRecommendedRice(diaNum, layer) : riceNum;
+  const hasRice = riceNum > 0;
+  const hasDia = diaNum > 0;
+  const hasServings = servNum > 0;
 
-  const effectiveRice = mode === 'RICE' ? calculatedRice : riceNum;
-  const computedRicePerPerson = (servNum > 0 && effectiveRice > 0) ? Math.round(effectiveRice / servNum) : 0;
+  // Calculos automÃ¡ticos
+  const currentLayer = (hasRice && hasDia) ? calculateLayer(riceNum, diaNum) : null;
+  const recDiaTarget = hasRice ? getRecommendedDiameter(riceNum, layer) : null;
+  const recRiceTarget = hasDia ? getRecommendedRice(diaNum, layer) : null;
 
   return (
     <div className="min-h-screen bg-background pb-24">
@@ -46,142 +38,136 @@ export default function CalculadoraCapaPage() {
         </div>
       </header>
 
-      <main className="p-4 md:p-8 max-w-xl mx-auto w-full">
-        <div className="bg-card rounded-3xl border border-border p-6 shadow-sm mb-6">
+      <main className="p-4 md:p-8 max-w-xl mx-auto w-full space-y-6">
+        
+        {/* INPUTS BLOCKS */}
+        <div className="bg-card rounded-3xl border border-border p-6 shadow-sm">
           <div className="flex items-center gap-2 mb-6 text-primary">
             <Scaling className="w-6 h-6" />
-            <h2 className="text-xl font-bold font-serif">¿Qué quieres calcular?</h2>
-          </div>
-
-          <div className="flex flex-col gap-2 mb-8">
-            <Button variant={mode === 'LAYER' ? 'default' : 'outline'} onClick={() => setMode('LAYER')} className="justify-start h-auto py-3">
-              <div className="text-left">
-                <div className="font-bold">Capa Actual</div>
-                <div className="text-xs opacity-80 font-normal">Tengo arroz y diámetro</div>
-              </div>
-            </Button>
-            <Button variant={mode === 'DIAMETER' ? 'default' : 'outline'} onClick={() => setMode('DIAMETER')} className="justify-start h-auto py-3">
-              <div className="text-left">
-                <div className="font-bold">Diámetro Recomendado</div>
-                <div className="text-xs opacity-80 font-normal">Tengo arroz y quiero una capa</div>
-              </div>
-            </Button>
-            <Button variant={mode === 'RICE' ? 'default' : 'outline'} onClick={() => setMode('RICE')} className="justify-start h-auto py-3">
-              <div className="text-left">
-                <div className="font-bold">Arroz Recomendado</div>
-                <div className="text-xs opacity-80 font-normal">Tengo diámetro y quiero una capa</div>
-              </div>
-            </Button>
+            <h2 className="text-xl font-bold font-serif">Datos de tu Paella</h2>
           </div>
 
           <div className="space-y-6">
-            {(mode === 'LAYER' || mode === 'DIAMETER') && (
+            <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Arroz total (g)</Label>
                 <Input type="number" value={rice} onChange={e => setRice(e.target.value)} placeholder="Ej. 800" />
               </div>
-            )}
-
-            {(mode === 'LAYER' || mode === 'RICE') && (
               <div className="space-y-2">
-                <Label>Diámetro de paella (cm)</Label>
+                <Label>DiÃ¡metro (cm)</Label>
                 <Input type="number" value={diameter} onChange={e => setDiameter(e.target.value)} placeholder="Ej. 60" />
               </div>
-            )}
+            </div>
 
-            {(mode === 'DIAMETER' || mode === 'RICE') && (
-              <div className="space-y-2">
-                <Label className="text-xs text-muted-foreground uppercase">Capa deseada</Label>
-                <div className="flex gap-2">
-                  {(['Fina', 'Media', 'Abundante'] as LayerType[]).map((l) => (
-                    <Button key={l} type="button" size="sm" variant={layer === l ? 'default' : 'outline'} onClick={() => setLayer(l)} className="flex-1">{l}</Button>
-                  ))}
-                </div>
+            <div className="space-y-2">
+              <Label className="text-xs text-muted-foreground uppercase">Capa deseada</Label>
+              <div className="flex gap-2">
+                {(['Fina', 'Media', 'Abundante'] as LayerType[]).map((l) => (
+                  <Button 
+                    key={l} 
+                    type="button" 
+                    size="sm" 
+                    variant={layer === l ? 'default' : 'outline'} 
+                    onClick={() => setLayer(l)} 
+                    className="flex-1"
+                  >
+                    {l}
+                  </Button>
+                ))}
               </div>
-            )}
+            </div>
           </div>
         </div>
 
+        {/* RESULTS BLOCK */}
         <div className="bg-primary/5 border border-primary/20 rounded-3xl p-6 shadow-sm">
           <h3 className="text-sm font-bold text-primary uppercase tracking-wider mb-4">Resultado</h3>
           
           <div className="flex flex-col gap-4">
-            {mode === 'LAYER' && (
-              <>
-                {riceNum > 0 && diaNum > 0 ? (
-                  <div>
-                    <span className="text-muted-foreground text-sm">Capa estimada:</span>
-                    <p className="text-3xl font-bold uppercase text-foreground mt-1">{calculatedLayer}</p>
-                  </div>
-                ) : (
-                  <p className="text-muted-foreground text-sm">Introduce arroz y diámetro para calcular la capa.</p>
-                )}
-              </>
+            {!hasRice && !hasDia && (
+              <p className="text-muted-foreground text-sm">Introduce el arroz y/o el diÃ¡metro para calcular.</p>
             )}
 
-            {mode === 'DIAMETER' && (
-              <>
-                {riceNum > 0 ? (
-                  <div>
-                    <span className="text-muted-foreground text-sm">Diámetro recomendado para capa {layer.toLowerCase()}:</span>
-                    <p className="text-3xl font-bold text-foreground mt-1">~ {calculatedDiameter} cm</p>
+            {/* CASO 1 & 4: Arroz + DiÃ¡metro */}
+            {hasRice && hasDia && currentLayer && (
+              <div>
+                <span className="text-muted-foreground text-sm">Capa actual:</span>
+                <p className="text-3xl font-bold uppercase text-foreground mt-1 mb-4">{currentLayer}</p>
+                
+                {currentLayer === layer ? (
+                  <div className="bg-primary/10 text-primary p-3 rounded-xl border border-primary/20 text-sm font-medium">
+                    Â¡Â¡Tu paella es perfecta para una capa {layer.toLowerCase()}!
                   </div>
                 ) : (
-                  <p className="text-muted-foreground text-sm">Introduce el arroz para calcular el diámetro.</p>
+                  <div className="space-y-2 bg-background p-4 rounded-xl border border-border/50 text-sm">
+                    <p className="font-semibold text-charcoal mb-2">Para conseguir tu capa {layer.toLowerCase()}:</p>
+                    <p>Paella recomendada: <span className="font-bold text-primary">~{recDiaTarget} cm</span></p>
+                  </div>
                 )}
-              </>
+              </div>
             )}
 
-            {mode === 'RICE' && (
-              <>
-                {diaNum > 0 ? (
-                  <div>
-                    <span className="text-muted-foreground text-sm">Arroz recomendado para capa {layer.toLowerCase()}:</span>
-                    <p className="text-3xl font-bold text-foreground mt-1">~ {calculatedRice} g</p>
-                  </div>
-                ) : (
-                  <p className="text-muted-foreground text-sm">Introduce el diámetro para calcular el arroz.</p>
-                )}
-              </>
+            {/* CASO 2: Solo Arroz */}
+            {hasRice && !hasDia && (
+              <div>
+                <span className="text-muted-foreground text-sm">Paella recomendada (Capa {layer}):</span>
+                <p className="text-3xl font-bold text-foreground mt-1">~ {recDiaTarget} cm</p>
+              </div>
+            )}
+
+            {/* CASO 3: Solo DiÃ¡metro */}
+            {!hasRice && hasDia && (
+              <div>
+                <span className="text-muted-foreground text-sm">Arroz recomendado (Capa {layer}):</span>
+                <p className="text-3xl font-bold text-foreground mt-1">~ {recRiceTarget} g</p>
+              </div>
             )}
           </div>
         </div>
 
-        <div className="mt-6 bg-card rounded-3xl border border-border p-6 shadow-sm">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-bold text-charcoal">Personas (Opcional)</h3>
-          </div>
-          <div className="space-y-4">
-            <div className="flex gap-4">
-              <div className="flex-1 space-y-2">
-                <Label>Raciones</Label>
-                <Input type="number" value={servings} onChange={e => setServings(e.target.value)} placeholder="Ej. 8" />
-              </div>
-              <div className="flex-1 space-y-2">
-                <Label>Ref. (g/pers)</Label>
-                <Input type="number" value={customRicePerPerson} onChange={e => setCustomRicePerPerson(e.target.value)} />
-              </div>
+        {/* PERSONAS (SECUNDARIO) */}
+        <div className="bg-card rounded-3xl border border-border p-6 shadow-sm">
+          <h3 className="font-bold text-charcoal mb-4">Personas (Opcional)</h3>
+          
+          <div className="grid grid-cols-2 gap-4 mb-4">
+            <div className="space-y-2">
+              <Label>Raciones</Label>
+              <Input type="number" value={servings} onChange={e => setServings(e.target.value)} placeholder="Ej. 8" />
             </div>
-            
-            {servNum > 0 && effectiveRice > 0 && (
-              <div className="p-3 bg-muted/50 rounded-xl border border-border text-sm flex items-center gap-2">
-                <Info className="w-4 h-4 text-muted-foreground" />
-                <span>
-                  Con {effectiveRice}g para {servNum} personas, tocan a <span className="font-bold">{computedRicePerPerson} g/persona</span>.
-                </span>
-              </div>
-            )}
-
-            {servNum > 0 && (!effectiveRice || effectiveRice === 0) && mode === 'DIAMETER' && (
-              <div className="p-3 bg-muted/50 rounded-xl border border-border text-sm flex flex-col gap-2">
-                <span>Si usas {rppNum} g/persona:</span>
-                <Button variant="secondary" onClick={() => setRice(String(servNum * rppNum))}>
-                  Fijar arroz a {servNum * rppNum} g
-                </Button>
-              </div>
-            )}
+            <div className="space-y-2">
+              <Label>Ref. (g/pers)</Label>
+              <Input type="number" value={rpp} onChange={e => setRpp(e.target.value)} />
+            </div>
           </div>
+          
+          {hasServings && (
+            <div className="p-4 bg-muted/30 rounded-xl border border-border text-sm flex flex-col gap-2 mt-2">
+              {hasRice ? (
+                <div className="flex items-start gap-2">
+                  <Info className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                  <span>
+                    Con {riceNum}g para {servNum} personas, tocan a <span className="font-bold">{Math.round(riceNum / servNum)} g/persona</span>.
+                  </span>
+                </div>
+              ) : (!hasRice && hasDia && recRiceTarget ? (
+                <div className="flex items-start gap-2">
+                  <Info className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                  <span>
+                    Usando {recRiceTarget}g para {servNum} personas, tocarÃ­an a <span className="font-bold">{Math.round(recRiceTarget / servNum)} g/persona</span>.
+                  </span>
+                </div>
+              ) : (
+                <div className="flex items-center justify-between">
+                  <span>Si usas {rppNum} g/persona:</span>
+                  <Button variant="secondary" size="sm" onClick={() => setRice(String(servNum * rppNum))}>
+                    Fijar arroz a {servNum * rppNum} g
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
+
       </main>
     </div>
   );
