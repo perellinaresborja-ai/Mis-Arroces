@@ -4,7 +4,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useEffect, useState } from "react"
 import { createClient } from "@/lib/supabase/client"
-import { Flame, PlaySquare, User, Home, MessageCircle, BookOpen, Compass } from "lucide-react"
+import { Flame, PlaySquare, User, Home, MessageCircle, BookOpen, Compass, Calculator } from "lucide-react"
 import { cn } from "@/lib/utils"
 import Image from "next/image"
 import { NotificationBell } from "@/components/domain/NotificationBell"
@@ -53,6 +53,11 @@ export function DesktopNav() {
       href: "/cookbook",
       icon: BookOpen,
       label: "Recetario",
+    },
+    {
+      href: "/calculadora-capa",
+      icon: Calculator,
+      label: "Calculadora",
     },
   ]
 

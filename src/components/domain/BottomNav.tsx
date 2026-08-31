@@ -3,7 +3,7 @@ import { MediaImage } from "@/components/domain/MediaImage"
 import { UnreadBadge } from "@/components/domain/messages/UnreadBadge";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BookOpen, Compass, User, Home, MessageCircle } from "lucide-react";
+import { BookOpen, Compass, User, Home, MessageCircle, Calculator } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
@@ -51,6 +51,11 @@ export function BottomNav() {
       href: "/cookbook",
       icon: BookOpen,
       label: "Recetario",
+    },
+    {
+      href: "/calculadora-capa",
+      icon: Calculator,
+      label: "Calculadora",
     },
     {
       href: "/me",
