@@ -5,12 +5,13 @@ import { BackButton } from "@/components/domain/BackButton";
 import { calculateLayer, getRecommendedDiameter, getRecommendedRice, LayerType } from "@/lib/paella-calculator";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Scaling, Info, Sparkles } from "lucide-react";
+import { Scaling, Info, Sparkles, ChefHat } from "lucide-react";
 
 export default function LayerCalculatorPage() {
   const [rice, setRice] = useState<string>('');
   const [diameter, setDiameter] = useState<string>('');
   const [servings, setServings] = useState<string>('');
+  const [style, setStyle] = useState<'A_BANDA' | 'TRADICIONAL'>('A_BANDA');
 
   const riceNum = Number(rice);
   const diaNum = Number(diameter);
@@ -20,9 +21,18 @@ export default function LayerCalculatorPage() {
   const hasDia = diaNum > 0;
   const hasServ = servNum > 0;
 
+  // Factor de volumen para ingredientes mezclados (30% de volumen extra)
+  const VOLUME_FACTOR = 1.30;
+  const multiplier = style === 'TRADICIONAL' ? VOLUME_FACTOR : 1.0;
+
+  // Helpers para encapsular el multiplicador
+  const calcLayer = (r: number, d: number) => calculateLayer(r * multiplier, d);
+  const calcDia = (r: number, l: LayerType) => getRecommendedDiameter(r * multiplier, l);
+  const calcRice = (d: number, l: LayerType) => Math.round(getRecommendedRice(d, l) / multiplier);
+
   // Calculos derivados
   const assumedRice = hasRice ? riceNum : (hasServ ? servNum * 100 : 0);
-  const currentLayer = (hasRice && hasDia) ? calculateLayer(riceNum, diaNum) : null;
+  const currentLayer = (hasRice && hasDia) ? calcLayer(riceNum, diaNum) : null;
 
   return (
     <div className="min-h-screen bg-background pb-24">
@@ -54,6 +64,39 @@ export default function LayerCalculatorPage() {
             <div className="space-y-2">
               <Label>Raciones</Label>
               <Input type="number" value={servings} onChange={e => setServings(e.target.value)} placeholder="Ej. 8" className="bg-background" />
+            </div>
+          </div>
+          
+          <div className="mt-6 pt-6 border-t border-border/50">
+            <Label className="text-xs text-muted-foreground uppercase flex items-center gap-1.5 mb-3">
+              <ChefHat className="w-3.5 h-3.5" />
+              Volumen de ingredientes
+            </Label>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <Button 
+                type="button" 
+                size="sm" 
+                variant={style === 'A_BANDA' ? 'default' : 'outline'} 
+                onClick={() => setStyle('A_BANDA')} 
+                className="flex-1 justify-start h-auto py-2.5 px-4"
+              >
+                <div className="text-left">
+                  <div className="font-bold text-sm">Arroz Limpio</div>
+                  <div className={`text-[10px] font-normal mt-0.5 ${style === 'A_BANDA' ? 'opacity-90' : 'text-muted-foreground'}`}>A banda, Senyoret...</div>
+                </div>
+              </Button>
+              <Button 
+                type="button" 
+                size="sm" 
+                variant={style === 'TRADICIONAL' ? 'default' : 'outline'} 
+                onClick={() => setStyle('TRADICIONAL')} 
+                className="flex-1 justify-start h-auto py-2.5 px-4"
+              >
+                <div className="text-left">
+                  <div className="font-bold text-sm">Con Tropezones</div>
+                  <div className={`text-[10px] font-normal mt-0.5 ${style === 'TRADICIONAL' ? 'opacity-90' : 'text-muted-foreground'}`}>Valenciana (carne/verdura)</div>
+                </div>
+              </Button>
             </div>
           </div>
         </div>
@@ -96,19 +139,19 @@ export default function LayerCalculatorPage() {
                   {currentLayer !== 'Fina' && (
                     <div className="bg-background p-4 rounded-xl border border-border/50 text-sm">
                       <span className="font-bold text-charcoal block mb-1">Si la quieres Fina:</span>
-                      Usa paella de <span className="font-bold text-primary">~{getRecommendedDiameter(riceNum, 'Fina')} cm</span> o pon <span className="font-bold text-primary">~{getRecommendedRice(diaNum, 'Fina')}g</span> de arroz.
+                      Usa paella de <span className="font-bold text-primary">~{calcDia(riceNum, 'Fina')} cm</span> o pon <span className="font-bold text-primary">~{calcRice(diaNum, 'Fina')}g</span> de arroz.
                     </div>
                   )}
                   {currentLayer !== 'Media' && (
                     <div className="bg-background p-4 rounded-xl border border-border/50 text-sm">
                       <span className="font-bold text-charcoal block mb-1">Si la quieres Media:</span>
-                      Usa paella de <span className="font-bold text-primary">~{getRecommendedDiameter(riceNum, 'Media')} cm</span> o pon <span className="font-bold text-primary">~{getRecommendedRice(diaNum, 'Media')}g</span> de arroz.
+                      Usa paella de <span className="font-bold text-primary">~{calcDia(riceNum, 'Media')} cm</span> o pon <span className="font-bold text-primary">~{calcRice(diaNum, 'Media')}g</span> de arroz.
                     </div>
                   )}
                   {currentLayer !== 'Abundante' && (
                     <div className="bg-background p-4 rounded-xl border border-border/50 text-sm">
                       <span className="font-bold text-charcoal block mb-1">Si la quieres Abundante:</span>
-                      Usa paella de <span className="font-bold text-primary">~{getRecommendedDiameter(riceNum, 'Abundante')} cm</span> o pon <span className="font-bold text-primary">~{getRecommendedRice(diaNum, 'Abundante')}g</span> de arroz.
+                      Usa paella de <span className="font-bold text-primary">~{calcDia(riceNum, 'Abundante')} cm</span> o pon <span className="font-bold text-primary">~{calcRice(diaNum, 'Abundante')}g</span> de arroz.
                     </div>
                   )}
                 </div>
@@ -122,15 +165,15 @@ export default function LayerCalculatorPage() {
                 <div className="grid grid-cols-3 gap-3 text-center">
                   <div className="bg-background p-3 rounded-xl border border-border/50">
                     <span className="block text-xs uppercase text-muted-foreground mb-1">Fina</span>
-                    <span className="font-bold text-lg text-primary">~{getRecommendedDiameter(assumedRice, 'Fina')} cm</span>
+                    <span className="font-bold text-lg text-primary">~{calcDia(assumedRice, 'Fina')} cm</span>
                   </div>
                   <div className="bg-background p-3 rounded-xl border border-border/50 shadow-sm border-primary/30">
                     <span className="block text-xs uppercase text-muted-foreground mb-1 font-bold text-primary">Media</span>
-                    <span className="font-bold text-xl text-primary">~{getRecommendedDiameter(assumedRice, 'Media')} cm</span>
+                    <span className="font-bold text-xl text-primary">~{calcDia(assumedRice, 'Media')} cm</span>
                   </div>
                   <div className="bg-background p-3 rounded-xl border border-border/50">
                     <span className="block text-xs uppercase text-muted-foreground mb-1">Abundante</span>
-                    <span className="font-bold text-lg text-primary">~{getRecommendedDiameter(assumedRice, 'Abundante')} cm</span>
+                    <span className="font-bold text-lg text-primary">~{calcDia(assumedRice, 'Abundante')} cm</span>
                   </div>
                 </div>
               </div>
@@ -143,15 +186,15 @@ export default function LayerCalculatorPage() {
                 <div className="grid grid-cols-3 gap-3 text-center">
                   <div className="bg-background p-3 rounded-xl border border-border/50">
                     <span className="block text-xs uppercase text-muted-foreground mb-1">Fina</span>
-                    <span className="font-bold text-lg text-primary">~{getRecommendedRice(diaNum, 'Fina')} g</span>
+                    <span className="font-bold text-lg text-primary">~{calcRice(diaNum, 'Fina')} g</span>
                   </div>
                   <div className="bg-background p-3 rounded-xl border border-border/50 shadow-sm border-primary/30">
                     <span className="block text-xs uppercase text-muted-foreground mb-1 font-bold text-primary">Media</span>
-                    <span className="font-bold text-xl text-primary">~{getRecommendedRice(diaNum, 'Media')} g</span>
+                    <span className="font-bold text-xl text-primary">~{calcRice(diaNum, 'Media')} g</span>
                   </div>
                   <div className="bg-background p-3 rounded-xl border border-border/50">
                     <span className="block text-xs uppercase text-muted-foreground mb-1">Abundante</span>
-                    <span className="font-bold text-lg text-primary">~{getRecommendedRice(diaNum, 'Abundante')} g</span>
+                    <span className="font-bold text-lg text-primary">~{calcRice(diaNum, 'Abundante')} g</span>
                   </div>
                 </div>
               </div>
