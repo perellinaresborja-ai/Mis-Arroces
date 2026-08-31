@@ -169,6 +169,22 @@ export async function updateRecipeFull(id: string, data: any) {
       const { error: ingError } = await supabase.from("recipe_ingredients").upsert(ingsToUpsert);
       if (ingError) throw new Error("ING UPSERT ERROR: " + ingError.message);
 
+      // Auto-growth queue for unmatched ingredients
+      const unmatched = ingredients.filter((i: any) => !i.canonical_ingredient_id && i.display_text);
+      if (unmatched.length > 0) {
+        for (const u of unmatched) {
+          const norm = u.display_text.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, "").replace(/[^\w\s]/g, '').trim().replace(/\s+/g, ' ');
+          if (norm) {
+            const { data: existing } = await supabase.from('unmatched_ingredients').select('id, frequency_count').eq('normalized_text', norm).maybeSingle();
+            if (existing) {
+              await supabase.from('unmatched_ingredients').update({ frequency_count: existing.frequency_count + 1, last_seen_at: new Date().toISOString() }).eq('id', existing.id);
+            } else {
+              await supabase.from('unmatched_ingredients').insert({ display_text: u.display_text, normalized_text: norm }).catch(() => {}); // ignore duplicates
+            }
+          }
+        }
+      }
+
       // Now save costs
       const costsToUpsert = ingredients
           .filter((i: any) => i.costData && (i.costData.purchase_amount || i.costData.purchase_price))
