@@ -1,13 +1,21 @@
-﻿"use client"
-import { useState, useEffect } from "react"
+"use client"
+import { useState, useEffect, useTransition } from "react"
 import { formatRelativeTime } from "@/lib/utils"
 import Link from "next/link"
-import { Reply, Copy, Trash2 } from "lucide-react"
+import { Reply, Copy, Trash2, SmilePlus } from "lucide-react"
 import { unsendMessage } from "@/app/actions/messaging"
+import { toggleMessageReaction } from "@/app/actions/reactions"
 import { createClient } from "@/lib/supabase/client"
 import { StoriesViewer } from "../StoriesViewer"
 
-export function MessageBubble({ message, isOwn, onReply }: { message: Record<string, unknown>, isOwn: boolean, onReply?: () => void }) {
+export function MessageBubble({ message, isOwn, onReply, currentUserId }: { message: Record<string, unknown>, isOwn: boolean, onReply?: () => void, currentUserId?: string }) {
+  const [isPending, startTransition] = useTransition();
+  const [optimisticReactions, setOptimisticReactions] = useState<any[]>(
+    Array.isArray(message.message_reactions) ? message.message_reactions : []
+  )
+  const [showReactionAnim, setShowReactionAnim] = useState(false)
+  const [showReactionMenu, setShowReactionMenu] = useState(false)
+
   const [entityData, setEntityData] = useState<Record<string, unknown> | null>(null)
   const [entityStatus, setEntityStatus] = useState<'LOADING'|'LOADED'|'EXPIRED'|'UNAVAILABLE'>('LOADING')
   
@@ -112,6 +120,50 @@ export function MessageBubble({ message, isOwn, onReply }: { message: Record<str
 
   const [showStoryViewer, setShowStoryViewer] = useState(false);
 
+  const handleReact = (emoji: string) => {
+    if (!currentUserId) return;
+    
+    if (emoji === '🥘') {
+      setShowReactionAnim(true);
+      setTimeout(() => setShowReactionAnim(false), 800);
+    }
+    
+    setShowReactionMenu(false);
+    
+    // Optimistic UI
+    setOptimisticReactions(prev => {
+      const existingIdx = prev.findIndex(r => r.user_id === currentUserId);
+      if (existingIdx !== -1) {
+        if (prev[existingIdx].emoji === emoji) {
+          // Remove
+          return prev.filter(r => r.user_id !== currentUserId);
+        } else {
+          // Change
+          const newArr = [...prev];
+          newArr[existingIdx] = { ...newArr[existingIdx], emoji };
+          return newArr;
+        }
+      } else {
+        // Add
+        return [...prev, { id: 'temp_' + Date.now(), message_id: message.id, user_id: currentUserId, emoji }];
+      }
+    });
+    
+    startTransition(() => {
+      toggleMessageReaction(message.id as string, emoji);
+    });
+  };
+
+  const groupReactions = () => {
+    const counts: Record<string, { count: number, hasMine: boolean }> = {};
+    optimisticReactions.forEach(r => {
+      if (!counts[r.emoji]) counts[r.emoji] = { count: 0, hasMine: false };
+      counts[r.emoji].count += 1;
+      if (r.user_id === currentUserId) counts[r.emoji].hasMine = true;
+    });
+    return Object.entries(counts).sort((a, b) => b[1].count - a[1].count);
+  };
+
   if (isDeleted) {
     return (
       <div className={`flex w-full mb-4 ${isOwn ? "justify-end" : "justify-start"}`}>
@@ -127,8 +179,15 @@ export function MessageBubble({ message, isOwn, onReply }: { message: Record<str
       <div className="relative group max-w-[75%]">
         <div 
           onClick={(e) => { e.stopPropagation(); setShowMenu(!showMenu); }}
-          className={`rounded-2xl p-3 relative cursor-pointer ${isOwn ? "bg-primary text-primary-foreground rounded-tr-sm" : "bg-muted text-foreground rounded-tl-sm"}`}
+          onDoubleClick={(e) => { e.preventDefault(); e.stopPropagation(); handleReact('🥘'); }}
+          onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); setShowMenu(true); }}
+          className={`rounded-2xl p-3 relative cursor-pointer select-none lg:select-auto ${isOwn ? "bg-primary text-primary-foreground rounded-tr-sm" : "bg-muted text-foreground rounded-tl-sm"}`}
         >
+          {showReactionAnim && (
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10 animate-bounce">
+              <span className="text-5xl drop-shadow-lg scale-110">🥘</span>
+            </div>
+          )}
           {replyData && (
             <div className="bg-background/20 rounded-xl p-2 mb-2 text-xs opacity-80 border-l-2 border-primary">
               <span className="font-bold block mb-1">Respuesta a:</span>
@@ -200,6 +259,22 @@ export function MessageBubble({ message, isOwn, onReply }: { message: Record<str
             {formatRelativeTime(mCreatedAt)}
           </div>
         </div>
+
+        {/* REACTION PILLS */}
+        {optimisticReactions.length > 0 && (
+          <div className={`flex flex-wrap gap-1 mt-1 ${isOwn ? 'justify-end' : 'justify-start'}`}>
+            {groupReactions().map(([emoji, data]) => (
+              <button 
+                key={emoji} 
+                onClick={(e) => { e.stopPropagation(); handleReact(emoji); }}
+                className={`flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border shadow-sm transition-transform active:scale-95 ${data.hasMine ? 'bg-primary/10 border-primary/30 text-primary' : 'bg-background border-border text-muted-foreground hover:bg-muted'}`}
+              >
+                <span>{emoji}</span>
+                <span className="font-semibold">{data.count}</span>
+              </button>
+            ))}
+          </div>
+        )}
         
         {showStoryViewer && entityData && (
           <StoriesViewer 
@@ -208,8 +283,19 @@ export function MessageBubble({ message, isOwn, onReply }: { message: Record<str
           />
         )}
 
+        {/* NORMAL MENU (Now includes reactions) */}
         {showMenu && (
-          <div className={`absolute top-8 ${isOwn ? '-left-32' : '-right-32'} w-32 bg-card border border-border shadow-lg rounded-xl overflow-hidden z-50 text-foreground`}>
+          <div className={`absolute top-8 ${isOwn ? '-left-32' : '-right-32'} w-44 bg-card border border-border shadow-lg rounded-xl overflow-hidden z-50 text-foreground`}>
+            
+            {/* EMOJI ROW */}
+            <div className="flex items-center justify-between px-3 py-2 border-b border-border bg-muted/30">
+              {['🥘', '😂', '🔥', '👏', '😮'].map(em => (
+                <button key={em} onClick={(e) => { e.stopPropagation(); handleReact(em); }} className="text-xl hover:scale-125 transition-transform active:scale-95">
+                  {em}
+                </button>
+              ))}
+            </div>
+
             <button onClick={handleReply} className="w-full text-left px-3 py-2 text-sm flex items-center gap-2 hover:bg-muted transition-colors">
               <Reply className="w-4 h-4" /> Responder
             </button>
@@ -225,5 +311,5 @@ export function MessageBubble({ message, isOwn, onReply }: { message: Record<str
         )}
       </div>
     </div>
-  )
+  );
 }

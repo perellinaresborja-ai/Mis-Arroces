@@ -182,7 +182,7 @@ export async function fetchMessages(conversationId: string) {
 
   const { data, error } = await supabase
     .from('messages')
-    .select('*, message_attachments(storage_path), parent:messages!reply_to_id(type, body)')
+    .select('*, message_attachments(storage_path), parent:messages!reply_to_id(type, body), message_reactions(id, emoji, user_id)')
     .eq('conversation_id', conversationId)
     .order('created_at', { ascending: true })
 
