@@ -167,8 +167,11 @@ export function AllergensSection({ result, hideTitle }: { result: CalculationRes
 }
 
 function NutritionCard({ label, shortLabel, value, unit, digits = 1, refValue, isServing }: { label: string, shortLabel?: string, value: number, unit: string, digits?: number, refValue?: number, isServing?: boolean }) {
-  const formatted = unit === 'kcal' ? Math.round(value) : value.toFixed(digits);
-  const percent = refValue && isServing ? Math.round((value / refValue) * 100) : null;
+  const safeValue = (isFinite(value) && !isNaN(value)) ? value : 0;
+  const formatted = unit === 'kcal' ? Math.round(safeValue) : safeValue.toFixed(digits);
+  
+  const safeRef = (refValue && isFinite(refValue) && !isNaN(refValue)) ? refValue : null;
+  const percent = safeRef && isServing ? Math.round((safeValue / safeRef) * 100) : null;
   
   return (
     <div className="flex flex-col items-center justify-center text-center py-2">
