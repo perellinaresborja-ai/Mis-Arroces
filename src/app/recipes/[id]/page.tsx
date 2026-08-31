@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { formatUnitSymbol } from "@/lib/utils"
 import { calculateNutrition } from "@/lib/nutrition"
 import { NutritionSection, AllergensSection } from "@/components/domain/NutritionSection"
+import { InteractiveRecipeView } from "@/components/domain/InteractiveRecipeView"
 import { Pencil, Clock, Flame, Users, Beaker, ChefHat, Hourglass } from "lucide-react"
 import { FeedCard } from "@/components/domain/FeedCard"
 import { WantToCookButton } from "@/components/domain/WantToCookButton"
@@ -276,31 +277,13 @@ export default async function RecipeDetailPage({
         {/* Bottom Section: Ingredients & Steps */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16 mt-12 md:mt-20 pt-10 border-t border-border items-start">
           
-          {/* Ingredients & Nutrition (Left Column in Desktop) */}
+          {/* Ingredients, Paella & Nutrition (Left Column in Desktop) */}
           <div className="w-full">
-            <h2 className="text-2xl font-bold mb-6 font-serif text-charcoal pl-2">Ingredientes</h2>
-            <div className="bg-card rounded-3xl border border-border p-6 md:p-8 mb-8 overflow-hidden shadow-sm">
-              <ul className="space-y-1">
-                  {[...(recipe.ingredients || [])].sort((a: any, b: any) => a.display_order - b.display_order).map((ing: any) => (
-                    <li key={ing.id} className="flex justify-between items-center text-[15px] py-3 border-b border-border/40 last:border-0">
-                      <span className="text-foreground/90 pr-4">{ing.display_text}</span>
-                      {ing.normalized_quantity && (
-                        <span className="font-bold text-charcoal shrink-0 bg-muted/50 px-3 py-1.5 rounded-lg text-sm border border-border/50">
-                          {ing.normalized_quantity} {formatUnitSymbol(ing.unit?.name)}
-                        </span>
-                      )}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-
-              <AddToCartButton recipeId={recipe.id} isAuthenticated={!!user} baseServings={recipe.base_servings} />
-              
-              <div className="mt-8 w-full">
-                <NutritionSection result={nutrition} servings={recipe.base_servings || 1} />
-                <AllergensSection result={nutrition} />
-              </div>
-            </div>
+            <InteractiveRecipeView recipe={recipe} isAuthenticated={!!user}>
+              <NutritionSection result={nutrition} servings={recipe.base_servings || 1} />
+              <AllergensSection result={nutrition} />
+            </InteractiveRecipeView>
+          </div>
 
             {/* Steps (Right Column in Desktop) */}
           <div className="w-full">
