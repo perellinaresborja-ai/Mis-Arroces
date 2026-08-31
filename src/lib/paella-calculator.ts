@@ -10,13 +10,33 @@ export function calculateArea(diameterCm: number): number {
   return Math.PI * (diameterCm / 2) * (diameterCm / 2);
 }
 
+// LÓGICA DINÁMICA DE TAMAÑOS
+// Las paellas gigantes permiten mayor grosor físico y se siguen considerando "Fina"
+const DYNAMIC_SLOPE = 0.0014; // Aumento de densidad (g/cm2) por cada cm que pasa de 50
+
+export function getThresholds(diameterCm: number) {
+  const shift = (diameterCm - 50) * DYNAMIC_SLOPE;
+  return {
+    FINA_MAX: 0.185 + shift,
+    MEDIA_MAX: 0.285 + shift
+  };
+}
+
+export function getTargetDensity(diameterCm: number, layer: LayerType): number {
+  const shift = (diameterCm - 50) * DYNAMIC_SLOPE;
+  if (layer === 'Fina') return 0.17 + shift;
+  if (layer === 'Media') return 0.24 + shift;
+  return 0.32 + shift; // Abundante
+}
+
 export function calculateLayer(riceGrams: number, diameterCm: number): LayerType {
   const area = calculateArea(diameterCm);
   if (area === 0) return 'Media';
   const density = riceGrams / area;
+  const thresholds = getThresholds(diameterCm);
   
-  if (density <= LAYER_THRESHOLDS.FINA_MAX) return 'Fina';
-  if (density <= LAYER_THRESHOLDS.MEDIA_MAX) return 'Media';
+  if (density <= thresholds.FINA_MAX) return 'Fina';
+  if (density <= thresholds.MEDIA_MAX) return 'Media';
   return 'Abundante';
 }
 
@@ -53,17 +73,27 @@ export function extractRealBrothGrams(ingredients: any[]): number | null {
 }
 
 export function getRecommendedDiameter(riceGrams: number, desiredLayer: LayerType = 'Media'): number {
-  let targetDensity = 0.24;
-  if (desiredLayer === 'Fina') targetDensity = 0.17;
-  else if (desiredLayer === 'Abundante') targetDensity = 0.32;
-  const targetArea = riceGrams / targetDensity;
-  return Math.round(Math.sqrt(targetArea / Math.PI) * 2);
+  let minD = 20;
+  let maxD = 200;
+  let bestD = 50;
+
+  for (let i = 0; i < 20; i++) {
+    const midD = (minD + maxD) / 2;
+    const targetDens = getTargetDensity(midD, desiredLayer);
+    const capacity = calculateArea(midD) * targetDens;
+
+    if (capacity < riceGrams) {
+      minD = midD; 
+    } else {
+      maxD = midD; 
+    }
+    bestD = midD;
+  }
+  return Math.round(bestD);
 }
 
 export function getRecommendedRice(diameterCm: number, desiredLayer: LayerType = 'Media'): number {
-  let targetDensity = 0.24;
-  if (desiredLayer === 'Fina') targetDensity = 0.17;
-  else if (desiredLayer === 'Abundante') targetDensity = 0.32;
+  const targetDensity = getTargetDensity(diameterCm, desiredLayer);
   const area = calculateArea(diameterCm);
   return Math.round((area * targetDensity) / 10) * 10;
 }
