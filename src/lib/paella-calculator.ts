@@ -1,6 +1,6 @@
-﻿export const LAYER_THRESHOLDS = {
-  FINA_MAX: 0.28,
-  MEDIA_MAX: 0.42
+export const LAYER_THRESHOLDS = {
+  FINA_MAX: 0.185,
+  MEDIA_MAX: 0.285
 };
 
 export const DEFAULT_RICE_PER_PERSON = 100;
@@ -53,17 +53,17 @@ export function extractRealBrothGrams(ingredients: any[]): number | null {
 }
 
 export function getRecommendedDiameter(riceGrams: number, desiredLayer: LayerType = 'Media'): number {
-  let targetDensity = 0.35;
-  if (desiredLayer === 'Fina') targetDensity = 0.24;
-  else if (desiredLayer === 'Abundante') targetDensity = 0.50;
+  let targetDensity = 0.24;
+  if (desiredLayer === 'Fina') targetDensity = 0.17;
+  else if (desiredLayer === 'Abundante') targetDensity = 0.32;
   const targetArea = riceGrams / targetDensity;
   return Math.round(Math.sqrt(targetArea / Math.PI) * 2);
 }
 
 export function getRecommendedRice(diameterCm: number, desiredLayer: LayerType = 'Media'): number {
-  let targetDensity = 0.35;
-  if (desiredLayer === 'Fina') targetDensity = 0.24;
-  else if (desiredLayer === 'Abundante') targetDensity = 0.50;
+  let targetDensity = 0.24;
+  if (desiredLayer === 'Fina') targetDensity = 0.17;
+  else if (desiredLayer === 'Abundante') targetDensity = 0.32;
   const area = calculateArea(diameterCm);
   return Math.round((area * targetDensity) / 10) * 10;
 }
