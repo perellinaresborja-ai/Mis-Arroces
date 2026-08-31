@@ -278,8 +278,8 @@ export default async function RecipeDetailPage({
           
           {/* Ingredients & Nutrition (Left Column in Desktop) */}
           <div className="w-full">
+            <h2 className="text-2xl font-bold mb-6 font-serif text-charcoal pl-2">Ingredientes</h2>
             <div className="bg-card rounded-3xl border border-border p-6 md:p-8 mb-8 overflow-hidden shadow-sm">
-              <h2 className="text-xl font-bold mb-6 font-serif text-charcoal">Ingredientes</h2>
               <ul className="space-y-1">
                   {[...(recipe.ingredients || [])].sort((a: any, b: any) => a.display_order - b.display_order).map((ing: any) => (
                     <li key={ing.id} className="flex justify-between items-center text-[15px] py-3 border-b border-border/40 last:border-0">
