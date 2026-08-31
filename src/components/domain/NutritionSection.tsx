@@ -15,15 +15,17 @@ const DAILY_REFS = {
   fiber_g: 25 // EFSA recommendation
 };
 
-export function NutritionSection({ result, servings }: { result: CalculationResult, servings: number }) {
+export function NutritionSection({ result, servings, hideTitle }: { result: CalculationResult, servings: number, hideTitle?: boolean }) {
   const [mode, setMode] = useState<'serving' | 'total'>('serving');
 
   if (result.coveragePercent === 0) {
     return (
-      <div className="bg-card rounded-3xl border border-border p-5 my-6 overflow-hidden">
-        <h3 className="font-bold text-lg flex items-center gap-2 mb-5">
-          <span>Información Nutricional</span>
-        </h3>
+      <div className={`bg-card rounded-3xl border border-border p-5 my-6 overflow-hidden ${hideTitle ? 'my-0 border-0 p-0 shadow-none' : ''}`}>
+        {!hideTitle && (
+          <h3 className="font-bold text-lg flex items-center gap-2 mb-5">
+            <span>Información Nutricional</span>
+          </h3>
+        )}
         <div className="bg-muted/40 border border-border text-muted-foreground p-4 rounded-xl text-sm flex items-start gap-3">
           <Info className="w-5 h-5 shrink-0 mt-0.5" />
           <p>
@@ -37,11 +39,13 @@ export function NutritionSection({ result, servings }: { result: CalculationResu
   const data = mode === 'serving' ? result.perServing : result.total;
 
   return (
-    <div className="bg-card rounded-3xl border border-border p-5 my-6 overflow-hidden">
+    <div className={`bg-card rounded-3xl border border-border p-5 my-6 overflow-hidden ${hideTitle ? 'my-0 border-0 p-0 shadow-none' : ''}`}>
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5">
-        <h3 className="font-bold text-lg flex items-center gap-2">
-          <span>Información Nutricional</span>
-        </h3>
+        {!hideTitle && (
+          <h3 className="font-bold text-lg flex items-center gap-2">
+            <span>Información Nutricional</span>
+          </h3>
+        )}
         
         <div className="flex bg-muted p-1 rounded-xl w-fit">
           <button
@@ -94,9 +98,39 @@ export function NutritionSection({ result, servings }: { result: CalculationResu
         </p>
       </div>
 
+    </div>
+  );
+}
+
+export function AllergensSection({ result, hideTitle }: { result: CalculationResult, hideTitle?: boolean }) {
+  if (result.coveragePercent === 0) {
+    return (
+      <div className={`bg-card rounded-3xl border border-border p-5 my-6 overflow-hidden ${hideTitle ? 'my-0 border-0 p-0 shadow-none' : ''}`}>
+        {!hideTitle && (
+          <h3 className="font-bold text-lg flex items-center gap-2 mb-5">
+            <span>Alérgenos Detectados</span>
+          </h3>
+        )}
+        <div className="bg-muted/40 border border-border text-muted-foreground p-4 rounded-xl text-sm flex items-start gap-3">
+          <Info className="w-5 h-5 shrink-0 mt-0.5" />
+          <p>
+            <strong>No disponible:</strong> Todavía no podemos calcular los alérgenos de esta receta porque sus ingredientes no están suficientemente identificados.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className={`bg-card rounded-3xl border border-border p-5 my-6 overflow-hidden ${hideTitle ? 'my-0 border-0 p-0 shadow-none' : ''}`}>
+      {!hideTitle && (
+        <h3 className="font-bold text-lg flex items-center gap-2 mb-5">
+          <span>Alérgenos Detectados</span>
+        </h3>
+      )}
+
       {result.allergens.length > 0 ? (
-        <div className="mt-6 border-t border-border pt-4">
-          <h4 className="font-bold text-sm mb-3">Alérgenos Detectados</h4>
+        <div>
           <div className="flex flex-wrap gap-2">
             {result.allergens.map(alg => (
               <span key={alg.id} className="bg-background text-foreground text-xs px-3 py-1.5 rounded-full flex items-center gap-1.5 font-medium border border-border shadow-sm">
@@ -111,8 +145,7 @@ export function NutritionSection({ result, servings }: { result: CalculationResu
           </p>
         </div>
       ) : result.isIncomplete ? (
-        <div className="mt-6 border-t border-border pt-4">
-          <h4 className="font-bold text-sm mb-3">Alérgenos Detectados</h4>
+        <div>
           <div className="mb-4 bg-yellow-500/10 border border-yellow-500/20 text-yellow-600 dark:text-yellow-400 p-3 rounded-xl text-sm flex items-start gap-2">
             <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
             <p>
@@ -121,8 +154,7 @@ export function NutritionSection({ result, servings }: { result: CalculationResu
           </div>
         </div>
       ) : (
-        <div className="mt-6 border-t border-border pt-4">
-          <h4 className="font-bold text-sm mb-3">Alérgenos Detectados</h4>
+        <div>
           <div className="mb-4 bg-green-500/10 border border-green-500/20 text-green-700 dark:text-green-400 p-3 rounded-xl text-sm flex items-start gap-2">
             <p>
               <strong>Sin alérgenos detectados.</strong>
