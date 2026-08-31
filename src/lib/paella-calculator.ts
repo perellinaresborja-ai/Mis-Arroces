@@ -27,12 +27,12 @@ export function extractRealRiceGrams(ingredients: any[]): number | null {
     if (isCanonical) return true;
     return ing.display_text?.toLowerCase().includes('arroz');
   });
-  if (!riceIng || !riceIng.quantity) return null;
+  if (!riceIng || !riceIng.normalized_quantity) return null;
   const unit = riceIng.unit?.name?.toLowerCase() || '';
   if (unit === 'kg' || unit === 'kilogramo' || unit === 'kilogramos') {
-    return Number(riceIng.quantity) * 1000;
+    return Number(riceIng.normalized_quantity) * 1000;
   }
-  return Number(riceIng.quantity);
+  return Number(riceIng.normalized_quantity);
 }
 
 export function extractRealBrothGrams(ingredients: any[]): number | null {
@@ -44,12 +44,12 @@ export function extractRealBrothGrams(ingredients: any[]): number | null {
     const text = ing.display_text?.toLowerCase() || '';
     return brothKeywords.some(k => text.includes(k));
   });
-  if (!brothIng || !brothIng.quantity) return null;
+  if (!brothIng || !brothIng.normalized_quantity) return null;
   const unit = brothIng.unit?.name?.toLowerCase() || '';
   if (unit === 'l' || unit === 'litro' || unit === 'litros' || unit === 'kg' || unit === 'kilogramo') {
-    return Number(brothIng.quantity) * 1000;
+    return Number(brothIng.normalized_quantity) * 1000;
   }
-  return Number(brothIng.quantity);
+  return Number(brothIng.normalized_quantity);
 }
 
 export function getRecommendedDiameter(riceGrams: number, desiredLayer: LayerType = 'Media'): number {
