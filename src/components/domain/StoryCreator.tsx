@@ -410,21 +410,30 @@ export function StoryCreator({
               </div>
 
               {/* Bottom Controls */}
-              <div className="p-4 flex flex-col gap-4" onClick={e=>e.stopPropagation()}>
+              <div className="mt-auto bg-card border-t md:border border-border rounded-t-3xl md:rounded-3xl p-6 flex flex-col gap-6 shadow-2xl md:mb-6 md:mx-4" onClick={e=>e.stopPropagation()}>
+                
                 {/* Font Selector */}
-                <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-2">
-                  {TEXT_FONTS.map(font => (
-                    <button key={font} onClick={() => setTextFont(font)} className={`px-4 py-2 rounded-full whitespace-nowrap text-sm font-bold ${textFont === font ? 'bg-white text-black' : 'bg-white/20 text-white'}`} style={{fontFamily: font}}>
-                      {font.split(',')[0]}
-                    </button>
-                  ))}
+                <div className="flex flex-col gap-3">
+                  <span className="text-[10px] font-bold text-muted-foreground uppercase">Fuente</span>
+                  <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-2">
+                    {TEXT_FONTS.map(font => (
+                      <button key={font} onClick={() => setTextFont(font)} className={`px-5 py-2.5 rounded-2xl whitespace-nowrap text-sm font-bold transition-colors ${textFont === font ? 'bg-primary text-primary-foreground' : 'bg-muted text-foreground hover:bg-muted/80'}`} style={{fontFamily: font}}>
+                        {font.split(',')[0]}
+                      </button>
+                    ))}
+                  </div>
                 </div>
+                
                 {/* Color Selector */}
-                <div className="flex gap-3 overflow-x-auto scrollbar-hide pb-2">
-                  {TEXT_COLORS.map(c => (
-                    <button key={c} onClick={() => setTextColor(c)} className={`w-8 h-8 rounded-full shrink-0 border-2 ${textColor === c ? 'border-white scale-110' : 'border-transparent'}`} style={{backgroundColor: c}} />
-                  ))}
+                <div className="flex flex-col gap-3">
+                  <span className="text-[10px] font-bold text-muted-foreground uppercase">Color</span>
+                  <div className="flex gap-3 overflow-x-auto scrollbar-hide pb-2">
+                    {TEXT_COLORS.map(c => (
+                      <button key={c} onClick={() => setTextColor(c)} className={`w-10 h-10 rounded-full shrink-0 border-2 transition-transform hover:scale-110 ${textColor === c ? 'border-primary' : 'border-border'}`} style={{backgroundColor: c}} />
+                    ))}
+                  </div>
                 </div>
+                
               </div>
             </div>
           )}
