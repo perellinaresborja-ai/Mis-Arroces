@@ -446,46 +446,6 @@ export function StoryCreator({
         
         {/* Editor Main Tools */}
         
-        {/* Text Mode */}
-        {mode === 'TEXT' && (
-          <div className="p-5 flex flex-col gap-6 h-full">
-            <div className="flex flex-col gap-3">
-              <span className="text-[10px] font-bold text-muted-foreground uppercase text-center">Alineación</span>
-              <div className="flex gap-4 justify-center">
-                <button onClick={() => setTextAlign(textAlign === 'left' ? 'center' : textAlign === 'center' ? 'right' : 'left')} className="bg-muted p-3 rounded-2xl flex items-center justify-center hover:bg-muted/80 text-foreground transition-colors w-12 h-12">
-                  {textAlign === 'left' ? <AlignLeft size={20} /> : textAlign === 'center' ? <AlignCenter size={20} /> : <AlignRight size={20} />}
-                </button>
-                <button onClick={() => setTextBg(textBg === 'transparent' ? '#00000055' : textBg === '#00000055' ? textColor : 'transparent')} className="bg-muted p-3 rounded-2xl flex items-center justify-center hover:bg-muted/80 text-foreground transition-colors font-bold text-xl w-12 h-12">
-                  A
-                </button>
-              </div>
-            </div>
-
-            <div className="flex flex-col gap-3 mt-4">
-              <span className="text-[10px] font-bold text-muted-foreground uppercase text-center">Fuente</span>
-              <div className="flex flex-wrap gap-2 justify-center">
-                {TEXT_FONTS.map(font => (
-                  <button key={font} onClick={() => setTextFont(font)} className={`px-4 py-2 rounded-2xl whitespace-nowrap text-sm font-bold transition-colors ${textFont === font ? 'bg-primary text-primary-foreground' : 'bg-muted text-foreground hover:bg-muted/80'}`} style={{fontFamily: font}}>
-                    {font.split(',')[0]}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="flex flex-col gap-3 mt-4">
-              <span className="text-[10px] font-bold text-muted-foreground uppercase text-center">Color</span>
-              <div className="flex flex-wrap gap-3 justify-center">
-                {TEXT_COLORS.map(c => (
-                  <button key={c} onClick={() => setTextColor(c)} className={`w-10 h-10 rounded-full border-2 transition-transform hover:scale-110 ${textColor === c ? 'border-primary' : 'border-border shadow-sm'}`} style={{backgroundColor: c}} />
-                ))}
-              </div>
-            </div>
-
-            <button onClick={addText} className="mt-auto p-4 bg-primary hover:bg-primary/90 text-primary-foreground font-bold rounded-2xl transition-colors shadow-sm">
-              Hecho
-            </button>
-          </div>
-        )}
       {/* Recipe Style Selector */}
       {selectedOverlayId && overlays.find(o => o.id === selectedOverlayId)?.type === 'RECIPE' && (
         <div className="absolute bottom-[20%] left-1/2 -translate-x-1/2 bg-card/90 backdrop-blur-sm px-4 py-2 rounded-full flex gap-2 z-[100] border border-border shadow-xl">

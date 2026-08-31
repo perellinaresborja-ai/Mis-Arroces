@@ -90,12 +90,13 @@ export function MentionPicker({ onSelect }: { onSelect: (u: { id: string, title:
     title="Mención" icon={UserIcon} placeholder="Buscar usuario..."
     onSelect={onSelect}
     fetchResults={async (q) => {
-      const { data } = await supabase.from('profiles').select('id, username, display_name, media:media_assets!fk_profiles_avatar(storage_path)').ilike('username', `%${q}%`).limit(10)
+      const { data, error } = await supabase.from('profiles').select('id, username, display_name').ilike('username', `%${q}%`).limit(10)
+      if (error) console.error("MentionPicker error:", error)
       return (data || []).map(u => ({
         id: u.id,
         title: u.username,
         subtitle: u.display_name || undefined,
-        avatarUrl: ((u.media as unknown) as { storage_path?: string })?.storage_path ? `https://zvesoygqssyyojqyswwm.supabase.co/storage/v1/object/public/recipe_media/${(u.media as any).storage_path}` : undefined
+        avatarUrl: undefined
       }))
     }}
   />
@@ -107,12 +108,13 @@ export function RecipePicker({ onSelect }: { onSelect: (r: { id: string, title: 
     title="Receta" icon={ChefHat} placeholder="Buscar receta..."
     onSelect={onSelect}
     fetchResults={async (q) => {
-      const { data } = await supabase.from('recipes').select('id, name, profiles(username), recipe_media(media:media_assets(storage_path))').ilike('name', `%${q}%`).limit(10)
+      const { data, error } = await supabase.from('recipes').select('id, name, profiles(username)').ilike('name', `%${q}%`).limit(10)
+      if (error) console.error("RecipePicker error:", error)
       return (data || []).map(r => ({
         id: r.id,
         title: r.name,
-        subtitle: ((r.profiles as unknown) as { username?: string })?.username ? `por @${(r.profiles as any).username}` : '',
-        iconUrl: ((((r.recipe_media?.[0] as unknown) as { media?: { storage_path?: string } })?.media)?.storage_path) ? `https://zvesoygqssyyojqyswwm.supabase.co/storage/v1/object/public/recipe_media/${((((r.recipe_media?.[0] as unknown) as { media?: { storage_path?: string } })?.media)?.storage_path)}` : undefined
+        subtitle: ((r.profiles as unknown) as { username?: string })?.username ? `por @${((r.profiles as unknown) as { username?: string }).username}` : '',
+        iconUrl: undefined
       }))
     }}
   />
@@ -124,7 +126,8 @@ export function IngredientPicker({ onSelect }: { onSelect: (i: { id: string, tit
     title="Ingrediente" icon={Apple} placeholder="Buscar ingrediente..."
     onSelect={onSelect}
     fetchResults={async (q) => {
-      const { data } = await supabase.from('ingredients').select('id, canonical_name').ilike('canonical_name', `%${q}%`).limit(15)
+      const { data, error } = await supabase.from('ingredients').select('id, canonical_name').ilike('canonical_name', `%${q}%`).limit(15)
+      if (error) console.error("IngredientPicker error:", error)
       return (data || []).map(i => ({
         id: i.id,
         title: i.canonical_name
@@ -140,7 +143,8 @@ export function SessionPicker({ onSelect }: { onSelect: (s: { id: string, title:
     title="Sesión" icon={ChefHat} placeholder="Buscar sesión..."
     onSelect={onSelect}
     fetchResults={async (q) => {
-      const { data } = await supabase.from('cooking_sessions').select('id, recipe_id').limit(10)
+      const { data, error } = await supabase.from('cooking_sessions').select('id, recipe_id').limit(10)
+      if (error) console.error("SessionPicker error:", error)
       return (data || []).map((s: { id: string, recipe_id: string }) => ({
         id: s.id,
         title: "Sesión " + s.id.substring(0, 5),
@@ -156,7 +160,8 @@ export function ProfilePicker({ onSelect }: { onSelect: (u: { id: string, title:
     title="Perfil" icon={UserIcon} placeholder="Buscar perfil..."
     onSelect={onSelect}
     fetchResults={async (q) => {
-      const { data } = await supabase.from('profiles').select('id, username, display_name').ilike('username', `%${q}%`).limit(10)
+      const { data, error } = await supabase.from('profiles').select('id, username, display_name').ilike('username', `%${q}%`).limit(10)
+      if (error) console.error("ProfilePicker error:", error)
       return (data || []).map((u: { id: string, username: string, display_name: string | null }) => ({
         id: u.id,
         title: u.username,
@@ -166,26 +171,25 @@ export function ProfilePicker({ onSelect }: { onSelect: (u: { id: string, title:
   />
 }
 
-export function LocationPicker({ onSelect }: { onSelect: (loc: { id: string, title: string }) => void }) {
-  // Mock manual location since Places API is blocked
-  const [loc, setLoc] = useState('')
-  return (
-    <div className="flex flex-col w-full h-full bg-background rounded-t-2xl p-4 animate-in slide-in-from-bottom">
-      <div className="flex items-center gap-2 mb-4">
-        <MapPin className="w-5 h-5 text-primary" />
-        <h3 className="font-bold">Ubicación Manual</h3>
-      </div>
-      <div className="flex gap-2">
-        <input 
-          autoFocus
-          type="text" 
-          value={loc} 
-          onChange={e => setLoc(e.target.value)} 
-          placeholder="Escribe el lugar..." 
-          className="flex-1 h-10 px-3 rounded-xl border border-border bg-muted/50 focus:bg-background outline-none"
-        />
-        <button onClick={() => { if(loc.trim()) onSelect({ id: loc, title: loc }) }} className="px-4 bg-primary text-primary-foreground rounded-xl font-bold">Añadir</button>
-      </div>
-    </div>
-  )
+export function LocationPicker({ onSelect }: { onSelect: (loc: { id: string, title: string, subtitle?: string }) => void }) {
+  return <GenericSearchPicker 
+    title="Ubicación" icon={MapPin} placeholder="Buscar ciudad o lugar..."
+    onSelect={onSelect}
+    fetchResults={async (q) => {
+      try {
+        const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=5`, {
+          headers: { 'Accept-Language': 'es' }
+        });
+        const data = await res.json();
+        return (data || []).map((place: any) => ({
+          id: place.place_id.toString(),
+          title: place.name || place.display_name.split(',')[0],
+          subtitle: place.display_name
+        }));
+      } catch (e) {
+        console.error("OSM error:", e);
+        return [];
+      }
+    }}
+  />
 }
