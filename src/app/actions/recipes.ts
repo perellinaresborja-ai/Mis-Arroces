@@ -208,14 +208,23 @@ export async function updateRecipeFull(id: string, data: any) {
   const hasFlatVessel = vessel_type_id || vessel_diameter_cm || vessel_notes;
   if ((vessels && vessels.length > 0) || hasFlatVessel) {
     await supabase.from("recipe_vessels").delete().eq("recipe_id", id);
-    const v = (vessels && vessels.length > 0) ? vessels[0] : { type_id: vessel_type_id, diameter_cm: vessel_diameter_cm, notes: vessel_notes };
-    if (v.type_id || v.diameter_cm || v.notes) {
-      await supabase.from("recipe_vessels").insert({
-        recipe_id: id,
-        type_id: v.type_id || null,
-        diameter_cm: v.diameter_cm ? Number(v.diameter_cm) : null,
-        notes: v.notes || null,
-      });
+    const v = (vessels && vessels.length > 0) ? vessels[0] : { vessel_type_id: vessel_type_id, diameter_cm: vessel_diameter_cm, notes: vessel_notes };
+    if (v.vessel_type_id || v.diameter_cm || v.notes) {
+      let finalVesselTypeId = v.vessel_type_id;
+      if (!finalVesselTypeId) {
+        const { data: defaultVessel } = await supabase.from("vessel_types").select("id").eq("name", "Paella").maybeSingle();
+        finalVesselTypeId = defaultVessel?.id || null;
+      }
+      
+      if (finalVesselTypeId) {
+        const { error: vesselError } = await supabase.from("recipe_vessels").insert({
+          recipe_id: id,
+          vessel_type_id: finalVesselTypeId,
+          diameter_cm: v.diameter_cm ? Number(v.diameter_cm) : null,
+          notes: v.notes || null,
+        });
+        if (vesselError) console.error("Vessel insert error:", vesselError);
+      }
     }
   }
 
