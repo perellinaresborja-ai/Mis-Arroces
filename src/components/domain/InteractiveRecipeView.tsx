@@ -1,15 +1,13 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import { formatUnitSymbol } from "@/lib/utils";
-import { Users, Droplet, Scaling, Info } from "lucide-react";
+import { Users, Droplet, Scaling, Info, Circle } from "lucide-react";
 import { 
-  DEFAULT_RICE_PER_PERSON, 
   extractRealRiceGrams, 
   extractRealBrothGrams, 
   calculateLayer, 
-  getRecommendedDiameter, 
-  getBrothRatio,
+  calculateRealBrothRatio,
   LayerType
 } from "@/lib/paella-calculator";
 import { AddToCartButton } from "@/components/domain/AddToCartButton";
@@ -21,42 +19,32 @@ export function InteractiveRecipeView({
 }: { 
   recipe: any, 
   isAuthenticated: boolean,
-  children: React.ReactNode // For Nutrition/Allergens
+  children: React.ReactNode
 }) {
   const [servings, setServings] = useState(recipe.base_servings || 4);
-  const [ricePerPerson, setRicePerPerson] = useState(DEFAULT_RICE_PER_PERSON);
-
   const scaleRatio = servings / (recipe.base_servings || 1);
-  
   const vessel = recipe.recipe_vessels?.[0];
-  const variety = recipe.variety?.name;
   
   // Base values from recipe
-  const baseRiceGrams = extractRealRiceGrams(recipe.ingredients) || ((recipe.base_servings || 4) * ricePerPerson);
+  const baseRiceGrams = extractRealRiceGrams(recipe.ingredients);
   const baseBrothGrams = extractRealBrothGrams(recipe.ingredients);
 
   // Scaled values
-  const currentRiceGrams = baseRiceGrams * scaleRatio;
-  const currentBrothGrams = baseBrothGrams ? (baseBrothGrams * scaleRatio) : null;
-  const targetBrothRatio = currentBrothGrams ? (currentBrothGrams / (currentRiceGrams || 1)) : getBrothRatio(variety);
-  const estimatedBroth = currentBrothGrams || (currentRiceGrams * targetBrothRatio);
+  const currentRiceGrams = baseRiceGrams ? baseRiceGrams * scaleRatio : null;
+  const currentBrothGrams = baseBrothGrams ? baseBrothGrams * scaleRatio : null;
+  const diameterCm = vessel?.diameter_cm;
   
-  // Paella Diameter
-  const diameterCm = vessel?.diameter_cm || getRecommendedDiameter(currentRiceGrams, 'Media');
-  
-  // Layer
-  const layer = calculateLayer(currentRiceGrams, diameterCm);
+  const layer = (currentRiceGrams && diameterCm) ? calculateLayer(currentRiceGrams, diameterCm) : null;
+  const brothRatio = (currentRiceGrams && currentBrothGrams) ? calculateRealBrothRatio(currentRiceGrams, currentBrothGrams) : null;
 
   const layerColors: Record<LayerType, string> = {
-    'Fina': 'text-green-600 bg-green-100 border-green-200 dark:bg-green-900/30 dark:border-green-800 dark:text-green-400',
-    'Media': 'text-blue-600 bg-blue-100 border-blue-200 dark:bg-blue-900/30 dark:border-blue-800 dark:text-blue-400',
-    'Abundante': 'text-orange-600 bg-orange-100 border-orange-200 dark:bg-orange-900/30 dark:border-orange-800 dark:text-orange-400'
+    'Fina': 'text-green-600',
+    'Media': 'text-blue-600',
+    'Abundante': 'text-orange-600'
   };
 
   const ingredients = [...(recipe.ingredients || [])].sort((a: any, b: any) => a.display_order - b.display_order);
-
-  // Safe formatting helpers to prevent React SSR NaN/Infinity errors
-  const safeNumber = (num: number) => (isFinite(num) && !isNaN(num)) ? Math.round(num).toString() : "0";
+  const safeNumber = (num: number | null) => (num !== null && isFinite(num) && !isNaN(num)) ? Math.round(num).toString() : "0";
 
   return (
     <div className="w-full">
@@ -71,52 +59,45 @@ export function InteractiveRecipeView({
         </div>
       </div>
 
-      {/* Paella Calculator Block */}
-      {baseRiceGrams > 0 && (
-      <div className="mb-8 overflow-hidden rounded-3xl border border-border bg-card shadow-sm">
-        <div className="bg-primary/5 border-b border-border/50 p-4 flex items-center gap-2">
-          <Scaling className="w-5 h-5 text-primary" />
-          <h3 className="font-bold text-primary">Paella y Cocción</h3>
-        </div>
-        <div className="p-5 md:p-6 grid grid-cols-2 gap-y-6 gap-x-4">
-          <div>
-            <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider mb-1">Diámetro</p>
-            <p className="font-bold text-lg">{diameterCm} cm {!vessel?.diameter_cm && <span className="text-xs text-muted-foreground font-normal">(Recomendado)</span>}</p>
+      {/* Paella Calculator Simple Summary */}
+      {(diameterCm || currentRiceGrams) && (
+        <div className="mb-6 flex flex-wrap gap-x-6 gap-y-3 p-4 md:p-5 bg-card border border-border rounded-2xl shadow-sm text-sm">
+          <div className="w-full mb-1 flex items-center gap-2 text-primary font-bold">
+            <Scaling className="w-4 h-4" /> Paella y CocciÃ³n
           </div>
-          <div>
-            <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider mb-1">Arroz Total</p>
-            <p className="font-bold text-lg">{safeNumber(currentRiceGrams)} g</p>
-          </div>
-          <div>
-            <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider mb-1">Capa Estimada</p>
-            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold border ${layerColors[layer]}`}>
-              {layer}
-            </span>
-          </div>
-          <div>
-            <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider mb-1">Caldo Orientativo</p>
-            <p className="font-bold text-lg flex items-center gap-1">
+          {diameterCm && (
+            <div className="flex items-center gap-2">
+              <Circle className="w-4 h-4 text-muted-foreground" /> 
+              <span className="font-bold">{diameterCm} cm</span>
+            </div>
+          )}
+          {currentRiceGrams && (
+            <div className="flex items-center gap-2">
+              <span className="font-bold">{safeNumber(currentRiceGrams)}g</span> arroz
+              <span className="text-muted-foreground text-xs">({safeNumber(currentRiceGrams / servings)}g/pers)</span>
+            </div>
+          )}
+          {layer && (
+            <div className="flex items-center gap-1.5">
+              <span className="text-muted-foreground">Capa:</span>
+              <span className={`font-bold ${layerColors[layer]}`}>{layer}</span>
+            </div>
+          )}
+          {brothRatio !== null && (
+            <div className="flex items-center gap-1.5 border-l border-border pl-4">
               <Droplet className="w-4 h-4 text-blue-500" />
-              {safeNumber(estimatedBroth)} {currentBrothGrams ? 'g' : 'ml'}
-            </p>
-            <p className="text-xs text-muted-foreground">Proporción {(isFinite(targetBrothRatio) && !isNaN(targetBrothRatio)) ? targetBrothRatio.toFixed(1) : "0"}:1</p>
-          </div>
-          
-          <div className="col-span-2 mt-2">
-             <p className="text-xs text-muted-foreground flex items-center gap-1.5"><Info className="w-3.5 h-3.5" /> Arroz por persona estimado: {safeNumber(servings > 0 ? currentRiceGrams / servings : 0)}g</p>
-             {!vessel?.diameter_cm && (
-               <p className="text-xs text-muted-foreground flex items-center gap-1.5 mt-1"><Info className="w-3.5 h-3.5" /> Para mantener una capa fina recomendamos aprox. una paella de {getRecommendedDiameter(currentRiceGrams, 'Fina')} cm.</p>
-             )}
-          </div>
+              <span className="text-muted-foreground">ProporciÃ³n</span>
+              <span className="font-bold">{brothRatio}:1</span>
+            </div>
+          )}
         </div>
-      </div>
       )}
 
+      {/* Ingredients List */}
       <div className="bg-card rounded-3xl border border-border p-6 md:p-8 mb-8 overflow-hidden shadow-sm">
         <ul className="space-y-1">
           {ingredients.map((ing: any) => {
             const scaledQty = ing.normalized_quantity ? (ing.normalized_quantity * scaleRatio) : null;
-            
             return (
               <li key={ing.id} className="flex justify-between items-center text-[15px] py-3 border-b border-border/40 last:border-0">
                 <span className="text-foreground/90 pr-4">{ing.display_text}</span>

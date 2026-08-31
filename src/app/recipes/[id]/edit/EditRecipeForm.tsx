@@ -14,6 +14,7 @@ import { EscandalloSection } from "@/components/domain/EscandalloSection"
 import { AddToCartButton } from "@/components/domain/AddToCartButton"
 import { Save, Plus, Trash2, GripVertical, ChevronDown, ChevronUp, Check, Clock, EyeOff, Calendar } from "lucide-react"
 import { updateRecipeFull } from "@/app/actions/recipes"
+import { extractRealRiceGrams, calculateLayer, getRecommendedDiameter, LayerType } from "@/lib/paella-calculator"
 import { cn, formatUnitSymbol } from "@/lib/utils"
 import { RecipeMediaManager, MediaItem } from "./RecipeMediaManager"
 import { StepMediaManager, StepMediaItem } from "./StepMediaManager"
@@ -44,6 +45,7 @@ export default function EditRecipeForm({ recipe, catalogs }: { recipe: any, cata
   const router = useRouter()
   console.log("RECIPE MOUNT MEDIA:", recipe.recipe_media);
   const [isSaving, setIsSaving] = useState(false)
+  const [targetLayer, setTargetLayer] = useState<LayerType>('Fina')
   
   const initialScheduledFor = recipe.scheduled_for ? new Date(recipe.scheduled_for).toISOString().slice(0,16) : ""
   const [scheduleDate, setScheduleDate] = useState(initialScheduledFor)
@@ -98,13 +100,7 @@ export default function EditRecipeForm({ recipe, catalogs }: { recipe: any, cata
     name: "ingredients"
   })
 
-  const watchRiceQty = watch("rice_qty")
-  const watchStockQty = watch("stock_qty")
   const watchTags = watch("tags")
-
-  const ratio = (Number(watchRiceQty) > 0 && Number(watchStockQty) > 0) 
-    ? (Number(watchStockQty) / Number(watchRiceQty)).toFixed(2) 
-    : "0"
 
   const toggleTag = (tagId: string) => {
     const current = watchTags || []
@@ -341,32 +337,19 @@ export default function EditRecipeForm({ recipe, catalogs }: { recipe: any, cata
             </div>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4 pt-4 border-t border-border/50 mt-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 pt-4 border-t border-border/50 mt-4">
             <div className="space-y-2">
               <Label>Comensales</Label>
               <Input type="number" {...register("base_servings")} />
             </div>
             <div className="space-y-2">
-              <Label>Arroz (gr)</Label>
-              <Input type="number" step="0.01" {...register("rice_qty")} />
-            </div>
-            <div className="space-y-2">
-              <Label>Caldo (ml)</Label>
-              <Input type="number" step="0.01" {...register("stock_qty")} />
-            </div>
-            <div className="space-y-2">
-              <Label>Cocción</Label>
+              <Label>Cocción (min)</Label>
               <Input type="number" {...register("cook_time")} />
             </div>
             <div className="space-y-2">
-              <Label>Reposo</Label>
+              <Label>Reposo (min)</Label>
               <Input type="number" {...register("rest_time")} />
             </div>
-          </div>
-
-          <div className="mt-4 p-3 bg-primary/10 text-primary font-medium rounded-lg text-sm flex justify-between items-center">
-            <span>Ratio Caldo/Arroz calculado:</span>
-            <span className="text-lg font-bold">1 : {ratio}</span>
           </div>
         </CollapsibleSection>
 
@@ -389,6 +372,69 @@ export default function EditRecipeForm({ recipe, catalogs }: { recipe: any, cata
             <Label>Notas del recipiente (opcional)</Label>
             <Input {...register("vessel_notes")} placeholder="Ej. Paellera de acero pulido" />
           </div>
+
+          {(() => {
+            const wIngredients = watch('ingredients');
+            const realRice = extractRealRiceGrams(wIngredients);
+            const diaStr = watch('vessel_diameter_cm');
+            const diaNum = Number(diaStr);
+            if (!realRice) return null;
+
+            const currentLayer = (diaNum > 0) ? calculateLayer(realRice, diaNum) : null;
+            const recDia = getRecommendedDiameter(realRice, targetLayer);
+            const needsChange = currentLayer !== targetLayer;
+
+            return (
+              <div className="mt-8 p-5 bg-muted/30 border border-border rounded-xl">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+                  <div>
+                    <h3 className="font-bold text-primary text-sm uppercase tracking-wider mb-1">Capa de Arroz</h3>
+                    <div className="flex items-center gap-2 text-sm">
+                      <span className="text-muted-foreground">Arroz total:</span>
+                      <span className="font-bold">{realRice}g</span>
+                      {currentLayer && (
+                        <>
+                          <span className="text-muted-foreground ml-2">Capa actual:</span>
+                          <span className="font-bold uppercase">{currentLayer}</span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground uppercase">¿CÓMO LA QUIERES?</Label>
+                    <div className="flex gap-2">
+                      {(['Fina', 'Media', 'Abundante'] as LayerType[]).map((l) => (
+                        <Button
+                          key={l}
+                          type="button"
+                          size="sm"
+                          variant={targetLayer === l ? 'default' : 'outline'}
+                          onClick={() => setTargetLayer(l)}
+                        >
+                          {l}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+                
+                {needsChange && recDia > 0 && (
+                  <div className="bg-primary/10 text-primary p-3 rounded-lg flex items-center justify-between mt-4 border border-primary/20">
+                    <span className="text-sm font-semibold">
+                      Para capa {targetLayer.toLowerCase()} recomendamos ~{recDia} cm.
+                    </span>
+                    <Button 
+                      type="button" 
+                      size="sm" 
+                      onClick={() => setValue('vessel_diameter_cm', recDia, { shouldValidate: true })}
+                    >
+                      Usar {recDia} cm
+                    </Button>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
         </CollapsibleSection>
 
         {/* Ingredients */}
