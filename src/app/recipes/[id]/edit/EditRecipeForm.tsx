@@ -439,19 +439,7 @@ export default function EditRecipeForm({ recipe, catalogs }: { recipe: any, cata
           </div>
           </CollapsibleSection>
 
-        <CollapsibleSection title="Información Nutricional (Cálculo automático)">
-          <div className="text-sm text-muted-foreground mb-4">
-            Los valores nutricionales se calculan automáticamente basándose en los ingredientes canónicos. No es necesario introducirlos a mano.
-          </div>
-          <NutritionSection result={nutritionResult} servings={watchedPortions || 1} hideTitle />
-        </CollapsibleSection>
 
-        <CollapsibleSection title="Alérgenos (Cálculo automático)">
-          <div className="text-sm text-muted-foreground mb-4">
-            Los alérgenos se detectan automáticamente. Si falta alguno, asegúrate de que el ingrediente esté bien escrito.
-          </div>
-          <AllergensSection result={nutritionResult} hideTitle />
-        </CollapsibleSection>
         <EscandalloSection recipeId={recipe.id} initialIngredients={ingFields} catalogs={catalogs} baseServings={Number(watch("base_servings") || 2)} setValue={setValue} />
 
           {/* Steps */}
@@ -528,6 +516,20 @@ export default function EditRecipeForm({ recipe, catalogs }: { recipe: any, cata
             </div>
           </CollapsibleSection>
         )}
+
+        <CollapsibleSection title="Información Nutricional (Cálculo automático)">
+          <div className="text-sm text-muted-foreground mb-4">
+            Los valores nutricionales se calculan automáticamente basándose en los ingredientes canónicos. No es necesario introducirlos a mano.
+          </div>
+          <NutritionSection result={nutritionResult} servings={watchedPortions || 1} hideTitle />
+        </CollapsibleSection>
+
+        <CollapsibleSection title="Alérgenos (Cálculo automático)">
+          <div className="text-sm text-muted-foreground mb-4">
+            Los alérgenos se detectan automáticamente. Si falta alguno, asegúrate de que el ingrediente esté bien escrito.
+          </div>
+          <AllergensSection result={nutritionResult} hideTitle />
+        </CollapsibleSection>
       </div>
 
       <div className="fixed bottom-0 left-0 right-0 p-4 bg-background/90 backdrop-blur-md border-t border-border z-50">
