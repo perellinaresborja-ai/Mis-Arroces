@@ -18,7 +18,21 @@ const DAILY_REFS = {
 export function NutritionSection({ result, servings }: { result: CalculationResult, servings: number }) {
   const [mode, setMode] = useState<'serving' | 'total'>('serving');
 
-  if (result.coveragePercent === 0) return null;
+  if (result.coveragePercent === 0) {
+    return (
+      <div className="bg-card rounded-3xl border border-border p-5 my-6 overflow-hidden">
+        <h3 className="font-bold text-lg flex items-center gap-2 mb-5">
+          <span>Información Nutricional</span>
+        </h3>
+        <div className="bg-muted/40 border border-border text-muted-foreground p-4 rounded-xl text-sm flex items-start gap-3">
+          <Info className="w-5 h-5 shrink-0 mt-0.5" />
+          <p>
+            <strong>No disponible:</strong> Todavía no podemos calcular la información nutricional de esta receta porque sus ingredientes no están suficientemente identificados.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   const data = mode === 'serving' ? result.perServing : result.total;
 
@@ -53,7 +67,7 @@ export function NutritionSection({ result, servings }: { result: CalculationResu
         <div className="mb-4 bg-yellow-500/10 border border-yellow-500/20 text-yellow-600 dark:text-yellow-400 p-3 rounded-xl text-sm flex items-start gap-2">
           <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
           <p>
-            <strong>Estimación parcial:</strong> Faltan datos nutricionales de algunos ingredientes ({result.coveragePercent}% de cobertura).
+            <strong>Estimación parcial</strong> · {100 - result.coveragePercent}% sin datos
           </p>
         </div>
       )}
