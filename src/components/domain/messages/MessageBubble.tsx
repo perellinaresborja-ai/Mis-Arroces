@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 import { useState, useEffect } from "react"
 import { formatRelativeTime } from "@/lib/utils"
 import Link from "next/link"
@@ -26,7 +26,7 @@ export function MessageBubble({ message, isOwn, onReply }: { message: Record<str
 
   useEffect(() => {
     if (message.reply_to_id && !replyData) {
-      supabase.from('messages').select('type, body, content').eq('id', message.reply_to_id as string).single().then(({data}) => {
+      supabase.from('messages').select('type, body').eq('id', message.reply_to_id as string).single().then(({data}) => {
         if (data) setReplyData(data);
       });
     }
@@ -155,8 +155,8 @@ export function MessageBubble({ message, isOwn, onReply }: { message: Record<str
           {(mType === 'RECIPE' || mType === 'SESSION' || mType === 'STORY') && (
             <div className="bg-background/10 rounded-xl p-3 mb-2 border border-border text-foreground">
               {entityStatus === 'LOADING' && <p className="text-xs opacity-70">Cargando...</p>}
-              {entityStatus === 'EXPIRED' && <p className="text-xs font-bold">Esta historia ya no está disponible.</p>}
-              {entityStatus === 'UNAVAILABLE' && <p className="text-xs font-bold">Esta historia ya no está disponible.</p>}
+              {entityStatus === 'EXPIRED' && <p className="text-xs font-bold">Esta historia ya no estÃ¡ disponible.</p>}
+              {entityStatus === 'UNAVAILABLE' && <p className="text-xs font-bold">Esta historia ya no estÃ¡ disponible.</p>}
               {entityStatus === 'LOADED' && entityData && (
                 <>
                   <div className="flex items-center gap-2 mb-2">
