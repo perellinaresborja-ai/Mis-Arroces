@@ -1,4 +1,4 @@
-﻿// @ts-nocheck
+// @ts-nocheck
 import { redirect } from "next/navigation"
 import Link from "next/link"
 import { createClient } from "@/lib/supabase/server"
@@ -15,6 +15,7 @@ import { AddToCartButton } from "@/components/domain/AddToCartButton"
 import { LoHeCocinadoButton } from "@/components/domain/LoHeCocinadoButton"
 
 import { ViewTracker } from "@/components/domain/ViewTracker"
+import { ExpandableImage } from "@/components/ui/ExpandableImage"
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = await params;
@@ -336,8 +337,11 @@ export default async function RecipeDetailPage({
                       {/* Imagen */}
                       {stepImageUrl && (
                         <div className="shrink-0 w-full md:w-32 lg:w-40 xl:w-48 mt-4 md:mt-0">
-                          <div className="aspect-[4/3] rounded-2xl overflow-hidden border border-border/50 shadow-sm">
-                            <img src={stepImageUrl} alt={`Paso ${step.step_number}`} className="w-full h-full object-cover" />
+                          <div className="aspect-[4/3] rounded-2xl overflow-hidden border border-border/50 shadow-sm relative group">
+                            <ExpandableImage src={stepImageUrl} alt={`Paso ${step.step_number}`} className="w-full h-full object-cover" />
+                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none flex items-center justify-center">
+                              <span className="text-white text-xs font-bold drop-shadow-md">AMPLIAR</span>
+                            </div>
                           </div>
                         </div>
                       )}
