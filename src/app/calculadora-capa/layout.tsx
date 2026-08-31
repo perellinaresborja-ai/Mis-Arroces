@@ -1,7 +1,7 @@
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Mis Arroces",
+  title: "misarroces",
   description: "Calculadora de proporciones y capa para la paella perfecta.",
 };
 
