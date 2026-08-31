@@ -6,6 +6,7 @@ import { Trash2 } from "lucide-react"
 import { deleteRecipe } from "@/app/actions/recipes"
 import { useRouter } from "next/navigation"
 import { MediaImage } from "./MediaImage"
+import { ConfirmModal } from "@/components/ui/ConfirmModal"
 
 export function CookbookRecipeCard({ recipe, tab }: { recipe: any, tab: string }) {
   const router = useRouter()

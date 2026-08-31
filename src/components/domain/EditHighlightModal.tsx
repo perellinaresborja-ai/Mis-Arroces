@@ -2,6 +2,7 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
+import { ConfirmModal } from "@/components/ui/ConfirmModal"
 
 export function EditHighlightModal({ highlight, archivedStories, onClose }: { highlight: { id: string, name: string, stories?: { id: string }[] }, archivedStories: { id: string, story_media?: { storage_path: string }[] }[], onClose: () => void }) {
   const [name, setName] = useState(highlight.name)

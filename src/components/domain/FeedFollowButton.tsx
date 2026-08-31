@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { toggleFollow, blockUser } from "@/app/actions/social"
 import { useAuthPrompt } from "@/components/providers/AuthPromptProvider"
 import { UserMinus, Ban } from "lucide-react"
+import { ConfirmModal } from "@/components/ui/ConfirmModal"
 
 export function FeedFollowButton({ 
   isAuthenticated, 
