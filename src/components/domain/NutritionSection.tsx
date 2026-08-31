@@ -125,16 +125,17 @@ function NutritionCard({ label, shortLabel, value, unit, digits = 1, refValue, i
   const percent = refValue && isServing ? Math.round((value / refValue) * 100) : null;
   
   return (
-    <div className="bg-background rounded-2xl p-2 sm:p-3 flex flex-col items-center justify-center text-center border border-border shadow-sm">
-      <span className="text-[9px] sm:text-xs text-muted-foreground font-medium mb-0.5 sm:mb-1 uppercase tracking-wider">
-        <span className="sm:hidden">{shortLabel || label}</span>
-        <span className="hidden sm:inline">{label}</span>
+    <div className="bg-muted/40 rounded-2xl p-2.5 sm:p-3 flex flex-col items-center justify-center text-center">
+      <span className="text-[10px] sm:text-xs text-muted-foreground font-semibold mb-1 uppercase tracking-wider block truncate w-full">
+        <span className="md:hidden">{shortLabel || label}</span>
+        <span className="hidden md:inline">{label}</span>
       </span>
-      <span className="font-bold text-sm sm:text-lg text-foreground leading-none mb-1 sm:mb-0 flex items-baseline gap-0.5">
-        {formatted} <span className="text-[9px] sm:text-sm font-normal text-muted-foreground">{unit}</span>
-      </span>
+      <div className="font-bold text-[15px] sm:text-lg text-foreground mt-0.5">
+        {formatted}
+        <span className="text-[10px] sm:text-sm font-normal text-muted-foreground ml-0.5">{unit}</span>
+      </div>
       {percent !== null && (
-        <span className="text-[9px] sm:text-[10px] text-muted-foreground font-medium leading-none">{percent}% IR</span>
+        <span className="text-[10px] sm:text-xs text-muted-foreground/80 font-medium mt-1">{percent}% IR</span>
       )}
     </div>
   )
