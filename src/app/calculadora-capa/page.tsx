@@ -55,7 +55,7 @@ export default function LayerCalculatorPage() {
     if (navigator.share) {
       try {
         await navigator.share({
-          title: 'Calculadora Mis Arroces',
+          title: 'Mis Arroces',
           text: text,
           url: window.location.href
         });
