@@ -264,6 +264,7 @@ export function StoryCreator({
         // privacy,
         overlays
       });
+      clearGlobalStoryDraft();
       router.push('/');
     } catch (e) {
       console.error(e);
