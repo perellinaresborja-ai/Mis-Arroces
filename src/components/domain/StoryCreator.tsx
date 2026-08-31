@@ -9,7 +9,10 @@ import { globalStoryDraftUrl, globalStoryDraftType, globalStoryDraftFile, clearG
 import { SharedStoryRenderer, renderOverlayContent } from './SharedStoryRenderer';
 import { DraggableOverlay } from './stories/DraggableOverlay';
 import { MentionPicker, RecipePicker, IngredientPicker, LocationPicker, GenericSearchPicker, SessionPicker, ProfilePicker } from './stories/StickerPickers';
-import { Camera, User, ChefHat, MapPin, AlignLeft, AlignCenter, AlignRight, Apple, Image as ImageIcon } from 'lucide-react';
+import { Camera, User, ChefHat, MapPin, AlignLeft, AlignCenter, AlignRight, Apple, Image as ImageIcon, Trash2 } from 'lucide-react';
+
+const TEXT_COLORS = ['#ffffff', '#000000', '#ef4444', '#f97316', '#eab308', '#22c55e', '#3b82f6', '#a855f7', '#ec4899'];
+const TEXT_FONTS = ['sans-serif', 'serif', 'monospace', 'Impact'];
 
 export function StoryCreator({ 
   initialMedia, 
@@ -22,6 +25,7 @@ export function StoryCreator({
   const supabase = createClient();
   const containerRef = useRef<HTMLDivElement>(null);
   const [overlays, setOverlays] = useState<StoryOverlay[]>([]);
+  const [isDraggingOverlay, setIsDraggingOverlay] = useState(false);
   const [history, setHistory] = useState<StoryOverlay[][]>([]); const [redoHistory, setRedoHistory] = useState<StoryOverlay[][]>([]);
   const [background, setBackground] = useState<StoryBackground>({ type: 'color', value: '#18181B' });
   const [draftMediaUrl, setDraftMediaUrl] = useState<string | undefined>(initialMedia?.url);
@@ -357,11 +361,7 @@ export function StoryCreator({
               onSelect={() => setSelectedOverlayId(o.id)}
               onUpdate={(updated) => setOverlays(overlays.map(x => x.id === o.id ? updated : x))}
               onDelete={() => { saveHistory(); setOverlays(overlays.filter(x => x.id !== o.id)); }}
-              onMoveLayer={(dir) => {
-                const newArr = [...overlays];
-                newArr[i].zIndex += dir * 10;
-                setOverlays(newArr);
-              }}
+              onDragStateChange={setIsDraggingOverlay}
               containerRef={containerRef}
             >
               <div className="pointer-events-none">
@@ -370,28 +370,72 @@ export function StoryCreator({
             </DraggableOverlay>
           ))}
 
-          {/* Inline Text Editor Overlay */}
+          {/* Inline Text Editor Overlay (Modernized) */}
           {mode === 'TEXT' && (
-            <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 pointer-events-auto touch-none" onClick={addText}>
-              <textarea 
-                autoFocus 
-                value={textVal} 
-                onChange={e=>setTextVal(e.target.value)}
-                onClick={e=>e.stopPropagation()}
-                className="w-full bg-transparent outline-none resize-none text-center leading-tight font-bold whitespace-pre-wrap break-words"
-                style={{ 
-                  color: textColor, 
-                  backgroundColor: textBg === 'transparent' ? 'transparent' : textBg, 
-                  fontFamily: textFont, 
-                  textAlign: textAlign,
-                  fontSize: '2rem',
-                  padding: textBg !== 'transparent' ? '0.5rem 1rem' : '0',
-                  borderRadius: '0.5rem',
-                  textShadow: textBg === 'transparent' ? '2px 2px 4px rgba(0,0,0,0.8)' : 'none'
-                }}
-                rows={3}
-                placeholder="Escribe algo..."
-              />
+            <div className="absolute inset-0 z-[300] flex flex-col bg-black/70 backdrop-blur-md pointer-events-auto touch-none" onClick={addText}>
+              {/* Top Controls */}
+              <div className="flex items-center justify-between p-4" onClick={e=>e.stopPropagation()}>
+                <button onClick={() => setTextAlign(textAlign === 'left' ? 'center' : textAlign === 'center' ? 'right' : 'left')} className="w-10 h-10 flex items-center justify-center bg-white/20 rounded-full text-white">
+                  {textAlign === 'left' ? <AlignLeft size={20} /> : textAlign === 'center' ? <AlignCenter size={20} /> : <AlignRight size={20} />}
+                </button>
+                <button onClick={() => setTextBg(textBg === 'transparent' ? '#00000055' : textBg === '#00000055' ? textColor : 'transparent')} className="w-10 h-10 flex items-center justify-center bg-white/20 rounded-full text-white font-bold text-xl">
+                  A
+                </button>
+                <button onClick={addText} className="px-4 py-2 bg-white text-black font-bold rounded-full">
+                  Listo
+                </button>
+              </div>
+
+              {/* Text Area */}
+              <div className="flex-1 flex items-center justify-center p-4">
+                <textarea 
+                  autoFocus 
+                  value={textVal} 
+                  onChange={e=>setTextVal(e.target.value)}
+                  onClick={e=>e.stopPropagation()}
+                  className="w-full bg-transparent outline-none resize-none leading-tight font-bold whitespace-pre-wrap break-words"
+                  style={{ 
+                    color: textBg === textColor ? (textColor === '#ffffff' ? '#000000' : '#ffffff') : textColor, 
+                    backgroundColor: textBg, 
+                    fontFamily: textFont, 
+                    textAlign: textAlign,
+                    fontSize: '2rem',
+                    padding: textBg !== 'transparent' ? '0.5rem 1rem' : '0',
+                    borderRadius: '0.5rem',
+                    textShadow: textBg === 'transparent' ? '2px 2px 4px rgba(0,0,0,0.8)' : 'none'
+                  }}
+                  rows={3}
+                  placeholder="Escribe algo..."
+                />
+              </div>
+
+              {/* Bottom Controls */}
+              <div className="p-4 flex flex-col gap-4" onClick={e=>e.stopPropagation()}>
+                {/* Font Selector */}
+                <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-2">
+                  {TEXT_FONTS.map(font => (
+                    <button key={font} onClick={() => setTextFont(font)} className={`px-4 py-2 rounded-full whitespace-nowrap text-sm font-bold ${textFont === font ? 'bg-white text-black' : 'bg-white/20 text-white'}`} style={{fontFamily: font}}>
+                      {font.split(',')[0]}
+                    </button>
+                  ))}
+                </div>
+                {/* Color Selector */}
+                <div className="flex gap-3 overflow-x-auto scrollbar-hide pb-2">
+                  {TEXT_COLORS.map(c => (
+                    <button key={c} onClick={() => setTextColor(c)} className={`w-8 h-8 rounded-full shrink-0 border-2 ${textColor === c ? 'border-white scale-110' : 'border-transparent'}`} style={{backgroundColor: c}} />
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Trash Zone */}
+          {isDraggingOverlay && (
+            <div 
+              id="story-trash" 
+              className="absolute bottom-8 left-1/2 -translate-x-1/2 w-14 h-14 bg-black/50 backdrop-blur rounded-full flex items-center justify-center z-[200] border border-white/20 text-white shadow-2xl transition-all"
+            >
+              <Trash2 className="w-6 h-6" />
             </div>
           )}
         </div>
@@ -460,60 +504,6 @@ export function StoryCreator({
               <button onClick={handlePublish} disabled={isPublishing} className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold p-4 rounded-2xl transition-colors shadow-sm">
                 {isPublishing ? 'Publicando...' : 'Compartir Historia'}
               </button>
-            </div>
-          </div>
-        )}
-
-        {/* Text Mode */}
-        {mode === 'TEXT' && (
-          <div className="p-5 flex flex-col gap-5 h-full">
-            <div className="flex justify-between items-center bg-muted p-2 rounded-2xl">
-              <div className="flex items-center gap-3 px-2">
-                <div className="flex flex-col gap-1 items-center">
-                  <span className="text-[10px] font-bold text-muted-foreground uppercase">Texto</span>
-                  <input type="color" value={textColor} onChange={e=>setTextColor(e.target.value)} className="w-8 h-8 rounded-full cursor-pointer overflow-hidden border-none p-0" />
-                </div>
-                <div className="flex flex-col gap-1 items-center">
-                  <span className="text-[10px] font-bold text-muted-foreground uppercase">Fondo</span>
-                  <input type="color" value={textBg === 'transparent' ? '#000000' : textBg} onChange={e=>setTextBg(e.target.value)} className="w-8 h-8 rounded-full cursor-pointer overflow-hidden border-none p-0" />
-                </div>
-              </div>
-              <button 
-                onClick={() => setTextBg(textBg === 'transparent' ? '#000000' : 'transparent')} 
-                className={`px-4 py-3 rounded-xl font-bold text-xs transition-colors ${textBg === 'transparent' ? 'bg-background text-foreground shadow-sm' : 'bg-primary text-primary-foreground shadow-sm'}`}
-              >
-                {textBg === 'transparent' ? 'Sin Fondo' : 'Con Fondo'}
-              </button>
-            </div>
-            
-            <div className="flex flex-col gap-1.5">
-              <span className="text-[10px] font-bold text-muted-foreground uppercase">Tipografía</span>
-              <select value={textFont} onChange={e=>setTextFont(e.target.value)} className="bg-muted text-foreground p-3.5 rounded-2xl outline-none focus:border focus:border-primary font-medium">
-                <option value="sans-serif">Sans Serif</option>
-                <option value="serif">Serif</option>
-                <option value="monospace">Monospace</option>
-                <option value="Impact">Impact</option>
-              </select>
-            </div>
-
-            <div className="flex flex-col gap-1.5">
-              <span className="text-[10px] font-bold text-muted-foreground uppercase">Alineación</span>
-              <div className="flex gap-2">
-                <button onClick={() => setTextAlign('left')} className={`flex-1 p-3 rounded-2xl flex justify-center items-center transition-colors ${textAlign === 'left' ? 'bg-primary text-primary-foreground' : 'bg-muted text-foreground hover:bg-muted/80'}`}>
-                  <AlignLeft size={20} />
-                </button>
-                <button onClick={() => setTextAlign('center')} className={`flex-1 p-3 rounded-2xl flex justify-center items-center transition-colors ${textAlign === 'center' ? 'bg-primary text-primary-foreground' : 'bg-muted text-foreground hover:bg-muted/80'}`}>
-                  <AlignCenter size={20} />
-                </button>
-                <button onClick={() => setTextAlign('right')} className={`flex-1 p-3 rounded-2xl flex justify-center items-center transition-colors ${textAlign === 'right' ? 'bg-primary text-primary-foreground' : 'bg-muted text-foreground hover:bg-muted/80'}`}>
-                  <AlignRight size={20} />
-                </button>
-              </div>
-            </div>
-
-            <div className="mt-auto flex gap-3">
-              <button onClick={() => setMode('EDIT')} className="flex-1 bg-muted hover:bg-muted/80 text-foreground font-bold p-4 rounded-2xl transition-colors">Cancelar</button>
-              <button onClick={addText} className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground font-bold p-4 rounded-2xl transition-colors shadow-sm">Añadir</button>
             </div>
           </div>
         )}
