@@ -80,7 +80,7 @@ export default function LayerCalculatorPage() {
         <div className="bg-card rounded-3xl border border-border p-6 shadow-sm">
           <div className="flex items-center gap-2 mb-6 text-primary">
             <Scaling className="w-6 h-6" />
-            <h2 className="text-xl font-bold font-serif">Tus Datos</h2>
+            <h2 className="text-xl font-bold">Tus Datos</h2>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
