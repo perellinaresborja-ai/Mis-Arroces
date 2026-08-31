@@ -5,6 +5,7 @@ import Link from "next/link"
 import { Reply, Copy, Trash2 } from "lucide-react"
 import { unsendMessage } from "@/app/actions/messaging"
 import { createClient } from "@/lib/supabase/client"
+import { StoriesViewer } from "../StoriesViewer"
 
 export function MessageBubble({ message, isOwn, onReply }: { message: Record<string, unknown>, isOwn: boolean, onReply?: () => void }) {
   const [entityData, setEntityData] = useState<Record<string, unknown> | null>(null)
@@ -78,36 +79,38 @@ export function MessageBubble({ message, isOwn, onReply }: { message: Record<str
 
   useEffect(() => {
     if (mType === 'RECIPE' || mType === 'SESSION' || mType === 'STORY') {
-      const fetchEntity = async () => {
-        try {
-          let query;
-          if (mType === 'RECIPE') query = supabase.from('recipes').select('*').eq('id', mEntityId).single();
-          else if (mType === 'SESSION') query = supabase.from('cooking_sessions').select('*').eq('id', mEntityId).single();
-          else query = supabase.from('stories').select('*').eq('id', mEntityId).single();
-          
-          const { data, error } = await query;
-          
-          if (error || !data) {
+        const fetchEntity = async () => {
+          try {
+            let query;
+            if (mType === 'RECIPE') query = supabase.from('recipes').select('*').eq('id', mEntityId).single();
+            else if (mType === 'SESSION') query = supabase.from('cooking_sessions').select('*').eq('id', mEntityId).single();
+            else query = supabase.from('stories').select('*, profiles(username), story_media(media:media_assets(storage_path))').eq('id', mEntityId).single();
+            
+            const { data, error } = await query;
+            
+            if (error || !data) {
+              setEntityStatus('UNAVAILABLE')
+              return
+            }
+            
+            if (mType === 'STORY' && 'expires_at' in data && new Date((data as {expires_at: string}).expires_at) < new Date()) {
+              setEntityStatus('EXPIRED')
+              return
+            }
+            
+            setEntityData(data as Record<string, unknown>)
+            setEntityStatus('LOADED')
+          } catch(e) {
             setEntityStatus('UNAVAILABLE')
-            return
           }
-          
-          if (mType === 'STORY' && 'expires_at' in data && new Date((data as {expires_at: string}).expires_at) < new Date()) {
-            setEntityStatus('EXPIRED')
-            return
-          }
-          
-          setEntityData(data as Record<string, unknown>)
-          setEntityStatus('LOADED')
-        } catch(e) {
-          setEntityStatus('UNAVAILABLE')
         }
-      }
       fetchEntity()
     } else {
       setEntityStatus('LOADED')
     }
   }, [mType, mEntityId, supabase])
+
+  const [showStoryViewer, setShowStoryViewer] = useState(false);
 
   if (isDeleted) {
     return (
@@ -152,15 +155,34 @@ export function MessageBubble({ message, isOwn, onReply }: { message: Record<str
           {(mType === 'RECIPE' || mType === 'SESSION' || mType === 'STORY') && (
             <div className="bg-background/10 rounded-xl p-3 mb-2 border border-border text-foreground">
               {entityStatus === 'LOADING' && <p className="text-xs opacity-70">Cargando...</p>}
-              {entityStatus === 'EXPIRED' && <p className="text-xs font-bold">Story expirada</p>}
-              {entityStatus === 'UNAVAILABLE' && <p className="text-xs font-bold">No disponible</p>}
+              {entityStatus === 'EXPIRED' && <p className="text-xs font-bold">Esta historia ya no está disponible.</p>}
+              {entityStatus === 'UNAVAILABLE' && <p className="text-xs font-bold">Esta historia ya no está disponible.</p>}
               {entityStatus === 'LOADED' && entityData && (
                 <>
-                  <p className="font-semibold text-sm mb-1">{mType} Compartido</p>
-                  {entityData.title && <p className="text-xs truncate">{entityData.title as string}</p>}
-                  <Link href={`/${mType.toLowerCase()}s/${mEntityId}`} className="text-xs underline mt-2 block">
-                    Ver {mType}
-                  </Link>
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-1 bg-primary h-4 rounded-full"></div>
+                    <p className="font-semibold text-xs opacity-70 uppercase tracking-wide">
+                      {mType === 'STORY' ? 'Historia Compartida' : `${mType} Compartido`}
+                    </p>
+                  </div>
+                  
+                  {mType === 'STORY' && (entityData as any).story_media?.[0]?.media?.storage_path && (
+                    <img src={`${process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://zvesoygqssyyojqyswwm.supabase.co'}/storage/v1/object/public/recipe_media/${(entityData as any).story_media[0].media.storage_path}`} className="w-full h-40 object-cover rounded-lg mb-2 opacity-90" />
+                  )}
+                  {mType === 'STORY' && (entityData as any).profiles?.username && (
+                    <p className="text-sm font-bold truncate">@{(entityData as any).profiles.username}</p>
+                  )}
+                  {mType !== 'STORY' && entityData.title && <p className="text-sm font-bold truncate">{entityData.title as string}</p>}
+                  
+                  {mType === 'STORY' ? (
+                    <button onClick={(e) => { e.stopPropagation(); setShowStoryViewer(true); }} className="text-xs font-bold text-primary mt-2 inline-flex items-center gap-1 hover:underline">
+                      Ver historia &rarr;
+                    </button>
+                  ) : (
+                    <Link href={`/${mType.toLowerCase()}s/${mEntityId}`} className="text-xs font-bold text-primary mt-2 inline-flex items-center gap-1 hover:underline">
+                      Ver {mType.toLowerCase()} &rarr;
+                    </Link>
+                  )}
                 </>
               )}
             </div>
@@ -179,7 +201,12 @@ export function MessageBubble({ message, isOwn, onReply }: { message: Record<str
           </div>
         </div>
         
-        
+        {showStoryViewer && entityData && (
+          <StoriesViewer 
+            stories={[entityData]} 
+            onClose={() => setShowStoryViewer(false)} 
+          />
+        )}
 
         {showMenu && (
           <div className={`absolute top-8 ${isOwn ? '-left-32' : '-right-32'} w-32 bg-card border border-border shadow-lg rounded-xl overflow-hidden z-50 text-foreground`}>
