@@ -66,8 +66,11 @@ export default async function RecipeDetailPage({
       steps:recipe_steps(*, media:media_assets(storage_path)),
       ingredients:recipe_ingredients(
         *,
-        unit:units(name),
-        ingredient:ingredients(*),
+        unit:units(*),
+        ingredient:ingredients(
+          *,
+          ingredient_allergens(allergens(*))
+        ),
         canonical:ingredients(normalized_name)
       )
     `)
@@ -130,6 +133,10 @@ export default async function RecipeDetailPage({
     .limit(5)
 
   const mySessions = user ? (await supabase.from("cooking_sessions").select("*, session_media(media:media_assets(storage_path))").eq("recipe_id", recipe.id).eq("user_id", user.id).order("date", { ascending: false })).data || [] : []
+
+  // Fetch all units for nutrition calculation
+  const { data: unitsData } = await supabase.from("units").select("*");
+  const nutrition = calculateNutrition(recipe.ingredients as any, unitsData || [], recipe.base_servings || 1);
 
   // Derived Values
   const totalDuration = (recipe.cook_time || 0) + (recipe.rest_time || 0)
@@ -286,6 +293,10 @@ export default async function RecipeDetailPage({
               </ul>
               <div className="mt-8">
                 <AddToCartButton recipeId={recipe.id} isAuthenticated={!!user} baseServings={recipe.base_servings} />
+              </div>
+              
+              <div className="mt-12">
+                <NutritionSection result={nutrition} servings={recipe.base_servings || 1} />
               </div>
             </div>
 

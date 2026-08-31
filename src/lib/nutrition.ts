@@ -8,7 +8,9 @@ export interface NutritionInfo {
   kcal: number;
   protein_g: number;
   carbs_g: number;
+  sugar_g: number;
   fat_g: number;
+  saturated_fat_g: number;
   fiber_g: number;
   salt_g: number;
 }
@@ -33,7 +35,9 @@ export function calculateNutrition(
     kcal: 0,
     protein_g: 0,
     carbs_g: 0,
+    sugar_g: 0,
     fat_g: 0,
+    saturated_fat_g: 0,
     fiber_g: 0,
     salt_g: 0
   };
@@ -91,7 +95,9 @@ export function calculateNutrition(
       result.kcal += (Number(ri.ingredient.kcal_per_100 || 0) * quantityIn100g);
       result.protein_g += (Number(ri.ingredient.protein_g_per_100 || 0) * quantityIn100g);
       result.carbs_g += (Number(ri.ingredient.carbs_g_per_100 || 0) * quantityIn100g);
+      result.sugar_g += (Number(ri.ingredient.sugar_g_per_100 || 0) * quantityIn100g);
       result.fat_g += (Number(ri.ingredient.fat_g_per_100 || 0) * quantityIn100g);
+      result.saturated_fat_g += (Number(ri.ingredient.saturated_fat_g_per_100 || 0) * quantityIn100g);
       result.fiber_g += (Number(ri.ingredient.fiber_g_per_100 || 0) * quantityIn100g);
       result.salt_g += (Number(ri.ingredient.salt_g_per_100 || 0) * quantityIn100g);
     }
@@ -104,7 +110,9 @@ export function calculateNutrition(
     kcal: result.kcal / safeServings,
     protein_g: result.protein_g / safeServings,
     carbs_g: result.carbs_g / safeServings,
+    sugar_g: result.sugar_g / safeServings,
     fat_g: result.fat_g / safeServings,
+    saturated_fat_g: result.saturated_fat_g / safeServings,
     fiber_g: result.fiber_g / safeServings,
     salt_g: result.salt_g / safeServings,
   };
