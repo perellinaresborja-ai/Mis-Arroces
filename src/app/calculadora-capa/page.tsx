@@ -51,7 +51,7 @@ export default function LayerCalculatorPage() {
   const summaryText = summaryParts.join(' · ');
 
   const handleShare = async () => {
-    const text = `🥘 Mis Arroces\n${summaryText}\nCapa: ${currentLayer}\n${brothRatio ? 'Caldo/arroz: ' + brothRatio + ':1' : ''}`;
+    const text = `🥘 Mis Arroces\n${summaryText}\nCapa: ${currentLayer}\n${brothRatio ? 'Arroz/caldo: 1:' + brothRatio : ''}`;
     if (navigator.share) {
       try {
         await navigator.share({
@@ -154,7 +154,7 @@ export default function LayerCalculatorPage() {
                   {hasBroth && (
                     <div className="bg-primary/10 text-primary px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2">
                       <Droplet className="w-4 h-4" />
-                      Caldo/arroz: {brothRatio}:1
+                      Arroz/caldo: 1:{brothRatio}
                     </div>
                   )}
                   {realDensity && (
@@ -194,8 +194,8 @@ export default function LayerCalculatorPage() {
             {hasRice && hasBroth && !hasDia && (
               <div className="flex items-center justify-between bg-primary/10 text-primary p-4 rounded-2xl border border-primary/20">
                 <div>
-                  <span className="text-xs uppercase font-bold tracking-wider opacity-80 block mb-0.5">Caldo/arroz</span>
-                  <span className="text-2xl font-black">{brothRatio}:1</span>
+                  <span className="text-xs uppercase font-bold tracking-wider opacity-80 block mb-0.5">Arroz/caldo</span>
+                  <span className="text-2xl font-black">1:{brothRatio}</span>
                 </div>
                 <Droplet className="w-8 h-8 opacity-50" />
               </div>
