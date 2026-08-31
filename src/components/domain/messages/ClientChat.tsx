@@ -38,7 +38,7 @@ export function ClientChat({ initialMessages, userId, conversationId, myStatus, 
   useEffect(() => {
     updateReadStatus(conversationId).then(() => {
       if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('messages_read'));
+        window.dispatchEvent(new CustomEvent('messages_read', { detail: { conversationId } }));
       }
     });
   }, [messages, conversationId]);

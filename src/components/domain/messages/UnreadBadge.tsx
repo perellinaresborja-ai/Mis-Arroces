@@ -1,6 +1,7 @@
 "use client"
 import { useState, useEffect } from "react"
 import { createClient } from "@/lib/supabase/client"
+import { fetchConversations } from "@/app/actions/messaging"
 
 export function UnreadBadge() {
   const [count, setCount] = useState(0)
@@ -8,8 +9,13 @@ export function UnreadBadge() {
 
   useEffect(() => {
     const fetchCount = async () => {
-      const { data } = await supabase.rpc('get_unread_conversations_count')
-      if (typeof data === 'number') setCount(data)
+      try {
+        const convs = await fetchConversations();
+        const unread = convs.filter((c: any) => c.unreadCount > 0).length;
+        setCount(unread);
+      } catch (e) {
+        console.error(e);
+      }
     }
     fetchCount()
 

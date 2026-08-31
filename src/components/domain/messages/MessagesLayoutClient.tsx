@@ -1,10 +1,30 @@
 "use client"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 
 export function MessagesLayoutClient({ convs, children }: { convs: Record<string, any>[], children: React.ReactNode }) {
   const pathname = usePathname()
   const isRoot = pathname === '/messages'
+  const [localConvs, setLocalConvs] = useState(convs)
+
+  useEffect(() => {
+    setLocalConvs(convs)
+  }, [convs])
+
+  useEffect(() => {
+    const handleRead = (e: Event) => {
+      const customEvent = e as CustomEvent;
+      const readConvId = customEvent.detail?.conversationId;
+      if (readConvId) {
+        setLocalConvs(prev => prev.map(c => 
+          c.conversation_id === readConvId ? { ...c, unreadCount: 0 } : c
+        ));
+      }
+    };
+    window.addEventListener('messages_read', handleRead);
+    return () => window.removeEventListener('messages_read', handleRead);
+  }, []);
 
   return (
     <div className="fixed inset-0 md:top-[64px] flex w-full max-w-2xl mx-auto md:border-x border-border/50 overflow-hidden bg-background z-40">
@@ -15,9 +35,9 @@ export function MessagesLayoutClient({ convs, children }: { convs: Record<string
         </div>
         
         <div className="flex-1 overflow-y-auto p-4 space-y-4 pb-24 md:pb-4 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-          {convs.length === 0 && <p className="text-muted-foreground text-center py-12 text-sm">No tienes mensajes todavía.</p>}
+          {localConvs.length === 0 && <p className="text-muted-foreground text-center py-12 text-sm">No tienes mensajes todavía.</p>}
           
-          {convs.map((c) => {
+          {localConvs.map((c) => {
             const isActive = pathname === `/messages/${c.conversation_id}`;
             return (
               <Link key={c.conversation_id} href={`/messages/${c.conversation_id}`} className="block">

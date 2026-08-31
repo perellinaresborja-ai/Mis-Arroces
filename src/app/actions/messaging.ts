@@ -64,6 +64,7 @@ export async function fetchConversations() {
       .eq('conversation_id', cm.conversation_id)
       .neq('sender_id', user.id)
       .gt('created_at', cm.last_read_at)
+      .is('deleted_at', null)
 
     conversations.push({
       ...cm,
