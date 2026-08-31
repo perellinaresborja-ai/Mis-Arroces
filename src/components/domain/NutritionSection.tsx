@@ -72,11 +72,11 @@ export function NutritionSection({ result, servings }: { result: CalculationResu
         </div>
       )}
 
-      <div className="grid grid-cols-4 md:grid-cols-8 gap-2 sm:gap-3 mb-6">
+      <div className="grid grid-cols-4 gap-2 sm:gap-3 mb-6">
         <NutritionCard label="Energía" value={data.kcal} unit="kcal" refValue={DAILY_REFS.kcal} isServing={mode === 'serving'} />
-        <NutritionCard label="Proteínas" value={data.protein_g} unit="g" refValue={DAILY_REFS.protein_g} isServing={mode === 'serving'} />
-        <NutritionCard label="Hidratos" value={data.carbs_g} unit="g" refValue={DAILY_REFS.carbs_g} isServing={mode === 'serving'} />
-        <NutritionCard label="Azúcares" value={data.sugar_g} unit="g" refValue={DAILY_REFS.sugar_g} isServing={mode === 'serving'} />
+        <NutritionCard label="Proteínas" shortLabel="Prot." value={data.protein_g} unit="g" refValue={DAILY_REFS.protein_g} isServing={mode === 'serving'} />
+        <NutritionCard label="Hidratos" shortLabel="HC" value={data.carbs_g} unit="g" refValue={DAILY_REFS.carbs_g} isServing={mode === 'serving'} />
+        <NutritionCard label="Azúcares" shortLabel="Azúc." value={data.sugar_g} unit="g" refValue={DAILY_REFS.sugar_g} isServing={mode === 'serving'} />
         <NutritionCard label="Grasas" value={data.fat_g} unit="g" refValue={DAILY_REFS.fat_g} isServing={mode === 'serving'} />
         <NutritionCard label="Saturadas" shortLabel="Sat." value={data.saturated_fat_g} unit="g" refValue={DAILY_REFS.saturated_fat_g} isServing={mode === 'serving'} />
         <NutritionCard label="Fibra" value={data.fiber_g} unit="g" refValue={DAILY_REFS.fiber_g} isServing={mode === 'serving'} />
@@ -84,13 +84,13 @@ export function NutritionSection({ result, servings }: { result: CalculationResu
       </div>
 
       <div className="flex flex-col gap-2 border-t border-border pt-4">
-        <h4 className="font-bold text-sm">¿Qué aporta una ración?</h4>
+        <h4 className="font-bold text-sm text-foreground">¿Qué aporta una ración?</h4>
         <p className="text-xs text-muted-foreground">
-          Los porcentajes muestran la contribución a la Ingesta de Referencia (IR) de un adulto medio (8400 kJ / 2000 kcal) según el Reglamento (UE) nº 1169/2011.
+          Los porcentajes muestran la contribución a la Ingesta de Referencia (IR) de un adulto medio (8400 kJ / 2000 kcal).
         </p>
         <p className="text-xs text-muted-foreground mt-1 flex items-start gap-1">
           <Info className="w-4 h-4 shrink-0" />
-          <span>Valores nutricionales estimados. Pueden variar según ingredientes, marcas y elaboración.</span>
+          <span>Valores estimados. Pueden variar según ingredientes, marcas y elaboración.</span>
         </p>
       </div>
 
@@ -139,17 +139,21 @@ function NutritionCard({ label, shortLabel, value, unit, digits = 1, refValue, i
   const percent = refValue && isServing ? Math.round((value / refValue) * 100) : null;
   
   return (
-    <div className="bg-muted/40 rounded-2xl p-2.5 sm:p-3 flex flex-col items-center justify-center text-center">
-      <span className="text-[10px] sm:text-xs text-muted-foreground font-semibold mb-1 uppercase tracking-wider block truncate w-full">
-        <span className="md:hidden">{shortLabel || label}</span>
-        <span className="hidden md:inline">{label}</span>
+    <div className="flex flex-col items-center justify-center text-center py-2">
+      <span className="text-[10px] sm:text-[11px] text-muted-foreground font-semibold mb-1 uppercase tracking-wider w-full truncate">
+        <span className="sm:hidden">{shortLabel || label}</span>
+        <span className="hidden sm:inline">{label}</span>
       </span>
-      <div className="font-bold text-[15px] sm:text-lg text-foreground mt-0.5">
-        {formatted}
-        <span className="text-[10px] sm:text-sm font-normal text-muted-foreground ml-0.5">{unit}</span>
+      <div className="font-bold text-base sm:text-xl text-foreground flex items-baseline gap-0.5">
+        <span>{formatted}</span>
+        <span className="text-[10px] sm:text-sm font-medium text-muted-foreground">{unit}</span>
       </div>
-      {percent !== null && (
-        <span className="text-[10px] sm:text-xs text-muted-foreground/80 font-medium mt-1">{percent}% IR</span>
+      {percent !== null ? (
+        <span className="text-[10px] sm:text-[11px] text-primary/80 font-bold mt-1 w-full truncate">
+          {percent}% IR
+        </span>
+      ) : (
+        <span className="text-[10px] sm:text-[11px] text-transparent mt-1">-</span>
       )}
     </div>
   )
