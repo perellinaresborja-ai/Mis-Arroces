@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 import { PaellaIcon } from "@/components/icons/PaellaIcon"
 import { StoryOwnerMenu } from "./StoryOwnerMenu"
 import { StoryInsightsModal } from "./StoryInsightsModal"
@@ -136,7 +136,7 @@ export function StoriesViewer({ groupedStories: _groupedStories, initialGroupInd
       await deleteStory(currentStory.id); 
       window.location.reload(); 
     } catch(e) { 
-      alert('Error al eliminar la historia'); 
+      alert('Error al eliminar la historia: ' + (e instanceof Error ? e.message : String(e))); 
       setIsPaused(false); 
       setShowConfirm(false);
     } 
@@ -314,7 +314,7 @@ export function StoriesViewer({ groupedStories: _groupedStories, initialGroupInd
                 {isMe ? (
                   <>
                     <button onClick={(e) => { e.stopPropagation(); setShowViewers(true); closeMenu(); }} className="flex items-center gap-4 w-full p-4 hover:bg-white/5 transition-colors text-left border-b border-white/10">
-                      <BarChartIcon className="w-6 h-6" /> <span className="font-semibold">Ver estadísticas</span>
+                      <BarChartIcon className="w-6 h-6" /> <span className="font-semibold">Ver estadÃ­sticas</span>
                     </button>
                     <button onClick={(e) => { e.stopPropagation(); setShowShare(true); closeMenu(); }} className="flex items-center gap-4 w-full p-4 hover:bg-white/5 transition-colors text-left border-b border-white/10">
                       <Share2 className="w-6 h-6" /> <span className="font-semibold">Compartir</span>
@@ -407,7 +407,7 @@ export function StoriesViewer({ groupedStories: _groupedStories, initialGroupInd
                 />
               </form>
               <div className="flex gap-2 text-2xl shrink-0">
-                {['PAELLA', '😂', '😮', '😢', '🔥', '👏'].map(emoji => (
+                {['PAELLA', 'ðŸ˜‚', 'ðŸ˜®', 'ðŸ˜¢', 'ðŸ”¥', 'ðŸ‘'].map(emoji => (
                     <button key={emoji} onClick={(e) => { e.stopPropagation(); handleReaction(emoji); }} className="hover:scale-125 transition-transform drop-shadow-lg flex items-center justify-center w-8 h-8">
                       {emoji === 'PAELLA' ? <PaellaIcon className="w-8 h-8 text-primary drop-shadow-md" /> : emoji}
                     </button>
@@ -429,7 +429,7 @@ export function StoriesViewer({ groupedStories: _groupedStories, initialGroupInd
                  className="flex items-center gap-2 px-4 py-2 bg-black/40 hover:bg-black/60 backdrop-blur-md rounded-full text-sm font-bold border border-white/20 transition-colors"
                >
                  <BarChart2 className="w-4 h-4" />
-                 Estadísticas
+                 EstadÃ­sticas
                </button>
             </div>
           )}
@@ -486,7 +486,7 @@ export function StoriesViewer({ groupedStories: _groupedStories, initialGroupInd
               )}
               <div className="flex-1 min-w-0 text-left">
                 <p className="text-[10px] text-white/70 font-bold uppercase tracking-wider">Ver resultado</p>
-                <p className="text-sm font-bold text-white truncate">Sesión de cocinado</p>
+                <p className="text-sm font-bold text-white truncate">SesiÃ³n de cocinado</p>
               </div>
               <div className="w-6 h-6 shrink-0 mr-1 flex items-center justify-center text-white/50">
                 &rarr;
@@ -528,7 +528,7 @@ export function StoriesViewer({ groupedStories: _groupedStories, initialGroupInd
                 />
               </form>
               <div className="flex gap-1 bg-black/40 backdrop-blur-md rounded-full px-2 py-1 border border-white/10" onClick={(e) => e.stopPropagation()}>
-                {['PAELLA', '😂', '😮', '😢', '🔥'].map(emoji => (
+                {['PAELLA', 'ðŸ˜‚', 'ðŸ˜®', 'ðŸ˜¢', 'ðŸ”¥'].map(emoji => (
                   <button 
                     key={emoji}
                     onClick={async () => {
@@ -585,7 +585,7 @@ export function StoriesViewer({ groupedStories: _groupedStories, initialGroupInd
             </div>
             <div className="flex-1 overflow-y-auto p-2">
               {viewers.length === 0 ? (
-                <p className="text-center text-sm text-white/50 pt-8">Aún no hay visualizaciones.</p>
+                <p className="text-center text-sm text-white/50 pt-8">AÃºn no hay visualizaciones.</p>
               ) : (
                 viewers.map(v => (
                   <Link href={`/@${v.username}`} key={v.id} className="flex items-center gap-3 p-3 hover:bg-white/5 rounded-2xl transition-colors">
@@ -633,7 +633,7 @@ export function StoriesViewer({ groupedStories: _groupedStories, initialGroupInd
       <ConfirmModal
         isOpen={showConfirm}
         title="Eliminar historia"
-        message="¿Estás seguro de que quieres eliminar esta historia de forma permanente?"
+        message="Â¿EstÃ¡s seguro de que quieres eliminar esta historia de forma permanente?"
         confirmText="Eliminar"
         isDestructive={true}
         onConfirm={confirmDelete}

@@ -1,4 +1,4 @@
-// @ts-nocheck
+﻿// @ts-nocheck
 "use server"
 
 import { createClient } from "@/lib/supabase/server"
@@ -245,21 +245,21 @@ export async function deleteStory(storyId: string) {
   if (!user) throw new Error("Unauthorized")
 
   // Check ownership
-  const { data: story } = await supabase.from("stories").select("owner_id, story_media(media:media_assets(storage_path))").eq("id", storyId).single()
-  if (!story || story.owner_id !== user.id) throw new Error("Not authorized or not found")
+  const { data: story, error: fetchError } = await supabase.from("stories").select("owner_id, story_media(media:media_assets(storage_path))").eq("id", storyId).single()
+  if (!story || story.owner_id !== user.id) throw new Error("Not authorized or not found. " + (fetchError?.message || ""))
 
   // Delete media from storage if it exists in story_media bucket
   if (story.story_media && story.story_media.length > 0) {
     const paths = story.story_media.map((sm: {media?: {storage_path?: string}}) => sm.media?.storage_path).filter(Boolean)
     if (paths.length > 0) {
-      await supabase.storage.from("story_media").remove(paths)
+      await supabase.storage.from("recipe_media").remove(paths)
     }
   }
 
   const { error } = await supabase.from("stories").delete().eq("id", storyId)
-  if (error) throw new Error("Failed to delete story")
+  if (error) throw new Error("Failed to delete story: " + error.message)
   
-  trackEvent("STORY_DELETED", "STORY", storyId, user.id)
+  await trackEvent("STORY_DELETED", "STORY", storyId, user.id)
   revalidatePath("/")
 }
 
@@ -418,7 +418,7 @@ export async function submitQuestionReply(storyId: string, ownerId: string, ques
   }
 
   if (!story.allow_replies) {
-    throw new Error("Las respuestas están desactivadas para esta historia");
+    throw new Error("Las respuestas estÃ¡n desactivadas para esta historia");
   }
 
   const { data: isBlocked } = await supabase.rpc('is_blocked', { uid1: user.id, uid2: story.owner_id });
@@ -538,7 +538,7 @@ export async function getStoryInsights(storyId: string) {
       const avg = total ? Math.round(responses!.reduce((acc, curr) => acc + curr.value, 0) / total) : 0;
       sliders.push({
         prompt: ov.payload?.question || '',
-        emoji: ov.payload?.emoji || '😍',
+        emoji: ov.payload?.emoji || 'ðŸ˜',
         average: avg,
         total
       });
