@@ -6,7 +6,7 @@ import { calculateLayer, getRecommendedDiameter, getRecommendedRice, calculateAr
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Scaling, Info, ChefHat, Droplet, Share2 } from "lucide-react";
+import { Scaling, Info, ChefHat, Droplet, MessageCircle, Mail, Copy } from "lucide-react";
 
 export default function LayerCalculatorPage() {
   const [rice, setRice] = useState<string>('');
@@ -49,19 +49,22 @@ export default function LayerCalculatorPage() {
   if (hasRice && hasServ) summaryParts.push(`${Math.round(riceNum/servNum)} g/pers`);
   if (hasDia) summaryParts.push(`Paella ${diaNum} cm`);
   const summaryText = summaryParts.join(' · ');
+  const getShareText = () => `🥘 misarroces\n${summaryText}\nCapa: ${currentLayer}\n${brothRatio ? 'Arroz/caldo: 1:' + brothRatio : ''}\n\n${window.location.href}`;
 
-  const handleShare = async () => {
-    const text = `🥘 misarroces\n${summaryText}\nCapa: ${currentLayer}\n${brothRatio ? 'Arroz/caldo: 1:' + brothRatio : ''}`;
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: 'misarroces',
-          text: text,
-          url: window.location.href
-        });
-      } catch (e) {}
-    } else {
-      alert("Texto copiado para compartir:\n\n" + text);
+  const handleWhatsApp = () => {
+    window.open('https://wa.me/?text=' + encodeURIComponent(getShareText()), '_blank');
+  };
+
+  const handleEmail = () => {
+    window.open('mailto:?subject=misarroces&body=' + encodeURIComponent(getShareText()));
+  };
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(getShareText());
+      alert("¡Copiado al portapapeles!");
+    } catch (e) {
+      alert("Error al copiar");
     }
   };
 
@@ -183,10 +186,20 @@ export default function LayerCalculatorPage() {
                 </div>
 
                 {/* COMPARTIR */}
-                <Button onClick={handleShare} className="w-full sm:w-auto mt-2 rounded-full font-bold shadow-md hover:shadow-lg transition-all" size="lg">
-                  <Share2 className="w-5 h-5 mr-2" />
-                  Compartir resultado
-                </Button>
+                <div className="flex flex-col sm:flex-row gap-2 w-full mt-2">
+                  <Button onClick={handleWhatsApp} className="flex-1 rounded-full font-bold bg-[#25D366] hover:bg-[#128C7E] text-white shadow-sm" size="lg">
+                    <MessageCircle className="w-5 h-5 mr-2" fill="currentColor" />
+                    WhatsApp
+                  </Button>
+                  <Button onClick={handleEmail} className="flex-1 rounded-full font-bold shadow-sm border-border" variant="outline" size="lg">
+                    <Mail className="w-5 h-5 mr-2" />
+                    Email
+                  </Button>
+                  <Button onClick={handleCopy} className="flex-1 rounded-full font-bold shadow-sm" variant="secondary" size="lg">
+                    <Copy className="w-5 h-5 mr-2" />
+                    Copiar
+                  </Button>
+                </div>
               </div>
             )}
 
