@@ -6,19 +6,22 @@ import { calculateLayer, getRecommendedDiameter, getRecommendedRice, LayerType }
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Scaling, Info, ChefHat } from "lucide-react";
+import { Scaling, Info, ChefHat, Droplet } from "lucide-react";
 
 export default function LayerCalculatorPage() {
   const [rice, setRice] = useState<string>('');
+  const [broth, setBroth] = useState<string>('');
   const [diameter, setDiameter] = useState<string>('');
   const [servings, setServings] = useState<string>('');
   const [style, setStyle] = useState<'A_BANDA' | 'TRADICIONAL'>('A_BANDA');
 
   const riceNum = Number(rice);
+  const brothNum = Number(broth);
   const diaNum = Number(diameter);
   const servNum = Number(servings);
 
   const hasRice = riceNum > 0;
+  const hasBroth = brothNum > 0;
   const hasDia = diaNum > 0;
   const hasServ = servNum > 0;
 
@@ -33,6 +36,7 @@ export default function LayerCalculatorPage() {
 
   // Calculos derivados
   const assumedRice = hasRice ? riceNum : (hasServ ? servNum * 100 : 0);
+  const brothRatio = (hasRice && hasBroth) ? (brothNum / riceNum).toFixed(2).replace(/\.00$/, '') : null;
   const currentLayer = (hasRice && hasDia) ? calcLayer(riceNum, diaNum) : null;
 
   return (
@@ -53,10 +57,14 @@ export default function LayerCalculatorPage() {
             <h2 className="text-xl font-bold font-serif">Tus Datos</h2>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>Arroz total (g)</Label>
+              <Label>Arroz (g)</Label>
               <Input type="number" value={rice} onChange={e => setRice(e.target.value)} placeholder="Ej. 800" className="bg-background" />
+            </div>
+            <div className="space-y-2">
+              <Label>Caldo (ml)</Label>
+              <Input type="number" value={broth} onChange={e => setBroth(e.target.value)} placeholder="Ej. 2400" className="bg-background" />
             </div>
             <div className="space-y-2">
               <Label>Diámetro (cm)</Label>
@@ -107,17 +115,28 @@ export default function LayerCalculatorPage() {
           <h3 className="text-sm font-bold text-primary uppercase tracking-wider mb-4">Resultados</h3>
           
           <div className="flex flex-col gap-5">
-            {!hasRice && !hasDia && !hasServ && (
+            {!hasRice && !hasDia && !hasServ && !hasBroth && (
               <p className="text-muted-foreground text-sm italic">
-                Introduce el arroz, el diámetro o las raciones y te diré cómo hacer la paella perfecta.
+                Introduce arroz, caldo, diámetro o raciones y te diré cómo hacer la paella perfecta.
               </p>
+            )}
+
+            {/* PROPORCIÓN DE CALDO */}
+            {hasRice && hasBroth && (
+              <div className="flex items-center justify-between bg-primary/10 text-primary p-4 rounded-2xl border border-primary/20">
+                <div>
+                  <span className="text-xs uppercase font-bold tracking-wider opacity-80 block mb-0.5">Proporción de Caldo</span>
+                  <span className="text-2xl font-black">1 : {brothRatio}</span>
+                </div>
+                <Droplet className="w-8 h-8 opacity-50" />
+              </div>
             )}
 
             {/* NOTA RACIONES */}
             {hasServ && (hasRice || assumedRice > 0) && (
-              <div className="flex items-start gap-2 text-sm bg-primary/10 text-primary p-3 rounded-xl border border-primary/20">
-                <Info className="w-4 h-4 shrink-0 mt-0.5" />
-                <span>
+              <div className="flex items-start gap-2 text-sm bg-background p-3 rounded-xl border border-border">
+                <Info className="w-4 h-4 shrink-0 mt-0.5 text-muted-foreground" />
+                <span className="text-muted-foreground">
                   {hasRice 
                     ? `Con ${riceNum}g tocan a ${Math.round(riceNum / servNum)} g/persona.`
                     : `Calculando ${assumedRice}g de arroz en total (${Math.round(assumedRice / servNum)} g/persona).`}
