@@ -33,8 +33,9 @@ export function DraggableOverlay({
     setLocal({ x: overlay.x, y: overlay.y, scale: overlay.scale, rotation: overlay.rotation });
   }, [overlay.x, overlay.y, overlay.scale, overlay.rotation]);
 
-  useGesture({
-    onDragStart: () => {
+  const bind = useGesture({
+    onDragStart: ({ event }) => {
+      // event.stopPropagation();
       onSelect();
       onDragStateChange?.(true);
     },
@@ -69,7 +70,7 @@ export function DraggableOverlay({
         return current;
       });
     },
-    onPinchStart: () => {
+    onPinchStart: ({ event }) => {
       onSelect();
     },
     onPinch: ({ offset: [d, a], event }) => {
@@ -84,18 +85,16 @@ export function DraggableOverlay({
       });
     }
   }, {
-    target: elementRef,
     drag: { pointer: { capture: false } },
     pinch: { 
       scaleBounds: { min: 0.2, max: 10 },
       from: () => [local.scale, local.rotation]
-    },
-    eventOptions: { passive: false }
+    }
   });
 
   return (
     <div
-      ref={elementRef}
+      {...bind()}
       onPointerDown={(e) => {
         e.stopPropagation();
         onSelect();

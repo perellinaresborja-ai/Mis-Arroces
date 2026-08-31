@@ -9,7 +9,8 @@ import {
   extractRealBrothGrams, 
   calculateLayer, 
   getRecommendedDiameter, 
-  getBrothRatio 
+  getBrothRatio,
+  LayerType
 } from "@/lib/paella-calculator";
 import { AddToCartButton } from "@/components/domain/AddToCartButton";
 
