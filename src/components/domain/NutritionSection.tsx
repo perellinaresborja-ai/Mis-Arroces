@@ -58,13 +58,13 @@ export function NutritionSection({ result, servings }: { result: CalculationResu
         </div>
       )}
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-8 gap-3 mb-6">
+      <div className="grid grid-cols-4 md:grid-cols-8 gap-2 sm:gap-3 mb-6">
         <NutritionCard label="Energía" value={data.kcal} unit="kcal" refValue={DAILY_REFS.kcal} isServing={mode === 'serving'} />
         <NutritionCard label="Proteínas" value={data.protein_g} unit="g" refValue={DAILY_REFS.protein_g} isServing={mode === 'serving'} />
         <NutritionCard label="Hidratos" value={data.carbs_g} unit="g" refValue={DAILY_REFS.carbs_g} isServing={mode === 'serving'} />
         <NutritionCard label="Azúcares" value={data.sugar_g} unit="g" refValue={DAILY_REFS.sugar_g} isServing={mode === 'serving'} />
         <NutritionCard label="Grasas" value={data.fat_g} unit="g" refValue={DAILY_REFS.fat_g} isServing={mode === 'serving'} />
-        <NutritionCard label="Saturadas" value={data.saturated_fat_g} unit="g" refValue={DAILY_REFS.saturated_fat_g} isServing={mode === 'serving'} />
+        <NutritionCard label="Saturadas" shortLabel="Sat." value={data.saturated_fat_g} unit="g" refValue={DAILY_REFS.saturated_fat_g} isServing={mode === 'serving'} />
         <NutritionCard label="Fibra" value={data.fiber_g} unit="g" refValue={DAILY_REFS.fiber_g} isServing={mode === 'serving'} />
         <NutritionCard label="Sal" value={data.salt_g} unit="g" refValue={DAILY_REFS.salt_g} digits={2} isServing={mode === 'serving'} />
       </div>
@@ -85,7 +85,7 @@ export function NutritionSection({ result, servings }: { result: CalculationResu
           <h4 className="font-bold text-sm mb-3">Alérgenos Detectados</h4>
           <div className="flex flex-wrap gap-2">
             {result.allergens.map(alg => (
-              <span key={alg.id} className="bg-secondary text-secondary-foreground text-xs px-3 py-1.5 rounded-full flex items-center gap-1.5 font-medium border border-border">
+              <span key={alg.id} className="bg-background text-foreground text-xs px-3 py-1.5 rounded-full flex items-center gap-1.5 font-medium border border-border shadow-sm">
                 {alg.icon && <span>{alg.icon}</span>}
                 {alg.name}
               </span>
@@ -120,16 +120,21 @@ export function NutritionSection({ result, servings }: { result: CalculationResu
   );
 }
 
-function NutritionCard({ label, value, unit, digits = 1, refValue, isServing }: { label: string, value: number, unit: string, digits?: number, refValue?: number, isServing?: boolean }) {
+function NutritionCard({ label, shortLabel, value, unit, digits = 1, refValue, isServing }: { label: string, shortLabel?: string, value: number, unit: string, digits?: number, refValue?: number, isServing?: boolean }) {
   const formatted = unit === 'kcal' ? Math.round(value) : value.toFixed(digits);
   const percent = refValue && isServing ? Math.round((value / refValue) * 100) : null;
   
   return (
-    <div className="bg-muted/50 rounded-2xl p-3 flex flex-col items-center justify-center text-center border border-border/50">
-      <span className="text-xs text-muted-foreground font-medium mb-1 uppercase tracking-wider">{label}</span>
-      <span className="font-bold text-lg text-foreground">{formatted} <span className="text-sm font-normal text-muted-foreground">{unit}</span></span>
+    <div className="bg-background rounded-2xl p-2 sm:p-3 flex flex-col items-center justify-center text-center border border-border shadow-sm">
+      <span className="text-[9px] sm:text-xs text-muted-foreground font-medium mb-0.5 sm:mb-1 uppercase tracking-wider">
+        <span className="sm:hidden">{shortLabel || label}</span>
+        <span className="hidden sm:inline">{label}</span>
+      </span>
+      <span className="font-bold text-sm sm:text-lg text-foreground leading-none mb-1 sm:mb-0 flex items-baseline gap-0.5">
+        {formatted} <span className="text-[9px] sm:text-sm font-normal text-muted-foreground">{unit}</span>
+      </span>
       {percent !== null && (
-        <span className="text-[10px] text-muted-foreground mt-1 font-medium">{percent}% IR</span>
+        <span className="text-[9px] sm:text-[10px] text-muted-foreground font-medium leading-none">{percent}% IR</span>
       )}
     </div>
   )
