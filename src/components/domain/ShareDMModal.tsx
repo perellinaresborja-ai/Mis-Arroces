@@ -55,9 +55,9 @@ export function ShareDMModal({ isOpen, onClose, entityType, entityId }: { isOpen
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/50 flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-200" onClick={onClose}>
+    <div className="fixed inset-0 z-[60] bg-black/50 flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-200" onClick={onClose}>
       <div 
-        className="w-full h-[70vh] sm:h-auto sm:max-w-md bg-card border border-border sm:rounded-2xl rounded-t-2xl flex flex-col overflow-hidden animate-in slide-in-from-bottom-full sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-300"
+        className="w-full h-[70vh] sm:h-auto sm:max-w-md bg-card text-foreground border border-border sm:rounded-2xl rounded-t-2xl flex flex-col overflow-hidden animate-in slide-in-from-bottom-full sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-300"
         onClick={e => e.stopPropagation()}
       >
         <div className="p-4 border-b border-border flex items-center justify-between">

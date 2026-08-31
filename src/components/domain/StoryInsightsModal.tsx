@@ -16,7 +16,7 @@ export function StoryInsightsModal({ storyId, onClose }: { storyId: string, onCl
   }, [storyId]);
 
   return (
-    <div className="absolute inset-0 z-50 flex flex-col bg-background/95 backdrop-blur-xl animate-in fade-in duration-200">
+    <div className="absolute inset-0 z-[60] flex flex-col bg-background/95 text-foreground backdrop-blur-xl animate-in fade-in duration-200">
       <div className="flex justify-between items-center p-4 border-b border-border">
         <h3 className="font-bold text-lg font-serif">Actividad</h3>
         <button onClick={onClose} className="p-2 hover:bg-muted rounded-full transition-colors"><X className="w-5 h-5" /></button>

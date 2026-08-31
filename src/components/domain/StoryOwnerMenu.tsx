@@ -38,9 +38,9 @@ export function StoryOwnerMenu({ storyId, onClose, onDeleted, onOpenInsights, on
   };
 
   return (
-    <div className="absolute inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
+    <div className="absolute inset-0 z-[60] flex items-end justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
       <div 
-        className="bg-card w-full max-w-sm rounded-t-3xl p-4 flex flex-col gap-2 animate-in slide-in-from-bottom-full duration-200"
+        className="bg-card text-foreground w-full max-w-sm rounded-t-3xl p-4 flex flex-col gap-2 animate-in slide-in-from-bottom-full duration-200"
         onClick={e => e.stopPropagation()}
       >
         <div className="w-12 h-1.5 bg-muted rounded-full mx-auto mb-4" />
