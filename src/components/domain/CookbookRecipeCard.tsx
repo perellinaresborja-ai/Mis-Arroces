@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import Link from "next/link"
-import { Trash2 } from "lucide-react"
+import { Trash2, Pencil } from "lucide-react"
 import { deleteRecipe } from "@/app/actions/recipes"
 import { useRouter } from "next/navigation"
 import { MediaImage } from "./MediaImage"
@@ -66,12 +66,21 @@ export function CookbookRecipeCard({ recipe, tab }: { recipe: any, tab: string }
       </Link>
 
       {tab === 'mine' && (
-        <button 
-          onClick={handleDelete}
-          className="absolute top-2 right-2 z-20 bg-black/50 hover:bg-destructive text-white p-1.5 rounded-full transition-colors"
-        >
-          <Trash2 className="w-4 h-4" />
-        </button>
+        <div className="absolute top-2 right-2 z-20 flex items-center gap-2">
+          <Link
+            href={`/recipes/${recipe.id}/edit`}
+            onClick={(e) => e.stopPropagation()}
+            className="bg-black/50 hover:bg-primary text-white p-1.5 rounded-full transition-colors"
+          >
+            <Pencil className="w-4 h-4" />
+          </Link>
+          <button 
+            onClick={handleDelete}
+            className="bg-black/50 hover:bg-destructive text-white p-1.5 rounded-full transition-colors"
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
+        </div>
       )}
 
       <ConfirmModal
