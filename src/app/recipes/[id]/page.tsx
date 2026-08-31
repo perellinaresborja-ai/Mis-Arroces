@@ -1,4 +1,4 @@
-// @ts-nocheck
+﻿// @ts-nocheck
 import { redirect } from "next/navigation"
 import Link from "next/link"
 import { createClient } from "@/lib/supabase/server"
@@ -32,7 +32,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
 
   return {
     title: `${recipe.name} | Mis Arroces`,
-    description: recipe.description || `Deliciosa receta de ${recipe.name} por @${authorName}. Descubre cÃ³mo prepararla paso a paso en Mis Arroces.`,
+    description: recipe.description || `Deliciosa receta de ${recipe.name} por @${authorName}. Descubre cÃƒÂ³mo prepararla paso a paso en Mis Arroces.`,
     openGraph: {
       title: `${recipe.name} | Mis Arroces`,
       description: recipe.description || `Aprende a preparar ${recipe.name} paso a paso.`,
@@ -176,7 +176,7 @@ export default async function RecipeDetailPage({
                 
                   {(publicCookCount || 0) >= 5 && (
                     <div className="inline-flex items-center gap-1.5 bg-primary/10 text-primary px-3 py-1 rounded-full text-xs font-bold border border-primary/20 shadow-sm mb-3">
-                      âœ“ Probada por la comunidad
+                      Ã¢Å“â€œ Probada por la comunidad
                     </div>
                   )}
                   <h1 className="text-3xl md:text-5xl font-bold leading-tight text-foreground font-serif tracking-tight">
@@ -243,7 +243,7 @@ export default async function RecipeDetailPage({
 
             {/* Technical Data Card */}
             <div className="mt-8 bg-muted/30 rounded-2xl p-6 border border-border/50 max-w-xl">
-              <h3 className="font-bold text-lg mb-4 text-charcoal font-serif">Ficha TÃ©cnica</h3>
+              <h3 className="font-bold text-lg mb-4 text-charcoal font-serif">Ficha TÃƒÂ©cnica</h3>
               <ul className="space-y-3 text-sm">
                 {recipe.variety && (
                   <li className="flex justify-between items-center pb-2 border-b border-border/40">
@@ -265,7 +265,7 @@ export default async function RecipeDetailPage({
                 )}
                 {ratio && (
                   <li className="flex justify-between items-center pb-2 border-b border-border/40">
-                    <span className="text-muted-foreground">ProporciÃ³n</span>
+                    <span className="text-muted-foreground">ProporciÃƒÂ³n</span>
                     <span className="font-medium text-foreground">1:{ratio}</span>
                   </li>
                 )}
@@ -287,7 +287,7 @@ export default async function RecipeDetailPage({
 
             {/* Steps (Right Column in Desktop) */}
           <div className="w-full">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4 bg-muted/40 p-4 rounded-2xl border border-border">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4 bg-muted/40 p-4 rounded-2xl border border-border sm:h-[82px]">
               <h2 className="text-xl font-bold font-serif text-charcoal">Receta paso a paso</h2>
             </div>
             {recipe.steps && recipe.steps.length > 0 ? (
@@ -304,7 +304,7 @@ export default async function RecipeDetailPage({
                         <div className="w-10 h-10 rounded-full bg-primary text-white flex items-center justify-center font-bold text-lg font-serif shadow-sm">
                           {step.step_number}
                         </div>
-                        {/* En mÃ³vil la duraciÃ³n puede ir arriba a la derecha */}
+                        {/* En mÃƒÂ³vil la duraciÃƒÂ³n puede ir arriba a la derecha */}
                         <div className="md:hidden">
                           {step.duration_minutes && (
                             <span className="inline-flex items-center text-xs font-bold text-primary uppercase tracking-wider bg-primary/10 px-3 py-1.5 rounded-xl border border-primary/20">
@@ -347,10 +347,10 @@ export default async function RecipeDetailPage({
               </div>
             ) : isOwner ? (
               <Link href={`/recipes/${recipe.id}/edit`} className="text-sm text-primary hover:underline font-medium">
-                + AÃ±adir pasos de elaboraciÃ³n
+                + AÃƒÂ±adir pasos de elaboraciÃƒÂ³n
               </Link>
             ) : (
-              <p className="text-sm text-muted-foreground italic">No se han aÃ±adido pasos todavÃ­a.</p>
+              <p className="text-sm text-muted-foreground italic">No se han aÃƒÂ±adido pasos todavÃƒÂ­a.</p>
             )}
           </div>
         </div>
@@ -360,7 +360,7 @@ export default async function RecipeDetailPage({
           {!isOwner && (
             <div className="mt-16 bg-muted/30 border border-border p-6 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-6 shadow-sm">
               <div className="text-left">
-                <h3 className="text-xl font-bold mb-1 font-serif text-charcoal">Â¿Te has animado a prepararlo?</h3>
+                <h3 className="text-xl font-bold mb-1 font-serif text-charcoal">Ã‚Â¿Te has animado a prepararlo?</h3>
                 <p className="text-muted-foreground text-sm">Registra tu cocinado, sube tu foto y valora el socarrat.</p>
               </div>
               <div className="shrink-0 w-full md:w-auto">

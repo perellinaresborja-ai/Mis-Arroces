@@ -49,7 +49,7 @@ export function InteractiveRecipeView({
   return (
     <div className="w-full">
       {/* Scaler */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4 bg-muted/40 p-4 rounded-2xl border border-border">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4 bg-muted/40 p-4 rounded-2xl border border-border sm:h-[82px]">
         <h2 className="text-xl font-bold font-serif text-charcoal">Ingredientes</h2>
         <div className="flex items-center gap-3 bg-card px-4 py-2 rounded-xl border border-border shadow-sm">
           <Users className="w-4 h-4 text-muted-foreground" />
