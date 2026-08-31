@@ -278,69 +278,83 @@ export default async function RecipeDetailPage({
           
           {/* Ingredients & Nutrition (Left Column in Desktop) */}
           <div className="w-full">
-            <h2 className="text-2xl font-bold mb-6 font-serif text-charcoal">Ingredientes</h2>
-            <ul className="space-y-4">
-                {[...(recipe.ingredients || [])].sort((a: any, b: any) => a.display_order - b.display_order).map((ing: any) => (
-                  <li key={ing.id} className="flex justify-between items-baseline text-[15px] pb-2 border-b border-border/30 last:border-0">
-                    <span className="text-foreground/90 pr-4">{ing.display_text}</span>
-                    {ing.normalized_quantity && (
-                      <span className="font-bold text-charcoal shrink-0">
-                        {ing.normalized_quantity} {formatUnitSymbol(ing.unit?.name)}
-                      </span>
-                    )}
-                  </li>
-                ))}
-              </ul>
-              <div className="mt-8">
-                <AddToCartButton recipeId={recipe.id} isAuthenticated={!!user} baseServings={recipe.base_servings} />
+            <div className="bg-card rounded-3xl border border-border p-6 md:p-8 mb-8 overflow-hidden shadow-sm">
+              <h2 className="text-xl font-bold mb-6 font-serif text-charcoal">Ingredientes</h2>
+              <ul className="space-y-1">
+                  {[...(recipe.ingredients || [])].sort((a: any, b: any) => a.display_order - b.display_order).map((ing: any) => (
+                    <li key={ing.id} className="flex justify-between items-center text-[15px] py-3 border-b border-border/40 last:border-0">
+                      <span className="text-foreground/90 pr-4">{ing.display_text}</span>
+                      {ing.normalized_quantity && (
+                        <span className="font-bold text-charcoal shrink-0 bg-muted/50 px-3 py-1.5 rounded-lg text-sm border border-border/50">
+                          {ing.normalized_quantity} {formatUnitSymbol(ing.unit?.name)}
+                        </span>
+                      )}
+                    </li>
+                  ))}
+                </ul>
               </div>
+
+              <AddToCartButton recipeId={recipe.id} isAuthenticated={!!user} baseServings={recipe.base_servings} />
               
-              <div className="mt-12 w-full">
+              <div className="mt-8 w-full">
                 <NutritionSection result={nutrition} servings={recipe.base_servings || 1} />
               </div>
             </div>
 
             {/* Steps (Right Column in Desktop) */}
           <div className="w-full">
-            <h2 className="text-2xl font-bold mb-8 font-serif text-charcoal">Elaboración</h2>
+            <h2 className="text-2xl font-bold mb-6 font-serif text-charcoal pl-2">Elaboración</h2>
             {recipe.steps && recipe.steps.length > 0 ? (
-              <div className="space-y-10">
+              <div className="space-y-6">
                 {[...recipe.steps].sort((a: any, b: any) => a.step_number - b.step_number).map((step: any) => {
                   const stepImageUrl = step.media?.storage_path 
-                    ? `${"https://zvesoygqssyyojqyswwm.supabase.co"}/storage/v1/object/public/recipe_media/${step.media.storage_path}`
+                    ? `https://zvesoygqssyyojqyswwm.supabase.co/storage/v1/object/public/recipe_media/${step.media.storage_path}`
                     : null;
 
                   return (
-                    <div key={step.id} className="relative pl-12 md:pl-16">
-                      <div className="absolute left-0 top-0 w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center font-bold text-sm font-serif shadow-sm">
-                        {step.step_number}
-                      </div>
-                      <div className="absolute left-[15px] top-10 bottom-[-32px] w-px bg-border last:hidden" />
-                      
-                      <div className="pt-0.5 pb-2">
-                        <p className="text-[17px] leading-relaxed text-foreground/90">{step.instruction}</p>
-                        
-                        {stepImageUrl && (
-                          <div className="mt-5 mb-3 rounded-xl overflow-hidden border border-border/50 max-w-[300px]">
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img src={stepImageUrl} alt={`Paso ${step.step_number}`} className="w-full h-auto object-cover" />
-                          </div>
-                        )}
-                        
-                        {step.duration_minutes && (
-                          <div className="mt-4">
-                            <span className="inline-flex items-center text-xs font-bold text-primary uppercase tracking-wider bg-primary/10 px-2.5 py-1.5 rounded-md">
+                    <div key={step.id} className="bg-card rounded-3xl border border-border p-5 md:p-7 overflow-hidden flex flex-col md:flex-row gap-5 md:gap-6 shadow-sm">
+                      {/* Badge Paso */}
+                      <div className="shrink-0 flex items-center md:items-start justify-between md:justify-start">
+                        <div className="w-10 h-10 rounded-full bg-primary text-white flex items-center justify-center font-bold text-lg font-serif shadow-sm">
+                          {step.step_number}
+                        </div>
+                        {/* En móvil la duración puede ir arriba a la derecha */}
+                        <div className="md:hidden">
+                          {step.duration_minutes && (
+                            <span className="inline-flex items-center text-xs font-bold text-primary uppercase tracking-wider bg-primary/10 px-3 py-1.5 rounded-xl border border-primary/20">
                               <Clock className="w-3.5 h-3.5 mr-1.5" /> {step.duration_minutes} min
                             </span>
-                          </div>
-                        )}
+                          )}
+                        </div>
+                      </div>
+                      
+                      {/* Contenido */}
+                      <div className="flex-1">
+                        <p className="text-[16px] md:text-[17px] leading-relaxed text-foreground/90 whitespace-pre-wrap">{step.instruction}</p>
+                        
+                        <div className="hidden md:flex flex-wrap gap-2 mt-4">
+                          {step.duration_minutes && (
+                            <span className="inline-flex items-center text-xs font-bold text-primary uppercase tracking-wider bg-primary/10 px-3 py-1.5 rounded-xl border border-primary/20">
+                              <Clock className="w-4 h-4 mr-1.5" /> {step.duration_minutes} min
+                            </span>
+                          )}
+                        </div>
                         
                         {step.notes && (
-                          <p className="text-sm text-muted-foreground mt-4 bg-muted/40 p-4 rounded-xl border border-border/30">
+                          <p className="text-sm text-muted-foreground mt-4 bg-muted/40 p-4 rounded-xl border border-border/50">
                             <span className="font-semibold text-charcoal">Nota: </span>{step.notes}
                           </p>
                         )}
                       </div>
+
+                      {/* Imagen */}
+                      {stepImageUrl && (
+                        <div className="shrink-0 w-full md:w-32 lg:w-40 xl:w-48 mt-4 md:mt-0">
+                          <div className="aspect-[4/3] rounded-2xl overflow-hidden border border-border/50 shadow-sm">
+                            <img src={stepImageUrl} alt={`Paso ${step.step_number}`} className="w-full h-full object-cover" />
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )
                 })}
