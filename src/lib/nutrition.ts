@@ -42,6 +42,16 @@ export function calculateNutrition(
     salt_g: 0
   };
   
+  if (!recipeIngredients || !Array.isArray(recipeIngredients)) {
+    return {
+      total: result,
+      perServing: result,
+      coveragePercent: 0,
+      isIncomplete: true,
+      allergens: []
+    };
+  }
+
   let validIngredients = 0;
   let totalIngredients = recipeIngredients.length;
   const uniqueAllergens = new Map<string, Allergen>();
