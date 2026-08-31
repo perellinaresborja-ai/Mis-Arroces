@@ -117,7 +117,7 @@ export default function LayerCalculatorPage() {
           <div className="flex flex-col gap-5">
             {!hasRice && !hasDia && !hasServ && !hasBroth && (
               <p className="text-muted-foreground text-sm italic">
-                Introduce arroz, caldo, diámetro o raciones y te diré cómo hacer la paella perfecta.
+                Introduce arroz, caldo, diámetro o raciones y te diré cómo hacer la paella a tu gusto.
               </p>
             )}
 
