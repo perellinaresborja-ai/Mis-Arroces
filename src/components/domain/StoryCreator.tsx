@@ -9,7 +9,7 @@ import { globalStoryDraftUrl, globalStoryDraftType, globalStoryDraftFile, clearG
 import { SharedStoryRenderer, renderOverlayContent } from './SharedStoryRenderer';
 import { DraggableOverlay } from './stories/DraggableOverlay';
 import { MentionPicker, RecipePicker, IngredientPicker, LocationPicker, GenericSearchPicker, SessionPicker, ProfilePicker } from './stories/StickerPickers';
-import { Camera, User, ChefHat, MapPin, AlignLeft, AlignCenter, AlignRight, Apple, Image as ImageIcon, Trash2 } from 'lucide-react';
+import { Camera, User, ChefHat, MapPin, AlignLeft, AlignCenter, AlignRight, Apple, Image as ImageIcon, Trash2, Paintbrush, Sparkles } from 'lucide-react';
 
 const TEXT_COLORS = ['#ffffff', '#000000', '#ef4444', '#f97316', '#eab308', '#22c55e', '#3b82f6', '#a855f7', '#ec4899'];
 const TEXT_FONTS = ['sans-serif', 'serif', 'monospace', 'Impact'];
@@ -484,31 +484,32 @@ export function StoryCreator({
 
       {mode === 'EDIT' && (
           <div className="p-4 flex flex-col gap-4 h-full">
-
-            <div className="grid grid-cols-4 gap-2">
-              <label className="flex flex-col items-center justify-center gap-1.5 p-3 bg-muted hover:bg-muted/80 rounded-2xl cursor-pointer transition-colors text-foreground">
-                <input type="file" className="sr-only" accept="image/*,video/*" onChange={handleFileChange} />
-                <Camera size={22} className="text-primary"/>
-                <span className="text-[11px] font-bold">Archivo</span>
-              </label>
-              <button onClick={() => setMode('TEXT')} className="flex flex-col items-center justify-center gap-1.5 p-3 bg-muted hover:bg-muted/80 rounded-2xl transition-colors text-foreground">
-                <AlignLeft size={22} className="text-primary"/>
-                <span className="text-[11px] font-bold">Texto</span>
-              </button>
-              <button onClick={() => setMode('DRAW')} className="flex flex-col items-center justify-center gap-1.5 p-3 bg-muted hover:bg-muted/80 rounded-2xl transition-colors text-foreground">
-                <span className="text-2xl leading-none">🖌</span>
-                <span className="text-[11px] font-bold">Dibujar</span>
-              </button>
-              <button onClick={() => setMode('STICKER')} className="flex flex-col items-center justify-center gap-1.5 p-3 bg-muted hover:bg-muted/80 rounded-2xl transition-colors text-foreground">
-                <span className="text-2xl leading-none">☻</span>
-                <span className="text-[11px] font-bold">Stickers</span>
-              </button>
-            </div>
+              <div className={`grid gap-2 ${draftMediaUrl ? 'grid-cols-4' : 'grid-cols-3'}`}>
+                {draftMediaUrl && (
+                  <label className="flex flex-col items-center justify-center gap-1.5 p-3 bg-muted hover:bg-muted/80 rounded-2xl cursor-pointer transition-colors text-foreground">
+                    <input type="file" className="sr-only" accept="image/*,video/*" onChange={handleFileChange} />
+                    <ImageIcon size={22} className="text-primary"/>
+                    <span className="text-[11px] font-bold">Fondo</span>
+                  </label>
+                )}
+                <button onClick={() => setMode('TEXT')} className="flex flex-col items-center justify-center gap-1.5 p-3 bg-muted hover:bg-muted/80 rounded-2xl transition-colors text-foreground">
+                  <AlignLeft size={22} className="text-primary"/>
+                  <span className="text-[11px] font-bold">Texto</span>
+                </button>
+                <button onClick={() => setMode('DRAW')} className="flex flex-col items-center justify-center gap-1.5 p-3 bg-muted hover:bg-muted/80 rounded-2xl transition-colors text-foreground">
+                  <Paintbrush size={22} className="text-primary"/>
+                  <span className="text-[11px] font-bold">Dibujar</span>
+                </button>
+                <button onClick={() => setMode('STICKER')} className="flex flex-col items-center justify-center gap-1.5 p-3 bg-muted hover:bg-muted/80 rounded-2xl transition-colors text-foreground">
+                  <Sparkles size={22} className="text-primary"/>
+                  <span className="text-[11px] font-bold">Stickers</span>
+                </button>
+              </div>
             
             <div className="mt-auto space-y-4">
               <select value={privacy} onChange={e => setPrivacy(e.target.value as 'PUBLIC'|'FOLLOWERS')} className="w-full bg-muted text-foreground font-medium rounded-2xl p-4 border border-border outline-none focus:border-primary">
-                <option value="PUBLIC">🌎 Público (Cualquiera)</option>
-                <option value="FOLLOWERS">👥 Solo Seguidores</option>
+                <option value="PUBLIC">🌎 Público</option>
+                <option value="FOLLOWERS">👥 Seguidores</option>
               </select>
               <button onClick={handlePublish} disabled={isPublishing} className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold p-4 rounded-2xl transition-colors shadow-sm">
                 {isPublishing ? 'Publicando...' : 'Compartir Historia'}
