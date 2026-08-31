@@ -84,30 +84,54 @@ export function DiscoverClient({
         </div>
       </div>
 
-      {/* Tabs (solo si hay búsqueda activa) */}
-      {(initialQ || initialTab !== "todo") && (
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide">
-            {tabs.map(t => (
-              <button
-                key={t.id}
-                onClick={() => updateUrl(q, t.id)}
-                className={`whitespace-nowrap px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-                  activeTab === t.id 
-                    ? "bg-primary text-primary-foreground" 
-                    : "bg-muted text-muted-foreground hover:bg-muted/80"
-                }`}
-              >
-                {t.label}
-              </button>
-            ))}
+      {/* Tabs (solo si hay bǧsqueda activa) */}
+      {(initialQ || initialTab !== "todo" || searchParams.get("style")) && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide">
+              {tabs.map(t => (
+                <button
+                  key={t.id}
+                  onClick={() => updateUrl(q, t.id)}
+                  className={`whitespace-nowrap px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                    activeTab === t.id 
+                      ? "bg-primary text-primary-foreground" 
+                      : "bg-muted text-muted-foreground hover:bg-muted/80"
+                  }`}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
+
+            {activeTab === "arroces" && (
+              <Button variant="outline" size="sm" onClick={() => setShowFilters(!showFilters)} className="rounded-full ml-2 shrink-0">
+                <SlidersHorizontal className="w-4 h-4 mr-2" />
+                Filtros
+              </Button>
+            )}
           </div>
 
+          {/* Quick Style Chips */}
           {activeTab === "arroces" && (
-            <Button variant="outline" size="sm" onClick={() => setShowFilters(!showFilters)} className="rounded-full ml-2 shrink-0">
-              <SlidersHorizontal className="w-4 h-4 mr-2" />
-              Filtros
-            </Button>
+            <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+              {styles.map(s => {
+                const isActive = searchParams.get("style") === s.id
+                return (
+                  <button
+                    key={s.id}
+                    onClick={() => updateUrl(q, "arroces", { style: isActive ? "" : s.id })}
+                    className={`whitespace-nowrap px-4 py-1.5 rounded-full text-sm font-bold transition-colors ${
+                      isActive 
+                        ? "bg-primary text-primary-foreground" 
+                        : "bg-primary/10 text-primary hover:bg-primary/20"
+                    }`}
+                  >
+                    {s.name}
+                  </button>
+                )
+              })}
+            </div>
           )}
         </div>
       )}

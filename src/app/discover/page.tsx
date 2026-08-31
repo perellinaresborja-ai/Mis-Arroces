@@ -28,6 +28,8 @@ export default async function DiscoverPage(props: { searchParams?: Promise<{ q?:
   }
 
   
+  const isSearchActive = Boolean(q || tab !== "todo" || style || variety || hashtag)
+  
   if (hashtag) {
     // Get hashtag info
     const { data: htData } = await supabase.from("hashtags").select("id, name").eq("normalized_name", hashtag.toLowerCase()).single()
@@ -51,7 +53,7 @@ export default async function DiscoverPage(props: { searchParams?: Promise<{ q?:
         }
       }
     }
-  } else if (q || tab !== "todo") {
+  } else if (isSearchActive) {
     const searchQ = q.startsWith("@") ? q.substring(1) : q
 
     if (tab === "todo" || tab === "arroces") {
@@ -113,7 +115,7 @@ export default async function DiscoverPage(props: { searchParams?: Promise<{ q?:
 
   // Queries for Discover Home (when no search)
   let homeData = { popular: [] as any[], recent: [] as any[], users: [] as any[] }
-  if (!q && tab === "todo") {
+  if (!isSearchActive) {
     const { data: popularRecipes, error: popError } = await supabase.from("popular_recipes_v1").select(`
       *,
       author:profiles!recipes_owner_id_fkey(id, username, display_name, avatar:media_assets!fk_profiles_avatar(storage_path)),
@@ -197,9 +199,9 @@ export default async function DiscoverPage(props: { searchParams?: Promise<{ q?:
           {/* Quick Chips Concept */}
           <section>
             <div className="flex gap-2 overflow-x-auto pb-4 scrollbar-hide">
-              {['Seco', 'Caldoso', 'Al horno'].map(term => (
-                <Link key={term} href={`/discover?q=${term}&tab=arroces`} className="px-4 py-2 bg-primary/10 text-primary rounded-full text-sm font-bold whitespace-nowrap shrink-0 hover:bg-primary/20 transition">
-                  {term}
+              {styles.map(style => (
+                <Link key={style.id} href={`/discover?style=${style.id}&tab=arroces`} className="px-4 py-2 bg-primary/10 text-primary rounded-full text-sm font-bold whitespace-nowrap shrink-0 hover:bg-primary/20 transition">
+                  {style.name}
                 </Link>
               ))}
               {['Pescado', 'Marisco', 'Carne', 'Verdura'].map(term => (
