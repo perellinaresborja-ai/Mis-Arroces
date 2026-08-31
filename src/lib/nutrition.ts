@@ -50,8 +50,9 @@ export function calculateNutrition(
     if (!ri.ingredient) continue; // Custom ingredient with no DB map
 
     // 1. Allergens computation
-    if (ri.ingredient_allergens) {
-      for (const ia of ri.ingredient_allergens) {
+    const allergensList = (ri.ingredient as any)?.ingredient_allergens || ri.ingredient_allergens;
+    if (allergensList) {
+      for (const ia of allergensList) {
         if (ia.allergens) {
           uniqueAllergens.set(ia.allergens.id, ia.allergens);
         }
