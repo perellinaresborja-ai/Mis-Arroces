@@ -83,7 +83,7 @@ export function BottomNav() {
               <div className="flex items-center justify-center transition-colors p-1 relative">
                 {item.isAvatar && avatarUrl ? (
                   <div className={cn(
-                    "w-7 h-7 rounded-full overflow-hidden border-2",
+                    "relative w-7 h-7 rounded-full overflow-hidden border-2",
                     isActive ? "border-foreground" : "border-transparent"
                   )}>
                     <MediaImage src={avatarUrl} alt="Perfil" className="w-full h-full object-cover" fill={true} unoptimized={true} />
