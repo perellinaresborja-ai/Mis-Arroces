@@ -1,33 +1,28 @@
-﻿"use client";
+"use client";
 
 import { useState } from "react";
 import { BackButton } from "@/components/domain/BackButton";
-import { calculateLayer, getRecommendedDiameter, getRecommendedRice, LayerType, DEFAULT_RICE_PER_PERSON } from "@/lib/paella-calculator";
+import { calculateLayer, getRecommendedDiameter, getRecommendedRice, LayerType } from "@/lib/paella-calculator";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
-import { Scaling, Info } from "lucide-react";
+import { Scaling, Info, Sparkles } from "lucide-react";
 
 export default function LayerCalculatorPage() {
   const [rice, setRice] = useState<string>('');
   const [diameter, setDiameter] = useState<string>('');
-  const [layer, setLayer] = useState<LayerType>('Fina');
   const [servings, setServings] = useState<string>('');
-  const [rpp, setRpp] = useState<string>(DEFAULT_RICE_PER_PERSON.toString());
 
   const riceNum = Number(rice);
   const diaNum = Number(diameter);
   const servNum = Number(servings);
-  const rppNum = Number(rpp) || DEFAULT_RICE_PER_PERSON;
 
   const hasRice = riceNum > 0;
   const hasDia = diaNum > 0;
-  const hasServings = servNum > 0;
+  const hasServ = servNum > 0;
 
-  // Calculos automÃ¡ticos
+  // Calculos derivados
+  const assumedRice = hasRice ? riceNum : (hasServ ? servNum * 100 : 0);
   const currentLayer = (hasRice && hasDia) ? calculateLayer(riceNum, diaNum) : null;
-  const recDiaTarget = hasRice ? getRecommendedDiameter(riceNum, layer) : null;
-  const recRiceTarget = hasDia ? getRecommendedRice(diaNum, layer) : null;
 
   return (
     <div className="min-h-screen bg-background pb-24">
@@ -40,132 +35,129 @@ export default function LayerCalculatorPage() {
 
       <main className="p-4 md:p-8 max-w-xl mx-auto w-full space-y-6">
         
-        {/* INPUTS BLOCKS */}
+        {/* ÚNICA TARJETA DE INPUTS */}
         <div className="bg-card rounded-3xl border border-border p-6 shadow-sm">
           <div className="flex items-center gap-2 mb-6 text-primary">
             <Scaling className="w-6 h-6" />
-            <h2 className="text-xl font-bold font-serif">Datos de tu Paella</h2>
+            <h2 className="text-xl font-bold font-serif">Tus Datos</h2>
           </div>
 
-          <div className="space-y-6">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Arroz total (g)</Label>
-                <Input type="number" value={rice} onChange={e => setRice(e.target.value)} placeholder="Ej. 800" />
-              </div>
-              <div className="space-y-2">
-                <Label>DiÃ¡metro (cm)</Label>
-                <Input type="number" value={diameter} onChange={e => setDiameter(e.target.value)} placeholder="Ej. 60" />
-              </div>
-            </div>
-
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
-              <Label className="text-xs text-muted-foreground uppercase">Capa deseada</Label>
-              <div className="flex gap-2">
-                {(['Fina', 'Media', 'Abundante'] as LayerType[]).map((l) => (
-                  <Button 
-                    key={l} 
-                    type="button" 
-                    size="sm" 
-                    variant={layer === l ? 'default' : 'outline'} 
-                    onClick={() => setLayer(l)} 
-                    className="flex-1"
-                  >
-                    {l}
-                  </Button>
-                ))}
-              </div>
+              <Label>Arroz total (g)</Label>
+              <Input type="number" value={rice} onChange={e => setRice(e.target.value)} placeholder="Ej. 800" className="bg-background" />
             </div>
-          </div>
-        </div>
-
-        {/* RESULTS BLOCK */}
-        <div className="bg-primary/5 border border-primary/20 rounded-3xl p-6 shadow-sm">
-          <h3 className="text-sm font-bold text-primary uppercase tracking-wider mb-4">Resultado</h3>
-          
-          <div className="flex flex-col gap-4">
-            {!hasRice && !hasDia && (
-              <p className="text-muted-foreground text-sm">Introduce el arroz y/o el diÃ¡metro para calcular.</p>
-            )}
-
-            {/* CASO 1 & 4: Arroz + DiÃ¡metro */}
-            {hasRice && hasDia && currentLayer && (
-              <div>
-                <span className="text-muted-foreground text-sm">Capa actual:</span>
-                <p className="text-3xl font-bold uppercase text-foreground mt-1 mb-4">{currentLayer}</p>
-                
-                {currentLayer === layer ? (
-                  <div className="bg-primary/10 text-primary p-3 rounded-xl border border-primary/20 text-sm font-medium">
-                    Â¡Â¡Tu paella es perfecta para una capa {layer.toLowerCase()}!
-                  </div>
-                ) : (
-                  <div className="space-y-2 bg-background p-4 rounded-xl border border-border/50 text-sm">
-                    <p className="font-semibold text-charcoal mb-2">Para conseguir tu capa {layer.toLowerCase()}:</p>
-                    <p>Paella recomendada: <span className="font-bold text-primary">~{recDiaTarget} cm</span></p>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* CASO 2: Solo Arroz */}
-            {hasRice && !hasDia && (
-              <div>
-                <span className="text-muted-foreground text-sm">Paella recomendada (Capa {layer}):</span>
-                <p className="text-3xl font-bold text-foreground mt-1">~ {recDiaTarget} cm</p>
-              </div>
-            )}
-
-            {/* CASO 3: Solo DiÃ¡metro */}
-            {!hasRice && hasDia && (
-              <div>
-                <span className="text-muted-foreground text-sm">Arroz recomendado (Capa {layer}):</span>
-                <p className="text-3xl font-bold text-foreground mt-1">~ {recRiceTarget} g</p>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* PERSONAS (SECUNDARIO) */}
-        <div className="bg-card rounded-3xl border border-border p-6 shadow-sm">
-          <h3 className="font-bold text-charcoal mb-4">Personas (Opcional)</h3>
-          
-          <div className="grid grid-cols-2 gap-4 mb-4">
+            <div className="space-y-2">
+              <Label>Diámetro (cm)</Label>
+              <Input type="number" value={diameter} onChange={e => setDiameter(e.target.value)} placeholder="Ej. 60" className="bg-background" />
+            </div>
             <div className="space-y-2">
               <Label>Raciones</Label>
-              <Input type="number" value={servings} onChange={e => setServings(e.target.value)} placeholder="Ej. 8" />
-            </div>
-            <div className="space-y-2">
-              <Label>Ref. (g/pers)</Label>
-              <Input type="number" value={rpp} onChange={e => setRpp(e.target.value)} />
+              <Input type="number" value={servings} onChange={e => setServings(e.target.value)} placeholder="Ej. 8" className="bg-background" />
             </div>
           </div>
+        </div>
+
+        {/* TARJETA DE RESULTADOS MÁGICA */}
+        <div className="bg-primary/5 border border-primary/20 rounded-3xl p-6 shadow-sm min-h-[250px]">
+          <div className="flex items-center gap-2 mb-4">
+            <Sparkles className="w-5 h-5 text-primary" />
+            <h3 className="text-sm font-bold text-primary uppercase tracking-wider">La magia</h3>
+          </div>
           
-          {hasServings && (
-            <div className="p-4 bg-muted/30 rounded-xl border border-border text-sm flex flex-col gap-2 mt-2">
-              {hasRice ? (
-                <div className="flex items-start gap-2">
-                  <Info className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-                  <span>
-                    Con {riceNum}g para {servNum} personas, tocan a <span className="font-bold">{Math.round(riceNum / servNum)} g/persona</span>.
-                  </span>
+          <div className="flex flex-col gap-5">
+            {!hasRice && !hasDia && !hasServ && (
+              <p className="text-muted-foreground text-sm italic">
+                Introduce el arroz, el diámetro o las raciones y te diré cómo hacer la paella perfecta.
+              </p>
+            )}
+
+            {/* NOTA RACIONES */}
+            {hasServ && (hasRice || assumedRice > 0) && (
+              <div className="flex items-start gap-2 text-sm bg-primary/10 text-primary p-3 rounded-xl border border-primary/20">
+                <Info className="w-4 h-4 shrink-0 mt-0.5" />
+                <span>
+                  {hasRice 
+                    ? `Con ${riceNum}g tocan a ${Math.round(riceNum / servNum)} g/persona.`
+                    : `Calculando ${assumedRice}g de arroz en total (${Math.round(assumedRice / servNum)} g/persona).`}
+                </span>
+              </div>
+            )}
+
+            {/* CASO 1: ARROZ + DIÁMETRO */}
+            {hasRice && hasDia && currentLayer && (
+              <div className="space-y-4">
+                <div>
+                  <span className="text-muted-foreground text-sm block mb-1">Con estos datos tu capa será:</span>
+                  <p className="text-4xl font-bold uppercase text-foreground">{currentLayer}</p>
                 </div>
-              ) : (!hasRice && hasDia && recRiceTarget ? (
-                <div className="flex items-start gap-2">
-                  <Info className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-                  <span>
-                    Usando {recRiceTarget}g para {servNum} personas, tocarÃ­an a <span className="font-bold">{Math.round(recRiceTarget / servNum)} g/persona</span>.
-                  </span>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4">
+                  {currentLayer !== 'Fina' && (
+                    <div className="bg-background p-4 rounded-xl border border-border/50 text-sm">
+                      <span className="font-bold text-charcoal block mb-1">Si la quieres Fina:</span>
+                      Usa paella de <span className="font-bold text-primary">~{getRecommendedDiameter(riceNum, 'Fina')} cm</span> o pon <span className="font-bold text-primary">~{getRecommendedRice(diaNum, 'Fina')}g</span> de arroz.
+                    </div>
+                  )}
+                  {currentLayer !== 'Media' && (
+                    <div className="bg-background p-4 rounded-xl border border-border/50 text-sm">
+                      <span className="font-bold text-charcoal block mb-1">Si la quieres Media:</span>
+                      Usa paella de <span className="font-bold text-primary">~{getRecommendedDiameter(riceNum, 'Media')} cm</span> o pon <span className="font-bold text-primary">~{getRecommendedRice(diaNum, 'Media')}g</span> de arroz.
+                    </div>
+                  )}
+                  {currentLayer !== 'Abundante' && (
+                    <div className="bg-background p-4 rounded-xl border border-border/50 text-sm">
+                      <span className="font-bold text-charcoal block mb-1">Si la quieres Abundante:</span>
+                      Usa paella de <span className="font-bold text-primary">~{getRecommendedDiameter(riceNum, 'Abundante')} cm</span> o pon <span className="font-bold text-primary">~{getRecommendedRice(diaNum, 'Abundante')}g</span> de arroz.
+                    </div>
+                  )}
                 </div>
-              ) : (
-                <div className="flex items-center justify-between">
-                  <span>Si usas {rppNum} g/persona:</span>
-                  <Button variant="secondary" size="sm" onClick={() => setRice(String(servNum * rppNum))}>
-                    Fijar arroz a {servNum * rppNum} g
-                  </Button>
+              </div>
+            )}
+
+            {/* CASO 2: SOLO ARROZ (O SOLO RACIONES calculadas) Y NO DIAMETRO */}
+            {assumedRice > 0 && !hasDia && (
+              <div>
+                <span className="text-muted-foreground text-sm block mb-3">Diámetro recomendado para {assumedRice}g:</span>
+                <div className="grid grid-cols-3 gap-3 text-center">
+                  <div className="bg-background p-3 rounded-xl border border-border/50">
+                    <span className="block text-xs uppercase text-muted-foreground mb-1">Fina</span>
+                    <span className="font-bold text-lg text-primary">~{getRecommendedDiameter(assumedRice, 'Fina')} cm</span>
+                  </div>
+                  <div className="bg-background p-3 rounded-xl border border-border/50 shadow-sm border-primary/30">
+                    <span className="block text-xs uppercase text-muted-foreground mb-1 font-bold text-primary">Media</span>
+                    <span className="font-bold text-xl text-primary">~{getRecommendedDiameter(assumedRice, 'Media')} cm</span>
+                  </div>
+                  <div className="bg-background p-3 rounded-xl border border-border/50">
+                    <span className="block text-xs uppercase text-muted-foreground mb-1">Abundante</span>
+                    <span className="font-bold text-lg text-primary">~{getRecommendedDiameter(assumedRice, 'Abundante')} cm</span>
+                  </div>
                 </div>
-              ))}
-            </div>
-          )}
+              </div>
+            )}
+
+            {/* CASO 3: SOLO DIÁMETRO Y NO ARROZ */}
+            {hasDia && !hasRice && !hasServ && (
+              <div>
+                <span className="text-muted-foreground text-sm block mb-3">Arroz recomendado para {diaNum}cm:</span>
+                <div className="grid grid-cols-3 gap-3 text-center">
+                  <div className="bg-background p-3 rounded-xl border border-border/50">
+                    <span className="block text-xs uppercase text-muted-foreground mb-1">Fina</span>
+                    <span className="font-bold text-lg text-primary">~{getRecommendedRice(diaNum, 'Fina')} g</span>
+                  </div>
+                  <div className="bg-background p-3 rounded-xl border border-border/50 shadow-sm border-primary/30">
+                    <span className="block text-xs uppercase text-muted-foreground mb-1 font-bold text-primary">Media</span>
+                    <span className="font-bold text-xl text-primary">~{getRecommendedRice(diaNum, 'Media')} g</span>
+                  </div>
+                  <div className="bg-background p-3 rounded-xl border border-border/50">
+                    <span className="block text-xs uppercase text-muted-foreground mb-1">Abundante</span>
+                    <span className="font-bold text-lg text-primary">~{getRecommendedRice(diaNum, 'Abundante')} g</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+          </div>
         </div>
 
       </main>
