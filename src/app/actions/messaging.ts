@@ -139,7 +139,7 @@ export async function sendMessage(params: { conversationId: string; type: 'TEXT'
   
   if (members && members.length > 0) {
     const targetUserId = members[0].user_id
-    await createNotification(targetUserId, 'NEW_MESSAGE', conversationId, user.id, { message_id: msg.id })
+    await createNotification(targetUserId, 'NEW_MESSAGE', 'conversation', conversationId, { message_id: msg.id, conversation_id: conversationId })
   }
 
   return { success: true, id: msg.id }
@@ -228,7 +228,7 @@ export async function notifyNewMessage(conversationId: string, messageId: string
     .neq('user_id', user.id);
   
   if (members && members.length > 0) {
-    await createNotification(members[0].user_id, 'NEW_MESSAGE', conversationId, user.id, { message_id: messageId });
+    await createNotification(members[0].user_id, 'NEW_MESSAGE', 'conversation', conversationId, { message_id: messageId, conversation_id: conversationId });
   }
 }
 

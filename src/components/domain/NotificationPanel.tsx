@@ -39,7 +39,10 @@ export function NotificationPanel({ onClose, onRead }: { onClose: () => void, on
     }
 
     // Routing logic
-    if (notif.type === 'NEW_MESSAGE') { router.push(`/messages/${notif.payload?.conversation_id}`); }
+    if (notif.type === 'NEW_MESSAGE') { 
+      const cid = notif.payload?.conversation_id || notif.entity_type;
+      router.push(`/messages/${cid}`); 
+    }
     else if (notif.type === 'FOLLOW' || notif.type === 'FOLLOW_ACCEPT') {
         const url = notif.actor?.username ? `/@${notif.actor.username}` : `/${notif.actor?.id}`;
         router.push(url);
