@@ -53,11 +53,6 @@ export function BottomNav() {
       label: "Recetario",
     },
     {
-      href: "/calculadora-capa",
-      icon: Calculator,
-      label: "Calculadora",
-    },
-    {
       href: "/me",
       icon: User, // Fallback if no avatar
       label: "Perfil",
