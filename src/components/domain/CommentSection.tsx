@@ -381,7 +381,8 @@ export function CommentSection({ entityType, entityId, comments, currentUserId, 
         onConfirm={confirmDeleteAction}
         title="Eliminar comentario"
         message="¿Estás seguro de que quieres eliminar este comentario? Esta acción no se puede deshacer."
-        confirmText="Eliminar"`nisDestructive={true}
+        confirmText="Eliminar"
+        isDestructive={true}
       />
 
       <div className="space-y-4">
