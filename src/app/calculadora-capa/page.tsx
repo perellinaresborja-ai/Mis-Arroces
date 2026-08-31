@@ -51,13 +51,12 @@ export default function LayerCalculatorPage() {
   const summaryText = summaryParts.join(' · ');
 
   const handleShare = async () => {
-    const text = `🥘 misarroces\n${summaryText}\nCapa: ${currentLayer}\n${brothRatio ? 'Arroz/caldo: 1:' + brothRatio : ''}`;
+    const text = `🥘 misarroces\n${summaryText}\nCapa: ${currentLayer}\n${brothRatio ? 'Arroz/caldo: 1:' + brothRatio : ''}\n\n${window.location.href}`;
     if (navigator.share) {
       try {
         await navigator.share({
           title: 'misarroces',
-          text: text,
-          url: window.location.href
+          text: text
         });
       } catch (e) {}
     } else {
