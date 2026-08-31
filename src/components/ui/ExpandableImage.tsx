@@ -47,19 +47,20 @@ export function ExpandableImage({ src, alt, className }: ExpandableImageProps) {
           className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 animate-in fade-in duration-200"
           onClick={() => setIsOpen(false)}
         >
-          <button 
-            className="absolute top-4 right-4 md:top-6 md:right-6 p-2 rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors"
-            onClick={(e) => { e.stopPropagation(); setIsOpen(false); }}
-            title="Cerrar (Esc)"
-          >
-            <X className="w-8 h-8" />
-          </button>
-          <img 
-            src={src} 
-            alt={alt} 
-            className="max-w-[95vw] max-h-[90vh] object-contain rounded-lg animate-in zoom-in-95 duration-200 shadow-2xl" 
-            onClick={(e) => e.stopPropagation()} 
-          />
+          <div className="relative inline-flex animate-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
+            <img 
+              src={src} 
+              alt={alt} 
+              className="max-w-[95vw] max-h-[90vh] object-contain rounded-xl shadow-2xl" 
+            />
+            <button 
+              className="absolute top-2 right-2 md:top-3 md:right-3 p-1.5 md:p-2 rounded-full bg-black/50 text-white hover:bg-black/70 backdrop-blur-sm transition-colors border border-white/10 shadow-sm"
+              onClick={(e) => { e.stopPropagation(); setIsOpen(false); }}
+              title="Cerrar (Esc)"
+            >
+              <X className="w-5 h-5 md:w-6 md:h-6" />
+            </button>
+          </div>
         </div>,
         document.body
       )}
