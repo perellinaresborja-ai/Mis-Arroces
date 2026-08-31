@@ -56,7 +56,7 @@ export async function getCatalogs() {
     supabase.from("vessel_types").select("*"),
     supabase.from("heat_sources").select("*"),
     supabase.from("units").select("*"),
-    supabase.from("ingredients").select("id, normalized_name, kcal_per_100, protein_g_per_100, carbs_g_per_100, sugar_g_per_100, fat_g_per_100, saturated_fat_g_per_100, fiber_g_per_100, salt_g_per_100, nutrition_complete, default_grams_per_unit, ingredient_allergens(allergens(*))"),
+    supabase.from("ingredients").select("id, normalized_name, kcal_per_100, protein_g_per_100, carbs_g_per_100, sugar_g_per_100, fat_g_per_100, saturated_fat_g_per_100, fiber_g_per_100, salt_g_per_100, nutrition_complete, default_grams_per_unit, ingredient_allergens(allergens(*)), ingredient_aliases(normalized_alias)"),
   ])
 
   return {

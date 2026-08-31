@@ -215,8 +215,38 @@ export default function EditRecipeForm({ recipe, catalogs }: { recipe: any, cata
         matchedIng = catalogs?.ingredients?.find((i: any) => i.id === wi.canonical_ingredient_id);
       }
       if (!matchedIng && wi.display_text) {
-        const query = wi.display_text.trim().toLowerCase();
-        matchedIng = catalogs?.ingredients?.find((i: any) => query.includes(i.normalized_name));
+        const normalize = (s: string) => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, "").replace(/[^\w\s]/g, '').trim().replace(/\s+/g, ' ');
+        const query = normalize(wi.display_text);
+        
+        if (query) {
+          // 1. Exact match on normalized name
+          matchedIng = catalogs?.ingredients?.find((i: any) => i.normalized_name === query);
+          
+          // 2. Exact match on aliases
+          if (!matchedIng) {
+            matchedIng = catalogs?.ingredients?.find((i: any) => 
+              i.ingredient_aliases?.some((a: any) => a.normalized_alias === query)
+            );
+          }
+          
+          // 3. Very high confidence inclusion match (e.g. "aceite de oliva" inside "aceoite de oliva virgen extra") 
+          // Actually, let's keep it strict or allow simple includes if length > 4 to avoid false positives.
+          if (!matchedIng && query.length > 4) {
+            const candidates = catalogs?.ingredients?.filter((i: any) => 
+              query.includes(i.normalized_name) || i.normalized_name.includes(query)
+            ) || [];
+            
+            // Only assign if there is EXACTLY ONE very clear candidate to avoid ambiguity
+            if (candidates.length === 1) {
+              matchedIng = candidates[0];
+            }
+          }
+          
+          // Ensure we update canonical_ingredient_id for saving!
+          if (matchedIng) {
+            wi.canonical_ingredient_id = matchedIng.id;
+          }
+        }
       }
       return {
         ...wi,
