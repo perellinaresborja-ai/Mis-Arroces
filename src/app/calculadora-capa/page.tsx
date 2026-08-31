@@ -5,6 +5,7 @@ import { BackButton } from "@/components/domain/BackButton";
 import { calculateLayer, getRecommendedDiameter, getRecommendedRice, LayerType } from "@/lib/paella-calculator";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
 import { Scaling, Info, Sparkles, ChefHat } from "lucide-react";
 
 export default function LayerCalculatorPage() {
