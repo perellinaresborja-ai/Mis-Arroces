@@ -448,34 +448,46 @@ export default function EditRecipeForm({ recipe, catalogs }: { recipe: any, cata
             </Button>}>
           <div className="space-y-4">
             {stepFields.map((field, idx) => (
-              <div key={field.id} className="flex gap-2 items-start bg-muted/50 p-2 md:p-3 rounded-lg border border-border/50">
-                <div className="flex flex-col gap-1">
-                  <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => moveStep(idx, idx - 1)} disabled={idx === 0}><ChevronUp className="w-4 h-4" /></Button>
-                  <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => moveStep(idx, idx + 1)} disabled={idx === stepFields.length - 1}><ChevronDown className="w-4 h-4" /></Button>
+              <div key={field.id} className="relative flex flex-col md:flex-row gap-3 md:gap-4 items-start bg-muted/40 p-3 md:p-5 rounded-3xl border border-border shadow-sm">
+                
+                {/* Controles de orden */}
+                <div className="flex md:flex-col gap-1 items-center shrink-0 md:pt-8">
+                  <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground" onClick={() => moveStep(idx, idx - 1)} disabled={idx === 0}><ChevronUp className="w-5 h-5" /></Button>
+                  <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground" onClick={() => moveStep(idx, idx + 1)} disabled={idx === stepFields.length - 1}><ChevronDown className="w-5 h-5" /></Button>
                 </div>
-                <div className="shrink-0 pt-1">
-                    <StepMediaManager 
-                      initialMedia={field.mediaItem || null}
-                      onChange={(item) => setValue(`steps.${idx}.mediaItem`, item)}
+                
+                {/* Media Manager (Left Card) */}
+                <div className="shrink-0 w-full md:w-auto flex justify-center md:justify-start">
+                  <StepMediaManager 
+                    initialMedia={field.mediaItem || null}
+                    onChange={(item) => setValue(`steps.${idx}.mediaItem`, item)}
+                  />
+                </div>
+                
+                {/* Text Area (Center/Right Section) */}
+                <div className="flex-1 space-y-3 w-full md:max-w-[65%] ml-auto md:pl-4">
+                  <div className="relative">
+                    <span className="absolute -top-2.5 left-3 bg-muted px-1.5 text-[10px] font-bold text-muted-foreground uppercase tracking-wider rounded">Paso {idx + 1}</span>
+                    <textarea 
+                      {...register(`steps.${idx}.instruction`, { required: true })}
+                      className="flex min-h-[90px] w-full rounded-2xl border border-border bg-background px-4 py-3 text-sm ring-offset-background placeholder:text-muted-foreground/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 resize-y"
+                      placeholder="Ej. Sofreír la carne a fuego medio hasta que esté dorada." 
                     />
                   </div>
-                  <div className="flex-1 space-y-2 w-full">
-                    <textarea 
-                    {...register(`steps.${idx}.instruction`, { required: true })}
-                    className="flex min-h-[60px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                    placeholder={`Paso ${idx + 1}... Ej. Sofreír la carne.`} 
-                  />
-                  <div className="flex flex-col md:flex-row gap-2">
-                    <Input type="number" placeholder="Duración (min)" {...register(`steps.${idx}.duration_minutes`)} className="md:w-1/3" />
-                    <Input placeholder="Notas opcionales (fuego medio, etc.)" {...register(`steps.${idx}.notes`)} className="md:w-2/3" />
+                  
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <Input type="number" placeholder="Tiempo (min)" {...register(`steps.${idx}.duration_minutes`)} className="sm:w-1/3 rounded-xl bg-background" />
+                    <Input placeholder="Notas (ej. Fuego fuerte)" {...register(`steps.${idx}.notes`)} className="sm:w-2/3 rounded-xl bg-background" />
                   </div>
                 </div>
-                <Button type="button" variant="ghost" size="icon" className="text-destructive shrink-0" onClick={() => removeStep(idx)}>
-                  <Trash2 className="w-4 h-4" />
+
+                {/* Acciones */}
+                <Button type="button" variant="ghost" size="icon" className="text-destructive/70 hover:text-destructive hover:bg-destructive/10 shrink-0 absolute md:static right-4 top-4" onClick={() => removeStep(idx)}>
+                  <Trash2 className="w-5 h-5" />
                 </Button>
               </div>
             ))}
-            {stepFields.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">No hay pasos añadidos.</p>}
+            {stepFields.length === 0 && <p className="text-sm text-muted-foreground text-center py-6">No hay pasos añadidos. Escribe el primer paso.</p>}
           </div>
         </CollapsibleSection>
 

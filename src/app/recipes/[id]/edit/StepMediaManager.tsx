@@ -66,13 +66,13 @@ export function StepMediaManager({ initialMedia, onChange }: StepMediaManagerPro
         <button 
           type="button" 
           onClick={() => inputRef.current?.click()}
-          className="h-24 w-24 flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-border hover:border-primary/50 hover:bg-primary/5 transition-colors text-muted-foreground"
+          className="w-32 h-32 md:w-40 md:h-32 flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-border hover:border-primary/50 hover:bg-primary/5 transition-colors text-muted-foreground"
         >
           <Camera className="w-6 h-6 mb-1 opacity-70" />
-          <span className="text-[10px] font-medium">Añadir foto</span>
+          <span className="text-xs font-medium">Añadir foto</span>
         </button>
       ) : (
-        <div className="relative h-24 w-24 rounded-xl overflow-hidden border border-border group bg-black">
+        <div className="relative w-32 h-32 md:w-40 md:h-32 rounded-2xl overflow-hidden border border-border group bg-black">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img 
             src={item.type === 'new' ? item.previewUrl : item.url} 
@@ -83,9 +83,9 @@ export function StepMediaManager({ initialMedia, onChange }: StepMediaManagerPro
             <button 
               type="button"
               onClick={removeMedia}
-              className="bg-black/60 text-white rounded-full p-1 hover:bg-black transition-colors"
+              className="bg-black/60 text-white rounded-full p-1.5 hover:bg-black transition-colors"
             >
-              <X className="w-3 h-3" />
+              <X className="w-3.5 h-3.5" />
             </button>
           </div>
         </div>
