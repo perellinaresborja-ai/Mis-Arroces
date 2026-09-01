@@ -563,14 +563,14 @@ export default function EditRecipeForm({ recipe, catalogs }: { recipe: any, cata
           </CollapsibleSection>
         )}
 
-        <CollapsibleSection title="Información Nutricional (Cálculo automático)">
+        <CollapsibleSection title="Información Nutricional">
           <div className="text-sm text-muted-foreground mb-4">
             Los valores nutricionales se calculan automáticamente basándose en los ingredientes canónicos. No es necesario introducirlos a mano.
           </div>
           <NutritionSection result={nutritionResult} servings={watchedPortions || 1} hideTitle />
         </CollapsibleSection>
 
-        <CollapsibleSection title="Alérgenos (Cálculo automático)">
+        <CollapsibleSection title="Alérgenos">
           <div className="text-sm text-muted-foreground mb-4">
             Los alérgenos se detectan automáticamente. Si falta alguno, asegúrate de que el ingrediente esté bien escrito.
           </div>
