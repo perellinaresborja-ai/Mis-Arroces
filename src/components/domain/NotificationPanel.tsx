@@ -31,9 +31,9 @@ export function NotificationPanel({ onClose, onRead }: { onClose: () => void, on
     onRead()
   }
 
-  const handleNotificationClick = async (notif: any) => {
+  const handleNotificationClick = (notif: any) => {
     if (!notif.is_read) {
-      await markNotificationRead(notif.id)
+      markNotificationRead(notif.id).catch(console.error)
       setNotifications(notifications.map(n => n.id === notif.id ? { ...n, is_read: true } : n))
       onRead()
     }
