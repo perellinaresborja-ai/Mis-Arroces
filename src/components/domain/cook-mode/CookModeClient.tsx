@@ -51,16 +51,17 @@ export function CookModeClient({ recipe }: { recipe: CookModeRecipe }) {
           const now = Date.now()
           const restoredTimers: Record<number, TimerState> = {}
           for (const key in parsedTimers) {
+            const numKey = Number(key);
             const t = parsedTimers[key]
             if (t.isRunning && t.endTime) {
               const remaining = t.endTime - now
-              restoredTimers[key] = {
+              restoredTimers[numKey] = {
                 ...t,
                 remainingMs: remaining > 0 ? remaining : 0,
                 isRunning: remaining > 0
               }
             } else {
-              restoredTimers[key] = t
+              restoredTimers[numKey] = t
             }
           }
           setTimers(restoredTimers)
@@ -130,11 +131,12 @@ export function CookModeClient({ recipe }: { recipe: CookModeRecipe }) {
         const now = Date.now()
         
         for (const key in next) {
-          const t = next[key]
+          const numKey = Number(key);
+          const t = next[numKey]
           if (t.isRunning && t.endTime) {
             const rem = t.endTime - now
             if (rem <= 0) {
-              next[key] = { ...t, remainingMs: 0, isRunning: false, endTime: null }
+              next[numKey] = { ...t, remainingMs: 0, isRunning: false, endTime: null }
               changed = true
               // Play sound/vibrate
               if ('vibrate' in navigator) navigator.vibrate([200, 100, 200])
@@ -147,7 +149,7 @@ export function CookModeClient({ recipe }: { recipe: CookModeRecipe }) {
                 osc.stop(ctx.currentTime + 0.5)
               } catch(e) {}
             } else {
-              next[key] = { ...t, remainingMs: rem }
+              next[numKey] = { ...t, remainingMs: rem }
               changed = true
             }
           }
