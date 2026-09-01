@@ -25,7 +25,9 @@ export interface FeedCardProps {
   createdAt: string
   
   // Counts & State
-  reactions: { emoji: string; user_id: string }[]
+  reactions?: { emoji: string; user_id: string }[]
+  initialGroupedReactions?: Record<string, number>
+  initialMyReaction?: string | null
   commentCount: number
   currentUserId: string | null
   followStatus?: string | null
@@ -52,7 +54,9 @@ export function FeedCard({
   entityId,
   user: initialUser,
   createdAt,
-  reactions = [],
+  reactions,
+  initialGroupedReactions,
+  initialMyReaction,
   commentCount,
   currentUserId,
   followStatus,
@@ -174,6 +178,8 @@ export function FeedCard({
           entityType={entityType} 
           entityId={entityId} 
           reactions={reactions}
+          initialGroupedReactions={initialGroupedReactions}
+          initialMyReaction={initialMyReaction}
           currentUserId={currentUserId}
         />
         

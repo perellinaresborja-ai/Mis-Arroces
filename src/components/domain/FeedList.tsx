@@ -46,6 +46,8 @@ export function FeedList({ initialItems, currentUserId }: { initialItems: any[],
               user={item.data.author}
               createdAt={item.created_at}
               reactions={item.reactions}
+              initialGroupedReactions={item.initialGroupedReactions}
+              initialMyReaction={item.initialMyReaction}
               commentCount={item.commentCount}
               currentUserId={currentUserId}
               followStatus={(item as any).followStatus}
@@ -66,6 +68,8 @@ export function FeedList({ initialItems, currentUserId }: { initialItems: any[],
               user={item.data.author}
               createdAt={item.created_at}
               reactions={item.reactions}
+              initialGroupedReactions={item.initialGroupedReactions}
+              initialMyReaction={item.initialMyReaction}
               commentCount={item.commentCount}
               currentUserId={currentUserId}
               followStatus={(item as any).followStatus}
@@ -86,6 +90,8 @@ export function FeedList({ initialItems, currentUserId }: { initialItems: any[],
               user={item.data.author}
               createdAt={item.created_at}
               reactions={item.reactions}
+              initialGroupedReactions={item.initialGroupedReactions}
+              initialMyReaction={item.initialMyReaction}
               commentCount={item.commentCount}
               currentUserId={currentUserId}
               followStatus={(item as any).followStatus}

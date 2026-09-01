@@ -32,9 +32,9 @@ export async function fetchFeedPage(pageIndex: number = 0) {
   const sessionIds = feedItems?.filter(i => i.entity_type === 'session').map(i => i.entity_id).filter((id): id is string => id !== null) || []
 
   const [postsRes, recipesRes, sessionsRes, commentsRes] = await Promise.all([
-    postIds.length > 0 ? supabase.from("social_posts").select(`*, author:profiles!social_posts_author_id_fkey(id, username, display_name, privacy_level, avatar:media_assets!fk_profiles_avatar(storage_path)), post_media(display_order, media:media_assets(id, storage_path)), recipe:recipes(id, name), reactions:post_likes(emoji, user_id)`).in("id", postIds) : { data: [] },
-    recipeIds.length > 0 ? supabase.from("recipes").select(`*, author:profiles!recipes_owner_id_fkey(id, username, display_name, privacy_level, avatar:media_assets!fk_profiles_avatar(storage_path)), recipe_media(display_order, media:media_assets(id, storage_path)), reactions:recipe_likes(emoji, user_id)`).in("id", recipeIds) : { data: [] },
-    sessionIds.length > 0 ? supabase.from("cooking_sessions").select(`*, author:profiles!cooking_sessions_user_id_fkey(id, username, display_name, privacy_level, avatar:media_assets!fk_profiles_avatar(storage_path)), session_media(display_order, media:media_assets(id, storage_path)), recipe:recipes(id, name), reactions:session_likes(emoji, user_id)`).in("id", sessionIds) : { data: [] },
+    postIds.length > 0 ? supabase.from("social_posts").select(`*, author:profiles!social_posts_author_id_fkey(id, username, display_name, privacy_level, avatar:media_assets!fk_profiles_avatar(storage_path)), post_media(display_order, media:media_assets(id, storage_path)), recipe:recipes(id, name)`).in("id", postIds) : { data: [] },
+    recipeIds.length > 0 ? supabase.from("recipes").select(`*, author:profiles!recipes_owner_id_fkey(id, username, display_name, privacy_level, avatar:media_assets!fk_profiles_avatar(storage_path)), recipe_media(display_order, media:media_assets(id, storage_path))`).in("id", recipeIds) : { data: [] },
+    sessionIds.length > 0 ? supabase.from("cooking_sessions").select(`*, author:profiles!cooking_sessions_user_id_fkey(id, username, display_name, privacy_level, avatar:media_assets!fk_profiles_avatar(storage_path)), session_media(display_order, media:media_assets(id, storage_path)), recipe:recipes(id, name)`).in("id", sessionIds) : { data: [] },
     supabase.from("feed_metrics").select("*").in("entity_id", feedItems?.map(i => i.entity_id).filter(Boolean) || [])
   ])
 
@@ -43,7 +43,12 @@ export async function fetchFeedPage(pageIndex: number = 0) {
   const sessions = sessionsRes.data || []
 
   const metricsMap = (commentsRes?.data || []).reduce((acc: any, val: any) => {
-    acc[`${val.entity_type}:${val.entity_id}`] = { likeCount: val.like_count || 0, commentCount: val.comment_count || 0 };
+    acc[`${val.entity_type}:${val.entity_id}`] = { 
+      likeCount: val.like_count || 0, 
+      commentCount: val.comment_count || 0,
+      groupedReactions: val.grouped_reactions || {},
+      myReaction: val.current_user_reaction || null
+    };
     return acc;
   }, {});
 
@@ -53,17 +58,17 @@ export async function fetchFeedPage(pageIndex: number = 0) {
       if (item.entity_type === 'post') {
         const data = posts.find(p => p.id === entityId)
         if (!data) return null
-        return { ...item, data, reactions: data.reactions || [], commentCount: metricsMap[metricsKey]?.commentCount || 0, followStatus: typeof followStatusMap !== "undefined" ? followStatusMap[data.author?.id] || null : null }
+        return { ...item, data, reactions: undefined, initialGroupedReactions: metricsMap[metricsKey]?.groupedReactions || {}, initialMyReaction: metricsMap[metricsKey]?.myReaction || null, commentCount: metricsMap[metricsKey]?.commentCount || 0, followStatus: typeof followStatusMap !== "undefined" ? followStatusMap[data.author?.id] || null : null }
       }
     if (item.entity_type === 'recipe') {
       const data = recipes.find(r => r.id === entityId)
       if (!data) return null
-      return { ...item, data, reactions: data.reactions || [], commentCount: metricsMap[metricsKey]?.commentCount || 0, followStatus: typeof followStatusMap !== "undefined" ? followStatusMap[data.author?.id] || null : null }
+      return { ...item, data, reactions: undefined, initialGroupedReactions: metricsMap[metricsKey]?.groupedReactions || {}, initialMyReaction: metricsMap[metricsKey]?.myReaction || null, commentCount: metricsMap[metricsKey]?.commentCount || 0, followStatus: typeof followStatusMap !== "undefined" ? followStatusMap[data.author?.id] || null : null }
     }
     if (item.entity_type === 'session') {
       const data = sessions.find(s => s.id === entityId)
       if (!data) return null
-      return { ...item, data, reactions: data.reactions || [], commentCount: metricsMap[metricsKey]?.commentCount || 0, followStatus: typeof followStatusMap !== "undefined" ? followStatusMap[data.author?.id] || null : null }
+      return { ...item, data, reactions: undefined, initialGroupedReactions: metricsMap[metricsKey]?.groupedReactions || {}, initialMyReaction: metricsMap[metricsKey]?.myReaction || null, commentCount: metricsMap[metricsKey]?.commentCount || 0, followStatus: typeof followStatusMap !== "undefined" ? followStatusMap[data.author?.id] || null : null }
     }
     return null
   }).filter(Boolean) || []

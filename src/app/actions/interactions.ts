@@ -17,16 +17,16 @@ export async function toggleCommentReaction(entityType: EntityType, commentId: s
 
   const table = entityType + "_comment_likes"
 
-  const { data: existing } = await supabase.from(table).select("emoji").match({ comment_id: commentId, user_id: user.id }).maybeSingle()
+  const { data: existing } = await supabase.from(table as any).select("emoji").match({ comment_id: commentId, user_id: user.id }).maybeSingle()
 
   if (existing) {
     if (existing.emoji === emoji) {
-      await supabase.from(table).delete().match({ comment_id: commentId, user_id: user.id })
+      await supabase.from(table as any).delete().match({ comment_id: commentId, user_id: user.id })
     } else {
-      await supabase.from(table).update({ emoji }).match({ comment_id: commentId, user_id: user.id })
+      await supabase.from(table as any).update({ emoji }).match({ comment_id: commentId, user_id: user.id })
     }
   } else {
-    await supabase.from(table).insert({ comment_id: commentId, user_id: user.id, emoji })
+    await supabase.from(table as any).insert({ comment_id: commentId, user_id: user.id, emoji })
   }
 
   if (pathToRevalidate) {
@@ -42,19 +42,19 @@ export async function toggleLike(entityType: EntityType, entityId: string, emoji
   const table = entityType + "_likes"
   const idCol = entityType + "_id"
 
-  const { data: existing } = await supabase.from(table).select("emoji").match({ [idCol]: entityId, user_id: user.id }).maybeSingle()
+  const { data: existing } = await supabase.from(table as any).select("emoji").match({ [idCol]: entityId, user_id: user.id }).maybeSingle()
 
   if (existing) {
     if (existing.emoji === emoji) {
       // Remove reaction if clicking the same emoji
-      await supabase.from(table).delete().match({ [idCol]: entityId, user_id: user.id })
+      await supabase.from(table as any).delete().match({ [idCol]: entityId, user_id: user.id })
     } else {
       // Change reaction
-      await supabase.from(table).update({ emoji }).match({ [idCol]: entityId, user_id: user.id })
+      await supabase.from(table as any).update({ emoji }).match({ [idCol]: entityId, user_id: user.id })
     }
   } else {
     // Add new reaction
-    await supabase.from(table).insert({ [idCol]: entityId, user_id: user.id, emoji })
+    await supabase.from(table as any).insert({ [idCol]: entityId, user_id: user.id, emoji })
   }
 
   if (pathToRevalidate) {

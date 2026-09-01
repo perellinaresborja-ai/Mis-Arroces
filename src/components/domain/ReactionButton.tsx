@@ -11,7 +11,9 @@ import { useAuthPrompt } from "@/components/providers/AuthPromptProvider"
 interface ReactionButtonProps {
   entityType: "recipe" | "session" | "post"
   entityId: string
-  reactions: { emoji: string; user_id: string }[]
+  reactions?: { emoji: string; user_id: string }[]
+  initialGroupedReactions?: Record<string, number>
+  initialMyReaction?: string | null
   className?: string
   iconClassName?: string
   currentUserId: string | null
@@ -21,6 +23,8 @@ export function ReactionButton({
   entityType, 
   entityId, 
   reactions = [],
+  initialGroupedReactions,
+  initialMyReaction,
   className,
   iconClassName,
   currentUserId
@@ -28,7 +32,12 @@ export function ReactionButton({
   const { showAuthPrompt } = useAuthPrompt()
   const pathname = usePathname()
   const [isPending, startTransition] = useTransition()
+  
   const [optimisticReactions, setOptimisticReactions] = useState(reactions || [])
+  const [optGrouped, setOptGrouped] = useState<Record<string, number>>(initialGroupedReactions || {})
+  const [optMyReaction, setOptMyReaction] = useState<string | null>(initialMyReaction || null)
+  const useGroupedMode = initialGroupedReactions !== undefined
+  
   const [showReactionMenu, setShowReactionMenu] = useState(false)
   const [showReactionAnim, setShowReactionAnim] = useState(false)
 
@@ -45,31 +54,50 @@ export function ReactionButton({
     
     setShowReactionMenu(false)
     
-    setOptimisticReactions(prev => {
-      const existingIdx = prev.findIndex(r => r.user_id === currentUserId)
-      if (existingIdx !== -1) {
-        if (prev[existingIdx].emoji === emoji) {
-          return prev.filter(r => r.user_id !== currentUserId)
-        } else {
-          const newArr = [...prev]
-          newArr[existingIdx] = { ...newArr[existingIdx], emoji }
-          return newArr
+    if (useGroupedMode) {
+      setOptGrouped(prev => {
+        const next = { ...prev }
+        if (optMyReaction) {
+          next[optMyReaction] = Math.max(0, (next[optMyReaction] || 0) - 1)
+          if (next[optMyReaction] === 0) delete next[optMyReaction]
         }
-      } else {
-        return [...prev, { emoji, user_id: currentUserId }]
-      }
-    })
+        if (optMyReaction !== emoji) {
+          next[emoji] = (next[emoji] || 0) + 1
+        }
+        return next
+      })
+      setOptMyReaction(prev => prev === emoji ? null : emoji)
+    } else {
+      setOptimisticReactions(prev => {
+        const existingIdx = prev.findIndex(r => r.user_id === currentUserId)
+        if (existingIdx !== -1) {
+          if (prev[existingIdx].emoji === emoji) {
+            return prev.filter(r => r.user_id !== currentUserId)
+          } else {
+            const newArr = [...prev]
+            newArr[existingIdx] = { ...newArr[existingIdx], emoji }
+            return newArr
+          }
+        } else {
+          return [...prev, { emoji, user_id: currentUserId }]
+        }
+      })
+    }
     
     startTransition(async () => {
       try {
         await toggleLike(entityType, entityId, emoji, pathname)
-      } catch (e) {
-        // optionally revert, but usually fine
-      }
+      } catch (e) {}
     })
   }
 
   const groupReactions = () => {
+    if (useGroupedMode) {
+      return Object.entries(optGrouped).map(([em, count]) => [
+        em, 
+        { count, hasMine: optMyReaction === em }
+      ] as [string, { count: number, hasMine: boolean }]).sort((a, b) => b[1].count - a[1].count)
+    }
     const counts: Record<string, { count: number, hasMine: boolean }> = {}
     optimisticReactions.forEach(r => {
       if (!counts[r.emoji]) counts[r.emoji] = { count: 0, hasMine: false }
@@ -81,10 +109,9 @@ export function ReactionButton({
 
   const grouped = groupReactions()
   const hasReactions = grouped.length > 0
-  const totalCount = optimisticReactions.length
   
   // Find if user has a reaction
-  const myReaction = optimisticReactions.find(r => r.user_id === currentUserId)?.emoji
+  const myReaction = useGroupedMode ? optMyReaction : optimisticReactions.find(r => r.user_id === currentUserId)?.emoji
 
   return (
     <div className="relative inline-flex items-center gap-2">
