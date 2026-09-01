@@ -59,7 +59,7 @@ export default async function CookbookPage(props: { searchParams?: Promise<{ tab
           href="?tab=mine" 
           className={`pb-3 font-medium transition-colors whitespace-nowrap border-b-2 ${tab === 'mine' ? 'border-primary text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground'}`}
         >
-          Mis arroces
+          Mis recetas
         </Link>
         <Link 
           href="?tab=saved" 
