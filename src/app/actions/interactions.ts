@@ -8,19 +8,24 @@ import { parseAndSaveMentionsAndHashtags } from "./social_features"
 
 type EntityType = "recipe" | "session" | "post" | "short"
 
-export async function toggleCommentLike(entityType: EntityType, commentId: string, isLiked: boolean, pathToRevalidate?: string) {
-  const supabase = await createClient()
+export async function toggleCommentReaction(entityType: EntityType, commentId: string, emoji: string, pathToRevalidate?: string) {
+  const _supabase = await createClient()
+  const supabase = _supabase as any
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error("Unauthorized")
 
-  if (isLiked) {
-    if (entityType === "recipe") await supabase.from("recipe_comment_likes").delete().match({ comment_id: commentId, user_id: user.id })
-    else if (entityType === "session") await supabase.from("session_comment_likes").delete().match({ comment_id: commentId, user_id: user.id })
-    else if (entityType === "post") await supabase.from("post_comment_likes").delete().match({ comment_id: commentId, user_id: user.id })
+  const table = entityType + "_comment_likes"
+
+  const { data: existing } = await supabase.from(table).select("emoji").match({ comment_id: commentId, user_id: user.id }).maybeSingle()
+
+  if (existing) {
+    if (existing.emoji === emoji) {
+      await supabase.from(table).delete().match({ comment_id: commentId, user_id: user.id })
+    } else {
+      await supabase.from(table).update({ emoji }).match({ comment_id: commentId, user_id: user.id })
+    }
   } else {
-    if (entityType === "recipe") await supabase.from("recipe_comment_likes").insert({ comment_id: commentId, user_id: user.id })
-    else if (entityType === "session") await supabase.from("session_comment_likes").insert({ comment_id: commentId, user_id: user.id })
-    else if (entityType === "post") await supabase.from("post_comment_likes").insert({ comment_id: commentId, user_id: user.id })
+    await supabase.from(table).insert({ comment_id: commentId, user_id: user.id, emoji })
   }
 
   if (pathToRevalidate) {
@@ -177,42 +182,35 @@ export async function getComments(entityType: EntityType, entityId: string, curr
     query = supabase.from("recipe_comments").select(`
       *,
       author:profiles!recipe_comments_author_id_fkey(id, username, display_name, avatar:media_assets!fk_profiles_avatar(storage_path)),
-      likes:recipe_comment_likes(user_id)
+      reactions:recipe_comment_likes(user_id, emoji)
     `).eq("recipe_id", entityId).order("created_at", { ascending: true })
   } else if (entityType === 'session') {
     query = supabase.from("session_comments").select(`
       *,
       author:profiles!session_comments_author_id_fkey(id, username, display_name, avatar:media_assets!fk_profiles_avatar(storage_path)),
-      likes:session_comment_likes(user_id)
+      reactions:session_comment_likes(user_id, emoji)
     `).eq("session_id", entityId).order("created_at", { ascending: true })
   } else if (entityType === 'post') {
     query = supabase.from("post_comments").select(`
       *,
       author:profiles!post_comments_author_id_fkey(id, username, display_name, avatar:media_assets!fk_profiles_avatar(storage_path)),
-      likes:post_comment_likes(user_id)
+      reactions:post_comment_likes(user_id, emoji)
     `).eq("post_id", entityId).order("created_at", { ascending: true })
   } else if (entityType === 'short') {
     query = supabase.from("short_comments").select(`
       *,
       author:profiles!short_comments_author_id_fkey(id, username, display_name, avatar:media_assets!fk_profiles_avatar(storage_path)),
-      likes:short_comment_likes(user_id)
+      reactions:short_comment_likes(user_id, emoji)
     `).eq("short_id", entityId).order("created_at", { ascending: true })
   }
 
   if (!query) return []
 
   const { data, error } = await query
-  if (error || !data) return []
+  if (error) return []
 
-  return data.map((c: any) => ({
-    id: c.id,
-    content: c.content,
-    is_deleted: c.is_deleted,
-    created_at: c.created_at,
-    parent_id: c.parent_id,
-    author: c.author,
-    like_count: c.likes ? c.likes.length : 0,
-    user_liked: currentUserId ? c.likes?.some((l: any) => l.user_id === currentUserId) : false
-  }))
+  return data?.map((c: any) => ({
+    ...c,
+    reactions: c.reactions || []
+  })) || []
 }
-

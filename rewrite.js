@@ -1,4 +1,7 @@
-"use client"
+const fs = require('fs');
+const originalCode = fs.readFileSync('src/components/domain/CommentSection.tsx', 'utf8');
+
+let code = `"use client"
 import { MediaImage } from "@/components/domain/MediaImage"
 // @ts-nocheck
 import React, { useState, useTransition, useRef, useEffect } from "react"
@@ -117,7 +120,7 @@ function CommentReactionUI({ comment, entityType, currentUserId }: { comment: Co
             <button 
               key={emoji} 
               onClick={(e) => { e.stopPropagation(); handleReact(emoji); }}
-              className={`flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border shadow-sm transition-transform active:scale-95 ${data.hasMine ? 'bg-primary/10 border-primary/30 text-primary' : 'bg-background border-border text-muted-foreground hover:bg-muted'}`}
+              className={\`flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border shadow-sm transition-transform active:scale-95 \${data.hasMine ? 'bg-primary/10 border-primary/30 text-primary' : 'bg-background border-border text-muted-foreground hover:bg-muted'}\`}
             >
               <span>{emoji}</span>
               <span className="font-semibold">{data.count}</span>
@@ -135,7 +138,7 @@ function CommentThread({ comment, replies, entityType, currentUserId, allowComme
   const [localContent, setLocalContent] = useState(comment.content)
   const [isPending, startTransition] = useTransition()
   const [showReplies, setShowReplies] = useState(false)
-  const getAvatar = (path?: string) => path ? `https://zvesoygqssyyojqyswwm.supabase.co/storage/v1/object/public/recipe_media/${path}` : null
+  const getAvatar = (path?: string) => path ? \`https://zvesoygqssyyojqyswwm.supabase.co/storage/v1/object/public/recipe_media/\${path}\` : null
   const isOwn = currentUserId === comment.author.id
   const avatar = getAvatar(comment.author.avatar?.storage_path)
 
@@ -223,7 +226,7 @@ function CommentThread({ comment, replies, entityType, currentUserId, allowComme
 }
 
 function CommentReply({ comment, entityType, currentUserId, allowComments, onReply, onDelete }: any) {
-  const getAvatar = (path?: string) => path ? `https://zvesoygqssyyojqyswwm.supabase.co/storage/v1/object/public/recipe_media/${path}` : null
+  const getAvatar = (path?: string) => path ? \`https://zvesoygqssyyojqyswwm.supabase.co/storage/v1/object/public/recipe_media/\${path}\` : null
   const isOwn = currentUserId === comment.author.id
   const avatar = getAvatar(comment.author.avatar?.storage_path)
 
@@ -255,171 +258,9 @@ function CommentReply({ comment, entityType, currentUserId, allowComments, onRep
     </div>
   )
 }
+`;
 
-export function CommentSection({ entityType, entityId, comments, currentUserId, allowComments, onCommentAdded, onCommentDeleted }: CommentSectionProps & { onCommentAdded?: (c: any) => void, onCommentDeleted?: (id: string) => void }) {
-  const { showAuthPrompt } = useAuthPrompt()
-  const router = useRouter()
-  const pathname = usePathname()
-  const [isPending, startTransition] = useTransition()
-  
-  const [newComment, setNewComment] = useState("")
-  const [replyingTo, setReplyingTo] = useState<{ id: string, username: string } | null>(null)
-  
-  const autocomplete = useAutocomplete()
-  
-  const [localComments, setLocalComments] = useState(comments)
-  useEffect(() => { setLocalComments(comments) }, [comments])
-  const textareaRef = useRef<HTMLTextAreaElement>(null)
+const commentSectionBody = originalCode.substring(originalCode.indexOf('export function CommentSection('));
+code = code + "\n" + commentSectionBody;
 
-  // Organize comments into threads
-  const topLevelComments = localComments.filter(c => !c.parent_id)
-  
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!currentUserId) {
-      showAuthPrompt("Crea tu cuenta para participar en la conversación.")
-      return
-    }
-    if (!newComment.trim()) return
-
-    startTransition(async () => {
-      try {
-        let contentToSubmit = newComment.trim()
-        const newC = await createComment(entityType, entityId, contentToSubmit, replyingTo?.id)
-        
-        // Optimistic update
-        if (newC) {
-          const optimisticComment = {
-            ...newC,
-            author: { id: currentUserId, username: "tu", display_name: "Tú", avatar: null }
-          }
-          setLocalComments(prev => [...prev, optimisticComment])
-          if (onCommentAdded) onCommentAdded(optimisticComment)
-        }
-        
-        setNewComment("")
-        setReplyingTo(null)
-      } catch (err) {
-        console.error(err)
-      }
-    })
-  }
-
-  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
-
-  const handleDelete = (commentId: string) => {
-    setConfirmDeleteId(commentId);
-  }
-
-  const confirmDeleteAction = () => {
-    if (!confirmDeleteId) return;
-    startTransition(async () => {
-      setLocalComments(prev => prev.map(c => c.id === confirmDeleteId ? { ...c, is_deleted: true, content: "Comentario eliminado" } : c))
-      await deleteComment(entityType, confirmDeleteId)
-      if (onCommentDeleted) onCommentDeleted(confirmDeleteId)
-      setConfirmDeleteId(null)
-    })
-  }
-
-  return (
-    <div className="space-y-6">
-      
-      <ConfirmModal
-        isOpen={!!confirmDeleteId}
-        onCancel={() => setConfirmDeleteId(null)}
-        onConfirm={confirmDeleteAction}
-        title="Eliminar comentario"
-        message="¿Estás seguro de que quieres eliminar este comentario? Esta acción no se puede deshacer."
-        confirmText="Eliminar"
-        isDestructive={true}
-      />
-
-      <div className="space-y-4">
-        {topLevelComments.filter(c => !c.is_deleted).map(comment => (
-          <CommentThread
-            key={comment.id}
-            comment={comment}
-            replies={localComments.filter(r => r.parent_id === comment.id && !r.is_deleted)}
-            entityType={entityType}
-            currentUserId={currentUserId}
-            allowComments={allowComments}
-            onReply={(id: string, username: string) => {
-              setReplyingTo({ id, username })
-              if (!newComment.includes(`@${username}`)) {
-                setNewComment(`@${username} ` + newComment)
-              }
-              window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' })
-            }}
-            onDelete={handleDelete}
-          />
-        ))}
-      </div>
-    
-      <div className="sticky bottom-0 bg-background/95 backdrop-blur pt-2 pb-safe-bottom z-10 w-full mt-4 border-t border-border/50">
-        {allowComments ? (
-        <form onSubmit={handleSubmit} className="space-y-2 mb-6">
-          {replyingTo && (
-            <div className="flex items-center justify-between bg-primary/10 text-primary text-sm px-3 py-2 rounded-lg">
-              <span className="flex items-center gap-2"><Reply className="w-4 h-4" /> Respondiendo a @{replyingTo.username}</span>
-              <button type="button" onClick={() => setReplyingTo(null)} className="hover:underline">Cancelar</button>
-            </div>
-          )}
-          <div className="relative">
-            <AutocompleteMenu 
-              isOpen={autocomplete.isOpen}
-              type={autocomplete.type}
-              suggestions={autocomplete.suggestions}
-              onSelect={(val) => {
-                const { newText, newCursorPos } = autocomplete.insertSuggestion(newComment, val)
-                setNewComment(newText)
-                if (textareaRef.current) {
-                  textareaRef.current.focus()
-                  setTimeout(() => {
-                    if (textareaRef.current) {
-                      textareaRef.current.selectionStart = newCursorPos
-                      textareaRef.current.selectionEnd = newCursorPos
-                    }
-                  }, 0)
-                }
-              }}
-            />
-            <div className="relative flex items-end border border-input rounded-3xl bg-transparent overflow-hidden px-1 py-1 focus-within:ring-2 focus-within:ring-ring focus-within:border-primary/50 transition-all">
-              <textarea 
-                ref={textareaRef}
-                value={newComment}
-                onChange={e => {
-                  setNewComment(e.target.value)
-                  e.target.style.height = 'auto'
-                  e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px'
-                  autocomplete.handleInput(e.target.value, e.target.selectionStart)
-                }}
-                onClick={e => autocomplete.handleInput(e.currentTarget.value, e.currentTarget.selectionStart)}
-                onKeyUp={e => autocomplete.handleInput(e.currentTarget.value, e.currentTarget.selectionStart)}
-                placeholder={currentUserId ? "Añade un comentario..." : "Inicia sesión para comentar"}
-                className="flex-1 max-h-[120px] bg-transparent px-4 py-2 text-[15px] resize-none outline-none placeholder:text-muted-foreground"
-                style={{ height: '40px' }}
-                maxLength={1000}
-                disabled={isPending}
-                  
-                  readOnly={!currentUserId}
-              />
-              <button 
-                  type="submit" 
-                  disabled={isPending || !newComment.trim()} 
-                  className="flex items-center justify-center w-8 h-8 mx-2 mb-1.5 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 disabled:bg-muted disabled:text-muted-foreground disabled:opacity-100 transition-colors shrink-0"
-                  title="Publicar"
-                >
-                  <ArrowUp className="w-5 h-5" strokeWidth={2.5} />
-                </button>
-            </div>
-          </div>
-        </form>
-      ) : (
-        <div className="bg-muted p-3 rounded-xl text-sm text-center text-muted-foreground mb-6">
-          Los comentarios están desactivados para esta publicación.
-        </div>
-      )}
-      </div>
-</div>
-  )
-}
+fs.writeFileSync('src/components/domain/CommentSection.tsx', code);
