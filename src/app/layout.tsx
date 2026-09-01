@@ -8,6 +8,7 @@ import { AuthPromptProvider } from "@/components/providers/AuthPromptProvider";
 import { createClient } from "@/lib/supabase/server";
 import { checkPendingLegal } from "@/app/actions/legal";
 import { LegalConsentGate } from "@/components/domain/LegalConsentGate";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -93,6 +94,7 @@ export default async function RootLayout({
             <BottomNav />
           </div>
         </AuthPromptProvider>
+        <SpeedInsights />
       </body>
     </html>
   );
