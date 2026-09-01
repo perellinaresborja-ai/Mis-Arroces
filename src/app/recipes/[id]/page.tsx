@@ -207,13 +207,13 @@ export default async function RecipeDetailPage({
             </div>
 
             {recipe.description && (
-              <p className="mt-4 md:mt-6 text-muted-foreground text-[16px] leading-relaxed max-w-xl">
+              <p className="mt-4 md:mt-0 text-muted-foreground text-[16px] leading-relaxed max-w-xl">
                 {recipe.description}
               </p>
             )}
 
             {/* Elegant Stats Row */}
-            <div className="flex flex-wrap items-center gap-x-8 lg:gap-x-12 gap-y-5 mt-6 md:mt-8 py-5 border-y border-border">
+            <div className="flex flex-wrap items-center gap-x-8 lg:gap-x-12 gap-y-5 mt-6 md:mt-0 py-5 border-y border-border">
               {recipe.base_servings && (
                 <div className="flex items-center gap-3 text-foreground">
                   <Users className="w-5 h-5 text-muted-foreground/80" />
@@ -248,7 +248,7 @@ export default async function RecipeDetailPage({
             </div>
 
                         {/* Technical Data Card */}
-            <div className="mt-8 bg-muted/20 rounded-2xl p-5 border border-border/50 w-full">
+            <div className="mt-8 md:mt-0 bg-muted/20 rounded-2xl p-5 border border-border/50 w-full">
               <h3 className="font-bold text-base mb-4 text-charcoal font-serif uppercase tracking-wider">Ficha Técnica</h3>
               <div className="flex flex-row flex-wrap sm:flex-nowrap justify-between gap-4 sm:gap-2 md:gap-4 text-sm">
                 {recipe.variety && (
@@ -285,7 +285,7 @@ export default async function RecipeDetailPage({
               </div>
             </div>
               
-              <div className="w-full mt-8 flex justify-center">
+              <div className="w-full mt-8 md:mt-0 flex justify-center">
                 <div className="w-full sm:w-2/3 md:w-3/4">
                   <StartCookButton recipeId={recipe.id} />
                 </div>
