@@ -295,11 +295,14 @@ export function MessageBubble({ message, isOwn, onReply, currentUserId }: { mess
         )}
 
         {/* NORMAL MENU */}
-        {showMenu && (
-          <div className={`absolute top-8 ${isOwn ? '-left-32' : '-right-32'} w-32 bg-card border border-border shadow-lg rounded-xl overflow-hidden z-50 text-foreground`}>
-            <button onClick={handleReply} className="w-full text-left px-3 py-2 text-sm flex items-center gap-2 hover:bg-muted transition-colors">
-              <Reply className="w-4 h-4" /> Responder
-            </button>
+          {showMenu && (
+            <div className={`absolute top-8 ${isOwn ? '-left-32' : '-right-32'} w-32 bg-card border border-border shadow-lg rounded-xl overflow-hidden z-50 text-foreground`}>
+              <button onClick={(e) => { e.stopPropagation(); setShowReactionMenu(true); setShowMenu(false); }} className="w-full text-left px-3 py-2 text-sm flex items-center gap-2 hover:bg-muted transition-colors">
+                <SmilePlus className="w-4 h-4" /> Reaccionar
+              </button>
+              <button onClick={handleReply} className="w-full text-left px-3 py-2 text-sm flex items-center gap-2 hover:bg-muted transition-colors">
+                <Reply className="w-4 h-4" /> Responder
+              </button>
             <button onClick={handleCopy} className="w-full text-left px-3 py-2 text-sm flex items-center gap-2 hover:bg-muted transition-colors">
               <Copy className="w-4 h-4" /> Copiar
             </button>

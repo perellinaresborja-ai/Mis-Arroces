@@ -5,7 +5,7 @@ import React, { useState, useTransition, useRef, useEffect } from "react"
 import { createComment, deleteComment, editComment, toggleCommentReaction } from "@/app/actions/interactions"
 import { usePathname, useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { MessageCircle, Reply, ChevronDown, ChevronUp, ArrowUp } from "lucide-react"
+import { MessageCircle, Reply, ChevronDown, ChevronUp, ArrowUp, SmilePlus } from "lucide-react"
 import { useAutocomplete } from "@/hooks/useAutocomplete"
 import { AutocompleteMenu } from "./AutocompleteMenu"
 import { SocialTextRenderer } from "./SocialTextRenderer"
@@ -89,6 +89,7 @@ function CommentReactionUI({ comment, entityType, currentUserId }: { comment: Co
 
   return (
     <div className="relative group w-full mt-1">
+      <button id={`reaction-trigger-${comment.id}`} className="hidden" onClick={() => setShowReactionMenu(!showReactionMenu)} />
       <div 
         className="absolute inset-0 z-0 cursor-pointer"
         onClick={(e) => { e.stopPropagation(); setShowReactionMenu(false); }}
@@ -192,6 +193,7 @@ function CommentThread({ comment, replies, entityType, currentUserId, allowComme
         </div>
         
         <div className="flex items-center gap-4 mt-1 px-3 text-xs text-muted-foreground font-medium relative z-10">
+          <button onClick={() => document.getElementById(`reaction-trigger-${comment.id}`)?.click()} className="hover:text-foreground flex items-center gap-1" title="Reaccionar"><SmilePlus className="w-3.5 h-3.5"/></button>
           {allowComments && !comment.is_deleted && (
             <button onClick={() => onReply(comment.id, comment.author.username)} className="hover:text-foreground">Responder</button>
           )}
@@ -244,9 +246,10 @@ function CommentReply({ comment, entityType, currentUserId, allowComments, onRep
           {!comment.is_deleted && <CommentReactionUI comment={comment} entityType={entityType} currentUserId={currentUserId} />}
         </div>
         <div className="flex items-center gap-4 mt-1 px-2 text-[11px] text-muted-foreground font-medium relative z-10">
-          {allowComments && !comment.is_deleted && (
-            <button onClick={onReply} className="hover:text-foreground">Responder</button>
-          )}
+            <button onClick={() => document.getElementById(`reaction-trigger-${comment.id}`)?.click()} className="hover:text-foreground flex items-center gap-1" title="Reaccionar"><SmilePlus className="w-3.5 h-3.5"/></button>
+            {allowComments && !comment.is_deleted && (
+              <button onClick={onReply} className="hover:text-foreground">Responder</button>
+            )}
           {isOwn && !comment.is_deleted && (
             <button onClick={() => onDelete(comment.id)} className="hover:text-destructive flex items-center gap-1">Eliminar</button>
           )}
