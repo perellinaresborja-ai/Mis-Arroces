@@ -157,7 +157,7 @@ function CommentThread({ comment, replies, entityType, currentUserId, allowComme
 
   return (
     <div className="flex gap-3 relative">
-      <Link href={"/@" + comment.author.username} className="w-8 h-8 rounded-full bg-muted shrink-0 overflow-hidden block mt-1">
+      <Link href={"/@" + comment.author.username} className="w-8 h-8 rounded-full bg-muted shrink-0 overflow-hidden block mt-1 relative">
         {avatar && <MediaImage src={avatar} alt={comment.author.username} className="w-full h-full object-cover" fill={true} />}
       </Link>
       <div className="flex-1">
@@ -229,7 +229,7 @@ function CommentReply({ comment, entityType, currentUserId, allowComments, onRep
 
   return (
     <div className="flex gap-2">
-      <Link href={"/@" + comment.author.username} className="w-6 h-6 rounded-full bg-muted shrink-0 overflow-hidden block mt-1">
+      <Link href={"/@" + comment.author.username} className="w-6 h-6 rounded-full bg-muted shrink-0 overflow-hidden block mt-1 relative">
         {avatar && <MediaImage src={avatar} alt={comment.author.username} className="w-full h-full object-cover" fill={true} />}
       </Link>
       <div className="flex-1">
