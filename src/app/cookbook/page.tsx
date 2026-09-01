@@ -14,6 +14,7 @@ export default async function CookbookPage(props: { searchParams?: Promise<{ tab
   if (!user) redirect("/login")
 
   let recipes: any[] = []
+  let sessions: any[] = []
 
   if (tab === "mine") {
     const { data } = await supabase.from("recipes").select("*, recipe_media(display_order, media:media_assets(storage_path)), variety:rice_varieties(name), style:rice_styles(name), likes:recipe_likes(user_id), comments:recipe_comments(id)").eq("owner_id", user.id).order("created_at", { ascending: false })
@@ -30,6 +31,9 @@ export default async function CookbookPage(props: { searchParams?: Promise<{ tab
   } else if (tab === "want") {
     const { data } = await supabase.from("want_to_cook").select("recipes(*, recipe_media(display_order, media:media_assets(storage_path)), variety:rice_varieties(name), style:rice_styles(name), author:profiles!recipes_owner_id_fkey(username))").eq("user_id", user.id).order("added_at", { ascending: false })
     recipes = data?.map(d => d.recipes).filter(Boolean) || []
+  } else if (tab === "cooked") {
+    const { data } = await supabase.from("cooking_sessions").select("*, session_media(display_order, media:media_assets(storage_path)), recipe:recipes(id, name)").eq("user_id", user.id).order("created_at", { ascending: false })
+    sessions = data || []
   }
 
   const getMediaUrl = (mediaArray: any[]) => {
@@ -56,6 +60,12 @@ export default async function CookbookPage(props: { searchParams?: Promise<{ tab
       {/* Tabs */}
       <div className="flex gap-6 border-b border-border mb-8 overflow-x-auto scrollbar-hide">
         <Link 
+          href="?tab=cooked" 
+          className={`pb-3 font-medium transition-colors whitespace-nowrap border-b-2 ${tab === 'cooked' ? 'border-primary text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground'}`}
+        >
+          Mis Arroces
+        </Link>
+        <Link 
           href="?tab=mine" 
           className={`pb-3 font-medium transition-colors whitespace-nowrap border-b-2 ${tab === 'mine' ? 'border-primary text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground'}`}
         >
@@ -75,7 +85,39 @@ export default async function CookbookPage(props: { searchParams?: Promise<{ tab
         </Link>
       </div>
 
-      {recipes.length > 0 ? (
+      {tab === 'cooked' ? (
+        sessions.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mx-auto w-full">
+            {sessions.map((s: any) => {
+              if (!s || !s.id) return null;
+              // A simple card for now, or you could reuse ProfileGridCard if it's imported
+              const bgImg = getMediaUrl(s.session_media)
+              return (
+                <Link key={s.id} href={`/sessions/${s.id}`} className="block relative overflow-hidden rounded-2xl aspect-[4/5] bg-card border border-border group">
+                  {bgImg ? (
+                    <img src={bgImg} alt="Session" className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
+                  ) : (
+                    <div className="w-full h-full bg-muted flex items-center justify-center">
+                      <span className="text-muted-foreground font-bold">Sin foto</span>
+                    </div>
+                  )}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent p-4 flex flex-col justify-end">
+                    <p className="text-white font-bold text-lg leading-tight drop-shadow-md">{s.recipe?.name || 'Arroz'}</p>
+                    <p className="text-white/80 text-sm font-medium mt-1">{new Date(s.date).toLocaleDateString()}</p>
+                  </div>
+                </Link>
+              )
+            })}
+          </div>
+        ) : (
+          <div className="text-center py-20 px-4">
+            <p className="text-muted-foreground text-lg font-medium">Todavía no has registrado ningún arroz.</p>
+            <Link href="/discover">
+              <Button variant="outline" className="mt-4 rounded-xl font-bold">Descubrir arroces</Button>
+            </Link>
+          </div>
+        )
+      ) : recipes.length > 0 ? (
         <div className="grid grid-cols-3 gap-1 md:gap-4 mx-auto w-full">
           {recipes.map((r: any) => {
             if (!r || !r.id) return null;
@@ -85,7 +127,7 @@ export default async function CookbookPage(props: { searchParams?: Promise<{ tab
       ) : (
         <div className="text-center py-20 px-4">
           <p className="text-muted-foreground text-lg font-medium">
-            {tab === "mine" ? "Todavía no tienes arroces." : (tab === "saved" ? "No tienes arroces guardados." : "Busca un arroz que te apetezca y márcalo para cocinarlo.")}
+            {tab === "mine" ? "Todavía no tienes recetas propias." : (tab === "saved" ? "No tienes arroces guardados." : "Busca un arroz que te apetezca y márcalo para cocinarlo.")}
           </p>
           <Link href={tab === "mine" ? "/create/recipe" : "/discover"}>
             <Button variant="outline" className="mt-4 rounded-xl font-bold">
