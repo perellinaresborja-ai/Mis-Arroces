@@ -40,9 +40,6 @@ export default async function LoginPage({
 
         {/* Content over image */}
         <div className="absolute inset-0 flex flex-col p-12 md:p-16 lg:p-24 justify-end z-10">
-          
-          
-
           {/* Slogan */}
           <div className="space-y-0">
             <h1 className="text-6xl lg:text-7xl xl:text-8xl font-black tracking-tighter text-cream drop-shadow-2xl leading-[0.85]">
@@ -52,6 +49,15 @@ export default async function LoginPage({
             </h1>
           </div>
         </div>
+
+        {/* Photo Attribution */}
+        {randomCover === "/arroces/lallar.jpg" && (
+          <div className="absolute bottom-4 right-6 z-20">
+            <p className="text-[10px] text-white/40 font-medium tracking-wide drop-shadow-md">
+              Foto cedida por La Llar Arròs i Brases
+            </p>
+          </div>
+        )}
       </div>
 
       {/* RIGHT ZONE - LOGIN FORM (Full width on Mobile, 40% on Desktop) */}
