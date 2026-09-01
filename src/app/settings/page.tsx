@@ -68,11 +68,6 @@ export default async function SettingsPage() {
             <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider pl-4">Privacidad</h3>
             <div className="bg-card rounded-2xl border border-border overflow-hidden shadow-sm">
               <PrivacyToggle initialIsPrivate={isPrivate} userId={user.id} />
-              <div className="h-px bg-border ml-12"></div>
-              <div className="flex items-center justify-between p-4 opacity-50 cursor-not-allowed">
-                <div className="flex items-center gap-3"><Ban className="w-5 h-5 text-muted-foreground" /> <span className="font-medium">Usuarios bloqueados</span></div>
-                <span className="text-xs font-medium bg-muted px-2 py-1 rounded-full text-muted-foreground">Próximamente</span>
-              </div>
             </div>
           </section>
 
