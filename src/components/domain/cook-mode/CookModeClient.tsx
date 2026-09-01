@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react"
 import { ChevronLeft, ChevronRight, Check, Play, Pause, RotateCcw, Volume2, X } from "lucide-react"
 import Link from "next/link"
+import Image from "next/image"
 import { calculateLayer, calculateRealBrothRatio } from "@/lib/paella-calculator"
 import { useRouter } from "next/navigation"
 
@@ -121,6 +122,17 @@ export function CookModeClient({ recipe }: { recipe: CookModeRecipe }) {
       window.speechSynthesis.speak(utterance)
     }
   }
+
+  // Preload next image
+  useEffect(() => {
+    if (isClient && currentStepIndex + 1 < recipe.steps.length) {
+      const nextStep = recipe.steps[currentStepIndex + 1];
+      if (nextStep?.media?.storage_path) {
+        const img = new window.Image();
+        img.src = `https://zvesoygqssyyojqyswwm.supabase.co/storage/v1/object/public/recipe_media/${nextStep.media.storage_path}`;
+      }
+    }
+  }, [currentStepIndex, recipe.steps, isClient])
 
   // Timer Tick
   useEffect(() => {
@@ -336,15 +348,37 @@ export function CookModeClient({ recipe }: { recipe: CookModeRecipe }) {
       </header>
 
       {/* Main Content */}
-      <main className="flex-1 flex flex-col items-center justify-center p-6 md:p-12 overflow-y-auto">
-        <div className="w-full max-w-3xl space-y-12">
+      <main className="flex-1 flex flex-col items-center p-6 md:p-12 overflow-y-auto">
+        <div key={currentStepIndex} className="w-full max-w-3xl flex flex-col animate-in fade-in duration-300">
           
-          <h2 className="text-3xl md:text-5xl font-bold leading-tight md:leading-tight">
-            {step.instruction}
-          </h2>
+          {/* Step Image / Fallback Logo */}
+          <div className="w-full h-48 sm:h-64 md:h-[40vh] bg-white/5 rounded-3xl overflow-hidden mb-8 relative flex items-center justify-center border border-white/10 shadow-2xl shrink-0">
+            {step.media?.storage_path ? (
+              <Image 
+                src={`https://zvesoygqssyyojqyswwm.supabase.co/storage/v1/object/public/recipe_media/${step.media.storage_path}`}
+                alt={`Paso ${currentStepIndex + 1}`}
+                fill
+                className="object-cover"
+                priority
+              />
+            ) : (
+              <Image 
+                src="/logofon.png" 
+                alt="Mis Arroces" 
+                width={120} 
+                height={120} 
+                className="opacity-40 grayscale"
+              />
+            )}
+          </div>
 
-          {/* Timer Display */}
-          {hasDuration && (
+          <div className="space-y-12">
+            <h2 className="text-3xl md:text-5xl font-bold leading-tight md:leading-tight">
+              {step.instruction}
+            </h2>
+
+            {/* Timer Display */}
+            {hasDuration && (
             <div className="bg-white/10 border border-white/20 rounded-3xl p-6 flex flex-col items-center justify-center gap-6 shadow-2xl">
               <div className={`text-7xl md:text-8xl font-black font-mono tracking-tighter tabular-nums ${timer?.isRunning ? 'text-primary' : 'text-white'}`}>
                 {formatTime(displayTime)}
@@ -373,7 +407,8 @@ export function CookModeClient({ recipe }: { recipe: CookModeRecipe }) {
           )}
 
         </div>
-      </main>
+      </div>
+    </main>
 
       {/* Bottom Navigation */}
       <footer className="p-6 grid grid-cols-2 gap-4 shrink-0 bg-gradient-to-t from-black to-transparent pb-8">
