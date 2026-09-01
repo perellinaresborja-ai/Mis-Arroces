@@ -23,7 +23,7 @@ export default async function EditRecipePage({
       recipe_steps(*, media:media_assets(storage_path)),
       recipe_vessels(*),
       recipe_tags(*),
-      recipe_media(
+      recipe_media!recipe_media_recipe_id_fkey(
         media_id,
         display_order,
         is_primary,

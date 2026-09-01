@@ -22,11 +22,11 @@ import { StartCookButton } from "@/components/domain/StartCookButton"
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = await params;
   const supabase = await createClient();
-  const { data: recipe } = await supabase.from("recipes").select("name, description, profiles(username), recipe_media(media:media_assets(storage_path))").eq("id", resolvedParams.id).single();
+  const { data: recipe } = await supabase.from("recipes").select("name, description, profiles(username), media:recipe_media!recipe_media_recipe_id_fkey(media_assets(storage_path))").eq("id", resolvedParams.id).single();
   
   if (!recipe) return {};
 
-  const primaryMedia = (recipe.recipe_media?.[0] as any)?.media?.storage_path;
+  const primaryMedia = (recipe.media?.[0] as any)?.media_assets?.storage_path;
   const imageUrl = primaryMedia 
     ? `${"https://zvesoygqssyyojqyswwm.supabase.co"}/storage/v1/object/public/recipe_media/${primaryMedia}`
     : "/logopaellaicono.png";
@@ -67,7 +67,7 @@ export default async function RecipeDetailPage({
       variety:rice_varieties(name),
       heat:heat_sources(name),
         recipe_vessels(*),
-      media:recipe_media(media_assets(id, storage_path, is_deleted)),
+      media:recipe_media!recipe_media_recipe_id_fkey(media_assets(id, storage_path, is_deleted)),
       steps:recipe_steps(*, media:media_assets(storage_path)),
       ingredients:recipe_ingredients(
         *,
