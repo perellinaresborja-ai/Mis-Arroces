@@ -155,7 +155,7 @@ export default async function RecipeDetailPage({
       <div className="max-w-6xl mx-auto pt-4 md:pt-10 px-4">
         
         {/* Top 2-Column Section */}
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-8 md:gap-12 items-center">
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-8 md:gap-12 items-stretch">
           
           {/* Left Column: Image & Actions */}
           <div className="md:col-span-5 order-2 md:order-1 flex flex-col gap-6">
@@ -174,7 +174,7 @@ export default async function RecipeDetailPage({
           </div>
 
           {/* Right Column: Title, Desc, Stats, Ficha */}
-          <div className="md:col-span-7 flex flex-col order-1 md:order-2">
+          <div className="md:col-span-7 flex flex-col justify-between order-1 md:order-2 h-full">
             <div className="flex justify-between items-start gap-4">
               <div>
                 
