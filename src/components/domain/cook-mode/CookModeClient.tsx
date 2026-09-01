@@ -119,6 +119,8 @@ export function CookModeClient({ recipe }: { recipe: CookModeRecipe }) {
       window.speechSynthesis.cancel() // clear queue
       const utterance = new SpeechSynthesisUtterance(text)
       utterance.lang = 'es-ES'
+      utterance.rate = 0.85 // Slower
+      utterance.pitch = 1
       window.speechSynthesis.speak(utterance)
     }
   }
@@ -128,7 +130,11 @@ export function CookModeClient({ recipe }: { recipe: CookModeRecipe }) {
     if (isClient && hasStarted && currentStepIndex < recipe.steps.length) {
       const step = recipe.steps[currentStepIndex]
       if (step?.instruction) {
-        speakText(step.instruction)
+        let text = step.instruction;
+        if (step.duration_minutes) {
+          text += `. Tiempo estimado: ${step.duration_minutes} minuto${step.duration_minutes !== 1 ? 's' : ''}.`
+        }
+        speakText(text)
       }
     }
   }, [currentStepIndex, hasStarted, recipe.steps, isClient])
@@ -242,33 +248,11 @@ export function CookModeClient({ recipe }: { recipe: CookModeRecipe }) {
     }))
   }
 
-  const TopActions = ({ textToRead }: { textToRead: string }) => {
-    const toggleFullscreen = () => {
-      if (!document.fullscreenElement) {
-        document.documentElement.requestFullscreen().catch(err => console.warn(err));
-      } else {
-        document.exitFullscreen();
-      }
-    };
-
+  const TopActions = () => {
     return (
-      <div className="absolute top-4 right-4 md:top-6 md:right-6 flex items-center gap-2 md:gap-3 z-50">
-        <button 
-          onClick={() => speakText(textToRead)}
-          className="p-3 bg-white/10 rounded-full text-white hover:bg-white/20 transition-colors shadow-lg backdrop-blur-sm"
-          title="Leer"
-        >
-          <Volume2 className="w-6 h-6" />
-        </button>
-        <button 
-          onClick={toggleFullscreen}
-          className="hidden md:flex p-3 bg-white/10 rounded-full text-white hover:bg-white/20 transition-colors shadow-lg backdrop-blur-sm"
-          title="Pantalla completa"
-        >
-          <Maximize className="w-6 h-6" />
-        </button>
-        <Link href={`/recipes/${recipe.id}`} onClick={() => localStorage.removeItem(`cook-mode-${recipe.id}`)} className="p-3 bg-white/10 rounded-full text-white hover:bg-white/20 transition-colors shadow-lg backdrop-blur-sm">
-          <X className="w-6 h-6" />
+      <div className="absolute top-4 right-4 md:top-6 md:right-6 flex items-center z-50">
+        <Link href={`/recipes/${recipe.id}`} onClick={() => localStorage.removeItem(`cook-mode-${recipe.id}`)} className="p-2 text-white/50 hover:text-white transition-colors">
+          <X className="w-8 h-8" />
         </Link>
       </div>
     )
@@ -278,7 +262,7 @@ export function CookModeClient({ recipe }: { recipe: CookModeRecipe }) {
   if (!hasStarted) {
     return (
       <div className="min-h-screen bg-black text-white flex flex-col justify-center p-6 sm:p-10 animate-in fade-in duration-500 relative">
-        <TopActions textToRead={`Resumen de cocción para ${recipe.name}. ${recipe.requested_servings} raciones.`} />
+        <TopActions />
         <div className="max-w-md mx-auto w-full space-y-10">
           <div className="space-y-4 text-center">
             <h1 className="text-4xl font-black font-serif">{recipe.name}</h1>
@@ -333,7 +317,7 @@ export function CookModeClient({ recipe }: { recipe: CookModeRecipe }) {
   if (currentStepIndex >= recipe.steps.length) {
     return (
       <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center p-6 animate-in fade-in zoom-in-95 duration-500 relative">
-        <TopActions textToRead="¡Arroz terminado! Es hora de disfrutar del socarrat." />
+        <TopActions />
         <div className="max-w-md text-center space-y-12">
           <div className="space-y-4">
             <h1 className="text-5xl md:text-6xl font-black font-serif text-primary">¡Arroz terminado!</h1>
@@ -371,7 +355,7 @@ export function CookModeClient({ recipe }: { recipe: CookModeRecipe }) {
 
   return (
     <div className="min-h-[100dvh] bg-black text-white flex flex-col animate-in fade-in duration-300 select-none relative overflow-hidden">
-      <TopActions textToRead={step.instruction} />
+      <TopActions />
       {/* Header */}
       <header className="p-6 flex items-center justify-center shrink-0">
         <div className="text-center font-black text-white/40 uppercase tracking-widest text-sm mt-2 md:mt-0">
