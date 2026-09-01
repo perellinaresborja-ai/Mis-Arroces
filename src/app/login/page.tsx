@@ -10,11 +10,22 @@ export default async function LoginPage({
 }) {
   const resolvedParams = await searchParams
   
-  // Randomly select one of the available cover images
   const covers = [
-    "/arroces/carneret.png",
-    "/arroces/marret.png",
-    "/arroces/lallar.jpg"
+    {
+      src: "/arroces/carneret.png",
+      title: "Tu pasión por el arroz, en un solo lugar.",
+      subtitle: "Descubre recetas y arroceros que merece la pena seguir."
+    },
+    {
+      src: "/arroces/marret.png",
+      title: "Cocina. Aprende. Mejora.",
+      subtitle: "Guarda cada elaboración y construye tu propia experiencia arrocera."
+    },
+    {
+      src: "/arroces/lallar.jpg",
+      title: "Comparte tus arroces.",
+      subtitle: "Inspira, descubre y conecta con gente que disfruta cocinando como tú."
+    }
   ]
   const randomCover = covers[Math.floor(Math.random() * covers.length)]
 
@@ -26,7 +37,7 @@ export default async function LoginPage({
         
         {/* Background Image */}
         <Image 
-          src={randomCover}
+          src={randomCover.src}
           alt="Mis Arroces Cover"
           fill
           className="object-cover opacity-80"
@@ -41,17 +52,18 @@ export default async function LoginPage({
         {/* Content over image */}
         <div className="absolute inset-0 flex flex-col p-12 md:p-16 lg:p-24 justify-end z-10">
           {/* Slogan */}
-          <div className="space-y-0">
-            <h1 className="text-6xl lg:text-7xl xl:text-8xl font-black tracking-tighter text-cream drop-shadow-2xl leading-[0.85]">
-              Vamos al
-              <br />
-              <span className="text-primary">grano.</span>
+          <div className="space-y-3">
+            <h1 className="text-5xl lg:text-6xl xl:text-7xl font-black tracking-tighter text-cream drop-shadow-2xl leading-tight">
+              {randomCover.title}
             </h1>
+            <p className="text-xl lg:text-2xl text-cream/80 font-medium max-w-2xl drop-shadow-md leading-snug">
+              {randomCover.subtitle}
+            </p>
           </div>
         </div>
 
         {/* Photo Attribution */}
-        {randomCover === "/arroces/lallar.jpg" && (
+        {randomCover.src === "/arroces/lallar.jpg" && (
           <div className="absolute bottom-4 right-6 z-20">
             <p className="text-[14px] text-white/35 font-medium tracking-wide drop-shadow-md">
               Foto cedida por La Llar Arròs i Brases
@@ -78,9 +90,9 @@ export default async function LoginPage({
         <LoginForm error={resolvedParams.error} message={resolvedParams.message} />
         
         {/* Mobile slogan fallback (very discreet) */}
-        <div className="lg:hidden mt-12 text-center">
-          <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground/50">
-            Vamos al grano.
+        <div className="lg:hidden mt-12 text-center px-4">
+          <p className="text-sm font-bold uppercase tracking-widest text-muted-foreground/50">
+            {randomCover.title}
           </p>
         </div>
       </div>
