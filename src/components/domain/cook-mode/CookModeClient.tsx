@@ -279,7 +279,7 @@ export function CookModeClient({ recipe }: { recipe: CookModeRecipe }) {
     return (
       <div className="min-h-screen bg-black text-white flex flex-col justify-center p-6 sm:p-10 animate-in fade-in duration-500 relative">
         <TopActions textToRead={`Resumen de cocción para ${recipe.name}. ${recipe.requested_servings} raciones.`} />
-        <div className="max-w-xl mx-auto w-full space-y-10">
+        <div className="max-w-md mx-auto w-full space-y-10">
           <div className="space-y-4 text-center">
             <h1 className="text-4xl font-black font-serif">{recipe.name}</h1>
             <p className="text-white/60 text-lg uppercase tracking-widest font-bold">Resumen de cocción</p>
@@ -334,7 +334,7 @@ export function CookModeClient({ recipe }: { recipe: CookModeRecipe }) {
     return (
       <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center p-6 animate-in fade-in zoom-in-95 duration-500 relative">
         <TopActions textToRead="¡Arroz terminado! Es hora de disfrutar del socarrat." />
-        <div className="max-w-xl text-center space-y-12">
+        <div className="max-w-md text-center space-y-12">
           <div className="space-y-4">
             <h1 className="text-5xl md:text-6xl font-black font-serif text-primary">¡Arroz terminado!</h1>
             <p className="text-xl text-white/70">Es hora de disfrutar del socarrat.</p>
@@ -381,7 +381,7 @@ export function CookModeClient({ recipe }: { recipe: CookModeRecipe }) {
 
       {/* Main Content */}
       <main className="flex-1 flex flex-col items-center p-6 md:p-12 overflow-y-auto">
-        <div key={currentStepIndex} className="w-full max-w-xl mx-auto flex flex-col animate-in fade-in duration-300">
+        <div key={currentStepIndex} className="w-full max-w-md mx-auto flex flex-col animate-in fade-in duration-300">
           
           {/* Step Image / Fallback Logo */}
           <div className="w-full h-48 sm:h-64 md:h-[40vh] bg-white/5 rounded-3xl overflow-hidden mb-8 relative flex items-center justify-center border border-white/10 shadow-2xl shrink-0">
