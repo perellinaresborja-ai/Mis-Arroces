@@ -9,23 +9,42 @@ import { parseAndSaveMentionsAndHashtags } from "./social_features"
 type EntityType = "recipe" | "session" | "post" | "short"
 
 export async function toggleCommentReaction(entityType: EntityType, commentId: string, emoji: string, pathToRevalidate?: string) {
-  const _supabase = await createClient()
-  const supabase = _supabase as any
+  const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error("Unauthorized")
 
-  const table = entityType + "_comment_likes"
-
-  const { data: existing } = await (supabase as any).from(table).select("emoji").match({ comment_id: commentId, user_id: user.id }).maybeSingle()
-
-  if (existing) {
-    if (existing.emoji === emoji) {
-      await (supabase as any).from(table).delete().match({ comment_id: commentId, user_id: user.id })
+  if (entityType === "recipe") {
+    const { data: existing } = await supabase.from("recipe_comment_likes").select("emoji").match({ comment_id: commentId, user_id: user.id }).maybeSingle()
+    if (existing) {
+      if (existing.emoji === emoji) await supabase.from("recipe_comment_likes").delete().match({ comment_id: commentId, user_id: user.id })
+      else await supabase.from("recipe_comment_likes").update({ emoji }).match({ comment_id: commentId, user_id: user.id })
     } else {
-      await (supabase as any).from(table).update({ emoji }).match({ comment_id: commentId, user_id: user.id })
+      await supabase.from("recipe_comment_likes").insert({ comment_id: commentId, user_id: user.id, emoji })
     }
-  } else {
-    await (supabase as any).from(table).insert({ comment_id: commentId, user_id: user.id, emoji })
+  } else if (entityType === "session") {
+    const { data: existing } = await supabase.from("session_comment_likes").select("emoji").match({ comment_id: commentId, user_id: user.id }).maybeSingle()
+    if (existing) {
+      if (existing.emoji === emoji) await supabase.from("session_comment_likes").delete().match({ comment_id: commentId, user_id: user.id })
+      else await supabase.from("session_comment_likes").update({ emoji }).match({ comment_id: commentId, user_id: user.id })
+    } else {
+      await supabase.from("session_comment_likes").insert({ comment_id: commentId, user_id: user.id, emoji })
+    }
+  } else if (entityType === "post") {
+    const { data: existing } = await supabase.from("post_comment_likes").select("emoji").match({ comment_id: commentId, user_id: user.id }).maybeSingle()
+    if (existing) {
+      if (existing.emoji === emoji) await supabase.from("post_comment_likes").delete().match({ comment_id: commentId, user_id: user.id })
+      else await supabase.from("post_comment_likes").update({ emoji }).match({ comment_id: commentId, user_id: user.id })
+    } else {
+      await supabase.from("post_comment_likes").insert({ comment_id: commentId, user_id: user.id, emoji })
+    }
+  } else if (entityType === "short") {
+    const { data: existing } = await supabase.from("short_comment_likes").select("emoji").match({ comment_id: commentId, user_id: user.id }).maybeSingle()
+    if (existing) {
+      if (existing.emoji === emoji) await supabase.from("short_comment_likes").delete().match({ comment_id: commentId, user_id: user.id })
+      else await supabase.from("short_comment_likes").update({ emoji }).match({ comment_id: commentId, user_id: user.id })
+    } else {
+      await supabase.from("short_comment_likes").insert({ comment_id: commentId, user_id: user.id, emoji })
+    }
   }
 
   if (pathToRevalidate) {
@@ -38,22 +57,38 @@ export async function toggleLike(entityType: EntityType, entityId: string, emoji
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error("Unauthorized")
 
-  const table = entityType + "_likes"
-  const idCol = entityType + "_id"
-
-  const { data: existing } = await (supabase as any).from(table).select("emoji").match({ [idCol]: entityId, user_id: user.id }).maybeSingle()
-
-  if (existing) {
-    if (existing.emoji === emoji) {
-      // Remove reaction if clicking the same emoji
-      await (supabase as any).from(table).delete().match({ [idCol]: entityId, user_id: user.id })
+  if (entityType === "recipe") {
+    const { data: existing } = await supabase.from("recipe_likes").select("emoji").match({ recipe_id: entityId, user_id: user.id }).maybeSingle()
+    if (existing) {
+      if (existing.emoji === emoji) await supabase.from("recipe_likes").delete().match({ recipe_id: entityId, user_id: user.id })
+      else await supabase.from("recipe_likes").update({ emoji }).match({ recipe_id: entityId, user_id: user.id })
     } else {
-      // Change reaction
-      await (supabase as any).from(table).update({ emoji }).match({ [idCol]: entityId, user_id: user.id })
+      await supabase.from("recipe_likes").insert({ recipe_id: entityId, user_id: user.id, emoji })
     }
-  } else {
-    // Add new reaction
-    await (supabase as any).from(table).insert({ [idCol]: entityId, user_id: user.id, emoji })
+  } else if (entityType === "session") {
+    const { data: existing } = await supabase.from("session_likes").select("emoji").match({ session_id: entityId, user_id: user.id }).maybeSingle()
+    if (existing) {
+      if (existing.emoji === emoji) await supabase.from("session_likes").delete().match({ session_id: entityId, user_id: user.id })
+      else await supabase.from("session_likes").update({ emoji }).match({ session_id: entityId, user_id: user.id })
+    } else {
+      await supabase.from("session_likes").insert({ session_id: entityId, user_id: user.id, emoji })
+    }
+  } else if (entityType === "post") {
+    const { data: existing } = await supabase.from("post_likes").select("emoji").match({ post_id: entityId, user_id: user.id }).maybeSingle()
+    if (existing) {
+      if (existing.emoji === emoji) await supabase.from("post_likes").delete().match({ post_id: entityId, user_id: user.id })
+      else await supabase.from("post_likes").update({ emoji }).match({ post_id: entityId, user_id: user.id })
+    } else {
+      await supabase.from("post_likes").insert({ post_id: entityId, user_id: user.id, emoji })
+    }
+  } else if (entityType === "short") {
+    const { data: existing } = await supabase.from("short_likes").select("emoji").match({ short_id: entityId, user_id: user.id }).maybeSingle()
+    if (existing) {
+      if (existing.emoji === emoji) await supabase.from("short_likes").delete().match({ short_id: entityId, user_id: user.id })
+      else await supabase.from("short_likes").update({ emoji }).match({ short_id: entityId, user_id: user.id })
+    } else {
+      await supabase.from("short_likes").insert({ short_id: entityId, user_id: user.id, emoji })
+    }
   }
 
   if (pathToRevalidate) {
@@ -255,6 +290,7 @@ export async function getComments(entityType: EntityType, entityId: string, curr
     reactions: c.reactions || []
   }))
 }
+
 
 
 

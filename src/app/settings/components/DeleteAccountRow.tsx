@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useState } from "react"
 import { Trash2 } from "lucide-react"
@@ -42,7 +42,7 @@ export default function DeleteAccountRow({ userId }: { userId: string }) {
       </button>
 
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
           <div className="bg-card border border-border p-6 rounded-3xl max-w-md w-full shadow-2xl space-y-6">
             <div>
               <h3 className="text-xl font-bold text-red-500">Eliminar cuenta</h3>

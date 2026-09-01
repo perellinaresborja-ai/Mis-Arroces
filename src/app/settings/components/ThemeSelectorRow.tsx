@@ -26,8 +26,8 @@ export default function ThemeSelectorRow() {
       </button>
 
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex flex-col justify-end bg-background/80 backdrop-blur-sm animate-in fade-in" onClick={() => setIsOpen(false)}>
-          <div className="bg-card border-t border-border rounded-t-3xl p-6 w-full max-w-2xl mx-auto shadow-2xl animate-in slide-in-from-bottom-10" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 z-[100] flex flex-col justify-end bg-background/80 backdrop-blur-sm animate-in fade-in" onClick={() => setIsOpen(false)}>
+          <div className="bg-card border-t border-border rounded-t-3xl p-6 pb-10 sm:pb-6 w-full max-w-2xl mx-auto shadow-2xl animate-in slide-in-from-bottom-10" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-6">
               <h3 className="font-bold text-xl">Elige un tema</h3>
               <button onClick={() => setIsOpen(false)} className="p-2 bg-muted rounded-full">
