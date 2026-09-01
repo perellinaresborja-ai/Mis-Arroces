@@ -232,13 +232,26 @@ export function CookModeClient({ recipe }: { recipe: CookModeRecipe }) {
     }))
   }
 
+  const TopActions = ({ textToRead }: { textToRead: string }) => (
+    <div className="absolute top-6 right-6 flex items-center gap-3 z-50">
+      <button 
+        onClick={() => speakText(textToRead)}
+        className="p-3 bg-white/10 rounded-full text-white hover:bg-white/20 transition-colors shadow-lg backdrop-blur-sm"
+        title="Leer"
+      >
+        <Volume2 className="w-6 h-6" />
+      </button>
+      <Link href={`/recipes/${recipe.id}`} onClick={() => localStorage.removeItem(`cook-mode-${recipe.id}`)} className="p-3 bg-white/10 rounded-full text-white hover:bg-white/20 transition-colors shadow-lg backdrop-blur-sm">
+        <X className="w-6 h-6" />
+      </Link>
+    </div>
+  )
+
   // Initial Summary View
   if (!hasStarted) {
     return (
       <div className="min-h-screen bg-black text-white flex flex-col justify-center p-6 sm:p-10 animate-in fade-in duration-500 relative">
-        <Link href={`/recipes/${recipe.id}`} className="absolute top-6 right-6 p-3 bg-white/10 rounded-full hover:bg-white/20 transition-colors">
-          <X className="w-6 h-6" />
-        </Link>
+        <TopActions textToRead={`Resumen de cocción para ${recipe.name}. ${recipe.requested_servings} raciones.`} />
         <div className="max-w-xl mx-auto w-full space-y-10">
           <div className="space-y-4 text-center">
             <h1 className="text-4xl font-black font-serif">{recipe.name}</h1>
@@ -292,7 +305,8 @@ export function CookModeClient({ recipe }: { recipe: CookModeRecipe }) {
   // Final View
   if (currentStepIndex >= recipe.steps.length) {
     return (
-      <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center p-6 animate-in fade-in zoom-in-95 duration-500">
+      <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center p-6 animate-in fade-in zoom-in-95 duration-500 relative">
+        <TopActions textToRead="¡Arroz terminado! Es hora de disfrutar del socarrat." />
         <div className="max-w-xl text-center space-y-12">
           <div className="space-y-4">
             <h1 className="text-5xl md:text-6xl font-black font-serif text-primary">¡Arroz terminado!</h1>
@@ -330,21 +344,12 @@ export function CookModeClient({ recipe }: { recipe: CookModeRecipe }) {
 
   return (
     <div className="min-h-[100dvh] bg-black text-white flex flex-col animate-in fade-in duration-300 select-none">
+      <TopActions textToRead={step.instruction} />
       {/* Header */}
-      <header className="p-6 flex items-center justify-between shrink-0">
-        <button 
-          onClick={() => speakText(step.instruction)}
-          className="p-3 bg-white/10 rounded-full text-white hover:bg-white/20 transition-colors"
-          title="Leer paso"
-        >
-          <Volume2 className="w-6 h-6" />
-        </button>
-        <div className="text-center font-black text-white/40 uppercase tracking-widest text-sm">
+      <header className="p-6 flex items-center justify-center shrink-0">
+        <div className="text-center font-black text-white/40 uppercase tracking-widest text-sm mt-2 md:mt-0">
           Paso {currentStepIndex + 1} de {recipe.steps.length}
         </div>
-        <Link href={`/recipes/${recipe.id}`} onClick={() => localStorage.removeItem(`cook-mode-${recipe.id}`)} className="p-3 bg-white/10 rounded-full text-white hover:bg-white/20 transition-colors">
-          <X className="w-6 h-6" />
-        </Link>
       </header>
 
       {/* Main Content */}
