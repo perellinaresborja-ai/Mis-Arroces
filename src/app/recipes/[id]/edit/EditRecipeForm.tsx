@@ -563,29 +563,24 @@ export default function EditRecipeForm({ recipe, catalogs }: { recipe: any, cata
           </CollapsibleSection>
         )}
 
-        <div className="bg-card border border-border rounded-2xl shadow-sm overflow-hidden mb-8">
-          <div className="px-4 py-4 md:px-6 bg-muted/30 border-b border-border">
-            <h3 className="font-bold text-lg font-serif">Información Nutricional</h3>
-          </div>
-          <div className="p-4 md:p-6 space-y-4">
+        <CollapsibleSection title="Información Nutricional">
+          <div className="space-y-4">
             <div className="text-sm text-muted-foreground mb-4">
               Los valores nutricionales se calculan automáticamente basándose en los ingredientes canónicos. No es necesario introducirlos a mano.
             </div>
             <NutritionSection result={nutritionResult} servings={watchedPortions || 1} hideTitle />
           </div>
-        </div>
+        </CollapsibleSection>
 
-        <div className="bg-card border border-border rounded-2xl shadow-sm overflow-hidden mb-8">
-          <div className="px-4 py-4 md:px-6 bg-muted/30 border-b border-border">
-            <h3 className="font-bold text-lg font-serif">Alérgenos</h3>
-          </div>
-          <div className="p-4 md:p-6 space-y-4">
+        <CollapsibleSection title="Alérgenos">
+          <div className="space-y-4">
             <div className="text-sm text-muted-foreground mb-4">
               Los alérgenos se detectan automáticamente. Si falta alguno, asegúrate de que el ingrediente esté bien escrito.
             </div>
             <AllergensSection result={nutritionResult} hideTitle />
           </div>
-        </div>
+        </CollapsibleSection>
+
       </div>
 
       <div className="fixed bottom-0 left-0 right-0 p-4 bg-background/90 backdrop-blur-md border-t border-border z-50">
