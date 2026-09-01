@@ -1,4 +1,4 @@
-CREATE OR REPLACE VIEW public.feed_metrics AS
+CREATE OR REPLACE VIEW public.feed_metrics WITH (security_invoker = on) AS
 SELECT 
     id AS entity_id, 
     'post' AS entity_type,
@@ -17,6 +17,7 @@ SELECT
     id AS entity_id, 
     'session' AS entity_type,
     (SELECT count(*) FROM public.session_likes WHERE session_id = s.id) AS like_count,
+    (SELECT count(*) FROM public.session_comments WHERE session_id = s.id AND is_deleted = false) AS comment_count
 FROM public.cooking_sessions s;
 
 -- Index for fast counting
@@ -26,4 +27,3 @@ CREATE INDEX IF NOT EXISTS idx_recipe_likes_recipe_id ON public.recipe_likes(rec
 CREATE INDEX IF NOT EXISTS idx_recipe_comments_recipe_id ON public.recipe_comments(recipe_id);
 CREATE INDEX IF NOT EXISTS idx_session_likes_session_id ON public.session_likes(session_id);
 CREATE INDEX IF NOT EXISTS idx_session_comments_session_id ON public.session_comments(session_id);
-

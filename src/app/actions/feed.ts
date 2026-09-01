@@ -52,26 +52,27 @@ export async function fetchFeedPage(pageIndex: number = 0) {
   const userLikesSession = new Set(likesRes[2].data?.map(l => l.session_id))
 
   const metricsMap = (commentsRes?.data || []).reduce((acc: any, val: any) => {
-    acc[val.entity_id] = { likeCount: val.like_count || 0, commentCount: val.comment_count || 0 };
+    acc[`${val.entity_type}:${val.entity_id}`] = { likeCount: val.like_count || 0, commentCount: val.comment_count || 0 };
     return acc;
   }, {});
 
   const enriched = feedItems?.filter(item => item.entity_id).map(item => {
     const entityId = item.entity_id as string;
+    const metricsKey = `${item.entity_type}:${entityId}`;
       if (item.entity_type === 'post') {
         const data = posts.find(p => p.id === entityId)
         if (!data) return null
-        return { ...item, data, isLiked: userLikesPost.has(entityId), likeCount: metricsMap[entityId]?.likeCount || 0, commentCount: metricsMap[entityId]?.commentCount || 0, followStatus: typeof followStatusMap !== "undefined" ? followStatusMap[data.author?.id] || null : null }
+        return { ...item, data, isLiked: userLikesPost.has(entityId), likeCount: metricsMap[metricsKey]?.likeCount || 0, commentCount: metricsMap[metricsKey]?.commentCount || 0, followStatus: typeof followStatusMap !== "undefined" ? followStatusMap[data.author?.id] || null : null }
       }
     if (item.entity_type === 'recipe') {
       const data = recipes.find(r => r.id === entityId)
       if (!data) return null
-      return { ...item, data, isLiked: userLikesRecipe.has(entityId), likeCount: metricsMap[entityId]?.likeCount || 0, commentCount: metricsMap[entityId]?.commentCount || 0, followStatus: typeof followStatusMap !== "undefined" ? followStatusMap[data.author?.id] || null : null }
+      return { ...item, data, isLiked: userLikesRecipe.has(entityId), likeCount: metricsMap[metricsKey]?.likeCount || 0, commentCount: metricsMap[metricsKey]?.commentCount || 0, followStatus: typeof followStatusMap !== "undefined" ? followStatusMap[data.author?.id] || null : null }
     }
     if (item.entity_type === 'session') {
       const data = sessions.find(s => s.id === entityId)
       if (!data) return null
-      return { ...item, data, isLiked: userLikesSession.has(entityId), likeCount: metricsMap[entityId]?.likeCount || 0, commentCount: metricsMap[entityId]?.commentCount || 0, followStatus: typeof followStatusMap !== "undefined" ? followStatusMap[data.author?.id] || null : null }
+      return { ...item, data, isLiked: userLikesSession.has(entityId), likeCount: metricsMap[metricsKey]?.likeCount || 0, commentCount: metricsMap[metricsKey]?.commentCount || 0, followStatus: typeof followStatusMap !== "undefined" ? followStatusMap[data.author?.id] || null : null }
     }
     return null
   }).filter(Boolean) || []
