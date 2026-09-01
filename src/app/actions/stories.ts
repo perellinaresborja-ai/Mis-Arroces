@@ -1,4 +1,4 @@
-﻿// @ts-nocheck
+// @ts-nocheck
 "use server"
 
 import { createClient } from "@/lib/supabase/server"
@@ -110,21 +110,31 @@ export async function fetchActiveStories() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   
-  // Get all active stories
+  // Get all active stories with view count instead of loading all view rows
   const { data, error } = await supabase
     .from("stories")
     .select(`
       *,
       author:profiles!stories_owner_id_fkey(id, username, display_name, avatar:media_assets!fk_profiles_avatar(storage_path)),
       story_media(media:media_assets(storage_path)),
-      story_views(viewer_id),
-        recipe:recipes(id, name, recipe_media(media:media_assets(storage_path))),
-        session:cooking_sessions(id, session_media(media:media_assets(storage_path)))
+      view_count:story_views(count),
+      recipe:recipes(id, name, recipe_media(media:media_assets(storage_path))),
+      session:cooking_sessions(id, session_media(media:media_assets(storage_path)))
     `)
     .gt("expires_at", new Date().toISOString())
     .order("created_at", { ascending: true })
 
-  if (!data) return []
+  if (!data || data.length === 0) return []
+
+  // Fetch the current user's views in one query to avoid filtering client-side
+  const storyIds = data.map(s => s.id)
+  let userSeenSet = new Set<string>()
+  if (user && storyIds.length > 0) {
+    const { data: myViews } = await supabase.from('story_views').select('story_id').eq('viewer_id', user.id).in('story_id', storyIds)
+    if (myViews) {
+      myViews.forEach(v => userSeenSet.add(v.story_id))
+    }
+  }
 
     // Generate signed URLs for story media using SERVICE_ROLE
   // This is completely isolated from the browser and only signs paths that were already authorized by the RLS of 'stories'
@@ -150,7 +160,7 @@ export async function fetchActiveStories() {
 
   // Group by owner
   const userMap = new Map()
-  data.forEach((story: {owner_id: string, [key: string]: unknown}) => {
+  data.forEach((story: {id: string, owner_id: string, created_at: string, author: any, view_count?: any[]}) => {
     if (!userMap.has(story.owner_id)) {
       userMap.set(story.owner_id, {
         author: story.author,
@@ -162,7 +172,7 @@ export async function fetchActiveStories() {
     const userGroup = userMap.get(story.owner_id)
     
     // Check if seen by current user
-    const hasSeen = user ? story.story_views?.some((v: {viewer_id: string}) => v.viewer_id === user.id) : false;
+    const hasSeen = userSeenSet.has(story.id);
     
     // An owner doesn't count their own story as unseen
     const isOwner = user && user.id === story.owner_id;
@@ -178,7 +188,7 @@ export async function fetchActiveStories() {
     userGroup.stories.push({
       ...story,
       hasSeen,
-      viewCount: story.story_views?.length || 0
+      viewCount: story.view_count?.[0]?.count || 0
     })
   })
 

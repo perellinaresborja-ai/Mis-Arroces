@@ -40,14 +40,7 @@ export async function fetchFeedPage(pageIndex: number = 0) {
       recipeIds.length > 0 ? supabase.from("recipe_likes").select("recipe_id").eq("user_id", user.id).in("recipe_id", recipeIds) : { data: [] },
       sessionIds.length > 0 ? supabase.from("session_likes").select("session_id").eq("user_id", user.id).in("session_id", sessionIds) : { data: [] }
     ]) : Promise.resolve([{data:[]}, {data:[]}, {data:[]}]),
-    Promise.all([
-      postIds.length > 0 ? supabase.from("post_likes").select("post_id").in("post_id", postIds) : { data: [] },
-      recipeIds.length > 0 ? supabase.from("recipe_likes").select("recipe_id").in("recipe_id", recipeIds) : { data: [] },
-      sessionIds.length > 0 ? supabase.from("session_likes").select("session_id").in("session_id", sessionIds) : { data: [] },
-      postIds.length > 0 ? supabase.from("post_comments").select("post_id").eq("is_deleted", false).in("post_id", postIds) : { data: [] },
-      recipeIds.length > 0 ? supabase.from("recipe_comments").select("recipe_id").eq("is_deleted", false).in("recipe_id", recipeIds) : { data: [] },
-      sessionIds.length > 0 ? supabase.from("session_comments").select("session_id").eq("is_deleted", false).in("session_id", sessionIds) : { data: [] }
-    ])
+    supabase.from("feed_metrics").select("*").in("entity_id", feedItems?.map(i => i.entity_id).filter(Boolean) || [])
   ])
 
   const posts = postsRes.data || []
@@ -58,30 +51,27 @@ export async function fetchFeedPage(pageIndex: number = 0) {
   const userLikesRecipe = new Set(likesRes[1].data?.map(l => l.recipe_id))
   const userLikesSession = new Set(likesRes[2].data?.map(l => l.session_id))
 
-  const postLikesCount = commentsRes[0].data?.reduce((acc: any, val: any) => { acc[val.post_id] = (acc[val.post_id] || 0) + 1; return acc }, {})
-  const recipeLikesCount = commentsRes[1].data?.reduce((acc: any, val: any) => { acc[val.recipe_id] = (acc[val.recipe_id] || 0) + 1; return acc }, {})
-  const sessionLikesCount = commentsRes[2].data?.reduce((acc: any, val: any) => { acc[val.session_id] = (acc[val.session_id] || 0) + 1; return acc }, {})
-  
-  const postCommentsCount = commentsRes[3].data?.reduce((acc: any, val: any) => { acc[val.post_id] = (acc[val.post_id] || 0) + 1; return acc }, {})
-  const recipeCommentsCount = commentsRes[4].data?.reduce((acc: any, val: any) => { acc[val.recipe_id] = (acc[val.recipe_id] || 0) + 1; return acc }, {})
-  const sessionCommentsCount = commentsRes[5].data?.reduce((acc: any, val: any) => { acc[val.session_id] = (acc[val.session_id] || 0) + 1; return acc }, {})
+  const metricsMap = (commentsRes?.data || []).reduce((acc: any, val: any) => {
+    acc[val.entity_id] = { likeCount: val.like_count || 0, commentCount: val.comment_count || 0 };
+    return acc;
+  }, {});
 
   const enriched = feedItems?.filter(item => item.entity_id).map(item => {
     const entityId = item.entity_id as string;
-    if (item.entity_type === 'post') {
-      const data = posts.find(p => p.id === entityId)
-      if (!data) return null
-      return { ...item, data, isLiked: userLikesPost.has(entityId), likeCount: postLikesCount?.[entityId] || 0, commentCount: postCommentsCount?.[entityId] || 0, followStatus: typeof followStatusMap !== "undefined" ? followStatusMap[data.author?.id] || null : null }
-    }
+      if (item.entity_type === 'post') {
+        const data = posts.find(p => p.id === entityId)
+        if (!data) return null
+        return { ...item, data, isLiked: userLikesPost.has(entityId), likeCount: metricsMap[entityId]?.likeCount || 0, commentCount: metricsMap[entityId]?.commentCount || 0, followStatus: typeof followStatusMap !== "undefined" ? followStatusMap[data.author?.id] || null : null }
+      }
     if (item.entity_type === 'recipe') {
       const data = recipes.find(r => r.id === entityId)
       if (!data) return null
-      return { ...item, data, isLiked: userLikesRecipe.has(entityId), likeCount: recipeLikesCount?.[entityId] || 0, commentCount: recipeCommentsCount?.[entityId] || 0, followStatus: typeof followStatusMap !== "undefined" ? followStatusMap[data.author?.id] || null : null }
+      return { ...item, data, isLiked: userLikesRecipe.has(entityId), likeCount: metricsMap[entityId]?.likeCount || 0, commentCount: metricsMap[entityId]?.commentCount || 0, followStatus: typeof followStatusMap !== "undefined" ? followStatusMap[data.author?.id] || null : null }
     }
     if (item.entity_type === 'session') {
       const data = sessions.find(s => s.id === entityId)
       if (!data) return null
-      return { ...item, data, isLiked: userLikesSession.has(entityId), likeCount: sessionLikesCount?.[entityId] || 0, commentCount: sessionCommentsCount?.[entityId] || 0, followStatus: typeof followStatusMap !== "undefined" ? followStatusMap[data.author?.id] || null : null }
+      return { ...item, data, isLiked: userLikesSession.has(entityId), likeCount: metricsMap[entityId]?.likeCount || 0, commentCount: metricsMap[entityId]?.commentCount || 0, followStatus: typeof followStatusMap !== "undefined" ? followStatusMap[data.author?.id] || null : null }
     }
     return null
   }).filter(Boolean) || []
