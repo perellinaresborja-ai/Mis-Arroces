@@ -23,8 +23,8 @@ export default async function LoginPage({
     },
     {
       src: "/arroces/lallar.jpg",
-      title: <>Cocina. Aprende. <span className="text-primary">Mejora.</span></>,
-      subtitle: "Guarda cada elaboración y construye tu propia experiencia arrocera."
+      title: <>Cocina, aprende, <span className="text-primary">mejora.</span></>,
+      subtitle: "Guarda tus elaboraciones y construye tu propia experiencia arrocera."
     }
   ]
   const randomCover = covers[Math.floor(Math.random() * covers.length)]
