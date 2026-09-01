@@ -81,7 +81,7 @@ export function InteractiveRecipeView({
       </div>
 
       <div className="flex flex-col gap-3">
-        <AddToCartButton recipeId={recipe.id} isAuthenticated={isAuthenticated} baseServings={servings} />
+        <AddToCartButton recipeId={recipe.id} isAuthenticated={isAuthenticated} baseServings={servings} layout="horizontal" />
       </div>
       
       <div className="mt-8 w-full">

@@ -53,7 +53,7 @@ export function AddToCartButton({ recipeId, isAuthenticated, layout = "vertical"
   }
 
   return (
-    <div className={`mt-6 flex gap-3 w-full ${layout === "horizontal" ? "flex-row" : "flex-col max-w-[380px]"}`}>
+    <div className={`mt-6 flex gap-3 w-full ${layout === "horizontal" ? "flex-col sm:flex-row" : "flex-col max-w-[380px]"}`}>
       {isSelecting ? (
         <div className="flex flex-col gap-2 p-3 bg-card border border-border rounded-2xl animate-in zoom-in-95 duration-200">
           <span className="text-sm font-semibold text-center text-muted-foreground flex items-center justify-center gap-1.5"><Users className="w-4 h-4"/> ¿Para cuántas personas comprar?</span>
