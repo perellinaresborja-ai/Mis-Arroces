@@ -35,6 +35,7 @@ export function CookModeClient({ recipe }: { recipe: CookModeRecipe }) {
   const [timers, setTimers] = useState<Record<number, TimerState>>({})
   const [wakeLock, setWakeLock] = useState<any>(null)
   const [isClient, setIsClient] = useState(false)
+  const hasWelcomed = useRef(false)
 
   // Recovery on mount
   useEffect(() => {
@@ -129,15 +130,37 @@ export function CookModeClient({ recipe }: { recipe: CookModeRecipe }) {
   useEffect(() => {
     if (isClient && hasStarted && currentStepIndex < recipe.steps.length) {
       const step = recipe.steps[currentStepIndex]
+      const timer = timers[step.id]
+      
+      // Do not repeat if timer is actively running
+      if (timer?.isRunning) return;
+
+      let text = ""
+      if (!hasWelcomed.current) {
+        text = `¡Bienvenido! Vamos a cocinar ${recipe.name}. ¿Preparado? ¡Empezamos! `
+        hasWelcomed.current = true
+      }
+
       if (step?.instruction) {
-        let text = step.instruction;
+        text += step.instruction;
         if (step.duration_minutes) {
           text += `. Tiempo estimado: ${step.duration_minutes} minuto${step.duration_minutes !== 1 ? 's' : ''}.`
         }
-        speakText(text)
       }
+      
+      if (text) speakText(text);
+
+      const interval = setInterval(() => {
+        let repeatText = step.instruction || "";
+        if (step.duration_minutes) {
+          repeatText += `. Tiempo estimado: ${step.duration_minutes} minuto${step.duration_minutes !== 1 ? 's' : ''}.`
+        }
+        if (repeatText) speakText(repeatText);
+      }, 30000);
+
+      return () => clearInterval(interval);
     }
-  }, [currentStepIndex, hasStarted, recipe.steps, isClient])
+  }, [currentStepIndex, hasStarted, recipe.steps, isClient, timers, recipe.name])
 
   // Preload next image
   useEffect(() => {
@@ -374,7 +397,7 @@ export function CookModeClient({ recipe }: { recipe: CookModeRecipe }) {
                 src={`https://zvesoygqssyyojqyswwm.supabase.co/storage/v1/object/public/recipe_media/${step.media.storage_path}`}
                 alt={`Paso ${currentStepIndex + 1}`}
                 fill
-                className="object-cover"
+                className="object-contain"
                 priority
               />
             ) : (
