@@ -62,7 +62,7 @@ export function SocialElaborationModal({ isOpen, onClose, item, currentUserId }:
         {/* MOBILE HEADER */}
         <div className="md:hidden flex items-center justify-between p-3 border-b border-border bg-card shrink-0">
           <Link href={`/@${item.author?.username}`} className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-            <div className="w-8 h-8 rounded-full bg-muted overflow-hidden">
+            <div className="relative w-8 h-8 rounded-full bg-muted overflow-hidden">
               {authorAvatarUrl ? <MediaImage src={authorAvatarUrl} alt="Avatar" className="w-full h-full object-cover" fill={true} /> : <User className="w-full h-full p-1.5 text-muted-foreground"/>}
             </div>
             <span className="font-bold text-sm">@{item.author?.username}</span>
@@ -108,12 +108,12 @@ export function SocialElaborationModal({ isOpen, onClose, item, currentUserId }:
         {/* RIGHT: INFO & COMMENTS */}
         <div className="md:w-[45%] lg:w-[40%] flex flex-col flex-1 bg-card min-h-0">
            {/* Desktop Header */}
-           <div className="hidden md:flex items-center justify-between p-4 border-b border-border shrink-0">
-             <Link href={`/@${item.author?.username}`} className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-               <div className="w-10 h-10 rounded-full bg-muted overflow-hidden">
-                 {authorAvatarUrl ? <MediaImage src={authorAvatarUrl} alt="Avatar" className="w-full h-full object-cover" fill={true} /> : <User className="w-full h-full p-2 text-muted-foreground"/>}
-               </div>
-               <div>
+            <div className="hidden md:flex items-center justify-between p-4 border-b border-border shrink-0">
+              <Link href={`/@${item.author?.username}`} className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+                <div className="relative w-10 h-10 rounded-full bg-muted overflow-hidden">
+                  {authorAvatarUrl ? <MediaImage src={authorAvatarUrl} alt="Avatar" className="w-full h-full object-cover" fill={true} /> : <User className="w-full h-full p-2 text-muted-foreground"/>}
+                </div>
+                <div>
                  <div className="font-bold text-sm leading-tight">{item.author?.display_name || `@${item.author?.username}`}</div>
                  <div className="text-xs text-muted-foreground">@{item.author?.username}</div>
                </div>

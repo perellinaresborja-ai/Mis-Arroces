@@ -103,7 +103,7 @@ function CommentReactionUI({ comment, entityType, currentUserId }: { comment: Co
       
       {showReactionMenu && (
         <div className="absolute top-0 left-0 bg-card border border-border shadow-xl rounded-full px-3 py-2 flex items-center gap-3 z-50 animate-in fade-in zoom-in-95 duration-200">
-          {['🥘', '😂', '🔥', '👏', '😮'].map(em => (
+          {['🥘', '😂', '🔥', '👍', '😲'].map(em => (
             <button key={em} onClick={(e) => { e.stopPropagation(); handleReact(em); }} className="text-2xl hover:scale-125 transition-transform active:scale-95">
               {em}
             </button>
