@@ -49,8 +49,14 @@ export function CookModeClient({ recipe, userName, reset }: { recipe: CookModeRe
       try {
         const parsed = JSON.parse(saved)
         if (parsed.requested_servings === recipe.requested_servings) {
-          setHasStarted(parsed.hasStarted || false)
-          setCurrentStepIndex(parsed.currentStepIndex || 0)
+          if (parsed.currentStepIndex >= recipe.steps.length) {
+            // They finished it last time. Start fresh.
+            setCurrentStepIndex(0)
+            setHasStarted(false)
+          } else {
+            setHasStarted(parsed.hasStarted || false)
+            setCurrentStepIndex(parsed.currentStepIndex || 0)
+          }
           
           // Reconcile timers (if end time is in the past, set to 0)
           const parsedTimers = parsed.timers || {}

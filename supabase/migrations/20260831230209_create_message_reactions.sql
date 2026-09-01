@@ -1,4 +1,4 @@
--- Create message reactions table
+﻿-- Create message reactions table
 CREATE TABLE IF NOT EXISTS public.message_reactions (
   id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
   message_id uuid NOT NULL REFERENCES public.messages(id) ON DELETE CASCADE,
@@ -12,37 +12,37 @@ CREATE TABLE IF NOT EXISTS public.message_reactions (
 ALTER TABLE public.message_reactions ENABLE ROW LEVEL SECURITY;
 
 -- Policy: Users can view reactions in conversations they are part of
-CREATE POLICY "Users can view message reactions in their conversations"
+DROP POLICY IF EXISTS "Users can view message reactions in their conversations" ON public.message_reactions; CREATE POLICY "Users can view message reactions in their conversations"
   ON public.message_reactions FOR SELECT
   USING (
     EXISTS (
       SELECT 1 FROM public.messages m
-      JOIN public.conversation_participants cp ON cp.conversation_id = m.conversation_id
+      JOIN public.conversation_members cp ON cp.conversation_id = m.conversation_id
       WHERE m.id = message_reactions.message_id
       AND cp.user_id = auth.uid()
     )
   );
 
 -- Policy: Users can insert reactions in conversations they are part of
-CREATE POLICY "Users can insert reactions in their conversations"
+DROP POLICY IF EXISTS "Users can insert reactions in their conversations" ON public.message_reactions; CREATE POLICY "Users can insert reactions in their conversations"
   ON public.message_reactions FOR INSERT
   WITH CHECK (
     auth.uid() = user_id AND
     EXISTS (
       SELECT 1 FROM public.messages m
-      JOIN public.conversation_participants cp ON cp.conversation_id = m.conversation_id
+      JOIN public.conversation_members cp ON cp.conversation_id = m.conversation_id
       WHERE m.id = message_id
       AND cp.user_id = auth.uid()
     )
   );
 
 -- Policy: Users can update their own reactions
-CREATE POLICY "Users can update their own reactions"
+DROP POLICY IF EXISTS "Users can update their own reactions" ON public.message_reactions; CREATE POLICY "Users can update their own reactions"
   ON public.message_reactions FOR UPDATE
   USING (auth.uid() = user_id)
   WITH CHECK (auth.uid() = user_id);
 
 -- Policy: Users can delete their own reactions
-CREATE POLICY "Users can delete their own reactions"
+DROP POLICY IF EXISTS "Users can delete their own reactions" ON public.message_reactions; CREATE POLICY "Users can delete their own reactions"
   ON public.message_reactions FOR DELETE
   USING (auth.uid() = user_id);

@@ -1,5 +1,4 @@
-// @ts-nocheck
-"use server"
+﻿"use server"
 
 import { createClient } from "@/lib/supabase/server"
 
@@ -14,11 +13,27 @@ export async function fetchFeedPage(pageIndex: number = 0) {
   let query = supabase.from("feed_items").select("*").order("created_at", { ascending: false }).range(offset, offset + PAGE_SIZE - 1)
 
   let followStatusMap: Record<string, string> = {}
+  let excludedUserIds: string[] = []
+
   if (user) {
-    const { data: follows } = await supabase.from("follows").select("following_id, status").eq("follower_id", user.id)
-    const followingIds = follows?.filter(f => f.status === 'ACCEPTED').map(f => f.following_id) || []
-    followStatusMap = follows?.reduce((acc: any, f: any) => { acc[f.following_id] = f.status; return acc; }, {}) || {}
+    const [followsRes, blocksRes, mutesRes] = await Promise.all([
+      supabase.from("follows").select("following_id, status").eq("follower_id", user.id),
+      supabase.from("blocks").select("blocker_id, blocked_id").or(`blocker_id.eq.${user.id},blocked_id.eq.${user.id}`),
+      (supabase as any).from("user_mutes").select("muted_id").eq("muter_id", user.id)
+    ])
+
+    const follows = followsRes.data || []
+    const blocks = blocksRes.data || []
+    const mutes = mutesRes.data || []
+
+    const followingIds = follows.filter(f => f.status === 'ACCEPTED').map(f => f.following_id)
+    followStatusMap = follows.reduce((acc: any, f: any) => { acc[f.following_id] = f.status; return acc; }, {})
     const allowedAuthors = [user.id, ...followingIds].map(id => `"${id}"`).join(",")
+
+    // Gather excluded IDs
+    const blockedIds = blocks.map((b: any) => b.blocker_id === user.id ? b.blocked_id : b.blocker_id)
+    const mutedIds = mutes.map((m: any) => m.muted_id)
+    excludedUserIds = Array.from(new Set([...blockedIds, ...mutedIds]))
 
     query = query.or(`visibility.eq.PUBLIC,user_id.eq.${user.id},and(visibility.eq.FOLLOWERS,user_id.in.(${allowedAuthors}))`)
   } else {
@@ -55,23 +70,34 @@ export async function fetchFeedPage(pageIndex: number = 0) {
   const enriched = feedItems?.filter(item => item.entity_id).map(item => {
     const entityId = item.entity_id as string;
     const metricsKey = `${item.entity_type}:${entityId}`;
-      if (item.entity_type === 'post') {
-        const data = posts.find(p => p.id === entityId)
-        if (!data) return null
-        return { ...item, data, reactions: undefined, initialGroupedReactions: metricsMap[metricsKey]?.groupedReactions || {}, initialMyReaction: metricsMap[metricsKey]?.myReaction || null, commentCount: metricsMap[metricsKey]?.commentCount || 0, followStatus: typeof followStatusMap !== "undefined" ? followStatusMap[data.author?.id] || null : null }
-      }
-    if (item.entity_type === 'recipe') {
-      const data = recipes.find(r => r.id === entityId)
-      if (!data) return null
-      return { ...item, data, reactions: undefined, initialGroupedReactions: metricsMap[metricsKey]?.groupedReactions || {}, initialMyReaction: metricsMap[metricsKey]?.myReaction || null, commentCount: metricsMap[metricsKey]?.commentCount || 0, followStatus: typeof followStatusMap !== "undefined" ? followStatusMap[data.author?.id] || null : null }
+    let data: any = null;
+
+    if (item.entity_type === 'post') {
+      data = posts.find(p => p.id === entityId)
+    } else if (item.entity_type === 'recipe') {
+      data = recipes.find(r => r.id === entityId)
+    } else if (item.entity_type === 'session') {
+      data = sessions.find(s => s.id === entityId)
     }
-    if (item.entity_type === 'session') {
-      const data = sessions.find(s => s.id === entityId)
-      if (!data) return null
-      return { ...item, data, reactions: undefined, initialGroupedReactions: metricsMap[metricsKey]?.groupedReactions || {}, initialMyReaction: metricsMap[metricsKey]?.myReaction || null, commentCount: metricsMap[metricsKey]?.commentCount || 0, followStatus: typeof followStatusMap !== "undefined" ? followStatusMap[data.author?.id] || null : null }
+    
+    if (!data) return null;
+
+    const authorId = data.author?.id || data.author_id || data.owner_id || data.user_id;
+    if (authorId !== user?.id && excludedUserIds.includes(authorId)) {
+      return null;
     }
-    return null
+
+    return { 
+      ...item, 
+      data, 
+      reactions: undefined, 
+      initialGroupedReactions: metricsMap[metricsKey]?.groupedReactions || {}, 
+      initialMyReaction: metricsMap[metricsKey]?.myReaction || null, 
+      commentCount: metricsMap[metricsKey]?.commentCount || 0, 
+      followStatus: typeof followStatusMap !== "undefined" ? followStatusMap[authorId] || null : null 
+    }
   }).filter(Boolean) || []
 
   return enriched
 }
+

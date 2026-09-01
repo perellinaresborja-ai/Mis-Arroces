@@ -1,4 +1,4 @@
-"use server"
+﻿"use server"
 
 import { createClient } from "@/lib/supabase/server"
 import { Database } from "@/types/database.types"
@@ -16,6 +16,27 @@ export async function createNotification(
   const { data: { user } } = await supabase.auth.getUser()
 
   if (!user || user.id === recipient_id) return // Don't notify yourself
+
+  // Check user preferences
+  let prefKey = null;
+  if (type === 'FOLLOW') prefKey = 'follows';
+  if (type === 'LIKE') prefKey = 'likes';
+  if (type === 'COMMENT') prefKey = 'comments';
+  if (type === 'MENTION') prefKey = 'mentions';
+  if (type === 'SYSTEM') prefKey = 'system';
+  
+  if (prefKey) {
+    const { data: prefs } = await (supabase as any).from('notification_preferences')
+      .select(prefKey)
+      .eq('user_id', recipient_id)
+      .single()
+      
+    // Validate with typed key access
+    const prefsData = prefs as Record<string, any>;
+    if (prefsData && prefsData[prefKey] === false) {
+      return // User opted out
+    }
+  }
 
   // Deduplication check for repeatable actions (likes)
   if (type === 'LIKE') {
@@ -92,3 +113,4 @@ export async function fetchNotifications() {
 
   return data || []
 }
+

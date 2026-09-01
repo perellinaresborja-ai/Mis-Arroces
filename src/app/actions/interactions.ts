@@ -1,4 +1,4 @@
-// @ts-nocheck
+﻿// @ts-nocheck
 "use server"
 
 import { createClient } from "@/lib/supabase/server"
@@ -184,26 +184,35 @@ export async function toggleWantToCook(recipeId: string, isWantToCook: boolean, 
 export async function getComments(entityType: EntityType, entityId: string, currentUserId: string | null) {
   const supabase = await createClient()
   let query = null
+  let ownerId = null
 
   if (entityType === 'recipe') {
+    const { data: ent } = await supabase.from('recipes').select('owner_id').eq('id', entityId).single()
+    ownerId = ent?.owner_id
     query = supabase.from("recipe_comments").select(`
       *,
       author:profiles!recipe_comments_author_id_fkey(id, username, display_name, avatar:media_assets!fk_profiles_avatar(storage_path)),
       reactions:recipe_comment_likes(user_id, emoji)
     `).eq("recipe_id", entityId).order("created_at", { ascending: true })
   } else if (entityType === 'session') {
+    const { data: ent } = await supabase.from('cooking_sessions').select('user_id').eq('id', entityId).single()
+    ownerId = ent?.user_id
     query = supabase.from("session_comments").select(`
       *,
       author:profiles!session_comments_author_id_fkey(id, username, display_name, avatar:media_assets!fk_profiles_avatar(storage_path)),
       reactions:session_comment_likes(user_id, emoji)
     `).eq("session_id", entityId).order("created_at", { ascending: true })
   } else if (entityType === 'post') {
+    const { data: ent } = await supabase.from('social_posts').select('author_id').eq('id', entityId).single()
+    ownerId = ent?.author_id
     query = supabase.from("post_comments").select(`
       *,
       author:profiles!post_comments_author_id_fkey(id, username, display_name, avatar:media_assets!fk_profiles_avatar(storage_path)),
       reactions:post_comment_likes(user_id, emoji)
     `).eq("post_id", entityId).order("created_at", { ascending: true })
   } else if (entityType === 'short') {
+    const { data: ent } = await supabase.from('shorts').select('owner_id').eq('id', entityId).single()
+    ownerId = ent?.owner_id
     query = supabase.from("short_comments").select(`
       *,
       author:profiles!short_comments_author_id_fkey(id, username, display_name, avatar:media_assets!fk_profiles_avatar(storage_path)),
@@ -214,11 +223,38 @@ export async function getComments(entityType: EntityType, entityId: string, curr
   if (!query) return []
 
   const { data, error } = await query
-  if (error) return []
+  if (error || !data) return []
 
-  return data?.map((c: any) => ({
+  // Fetch hidden words for the owner
+  let hiddenWords: string[] = []
+  if (ownerId) {
+    const { data: hw } = await (supabase as any).from('hidden_words').select('word').eq('user_id', ownerId)
+    if (hw) {
+      hiddenWords = hw.map(h => h.word.toLowerCase())
+    }
+  }
+
+  // Filter out comments that contain hidden words, unless the current user is the author of the comment
+  const filteredData = data.filter((c: any) => {
+    if (c.author_id === currentUserId) return true // You can always see your own comments
+    
+    if (hiddenWords.length > 0 && c.content) {
+      const contentLower = c.content.toLowerCase()
+      for (const word of hiddenWords) {
+        // Simple word boundary regex to avoid partial matches
+        const regex = new RegExp(`\\b${word}\\b`, 'i')
+        if (regex.test(contentLower)) {
+          return false
+        }
+      }
+    }
+    return true
+  })
+
+  return filteredData.map((c: any) => ({
     ...c,
     reactions: c.reactions || []
-  })) || []
+  }))
 }
+
 

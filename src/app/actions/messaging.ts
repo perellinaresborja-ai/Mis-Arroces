@@ -1,4 +1,4 @@
-"use server"
+﻿"use server"
 
 import { createClient } from "@/lib/supabase/server"
 import { createClient as createAdminClient } from "@supabase/supabase-js"
@@ -23,11 +23,22 @@ export async function getOrCreateConversation(targetUserId: string) {
 }
 
 export async function fetchConversations() {
-
+  
   unstable_noStore();
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error("Unauthorized")
+
+  // Fetch excluded users (blocks and mutes) to avoid returning conversations with them
+  const [blocksRes, mutesRes] = await Promise.all([
+    supabase.from("blocks").select("blocker_id, blocked_id").or(`blocker_id.eq.${user.id},blocked_id.eq.${user.id}`),
+    (supabase as any).from("user_mutes").select("muted_id").eq("muter_id", user.id)
+  ])
+  const blocks = blocksRes.data || []
+  const mutes = mutesRes.data || []
+  const blockedIds = blocks.map((b: any) => b.blocker_id === user.id ? b.blocked_id : b.blocker_id)
+  const mutedIds = mutes.map((m: any) => m.muted_id)
+  const excludedUserIds = Array.from(new Set([...blockedIds, ...mutedIds]))
 
   // Fetch all members for conversations this user is in
     const { data: convMembers, error: membersError } = await (supabase as any)
@@ -52,6 +63,11 @@ export async function fetchConversations() {
       .limit(1)
 
     const otherMember = others?.[0]
+    
+    // Skip if other member is blocked or muted
+    if (otherMember && excludedUserIds.includes(otherMember.user_id)) {
+      continue;
+    }
 
     // Get last message
     const { data: lastMessage } = await supabase
@@ -275,4 +291,5 @@ export async function archiveConversation(conversationId: string) {
     .eq('user_id', user.id)
   return { success: !error, error: error?.message }
 }
+
 
