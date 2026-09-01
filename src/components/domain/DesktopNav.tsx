@@ -54,11 +54,6 @@ export function DesktopNav() {
       icon: BookOpen,
       label: "Recetario",
     },
-    {
-      href: "/calculadora-capa",
-      icon: Calculator,
-      label: "Calculadora",
-    },
   ]
 
   if (pathname === "/login" || pathname === "/forgot-password") return null
