@@ -252,37 +252,37 @@ export default async function RecipeDetailPage({
                         {/* Technical Data Card */}
             <div className="mt-8 bg-muted/20 rounded-2xl p-5 border border-border/50 w-full">
               <h3 className="font-bold text-base mb-3 text-charcoal font-serif uppercase tracking-wider">Ficha Técnica</h3>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-y-4 gap-x-2 text-sm">
+              <div className="flex flex-wrap items-center gap-x-6 gap-y-3 text-sm">
                 {recipe.variety && (
-                  <div>
-                    <span className="text-muted-foreground block text-xs uppercase tracking-wider mb-0.5">Variedad de arroz</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-muted-foreground">Variedad de arroz:</span>
                     <span className="font-semibold text-foreground">{recipe.variety.name}</span>
                   </div>
                 )}
                 {recipe.rice_qty && (
-                  <div>
-                    <span className="text-muted-foreground block text-xs uppercase tracking-wider mb-0.5">Cantidad de arroz</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-muted-foreground">Cantidad de arroz:</span>
                     <span className="font-semibold text-foreground">{recipe.rice_qty}g</span>
                   </div>
                 )}
                 {recipe.stock_qty && (
-                  <div>
-                    <span className="text-muted-foreground block text-xs uppercase tracking-wider mb-0.5">Cantidad de caldo</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-muted-foreground">Cantidad de caldo:</span>
                     <span className="font-semibold text-foreground">{recipe.stock_qty}ml</span>
                   </div>
                 )}
                 {vesselDetails?.diameter_cm && (
-                  <div>
-                    <span className="text-muted-foreground block text-xs uppercase tracking-wider mb-0.5">Medida de paella</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-muted-foreground">Medida de paella:</span>
                     <span className="font-semibold text-foreground">{vesselDetails.diameter_cm} cm</span>
                   </div>
-                )}{ratio && (
-                  <div>
-                    <span className="text-muted-foreground block text-xs uppercase tracking-wider mb-0.5">Proporción</span>
+                )}
+                {ratio && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-muted-foreground">Proporción:</span>
                     <span className="font-semibold text-foreground">1:{ratio}</span>
                   </div>
                 )}
-                
               </div>
             </div>
           </div>
