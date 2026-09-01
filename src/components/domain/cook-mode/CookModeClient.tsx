@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef, useCallback } from "react"
-import { ChevronLeft, ChevronRight, Check, Play, Pause, RotateCcw, Volume2, X } from "lucide-react"
+import { ChevronLeft, ChevronRight, Check, Play, Pause, RotateCcw, Volume2, X, Maximize } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
 import { calculateLayer, calculateRealBrothRatio } from "@/lib/paella-calculator"
@@ -123,6 +123,16 @@ export function CookModeClient({ recipe }: { recipe: CookModeRecipe }) {
     }
   }
 
+  // Auto-TTS for steps
+  useEffect(() => {
+    if (isClient && hasStarted && currentStepIndex < recipe.steps.length) {
+      const step = recipe.steps[currentStepIndex]
+      if (step?.instruction) {
+        speakText(step.instruction)
+      }
+    }
+  }, [currentStepIndex, hasStarted, recipe.steps, isClient])
+
   // Preload next image
   useEffect(() => {
     if (isClient && currentStepIndex + 1 < recipe.steps.length) {
@@ -232,20 +242,37 @@ export function CookModeClient({ recipe }: { recipe: CookModeRecipe }) {
     }))
   }
 
-  const TopActions = ({ textToRead }: { textToRead: string }) => (
-    <div className="absolute top-6 right-6 flex items-center gap-3 z-50">
-      <button 
-        onClick={() => speakText(textToRead)}
-        className="p-3 bg-white/10 rounded-full text-white hover:bg-white/20 transition-colors shadow-lg backdrop-blur-sm"
-        title="Leer"
-      >
-        <Volume2 className="w-6 h-6" />
-      </button>
-      <Link href={`/recipes/${recipe.id}`} onClick={() => localStorage.removeItem(`cook-mode-${recipe.id}`)} className="p-3 bg-white/10 rounded-full text-white hover:bg-white/20 transition-colors shadow-lg backdrop-blur-sm">
-        <X className="w-6 h-6" />
-      </Link>
-    </div>
-  )
+  const TopActions = ({ textToRead }: { textToRead: string }) => {
+    const toggleFullscreen = () => {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(err => console.warn(err));
+      } else {
+        document.exitFullscreen();
+      }
+    };
+
+    return (
+      <div className="absolute top-4 right-4 md:top-6 md:right-6 flex items-center gap-2 md:gap-3 z-50">
+        <button 
+          onClick={() => speakText(textToRead)}
+          className="p-3 bg-white/10 rounded-full text-white hover:bg-white/20 transition-colors shadow-lg backdrop-blur-sm"
+          title="Leer"
+        >
+          <Volume2 className="w-6 h-6" />
+        </button>
+        <button 
+          onClick={toggleFullscreen}
+          className="hidden md:flex p-3 bg-white/10 rounded-full text-white hover:bg-white/20 transition-colors shadow-lg backdrop-blur-sm"
+          title="Pantalla completa"
+        >
+          <Maximize className="w-6 h-6" />
+        </button>
+        <Link href={`/recipes/${recipe.id}`} onClick={() => localStorage.removeItem(`cook-mode-${recipe.id}`)} className="p-3 bg-white/10 rounded-full text-white hover:bg-white/20 transition-colors shadow-lg backdrop-blur-sm">
+          <X className="w-6 h-6" />
+        </Link>
+      </div>
+    )
+  }
 
   // Initial Summary View
   if (!hasStarted) {
@@ -343,7 +370,7 @@ export function CookModeClient({ recipe }: { recipe: CookModeRecipe }) {
   const displayTime = timer ? timer.remainingMs : durationMs
 
   return (
-    <div className="min-h-[100dvh] bg-black text-white flex flex-col animate-in fade-in duration-300 select-none">
+    <div className="min-h-[100dvh] bg-black text-white flex flex-col animate-in fade-in duration-300 select-none relative overflow-hidden">
       <TopActions textToRead={step.instruction} />
       {/* Header */}
       <header className="p-6 flex items-center justify-center shrink-0">
@@ -354,7 +381,7 @@ export function CookModeClient({ recipe }: { recipe: CookModeRecipe }) {
 
       {/* Main Content */}
       <main className="flex-1 flex flex-col items-center p-6 md:p-12 overflow-y-auto">
-        <div key={currentStepIndex} className="w-full max-w-3xl flex flex-col animate-in fade-in duration-300">
+        <div key={currentStepIndex} className="w-full max-w-xl mx-auto flex flex-col animate-in fade-in duration-300">
           
           {/* Step Image / Fallback Logo */}
           <div className="w-full h-48 sm:h-64 md:h-[40vh] bg-white/5 rounded-3xl overflow-hidden mb-8 relative flex items-center justify-center border border-white/10 shadow-2xl shrink-0">
