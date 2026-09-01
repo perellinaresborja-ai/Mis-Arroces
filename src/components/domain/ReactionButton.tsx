@@ -1,7 +1,6 @@
 "use client"
 
 import { useState, useTransition } from "react"
-import { PaellaIcon } from "@/components/icons/PaellaIcon"
 import { SmilePlus } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { toggleLike } from "@/app/actions/interactions"
@@ -95,15 +94,13 @@ export function ReactionButton({
       >
         <span 
           className={cn(
-            "inline-flex items-center justify-center transition-transform duration-300",
-            myReaction === '🥘' ? "text-primary scale-110" : "text-muted-foreground hover:text-foreground hover:scale-105"
+            "inline-flex items-center justify-center transition-transform duration-300 text-xl",
+            !myReaction && "grayscale opacity-60 hover:grayscale-0 hover:opacity-100",
+            myReaction === '🥘' ? "scale-110" : "hover:scale-105",
+            iconClassName
           )}
         >
-          {myReaction === '🥘' || !myReaction ? (
-            <PaellaIcon filled={myReaction === '🥘'} className={cn("w-6 h-6", iconClassName)} />
-          ) : (
-            <span className={cn("text-xl", iconClassName)}>{myReaction}</span>
-          )}
+          {myReaction || '🥘'}
         </span>
         {!hasReactions && (
            <span className="text-sm font-medium text-muted-foreground">Me gusta</span>
@@ -122,7 +119,7 @@ export function ReactionButton({
                 data.hasMine ? 'bg-primary/10 border-primary/30 text-primary font-bold' : 'bg-background border-border text-muted-foreground hover:bg-muted'
               )}
             >
-              <span>{emoji === '🥘' ? <PaellaIcon className="w-3.5 h-3.5 inline-block text-primary drop-shadow-sm" filled /> : emoji}</span>
+              <span className="text-[13px] leading-none">{emoji}</span>
               <span>{data.count}</span>
             </button>
           ))}
@@ -135,8 +132,8 @@ export function ReactionButton({
           <div className="fixed inset-0 z-40" onClick={() => setShowReactionMenu(false)} />
           <div className="absolute bottom-full left-0 mb-2 bg-card border border-border shadow-xl rounded-full px-3 py-2 flex items-center gap-3 z-50 animate-in fade-in zoom-in-95 duration-200">
             {['🥘', '😂', '🔥', '👏', '😮'].map(em => (
-              <button key={em} onClick={() => handleReact(em)} className="text-2xl hover:scale-125 transition-transform active:scale-95">
-                {em === '🥘' ? <PaellaIcon className="w-7 h-7 text-primary drop-shadow-md" filled /> : em}
+              <button key={em} onClick={() => handleReact(em)} className="text-2xl hover:scale-125 transition-transform active:scale-95 leading-none">
+                {em}
               </button>
             ))}
           </div>
@@ -146,7 +143,7 @@ export function ReactionButton({
       {/* ANIMATION (PAELLA ONLY) */}
       {showReactionAnim && (
         <div className="fixed inset-0 pointer-events-none z-[100] flex items-center justify-center">
-          <PaellaIcon className="w-32 h-32 text-primary animate-out fade-out zoom-out duration-1000 zoom-in-50" filled />
+          <span className="text-[8rem] animate-out fade-out zoom-out duration-1000 zoom-in-50">🥘</span>
         </div>
       )}
     </div>
