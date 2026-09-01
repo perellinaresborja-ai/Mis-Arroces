@@ -17,7 +17,7 @@ export default async function CookbookPage(props: { searchParams?: Promise<{ tab
   let sessions: any[] = []
 
   if (tab === "mine") {
-    const { data } = await supabase.from("recipes").select("*, recipe_media(display_order, media:media_assets(storage_path)), variety:rice_varieties(name), style:rice_styles(name), likes:recipe_likes(user_id), comments:recipe_comments(id)").eq("owner_id", user.id).order("created_at", { ascending: false })
+    const { data } = await supabase.from("recipes").select("*, recipe_media!recipe_media_recipe_id_fkey(display_order, media:media_assets(storage_path)), variety:rice_varieties(name), style:rice_styles(name), likes:recipe_likes(user_id), comments:recipe_comments(id)").eq("owner_id", user.id).order("created_at", { ascending: false })
     
     const rawData = data || []
     recipes = rawData.filter((r: any) => {
@@ -26,10 +26,10 @@ export default async function CookbookPage(props: { searchParams?: Promise<{ tab
     })
 
   } else if (tab === "saved") {
-    const { data } = await supabase.from("saves").select("recipes(*, recipe_media(display_order, media:media_assets(storage_path)), variety:rice_varieties(name), style:rice_styles(name), author:profiles!recipes_owner_id_fkey(username))").eq("user_id", user.id).order("saved_at", { ascending: false })
+    const { data } = await supabase.from("saves").select("recipes(*, recipe_media!recipe_media_recipe_id_fkey(display_order, media:media_assets(storage_path)), variety:rice_varieties(name), style:rice_styles(name), author:profiles!recipes_owner_id_fkey(username))").eq("user_id", user.id).order("saved_at", { ascending: false })
     recipes = data?.map(d => d.recipes).filter(Boolean) || []
   } else if (tab === "want") {
-    const { data } = await supabase.from("want_to_cook").select("recipes(*, recipe_media(display_order, media:media_assets(storage_path)), variety:rice_varieties(name), style:rice_styles(name), author:profiles!recipes_owner_id_fkey(username))").eq("user_id", user.id).order("added_at", { ascending: false })
+    const { data } = await supabase.from("want_to_cook").select("recipes(*, recipe_media!recipe_media_recipe_id_fkey(display_order, media:media_assets(storage_path)), variety:rice_varieties(name), style:rice_styles(name), author:profiles!recipes_owner_id_fkey(username))").eq("user_id", user.id).order("added_at", { ascending: false })
     recipes = data?.map(d => d.recipes).filter(Boolean) || []
   } else if (tab === "cooked") {
     const { data } = await supabase.from("cooking_sessions").select("*, session_media(display_order, media:media_assets(storage_path)), recipe:recipes(id, name)").eq("user_id", user.id).order("created_at", { ascending: false })
@@ -111,7 +111,7 @@ export default async function CookbookPage(props: { searchParams?: Promise<{ tab
           </div>
         ) : (
           <div className="text-center py-20 px-4">
-            <p className="text-muted-foreground text-lg font-medium">Todavía no has registrado ningún arroz.</p>
+            <p className="text-muted-foreground text-lg font-medium">TodavÃ­a no has registrado ningÃºn arroz.</p>
             <Link href="/discover">
               <Button variant="outline" className="mt-4 rounded-xl font-bold">Descubrir arroces</Button>
             </Link>
@@ -127,7 +127,7 @@ export default async function CookbookPage(props: { searchParams?: Promise<{ tab
       ) : (
         <div className="text-center py-20 px-4">
           <p className="text-muted-foreground text-lg font-medium">
-            {tab === "mine" ? "Todavía no tienes recetas propias." : (tab === "saved" ? "No tienes arroces guardados." : "Busca un arroz que te apetezca y márcalo para cocinarlo.")}
+            {tab === "mine" ? "TodavÃ­a no tienes recetas propias." : (tab === "saved" ? "No tienes arroces guardados." : "Busca un arroz que te apetezca y mÃ¡rcalo para cocinarlo.")}
           </p>
           <Link href={tab === "mine" ? "/create/recipe" : "/discover"}>
             <Button variant="outline" className="mt-4 rounded-xl font-bold">
