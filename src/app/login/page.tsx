@@ -14,7 +14,7 @@ export default async function LoginPage({
     {
       src: "/arroces/carneret.png",
       title: <>Tu pasión por el <span className="text-primary">arroz</span>,<br />en un solo lugar.</>,
-      subtitle: "Descubre recetas y arroceros que merece la pena seguir."
+      subtitle: "Descubre nuevas recetas y nuevos arroceros."
     },
     {
       src: "/arroces/marret.png",
