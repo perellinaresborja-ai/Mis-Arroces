@@ -119,6 +119,7 @@ export function FeedCard({
             entityId={entityId} 
             allowComments={true} 
             isPinned={isPinned} 
+            hidePin={true}
           />
         )}
         </div>
