@@ -281,6 +281,12 @@ export default async function RecipeDetailPage({
                     <span className="font-medium text-foreground">1:{ratio}</span>
                   </li>
                 )}
+                {vesselDetails?.diameter_cm && (
+                  <li className="flex justify-between items-center pb-2 border-b border-border/40">
+                    <span className="text-muted-foreground">Medida de paella</span>
+                    <span className="font-medium text-foreground">{vesselDetails.diameter_cm} cm</span>
+                  </li>
+                )}
               </ul>
             </div>
           </div>
