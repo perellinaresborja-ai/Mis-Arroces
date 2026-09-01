@@ -292,21 +292,18 @@ export default async function RecipeDetailPage({
           </div>
         </div>
 
-        {/* Bottom Section: Ingredients & Steps */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16 mt-12 md:mt-20 pt-10 border-t border-border items-start">
+                {/* Bottom Section: Single Column Flow */}
+        <div className="max-w-3xl mx-auto mt-12 md:mt-20 pt-10 border-t border-border flex flex-col items-center">
           
-          {/* Ingredients, Paella & Nutrition (Left Column in Desktop) */}
+          {/* Ingredientes */}
           <div className="w-full">
-            <InteractiveRecipeView recipe={recipe} isAuthenticated={!!user}>
-              <NutritionSection result={nutrition} servings={recipe.base_servings || 1} />
-              <AllergensSection result={nutrition} />
-            </InteractiveRecipeView>
+            <InteractiveRecipeView recipe={recipe} isAuthenticated={!!user} />
           </div>
 
-            {/* Steps (Right Column in Desktop) */}
-          <div className="w-full">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4 bg-muted/40 p-4 rounded-2xl border border-border sm:h-[82px]">
-              <h2 className="text-xl font-bold font-serif text-charcoal">Receta paso a paso</h2>
+          {/* Receta Paso a Paso */}
+          <div className="w-full mt-16">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-8 gap-4 bg-muted/40 p-4 rounded-2xl border border-border">
+              <h2 className="text-2xl font-bold font-serif text-charcoal">Receta paso a paso</h2>
             </div>
             {recipe.steps && recipe.steps.length > 0 ? (
               <div className="space-y-6">
@@ -322,7 +319,7 @@ export default async function RecipeDetailPage({
                         <div className="w-10 h-10 rounded-full bg-primary text-white flex items-center justify-center font-bold text-lg font-serif shadow-sm">
                           {step.step_number}
                         </div>
-                        {/* En móvil la duración puede ir arriba a la derecha */}
+                        {/* En mÃ³vil la duraciÃ³n puede ir arriba a la derecha */}
                         <div className="md:hidden">
                           {step.duration_minutes && (
                             <span className="inline-flex items-center text-xs font-bold text-primary uppercase tracking-wider bg-primary/10 px-3 py-1.5 rounded-xl border border-primary/20">
@@ -346,18 +343,18 @@ export default async function RecipeDetailPage({
                         
                         {step.notes && (
                           <p className="text-sm text-muted-foreground mt-4 bg-muted/40 p-4 rounded-xl border border-border/50">
-                            <span className="font-semibold text-charcoal">Nota: </span>{step.notes}
+                            <strong>Nota:</strong> {step.notes}
                           </p>
                         )}
                       </div>
-
+                      
                       {/* Imagen */}
                       {stepImageUrl && (
                         <div className="shrink-0 w-full md:w-32 lg:w-40 xl:w-48 mt-4 md:mt-0">
                           <div className="aspect-[4/3] rounded-2xl overflow-hidden border border-border/50 shadow-sm relative group">
                             <ExpandableImage src={stepImageUrl} alt={`Paso ${step.step_number}`} className="w-full h-full object-cover" />
                             <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none flex items-center justify-center">
-                              <span className="text-white text-xs font-bold drop-shadow-md">AMPLIAR</span>
+                              <span className="text-white text-xs font-bold uppercase tracking-widest">Ampliar</span>
                             </div>
                           </div>
                         </div>
@@ -366,18 +363,34 @@ export default async function RecipeDetailPage({
                   )
                 })}
               </div>
-            ) : isOwner ? (
-              <Link href={`/recipes/${recipe.id}/edit`} className="text-sm text-primary hover:underline font-medium">
-                + Añadir pasos de elaboración
-              </Link>
             ) : (
-              <p className="text-sm text-muted-foreground italic">No se han añadido pasos todavía.</p>
+              <div className="bg-muted/30 border border-border p-8 rounded-3xl text-center">
+                <p className="text-muted-foreground">Esta receta aÃºn no tiene pasos detallados.</p>
+              </div>
             )}
           </div>
+
+          {/* AlÃ©rgenos */}
+          <div className="w-full mt-10">
+            <AllergensSection result={nutrition} />
+          </div>
+
+          {/* NutriciÃ³n (Collapsible) */}
+          <div className="w-full mt-6 mb-8">
+            <details className="group bg-card rounded-3xl border border-border overflow-hidden [&_summary::-webkit-details-marker]:hidden">
+              <summary className="p-5 font-bold text-lg cursor-pointer flex justify-between items-center bg-muted/10 hover:bg-muted/30 transition-colors">
+                InformaciÃ³n Nutricional
+                <svg className="w-5 h-5 text-muted-foreground transition-transform group-open:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+              </summary>
+              <div className="p-1 pt-0">
+                <NutritionSection result={nutrition} servings={recipe.base_servings || 1} hideTitle />
+              </div>
+            </details>
+          </div>
+          
         </div>
 
-        
-          {/* Lo he cocinado CTA */}
+{/* Lo he cocinado CTA */}
           {!isOwner && (
             <div className="mt-16 bg-muted/30 border border-border p-6 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-6 shadow-sm">
               <div className="text-left">

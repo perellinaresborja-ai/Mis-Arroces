@@ -21,7 +21,7 @@ export function InteractiveRecipeView({
 }: { 
   recipe: any, 
   isAuthenticated: boolean,
-  children: React.ReactNode
+  children?: React.ReactNode
 }) {
   const { servings, setServings } = useRecipeState();
   const scaleRatio = servings / (recipe.base_servings || 1);
