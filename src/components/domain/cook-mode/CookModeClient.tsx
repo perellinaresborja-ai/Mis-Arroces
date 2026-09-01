@@ -26,7 +26,7 @@ interface TimerState {
   isRunning: boolean
 }
 
-export function CookModeClient({ recipe }: { recipe: CookModeRecipe }) {
+export function CookModeClient({ recipe, userName }: { recipe: CookModeRecipe, userName?: string | null }) {
   const router = useRouter()
   const [hasStarted, setHasStarted] = useState(false)
   const [currentStepIndex, setCurrentStepIndex] = useState(0)
@@ -127,40 +127,41 @@ export function CookModeClient({ recipe }: { recipe: CookModeRecipe }) {
   }
 
   // Auto-TTS for steps
+  const currentStep = recipe.steps[currentStepIndex];
+  const isCurrentTimerRunning = currentStep ? timers[currentStep.id]?.isRunning : false;
+
   useEffect(() => {
-    if (isClient && hasStarted && currentStepIndex < recipe.steps.length) {
-      const step = recipe.steps[currentStepIndex]
-      const timer = timers[step.id]
-      
+    if (isClient && hasStarted && currentStep) {
       // Do not repeat if timer is actively running
-      if (timer?.isRunning) return;
+      if (isCurrentTimerRunning) return;
 
       let text = ""
       if (!hasWelcomed.current) {
-        text = `¡Bienvenido! Vamos a cocinar ${recipe.name}. ¿Preparado? ¡Empezamos! `
+        const nameGreeting = userName ? `${userName}, ` : '';
+        text = `¡Bienvenido! ${nameGreeting}Vamos a cocinar ${recipe.name}. ¿Preparado? ¡Empezamos! `
         hasWelcomed.current = true
       }
 
-      if (step?.instruction) {
-        text += step.instruction;
-        if (step.duration_minutes) {
-          text += `. Tiempo estimado: ${step.duration_minutes} minuto${step.duration_minutes !== 1 ? 's' : ''}.`
+      if (currentStep?.instruction) {
+        text += currentStep.instruction;
+        if (currentStep.duration_minutes) {
+          text += `. Tiempo estimado: ${currentStep.duration_minutes} minuto${currentStep.duration_minutes !== 1 ? 's' : ''}.`
         }
       }
       
       if (text) speakText(text);
 
       const interval = setInterval(() => {
-        let repeatText = step.instruction || "";
-        if (step.duration_minutes) {
-          repeatText += `. Tiempo estimado: ${step.duration_minutes} minuto${step.duration_minutes !== 1 ? 's' : ''}.`
+        let repeatText = currentStep.instruction || "";
+        if (currentStep.duration_minutes) {
+          repeatText += `. Tiempo estimado: ${currentStep.duration_minutes} minuto${currentStep.duration_minutes !== 1 ? 's' : ''}.`
         }
         if (repeatText) speakText(repeatText);
       }, 30000);
 
       return () => clearInterval(interval);
     }
-  }, [currentStepIndex, hasStarted, recipe.steps, isClient, timers, recipe.name])
+  }, [currentStep, hasStarted, isClient, isCurrentTimerRunning, recipe.name, userName])
 
   // Preload next image
   useEffect(() => {

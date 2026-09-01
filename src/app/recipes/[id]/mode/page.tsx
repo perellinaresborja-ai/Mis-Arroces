@@ -39,6 +39,14 @@ export default async function RecipeCookModePage({ params, searchParams }: { par
   const requestedServings = resolvedSearchParams.servings ? parseInt(resolvedSearchParams.servings, 10) : (recipe.base_servings || 1);
   const scaleRatio = !isNaN(requestedServings) && requestedServings > 0 ? requestedServings / (recipe.base_servings || 1) : 1;
 
+  let userName = null;
+  if (user) {
+    const { data: profile } = await supabase.from('profiles').select('display_name, username').eq('id', user.id).single();
+    if (profile) {
+      userName = profile.display_name || profile.username;
+    }
+  }
+
   // Prepare recipe data for the client
   const clientRecipe = {
     id: recipe.id,
@@ -54,6 +62,6 @@ export default async function RecipeCookModePage({ params, searchParams }: { par
   }
 
   return (
-    <CookModeClient recipe={clientRecipe} />
+    <CookModeClient recipe={clientRecipe} userName={userName} />
   )
 }
