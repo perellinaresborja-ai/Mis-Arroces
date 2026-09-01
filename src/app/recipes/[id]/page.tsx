@@ -276,18 +276,18 @@ export default async function RecipeDetailPage({
                     <span className="font-semibold text-foreground">{recipe.stock_qty}ml</span>
                   </div>
                 )}
-                {ratio && (
-                  <div>
-                    <span className="text-muted-foreground block text-xs uppercase tracking-wider mb-0.5">Proporción</span>
-                    <span className="font-semibold text-foreground">1:{ratio}</span>
-                  </div>
-                )}
                 {vesselDetails?.diameter_cm && (
                   <div>
                     <span className="text-muted-foreground block text-xs uppercase tracking-wider mb-0.5">Medida de paella</span>
                     <span className="font-semibold text-foreground">{vesselDetails.diameter_cm} cm</span>
                   </div>
+                )}{ratio && (
+                  <div>
+                    <span className="text-muted-foreground block text-xs uppercase tracking-wider mb-0.5">Proporción</span>
+                    <span className="font-semibold text-foreground">1:{ratio}</span>
+                  </div>
                 )}
+                
               </div>
             </div>
           </div>
