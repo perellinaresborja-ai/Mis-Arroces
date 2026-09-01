@@ -30,11 +30,13 @@ export async function fetchConversations() {
   if (!user) throw new Error("Unauthorized")
 
   // Fetch all members for conversations this user is in
-  const { data: convMembers, error: membersError } = await supabase
-    .from('conversation_members')
-    .select('*, conversations(*)')
-    .eq('user_id', user.id)
-    .order('last_read_at', { ascending: false })
+    const { data: convMembers, error: membersError } = await (supabase as any)
+      .from('conversation_members')
+      .select('*, conversations(*)')
+      .eq('user_id', user.id)
+      .is('archived_at', null)
+      .order('is_pinned', { ascending: false })
+      .order('last_read_at', { ascending: false })
 
   if (membersError || !convMembers) return []
 
@@ -129,6 +131,11 @@ export async function sendMessage(params: { conversationId: string; type: 'TEXT'
   }).select().single()
 
   if (error || !msg) throw new Error("Failed to send message: " + (error?.message || ""))
+
+  // Unarchive for all members so it pops back into view
+  await supabase.from('conversation_members')
+    .update({ archived_at: null })
+    .eq('conversation_id', conversationId)
 
   // Notify the other user (assuming exactly 2 members)
   const { data: members } = await supabase
@@ -246,3 +253,26 @@ export async function unsendMessage(messageId: string) {
   if (error) return { success: false, error: error.message }
   return { success: true }
 }
+
+export async function togglePinConversation(conversationId: string, currentPin: boolean) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { success: false, error: 'Unauthorized' }
+  const { error } = await (supabase as any).from('conversation_members')
+    .update({ is_pinned: !currentPin })
+    .eq('conversation_id', conversationId)
+    .eq('user_id', user.id)
+  return { success: !error, error: error?.message }
+}
+
+export async function archiveConversation(conversationId: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { success: false, error: 'Unauthorized' }
+  const { error } = await supabase.from('conversation_members')
+    .update({ archived_at: new Date().toISOString() })
+    .eq('conversation_id', conversationId)
+    .eq('user_id', user.id)
+  return { success: !error, error: error?.message }
+}
+
