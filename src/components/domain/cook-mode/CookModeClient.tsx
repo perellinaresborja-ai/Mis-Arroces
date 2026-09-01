@@ -224,7 +224,7 @@ export function CookModeClient({ recipe }: { recipe: CookModeRecipe }) {
   if (!hasStarted) {
     return (
       <div className="min-h-screen bg-black text-white flex flex-col justify-center p-6 sm:p-10 animate-in fade-in duration-500 relative">
-        <Link href={`/recipes/${recipe.id}`} className="absolute top-6 left-6 p-3 bg-white/10 rounded-full hover:bg-white/20 transition-colors">
+        <Link href={`/recipes/${recipe.id}`} className="absolute top-6 right-6 p-3 bg-white/10 rounded-full hover:bg-white/20 transition-colors">
           <X className="w-6 h-6" />
         </Link>
         <div className="max-w-xl mx-auto w-full space-y-10">
@@ -320,12 +320,6 @@ export function CookModeClient({ recipe }: { recipe: CookModeRecipe }) {
     <div className="min-h-[100dvh] bg-black text-white flex flex-col animate-in fade-in duration-300 select-none">
       {/* Header */}
       <header className="p-6 flex items-center justify-between shrink-0">
-        <Link href={`/recipes/${recipe.id}`} onClick={() => localStorage.removeItem(`cook-mode-${recipe.id}`)} className="p-3 bg-white/10 rounded-full text-white hover:bg-white/20 transition-colors">
-          <X className="w-6 h-6" />
-        </Link>
-        <div className="text-center font-black text-white/40 uppercase tracking-widest text-sm">
-          Paso {currentStepIndex + 1} de {recipe.steps.length}
-        </div>
         <button 
           onClick={() => speakText(step.instruction)}
           className="p-3 bg-white/10 rounded-full text-white hover:bg-white/20 transition-colors"
@@ -333,6 +327,12 @@ export function CookModeClient({ recipe }: { recipe: CookModeRecipe }) {
         >
           <Volume2 className="w-6 h-6" />
         </button>
+        <div className="text-center font-black text-white/40 uppercase tracking-widest text-sm">
+          Paso {currentStepIndex + 1} de {recipe.steps.length}
+        </div>
+        <Link href={`/recipes/${recipe.id}`} onClick={() => localStorage.removeItem(`cook-mode-${recipe.id}`)} className="p-3 bg-white/10 rounded-full text-white hover:bg-white/20 transition-colors">
+          <X className="w-6 h-6" />
+        </Link>
       </header>
 
       {/* Main Content */}
