@@ -1,0 +1,16 @@
+ALTER TABLE public.cooking_sessions 
+ADD COLUMN rice_grams numeric,
+ADD COLUMN liquid_ml numeric,
+ADD COLUMN rice_variety_id uuid REFERENCES public.rice_varieties(id),
+ADD COLUMN vessel_type_id uuid REFERENCES public.vessel_types(id),
+ADD COLUMN diameter_cm numeric,
+ADD COLUMN cooking_time_minutes numeric,
+ADD COLUMN heat_source text,
+ADD COLUMN ingredient_distribution text,
+ADD COLUMN result_texture text,
+ADD COLUMN result_liquid text,
+ADD COLUMN reported_layer text,
+ADD COLUMN calculated_density numeric,
+ADD COLUMN calculated_ratio numeric,
+ADD COLUMN calculated_layer text,
+ADD COLUMN calculator_version text;

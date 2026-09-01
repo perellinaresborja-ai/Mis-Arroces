@@ -1,60 +1,67 @@
 "use client"
 
 import { useState } from "react"
+import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
 import { MediaUploader, SelectedMedia } from "@/components/domain/MediaUploader"
-import { uploadMedia } from "@/services/media/client"
 import { createCookingSession } from "@/app/actions/sessions"
+import { Save, Calendar, Clock, ChevronDown, ChevronUp, Star } from "lucide-react"
 import { v4 as uuidv4 } from "uuid"
-import { Save, Clock, Calendar } from "lucide-react"
+import { uploadMedia } from "@/services/media/client"
 
-export function CookForm({ recipeId, initialData }: { recipeId: string, initialData?: any }) {
+export function CookForm({ recipeId, initialData, snapshotData }: { recipeId: string, initialData?: any, snapshotData?: any }) {
   const [selectedMedia, setSelectedMedia] = useState<SelectedMedia[]>(initialData?.media || [])
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
-  const [showSchedule, setShowSchedule] = useState(false)
-  const [scheduleDate, setScheduleDate] = useState(initialData?.scheduled_for ? initialData.scheduled_for.substring(0, 16) : "")
   
-  const isCurrentlyPublished = initialData?.status === 'PUBLISHED' && (!initialData.scheduled_for || new Date(initialData.scheduled_for) <= new Date());
-  const isCurrentlyScheduled = initialData?.status === 'PUBLISHED' && initialData.scheduled_for && new Date(initialData.scheduled_for) > new Date();
+  const [showOverride, setShowOverride] = useState(false)
 
-  const submitWithAction = async (action: 'DRAFT' | 'PUBLISH' | 'SCHEDULE' | 'UPDATE') => {
+  // Snapshots vs Real
+  const [riceGrams, setRiceGrams] = useState(initialData?.rice_grams || snapshotData?.rice_grams || "")
+  const [liquidMl, setLiquidMl] = useState(initialData?.liquid_ml || snapshotData?.liquid_ml || "")
+  const [diameter, setDiameter] = useState(initialData?.diameter_cm || snapshotData?.diameter_cm || "")
+  const [servings, setServings] = useState(initialData?.actual_servings || snapshotData?.base_servings || "")
+  const [heatSource, setHeatSource] = useState(initialData?.heat_source || "")
+  const [distribution, setDistribution] = useState(initialData?.ingredient_distribution || "")
+
+  // Results
+  const [texture, setTexture] = useState(initialData?.result_texture || "")
+  const [liquid, setLiquid] = useState(initialData?.result_liquid || "")
+  const [layer, setLayer] = useState(initialData?.reported_layer || "")
+  const [socarrat, setSocarrat] = useState(initialData?.socarrat_level || 0)
+  const [rating, setRating] = useState(initialData?.rating || 0)
+
+  const submitWithAction = async (action: 'DRAFT' | 'PUBLISH') => {
     const form = document.getElementById("cook-form") as HTMLFormElement
     const formData = new FormData(form)
     
-    let finalStatus = initialData?.status || 'DRAFT'
-    let finalScheduledFor = initialData?.scheduled_for || null
+    formData.set("status", action === 'PUBLISH' ? 'PUBLISHED' : 'DRAFT')
+    if (initialData?.id) formData.set("id", initialData.id)
+    
+    // Add empirical overrides
+    if (riceGrams) formData.set("rice_grams", riceGrams.toString())
+    if (liquidMl) formData.set("liquid_ml", liquidMl.toString())
+    if (diameter) formData.set("diameter_cm", diameter.toString())
+    if (servings) formData.set("actualServings", servings.toString())
+    if (heatSource) formData.set("heat_source", heatSource)
+    if (distribution) formData.set("ingredient_distribution", distribution)
+    
+    // Add result answers
+    if (texture) formData.set("result_texture", texture)
+    if (liquid) formData.set("result_liquid", liquid)
+    if (layer) formData.set("reported_layer", layer)
+    if (socarrat) formData.set("socarratLevel", socarrat.toString())
+    if (rating) formData.set("rating", rating.toString())
+    
+    // Hidden snapshots
+    if (snapshotData?.rice_variety_id) formData.set("rice_variety_id", snapshotData.rice_variety_id)
+    if (snapshotData?.vessel_type_id) formData.set("vessel_type_id", snapshotData.vessel_type_id)
+    if (snapshotData?.cook_time) formData.set("cooking_time_minutes", snapshotData.cook_time.toString())
 
-    if (action === 'DRAFT') {
-      finalStatus = 'DRAFT'
-      finalScheduledFor = null
-    } else if (action === 'PUBLISH') {
-      finalStatus = 'PUBLISHED'
-      finalScheduledFor = null
-    } else if (action === 'SCHEDULE') {
-      if (!scheduleDate) return alert("Selecciona fecha y hora.")
-      finalStatus = 'PUBLISHED'
-      finalScheduledFor = new Date(scheduleDate).toISOString()
-    } else if (action === 'UPDATE') {
-      finalStatus = initialData?.status || 'DRAFT'
-      finalScheduledFor = initialData?.scheduled_for || null
-    }
-    
-    formData.set("status", finalStatus)
-    if (finalScheduledFor) {
-      formData.set("scheduled_for", finalScheduledFor)
-    } else {
-      formData.delete("scheduled_for")
-    }
-    
-    if (initialData?.id) {
-      formData.set("id", initialData.id)
-    }
-    
     setIsSubmitting(true)
     setErrorMsg(null)
+    
     try {
       const sessionId = initialData?.id || uuidv4()
       if (!initialData?.id) {
@@ -63,10 +70,8 @@ export function CookForm({ recipeId, initialData }: { recipeId: string, initialD
 
       const mediaIds = await Promise.all(
         selectedMedia.map(async (m) => {
-          // If we had existing media support, we would check here. 
-          // For now, all SelectedMedia from MediaUploader are new files.
           const uploadedPath = await uploadMedia(m.file, "sessions", sessionId)
-          return uploadedPath // Note: uploadMedia actually returns the mediaAsset.id directly!
+          return uploadedPath 
         })
       )
       
@@ -83,116 +88,173 @@ export function CookForm({ recipeId, initialData }: { recipeId: string, initialD
 
   return (
     <form id="cook-form" onSubmit={(e) => e.preventDefault()} className="space-y-6">
-      {errorMsg && <p className="text-red-500 font-medium">{errorMsg}</p>}
+      {errorMsg && <p className="text-destructive font-medium bg-destructive/10 p-3 rounded-xl">{errorMsg}</p>}
 
       <div className="space-y-4">
         <MediaUploader context="sessions" maxItems={3} onMediaChange={setSelectedMedia} />
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="rating">Valoración (1-5)</Label>
-          <Input type="number" id="rating" name="rating" min="1" max="5" defaultValue={initialData?.rating || 5} required />
+      {/* COMPACT SUMMARY */}
+      <div className="bg-muted/30 p-4 rounded-xl border border-border">
+        <div className="flex justify-between items-center mb-2">
+          <h3 className="font-bold">Datos del cocinado</h3>
+          <button 
+            type="button" 
+            onClick={() => setShowOverride(!showOverride)}
+            className="text-sm font-semibold text-primary flex items-center gap-1"
+          >
+            Modificar datos reales {showOverride ? <ChevronUp className="w-4 h-4"/> : <ChevronDown className="w-4 h-4"/>}
+          </button>
         </div>
+        
+        {!showOverride && (
+          <div className="flex flex-wrap gap-2 text-sm text-muted-foreground">
+            {riceGrams && <span>🍚 {riceGrams}g arroz</span>}
+            {liquidMl && <span>💧 {liquidMl}ml líquido</span>}
+            {diameter && <span>🥘 {diameter}cm</span>}
+            {servings && <span>👥 {servings} pax</span>}
+            {snapshotData?.variety_name && <span>🌾 {snapshotData.variety_name}</span>}
+            {heatSource && <span>🔥 {heatSource}</span>}
+          </div>
+        )}
+
+        {showOverride && (
+          <div className="grid grid-cols-2 gap-4 mt-4">
+            <div className="space-y-1">
+              <Label className="text-xs">Arroz (g)</Label>
+              <Input type="number" value={riceGrams} onChange={e => setRiceGrams(e.target.value)} placeholder="Ej: 400" className="h-9"/>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Líquido (ml)</Label>
+              <Input type="number" value={liquidMl} onChange={e => setLiquidMl(e.target.value)} placeholder="Ej: 2000" className="h-9"/>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Diámetro (cm)</Label>
+              <Input type="number" value={diameter} onChange={e => setDiameter(e.target.value)} placeholder="Ej: 55" className="h-9"/>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Raciones</Label>
+              <Input type="number" value={servings} onChange={e => setServings(e.target.value)} placeholder="Ej: 4" className="h-9"/>
+            </div>
+            
+            <div className="col-span-2 space-y-1 mt-2">
+              <Label className="text-xs">Fuente de Calor</Label>
+              <div className="flex flex-wrap gap-2">
+                {['GAS', 'LEÑA', 'INDUCCIÓN', 'VITRO', 'HORNO', 'OTRO'].map(src => (
+                  <button
+                    key={src} type="button"
+                    onClick={() => setHeatSource(src)}
+                    className={`px-3 py-1.5 text-xs rounded-full border transition-colors ${heatSource === src ? 'bg-primary text-primary-foreground border-primary' : 'bg-card border-border hover:bg-muted'}`}
+                  >
+                    {src}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="col-span-2 space-y-1 mt-2">
+              <Label className="text-xs">Distribución Ingredientes</Label>
+              <div className="flex flex-col gap-2">
+                <button type="button" onClick={() => setDistribution('CLEAN')} className={`text-left px-3 py-2 text-sm rounded-xl border transition-colors ${distribution === 'CLEAN' ? 'bg-primary/10 border-primary' : 'bg-card border-border'}`}>
+                  Arroz bastante libre
+                </button>
+                <button type="button" onClick={() => setDistribution('MIXED')} className={`text-left px-3 py-2 text-sm rounded-xl border transition-colors ${distribution === 'MIXED' ? 'bg-primary/10 border-primary' : 'bg-card border-border'}`}>
+                  Ingredientes mezclados
+                </button>
+                <button type="button" onClick={() => setDistribution('HEAVY')} className={`text-left px-3 py-2 text-sm rounded-xl border transition-colors ${distribution === 'HEAVY' ? 'bg-primary/10 border-primary' : 'bg-card border-border'}`}>
+                  Muchos tropezones
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* RESULTS QUESTIONS */}
+      <div className="space-y-6 pt-2">
         <div className="space-y-2">
-          <Label htmlFor="actualServings">Comensales</Label>
-          <Input type="number" step="0.5" id="actualServings" name="actualServings" placeholder="Ej: 4" defaultValue={initialData?.actual_servings || ""} />
+          <Label>Punto del Arroz</Label>
+          <div className="grid grid-cols-3 gap-2">
+            {[{val: 'HARD', label: 'Duro'}, {val: 'PERFECT', label: 'Perfecto'}, {val: 'SOFT', label: 'Pasado'}].map(o => (
+              <button key={o.val} type="button" onClick={() => setTexture(o.val)} className={`h-10 text-sm font-medium rounded-xl border transition-colors ${texture === o.val ? 'bg-primary text-primary-foreground border-primary' : 'bg-card border-border hover:bg-muted'}`}>
+                {o.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <Label>Líquido</Label>
+          <div className="grid grid-cols-3 gap-2">
+            {[{val: 'DRY', label: 'Faltó'}, {val: 'PERFECT', label: 'Justo'}, {val: 'SOUPY', label: 'Sobró'}].map(o => (
+              <button key={o.val} type="button" onClick={() => setLiquid(o.val)} className={`h-10 text-sm font-medium rounded-xl border transition-colors ${liquid === o.val ? 'bg-primary text-primary-foreground border-primary' : 'bg-card border-border hover:bg-muted'}`}>
+                {o.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <Label>Capa Real Percebida</Label>
+          <div className="grid grid-cols-3 gap-2">
+            {[{val: 'THIN', label: 'Fina'}, {val: 'MEDIUM', label: 'Media'}, {val: 'THICK', label: 'Abundante'}].map(o => (
+              <button key={o.val} type="button" onClick={() => setLayer(o.val)} className={`h-10 text-sm font-medium rounded-xl border transition-colors ${layer === o.val ? 'bg-primary text-primary-foreground border-primary' : 'bg-card border-border hover:bg-muted'}`}>
+                {o.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <Label>Socarrat</Label>
+          <div className="grid grid-cols-3 gap-2">
+            {[{val: 1, label: 'Sin'}, {val: 3, label: 'Bueno'}, {val: 5, label: 'Quemado'}].map(o => (
+              <button key={o.val} type="button" onClick={() => setSocarrat(o.val)} className={`h-10 text-sm font-medium rounded-xl border transition-colors ${socarrat === o.val ? 'bg-orange-500 text-white border-orange-500' : 'bg-card border-border hover:bg-muted'}`}>
+                {o.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <Label>Valoración General</Label>
+          <div className="flex gap-2 items-center justify-center py-2 bg-muted/20 rounded-xl border border-border">
+            {[1, 2, 3, 4, 5].map(star => (
+              <button key={star} type="button" onClick={() => setRating(star)} className="p-1">
+                <Star className={`w-8 h-8 ${rating >= star ? 'fill-yellow-400 text-yellow-400' : 'text-muted-foreground/30'}`} />
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="notes">Notas o comentarios (Opcional)</Label>
+          <textarea 
+            id="notes" 
+            name="notes" 
+            rows={2} 
+            className="w-full rounded-xl border border-input bg-background px-3 py-2 text-sm"
+            placeholder="¿Algún truco o apunte para la próxima?"
+            defaultValue={initialData?.notes || ""}
+          />
         </div>
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="notes">Notas o comentarios</Label>
-        <textarea 
-          id="notes" 
-          name="notes" 
-          rows={3} 
-          className="w-full rounded-xl border border-input bg-background px-3 py-2 text-sm"
-          placeholder="¿Qué tal salió? ¿Algún truco?"
-          defaultValue={initialData?.notes || ""}
-        />
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="modifications">Cambios en ingredientes</Label>
-        <textarea 
-          id="modifications" 
-          name="modifications" 
-          rows={2} 
-          className="w-full rounded-xl border border-input bg-background px-3 py-2 text-sm"
-          placeholder="Ej: Menos agua, usé ñora en vez de pimentón..."
-          defaultValue={initialData?.modifications || ""}
-        />
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="visibility">Privacidad</Label>
-        <select name="visibility" id="visibility" className="w-full h-10 px-3 rounded-xl border border-input bg-background text-sm" defaultValue={initialData?.visibility || "PUBLIC"}>
-          <option value="PUBLIC">Público</option>
+        <Label htmlFor="visibility">Visibilidad del Cook Log</Label>
+        <select name="visibility" id="visibility" className="w-full h-10 px-3 rounded-xl border border-input bg-background text-sm" defaultValue={initialData?.visibility || "PRIVATE"}>
+          <option value="PRIVATE">Solo para mí (Privado)</option>
           <option value="FOLLOWERS">Solo Seguidores</option>
-          <option value="PRIVATE">Privado</option>
+          <option value="PUBLIC">Comunidad (Público)</option>
         </select>
       </div>
 
       <input type="hidden" name="recipeId" value={recipeId} />
 
-      {showSchedule && (
-        <div className="bg-muted/30 p-4 rounded-xl border border-border mt-6">
-          <Label className="mb-2 block">Fecha y Hora de Publicación</Label>
-          <div className="flex gap-2">
-            <Input 
-              type="datetime-local" 
-              value={scheduleDate}
-              onChange={e => setScheduleDate(e.target.value)}
-            />
-          </div>
-          <div className="flex gap-2 mt-4">
-            <Button type="button" variant="ghost" onClick={() => setShowSchedule(false)}>Cerrar</Button>
-            <Button type="button" onClick={() => submitWithAction('SCHEDULE')} disabled={isSubmitting || !scheduleDate}>
-              <Calendar className="w-4 h-4 mr-2" /> Programar
-            </Button>
-          </div>
-        </div>
-      )}
-
-      <div className="flex flex-col md:flex-row gap-2 md:gap-4 justify-between items-center pt-4 border-t border-border">
-        <div className="flex w-full md:w-auto">
-          {!isCurrentlyPublished && (
-            <Button type="button" variant="outline" className="flex-1 md:flex-none h-12 rounded-xl" onClick={() => submitWithAction('DRAFT')} disabled={isSubmitting}>
-              <Save className="w-4 h-4 mr-2" /> Guardar historial
-            </Button>
-          )}
-          
-          {isCurrentlyPublished && (
-            <Button type="button" variant="outline" className="flex-1 md:flex-none h-12 rounded-xl text-muted-foreground" onClick={() => submitWithAction('DRAFT')} disabled={isSubmitting}>
-              Pasar a borrador
-            </Button>
-          )}
-        </div>
-
-        <div className="flex gap-2 w-full md:w-auto">
-          {isCurrentlyScheduled && (
-            <Button type="button" variant="outline" className="flex-1 md:flex-none h-12 rounded-xl" onClick={() => submitWithAction('UPDATE')} disabled={isSubmitting}>
-              Guardar cambios
-            </Button>
-          )}
-
-          {isCurrentlyPublished && (
-            <Button type="button" className="flex-1 md:flex-none h-12 rounded-xl font-bold" onClick={() => submitWithAction('UPDATE')} disabled={isSubmitting}>
-              Guardar cambios
-            </Button>
-          )}
-
-          {!isCurrentlyPublished && (
-            <>
-              <Button type="button" variant="secondary" className="flex-1 md:flex-none h-12 rounded-xl" onClick={() => setShowSchedule(!showSchedule)} disabled={isSubmitting}>
-                <Clock className="w-4 h-4 mr-2" /> Programar
-              </Button>
-              <Button type="button" className="flex-1 md:flex-none h-12 rounded-xl font-bold" onClick={() => submitWithAction('PUBLISH')} disabled={isSubmitting}>
-                {isCurrentlyScheduled ? "Publicar ahora" : "Publicar"}
-              </Button>
-            </>
-          )}
-        </div>
+      <div className="flex pt-4 border-t border-border">
+        <Button type="button" className="w-full h-14 rounded-2xl font-bold text-lg bg-primary hover:bg-primary/90 text-primary-foreground" onClick={() => submitWithAction('PUBLISH')} disabled={isSubmitting}>
+          {isSubmitting ? "Guardando..." : "Guardar en mi Cuaderno"}
+        </Button>
       </div>
     </form>
   )

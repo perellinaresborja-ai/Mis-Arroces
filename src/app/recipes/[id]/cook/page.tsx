@@ -9,8 +9,29 @@ export default async function CookRecipePage({ params }: { params: Promise<{ id:
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect("/login")
 
-  const { data: recipe } = await supabase.from("recipes").select("id, name").eq("id", resolvedParams.id).single()
+  const { data: recipe } = await supabase
+    .from("recipes")
+    .select(`
+      id, name, rice_qty, stock_qty, variety_id, base_servings, cook_time,
+      recipe_vessels(diameter_cm, vessel_type_id),
+      rice_varieties(name)
+    `)
+    .eq("id", resolvedParams.id)
+    .single()
+
   if (!recipe) notFound()
+
+  // Build snapshot data
+  const snapshotData = {
+    rice_grams: recipe.rice_qty || null,
+    liquid_ml: recipe.stock_qty || null,
+    rice_variety_id: recipe.variety_id || null,
+    variety_name: (recipe.rice_varieties as any)?.name || null,
+    base_servings: recipe.base_servings || null,
+    cook_time: recipe.cook_time || null,
+    diameter_cm: recipe.recipe_vessels?.[0]?.diameter_cm || null,
+    vessel_type_id: recipe.recipe_vessels?.[0]?.vessel_type_id || null,
+  }
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center p-4 pb-24 md:pb-8">
@@ -20,7 +41,7 @@ export default async function CookRecipePage({ params }: { params: Promise<{ id:
           <p className="text-muted-foreground">{recipe.name}</p>
         </header>
 
-        <CookForm recipeId={recipe.id} />
+        <CookForm recipeId={recipe.id} snapshotData={snapshotData} />
       </div>
     </div>
   )
