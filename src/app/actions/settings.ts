@@ -71,7 +71,7 @@ export async function updateNotificationPreferences(formData: FormData) {
   const messages = formData.get('messages') === 'true'
   const system = formData.get('system') === 'true'
 
-  const { error } = await (supabase as any).from('notification_preferences').upsert({
+  const { error } = await supabase.from('notification_preferences').upsert({
     user_id: user.id,
     follows,
     likes,
@@ -98,7 +98,7 @@ export async function addHiddenWord(formData: FormData) {
   const word = formData.get('word')?.toString().trim().toLowerCase()
   if (!word) return { error: 'Palabra inválida' }
 
-  const { error } = await (supabase as any).from('hidden_words').insert({
+  const { error } = await supabase.from('hidden_words').insert({
     user_id: user.id,
     word
   })
@@ -120,7 +120,7 @@ export async function removeHiddenWord(formData: FormData) {
   const wordId = formData.get('wordId')?.toString()
   if (!wordId) return { error: 'Palabra inválida' }
 
-  const { error } = await (supabase as any).from('hidden_words')
+  const { error } = await supabase.from('hidden_words')
     .delete()
     .eq('id', wordId)
     .eq('user_id', user.id)
@@ -158,7 +158,7 @@ export async function unmuteUser(formData: FormData) {
   const mutedId = formData.get('mutedId')?.toString()
   if (!mutedId) return { error: 'ID inválido' }
 
-  const { error } = await (supabase as any).from('user_mutes')
+  const { error } = await supabase.from('user_mutes')
     .delete()
     .eq('muter_id', user.id)
     .eq('muted_id', mutedId)
@@ -168,4 +168,5 @@ export async function unmuteUser(formData: FormData) {
   revalidatePath('/settings/interactions/muted')
   return { success: true }
 }
+
 

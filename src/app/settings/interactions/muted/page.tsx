@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server"
+﻿import { createClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
 import Link from "next/link"
 import { ChevronLeft } from "lucide-react"
@@ -13,7 +13,7 @@ export default async function MutedUsersPage() {
   }
 
   // Fetch muted users
-  const { data: mutes } = await (supabase as any).from('user_mutes')
+  const { data: mutes } = await supabase.from('user_mutes')
     .select(`
       muted_id,
       profiles!user_mutes_muted_id_fkey(
@@ -63,6 +63,7 @@ export default async function MutedUsersPage() {
     </div>
   )
 }
+
 
 
 

@@ -2,7 +2,6 @@
 
 import { useState } from "react"
 import { updateNotificationPreferences } from "@/app/actions/settings"
-import { toast } from "react-hot-toast"
 
 export default function NotificationsForm({ initialPrefs }: { initialPrefs: any }) {
   const [prefs, setPrefs] = useState({
@@ -63,4 +62,5 @@ export default function NotificationsForm({ initialPrefs }: { initialPrefs: any 
     </div>
   )
 }
+
 

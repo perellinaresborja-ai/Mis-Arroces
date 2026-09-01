@@ -3,7 +3,6 @@
 import { useState } from "react"
 import { Trash2 } from "lucide-react"
 import { deleteUserAccount } from "@/app/actions/settings"
-import { toast } from "react-hot-toast"
 
 export default function DeleteAccountRow({ userId }: { userId: string }) {
   const [isOpen, setIsOpen] = useState(false)
@@ -85,4 +84,5 @@ export default function DeleteAccountRow({ userId }: { userId: string }) {
     </>
   )
 }
+
 

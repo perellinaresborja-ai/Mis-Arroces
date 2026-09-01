@@ -23,10 +23,10 @@ export async function createNotification(
   if (type === 'LIKE') prefKey = 'likes';
   if (type === 'COMMENT') prefKey = 'comments';
   if (type === 'MENTION') prefKey = 'mentions';
-  if (type === 'SYSTEM') prefKey = 'system';
+  if ((type as string) === 'SYSTEM') prefKey = 'system';
   
   if (prefKey) {
-    const { data: prefs } = await (supabase as any).from('notification_preferences')
+    const { data: prefs } = await supabase.from('notification_preferences')
       .select(prefKey)
       .eq('user_id', recipient_id)
       .single()
@@ -113,4 +113,6 @@ export async function fetchNotifications() {
 
   return data || []
 }
+
+
 

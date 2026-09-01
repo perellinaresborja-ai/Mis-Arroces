@@ -1,7 +1,6 @@
 ﻿'use client';
 import { useFormStatus } from "react-dom"
 import { addHiddenWord } from "@/app/actions/settings"
-import { toast } from "react-hot-toast"
 import { useRef } from "react"
 
 function SubmitButton() {
@@ -39,4 +38,5 @@ export default function AddWordForm() {
     </form>
   )
 }
+
 

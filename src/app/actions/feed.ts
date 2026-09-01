@@ -19,7 +19,7 @@ export async function fetchFeedPage(pageIndex: number = 0) {
     const [followsRes, blocksRes, mutesRes] = await Promise.all([
       supabase.from("follows").select("following_id, status").eq("follower_id", user.id),
       supabase.from("blocks").select("blocker_id, blocked_id").or(`blocker_id.eq.${user.id},blocked_id.eq.${user.id}`),
-      (supabase as any).from("user_mutes").select("muted_id").eq("muter_id", user.id)
+      supabase.from("user_mutes").select("muted_id").eq("muter_id", user.id)
     ])
 
     const follows = followsRes.data || []
@@ -100,4 +100,5 @@ export async function fetchFeedPage(pageIndex: number = 0) {
 
   return enriched
 }
+
 

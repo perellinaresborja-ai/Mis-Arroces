@@ -32,7 +32,7 @@ export async function fetchConversations() {
   // Fetch excluded users (blocks and mutes) to avoid returning conversations with them
   const [blocksRes, mutesRes] = await Promise.all([
     supabase.from("blocks").select("blocker_id, blocked_id").or(`blocker_id.eq.${user.id},blocked_id.eq.${user.id}`),
-    (supabase as any).from("user_mutes").select("muted_id").eq("muter_id", user.id)
+    supabase.from("user_mutes").select("muted_id").eq("muter_id", user.id)
   ])
   const blocks = blocksRes.data || []
   const mutes = mutesRes.data || []
@@ -41,7 +41,7 @@ export async function fetchConversations() {
   const excludedUserIds = Array.from(new Set([...blockedIds, ...mutedIds]))
 
   // Fetch all members for conversations this user is in
-    const { data: convMembers, error: membersError } = await (supabase as any)
+    const { data: convMembers, error: membersError } = await supabase
       .from('conversation_members')
       .select('*, conversations(*)')
       .eq('user_id', user.id)
@@ -274,7 +274,7 @@ export async function togglePinConversation(conversationId: string, currentPin: 
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { success: false, error: 'Unauthorized' }
-  const { error } = await (supabase as any).from('conversation_members')
+  const { error } = await supabase.from('conversation_members')
     .update({ is_pinned: !currentPin })
     .eq('conversation_id', conversationId)
     .eq('user_id', user.id)
@@ -291,5 +291,7 @@ export async function archiveConversation(conversationId: string) {
     .eq('user_id', user.id)
   return { success: !error, error: error?.message }
 }
+
+
 
 

@@ -1,4 +1,4 @@
-﻿export type Json =
+export type Json =
   | string
   | number
   | boolean
@@ -3205,6 +3205,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      user_mutes: {
+        Row: { id: string; muter_id: string; muted_id: string; created_at: string; }
+        Insert: { id?: string; muter_id: string; muted_id: string; created_at?: string; }
+        Update: { id?: string; muter_id?: string; muted_id?: string; created_at?: string; }
+        Relationships: []
+      }
+      hidden_words: {
+        Row: { id: string; user_id: string; word: string; created_at: string; }
+        Insert: { id?: string; user_id: string; word: string; created_at?: string; }
+        Update: { id?: string; user_id?: string; word?: string; created_at?: string; }
+        Relationships: []
+      }
+      notification_preferences: {
+        Row: { user_id: string; follows: boolean; likes: boolean; comments: boolean; mentions: boolean; messages: boolean; system: boolean; updated_at: string; }
+        Insert: { user_id: string; follows?: boolean; likes?: boolean; comments?: boolean; mentions?: boolean; messages?: boolean; system?: boolean; updated_at?: string; }
+        Update: { user_id?: string; follows?: boolean; likes?: boolean; comments?: boolean; mentions?: boolean; messages?: boolean; system?: boolean; updated_at?: string; }
+        Relationships: []
       }
     }
     Views: {

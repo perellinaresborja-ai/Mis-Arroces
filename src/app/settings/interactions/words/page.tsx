@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server"
+﻿import { createClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
 import Link from "next/link"
 import { ChevronLeft } from "lucide-react"
@@ -14,7 +14,7 @@ export default async function HiddenWordsPage() {
   }
 
   // Fetch hidden words
-  const { data: words } = await (supabase as any).from('hidden_words')
+  const { data: words } = await supabase.from('hidden_words')
     .select('*')
     .eq('user_id', user.id)
     .order('created_at', { ascending: false })
@@ -29,7 +29,7 @@ export default async function HiddenWordsPage() {
           <h1 className="text-2xl font-bold">Palabras ocultas</h1>
         </header>
         <p className="text-muted-foreground text-sm mb-8 pl-12 -mt-4">
-          Los comentarios en tus publicaciones que contengan estas palabras no serán visibles para nadie (excepto para quien los escribió).
+          Los comentarios en tus publicaciones que contengan estas palabras no serÃ¡n visibles para nadie (excepto para quien los escribiÃ³).
         </p>
 
         <AddWordForm />
@@ -57,5 +57,6 @@ export default async function HiddenWordsPage() {
     </div>
   )
 }
+
 
 
