@@ -178,9 +178,9 @@ export function MessageBubble({ message, isOwn, onReply, currentUserId }: { mess
     <div className={`flex w-full mb-4 ${isOwn ? "justify-end" : "justify-start"}`}>
       <div className="relative group max-w-[75%]">
         <div 
-          onClick={(e) => { e.stopPropagation(); setShowMenu(!showMenu); setShowReactionMenu(false); }}
+          onClick={(e) => { e.stopPropagation(); setShowReactionMenu(!showReactionMenu); setShowMenu(false); }}
           onDoubleClick={(e) => { e.preventDefault(); e.stopPropagation(); setShowReactionMenu(true); setShowMenu(false); }}
-          onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); setShowReactionMenu(true); setShowMenu(false); }}
+          onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); setShowMenu(true); setShowReactionMenu(false); }}
           className={`rounded-2xl p-3 relative cursor-pointer select-none lg:select-auto ${isOwn ? "bg-primary text-primary-foreground rounded-tr-sm" : "bg-muted text-foreground rounded-tl-sm"}`}
         >
           {showReactionAnim && (
@@ -296,10 +296,7 @@ export function MessageBubble({ message, isOwn, onReply, currentUserId }: { mess
 
         {/* NORMAL MENU */}
           {showMenu && (
-            <div className={`absolute top-8 ${isOwn ? '-left-32' : '-right-32'} w-32 bg-card border border-border shadow-lg rounded-xl overflow-hidden z-50 text-foreground`}>
-              <button onClick={(e) => { e.stopPropagation(); setShowReactionMenu(true); setShowMenu(false); }} className="w-full text-left px-3 py-2 text-sm flex items-center gap-2 hover:bg-muted transition-colors">
-                <SmilePlus className="w-4 h-4" /> Reaccionar
-              </button>
+            <div className={`absolute top-8 ${isOwn ? '-left-32' : '-right-32'} w-32 bg-card border border-border shadow-lg rounded-2xl overflow-hidden z-50 text-foreground`}>
               <button onClick={handleReply} className="w-full text-left px-3 py-2 text-sm flex items-center gap-2 hover:bg-muted transition-colors">
                 <Reply className="w-4 h-4" /> Responder
               </button>
