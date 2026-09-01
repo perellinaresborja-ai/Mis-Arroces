@@ -210,21 +210,9 @@ export default async function PublicProfilePage({
           <div className="absolute top-4 right-4 flex gap-2 z-10">
             <ProfileShareModal username={profile.username} display_name={profile.display_name} path={`/@${profile.username}`} />
             {isSelf && (
-              <>
-                <Link href="/shopping-list" className="relative flex items-center justify-center w-10 h-10 bg-black/60 rounded-full hover:bg-black transition text-white backdrop-blur-sm shadow-sm" title="Lista de la compra">
-  <ShoppingCart className="w-5 h-5" />
-  {hasActiveShoppingItems && (
-    <span className="absolute top-0 right-0 -mt-1 -mr-1 flex h-3 w-3">
-      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
-      <span className="relative inline-flex rounded-full h-3 w-3 bg-primary"></span>
-    </span>
-  )}
-</Link>
-                                  <Link href="/profile/story-archive" className="flex items-center justify-center w-10 h-10 bg-black/60 rounded-full hover:bg-black transition text-white backdrop-blur-sm shadow-sm" title="Archivo"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="5" x="2" y="3" rx="1"/><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8"/><path d="M10 12h4"/></svg></Link>
-                <Link href="/settings" className="flex items-center justify-center w-10 h-10 bg-black/60 rounded-full hover:bg-black transition text-white backdrop-blur-sm shadow-sm" title="Configuración">
-                  <Settings className="w-5 h-5" />
-                </Link>
-              </>
+              <Link href="/settings" className="flex items-center justify-center w-10 h-10 bg-black/60 rounded-full hover:bg-black transition text-white backdrop-blur-sm shadow-sm" title="Configuración">
+                <Settings className="w-5 h-5" />
+              </Link>
             )}
           </div>
         </div>

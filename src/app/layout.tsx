@@ -62,6 +62,8 @@ export const viewport: Viewport = {
   themeColor: "#F7F2E8", // Cream background
 };
 
+import { ThemeProvider } from "@/components/providers/ThemeProvider";
+
 export default async function RootLayout({
   children,
 }: Readonly<{
@@ -76,9 +78,10 @@ export default async function RootLayout({
     }
   } catch(e) {}
   return (
-    <html lang="es">
+    <html lang="es" suppressHydrationWarning>
       <body className={`${inter.className} antialiased bg-background text-foreground safe-area-pt safe-area-pb overflow-x-hidden`}>
-        <AuthPromptProvider>
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+          <AuthPromptProvider>
           <LegalConsentGate pendingLegal={pendingLegal} />
           {/* Desktop Header */}
           <DesktopNav />
@@ -94,6 +97,7 @@ export default async function RootLayout({
             <BottomNav />
           </div>
         </AuthPromptProvider>
+        </ThemeProvider>
         <SpeedInsights />
       </body>
     </html>
