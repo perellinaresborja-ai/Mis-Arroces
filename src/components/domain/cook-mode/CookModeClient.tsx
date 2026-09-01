@@ -261,50 +261,50 @@ export function CookModeClient({ recipe }: { recipe: CookModeRecipe }) {
   // Initial Summary View
   if (!hasStarted) {
     return (
-      <div className="min-h-screen bg-black text-white flex flex-col justify-center p-6 sm:p-10 animate-in fade-in duration-500 relative">
+      <div className="min-h-[100dvh] bg-black text-white flex flex-col justify-center p-6 sm:p-10 animate-in fade-in duration-500 relative overflow-hidden">
         <TopActions />
-        <div className="max-w-md mx-auto w-full space-y-10">
-          <div className="space-y-4 text-center">
-            <h1 className="text-4xl font-black font-serif">{recipe.name}</h1>
-            <p className="text-white/60 text-lg uppercase tracking-widest font-bold">Resumen de cocción</p>
+        <div className="max-w-md mx-auto w-full flex flex-col gap-6 md:gap-8 justify-center">
+          <div className="space-y-2 md:space-y-4 text-center">
+            <h1 className="text-3xl md:text-4xl font-black font-serif leading-tight">{recipe.name}</h1>
+            <p className="text-white/60 text-sm md:text-lg uppercase tracking-widest font-bold">Resumen</p>
           </div>
           
-          <div className="grid grid-cols-2 gap-4">
-            <div className="bg-white/10 p-5 rounded-3xl border border-white/10 flex flex-col items-center justify-center text-center">
-              <span className="text-white/50 text-sm font-bold uppercase mb-1">Raciones</span>
-              <span className="text-3xl font-black">{recipe.requested_servings}</span>
+          <div className="grid grid-cols-2 gap-3 md:gap-4">
+            <div className="bg-white/10 p-4 md:p-5 rounded-3xl border border-white/10 flex flex-col items-center justify-center text-center">
+              <span className="text-white/50 text-xs md:text-sm font-bold uppercase mb-1">Raciones</span>
+              <span className="text-2xl md:text-3xl font-black">{recipe.requested_servings}</span>
             </div>
             {recipe.diameter_cm && (
-              <div className="bg-white/10 p-5 rounded-3xl border border-white/10 flex flex-col items-center justify-center text-center">
-                <span className="text-white/50 text-sm font-bold uppercase mb-1">Paella</span>
-                <span className="text-3xl font-black">{recipe.diameter_cm} cm</span>
+              <div className="bg-white/10 p-4 md:p-5 rounded-3xl border border-white/10 flex flex-col items-center justify-center text-center">
+                <span className="text-white/50 text-xs md:text-sm font-bold uppercase mb-1">Paella</span>
+                <span className="text-2xl md:text-3xl font-black">{recipe.diameter_cm} cm</span>
               </div>
             )}
             {recipe.rice_qty && (
-              <div className="bg-white/10 p-5 rounded-3xl border border-white/10 flex flex-col items-center justify-center text-center">
-                <span className="text-white/50 text-sm font-bold uppercase mb-1">Arroz</span>
-                <span className="text-2xl font-black">{Math.round(recipe.rice_qty)}g</span>
-                {recipe.variety_name && <span className="text-xs text-white/60 mt-1">{recipe.variety_name}</span>}
+              <div className="bg-white/10 p-4 md:p-5 rounded-3xl border border-white/10 flex flex-col items-center justify-center text-center">
+                <span className="text-white/50 text-xs md:text-sm font-bold uppercase mb-1">Arroz</span>
+                <span className="text-xl md:text-2xl font-black">{Math.round(recipe.rice_qty)}g</span>
+                {recipe.variety_name && <span className="text-[10px] md:text-xs text-white/60 mt-1">{recipe.variety_name}</span>}
               </div>
             )}
             {recipe.stock_qty && (
-              <div className="bg-white/10 p-5 rounded-3xl border border-white/10 flex flex-col items-center justify-center text-center">
-                <span className="text-white/50 text-sm font-bold uppercase mb-1">Caldo</span>
-                <span className="text-2xl font-black">{Math.round(recipe.stock_qty)}ml</span>
-                {ratio && <span className="text-xs text-white/60 mt-1">Ratio {ratio}:1</span>}
+              <div className="bg-white/10 p-4 md:p-5 rounded-3xl border border-white/10 flex flex-col items-center justify-center text-center">
+                <span className="text-white/50 text-xs md:text-sm font-bold uppercase mb-1">Caldo</span>
+                <span className="text-xl md:text-2xl font-black">{Math.round(recipe.stock_qty)}ml</span>
+                {ratio && <span className="text-[10px] md:text-xs text-white/60 mt-1">Ratio {ratio}:1</span>}
               </div>
             )}
             {layer && (
-              <div className="bg-white/10 p-5 rounded-3xl border border-white/10 flex flex-col items-center justify-center text-center col-span-2">
-                <span className="text-white/50 text-sm font-bold uppercase mb-1">Capa estimada</span>
-                <span className="text-2xl font-black">{layer}</span>
+              <div className="bg-white/10 p-4 md:p-5 rounded-3xl border border-white/10 flex flex-col items-center justify-center text-center col-span-2">
+                <span className="text-white/50 text-xs md:text-sm font-bold uppercase mb-1">Capa estimada</span>
+                <span className="text-xl md:text-2xl font-black">{layer}</span>
               </div>
             )}
           </div>
 
           <button 
             onClick={handleStart}
-            className="w-full py-6 bg-primary text-white rounded-full font-black text-2xl hover:bg-primary/90 transition-transform active:scale-95 shadow-xl"
+            className="w-full py-5 md:py-6 mt-2 bg-primary text-white rounded-full font-black text-xl md:text-2xl hover:bg-primary/90 transition-transform active:scale-95 shadow-xl"
           >
             EMPEZAR
           </button>
@@ -316,25 +316,25 @@ export function CookModeClient({ recipe }: { recipe: CookModeRecipe }) {
   // Final View
   if (currentStepIndex >= recipe.steps.length) {
     return (
-      <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center p-6 animate-in fade-in zoom-in-95 duration-500 relative">
+      <div className="min-h-[100dvh] bg-black text-white flex flex-col items-center justify-center p-6 animate-in fade-in zoom-in-95 duration-500 relative overflow-hidden">
         <TopActions />
-        <div className="max-w-md text-center space-y-12">
-          <div className="space-y-4">
-            <h1 className="text-5xl md:text-6xl font-black font-serif text-primary">¡Arroz terminado!</h1>
-            <p className="text-xl text-white/70">Es hora de disfrutar del socarrat.</p>
+        <div className="max-w-md text-center flex flex-col gap-8 md:gap-12 w-full">
+          <div className="space-y-3">
+            <h1 className="text-4xl md:text-6xl font-black font-serif text-primary leading-tight">¡Arroz terminado!</h1>
+            <p className="text-lg md:text-xl text-white/70">Es hora de disfrutar del socarrat.</p>
           </div>
           
-          <div className="space-y-4 w-full">
+          <div className="flex flex-col gap-4 w-full">
             <button 
               onClick={handleEndCook}
-              className="w-full py-6 bg-primary text-white rounded-3xl font-black text-2xl hover:bg-primary/90 transition-transform active:scale-95 shadow-xl"
+              className="w-full py-5 md:py-6 bg-primary text-white rounded-3xl font-black text-xl md:text-2xl hover:bg-primary/90 transition-transform active:scale-95 shadow-xl"
             >
-              REGISTRAR CÓMO HA SALIDO
+              REGISTRAR RESULTADO
             </button>
             
             <button 
               onClick={() => setCurrentStepIndex(recipe.steps.length - 1)}
-              className="w-full py-4 text-white/50 hover:text-white transition-colors uppercase font-bold"
+              className="w-full py-3 text-white/50 hover:text-white transition-colors uppercase font-bold text-sm"
             >
               Volver al último paso
             </button>
@@ -364,11 +364,11 @@ export function CookModeClient({ recipe }: { recipe: CookModeRecipe }) {
       </header>
 
       {/* Main Content */}
-      <main className="flex-1 flex flex-col items-center p-6 md:p-12 overflow-y-auto">
-        <div key={currentStepIndex} className="w-full max-w-md mx-auto flex flex-col animate-in fade-in duration-300">
+      <main className="flex-1 flex flex-col items-center justify-center px-6 py-2 overflow-hidden min-h-0">
+        <div key={currentStepIndex} className="w-full max-w-md mx-auto flex flex-col h-full animate-in fade-in duration-300">
           
           {/* Step Image / Fallback Logo */}
-          <div className="w-full h-48 sm:h-64 md:h-[40vh] bg-white/5 rounded-3xl overflow-hidden mb-8 relative flex items-center justify-center border border-white/10 shadow-2xl shrink-0">
+          <div className="w-full flex-1 min-h-[150px] max-h-[35vh] bg-white/5 rounded-3xl overflow-hidden mb-6 relative flex items-center justify-center border border-white/10 shadow-2xl shrink-0">
             {step.media?.storage_path ? (
               <Image 
                 src={`https://zvesoygqssyyojqyswwm.supabase.co/storage/v1/object/public/recipe_media/${step.media.storage_path}`}
@@ -388,34 +388,34 @@ export function CookModeClient({ recipe }: { recipe: CookModeRecipe }) {
             )}
           </div>
 
-          <div className="space-y-12">
-            <h2 className="text-3xl md:text-5xl font-bold leading-tight md:leading-tight">
+          <div className="flex flex-col gap-6 shrink-0 justify-center">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold leading-tight text-center">
               {step.instruction}
             </h2>
 
             {/* Timer Display */}
             {hasDuration && (
-            <div className="bg-white/10 border border-white/20 rounded-3xl p-6 flex flex-col items-center justify-center gap-6 shadow-2xl">
-              <div className={`text-7xl md:text-8xl font-black font-mono tracking-tighter tabular-nums ${timer?.isRunning ? 'text-primary' : 'text-white'}`}>
+            <div className="bg-white/10 border border-white/20 rounded-3xl p-5 flex flex-col items-center justify-center gap-4 shadow-2xl">
+              <div className={`text-6xl md:text-7xl font-black font-mono tracking-tighter tabular-nums leading-none ${timer?.isRunning ? 'text-primary' : 'text-white'}`}>
                 {formatTime(displayTime)}
               </div>
-              <div className="flex gap-4 w-full md:w-auto">
+              <div className="flex gap-3 w-full">
                 <button 
                   onClick={() => toggleTimer(currentStepIndex, step.duration_minutes)}
-                  className="flex-1 md:w-48 py-5 rounded-2xl bg-white text-black font-black text-xl flex items-center justify-center gap-2 hover:bg-white/90 active:scale-95 transition-transform"
+                  className="flex-1 py-4 rounded-2xl bg-white text-black font-black text-lg flex items-center justify-center gap-2 hover:bg-white/90 active:scale-95 transition-transform"
                 >
                   {timer?.isRunning ? (
-                    <><Pause className="w-6 h-6 fill-current"/> PAUSAR</>
+                    <><Pause className="w-5 h-5 fill-current"/> PAUSAR</>
                   ) : (
-                    <><Play className="w-6 h-6 fill-current"/> {timer?.remainingMs < durationMs ? "CONTINUAR" : "INICIAR"}</>
+                    <><Play className="w-5 h-5 fill-current"/> {timer?.remainingMs < durationMs ? "CONTINUAR" : "INICIAR"}</>
                   )}
                 </button>
                 {timer && timer.remainingMs < durationMs && (
                   <button 
                     onClick={() => resetTimer(currentStepIndex, step.duration_minutes)}
-                    className="w-20 md:w-24 py-5 rounded-2xl bg-white/20 text-white flex items-center justify-center hover:bg-white/30 active:scale-95 transition-transform"
+                    className="w-16 py-4 rounded-2xl bg-white/20 text-white flex items-center justify-center hover:bg-white/30 active:scale-95 transition-transform shrink-0"
                   >
-                    <RotateCcw className="w-6 h-6" />
+                    <RotateCcw className="w-5 h-5" />
                   </button>
                 )}
               </div>
