@@ -53,7 +53,7 @@ export default async function LoginPage({
         {/* Photo Attribution */}
         {randomCover === "/arroces/lallar.jpg" && (
           <div className="absolute bottom-4 right-6 z-20">
-            <p className="text-[10px] text-white/40 font-medium tracking-wide drop-shadow-md">
+            <p className="text-[14px] text-white/40 font-medium tracking-wide drop-shadow-md">
               Foto cedida por La Llar Arròs i Brases
             </p>
           </div>
