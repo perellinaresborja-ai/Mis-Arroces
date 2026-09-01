@@ -81,7 +81,7 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
 
           {media.length > 0 && (
             <div className="w-full aspect-square">
-              <MediaCarousel items={media} bucket="sessions" />
+              <MediaCarousel items={media} />
             </div>
           )}
 
