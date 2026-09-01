@@ -155,7 +155,7 @@ export default async function RecipeDetailPage({
       <div className="max-w-6xl mx-auto pt-4 md:pt-10 px-4">
         
         {/* Top 2-Column Section */}
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-8 md:gap-12 items-start">
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-8 md:gap-12 items-center">
           
           {/* Left Column: Image & Actions */}
           <div className="md:col-span-5 order-2 md:order-1 flex flex-col gap-6">
@@ -170,9 +170,7 @@ export default async function RecipeDetailPage({
               )}
             </div>
             
-            <div className="w-full">
-              <StartCookButton recipeId={recipe.id} />
-            </div>
+            
           </div>
 
           {/* Right Column: Title, Desc, Stats, Ficha */}
@@ -285,6 +283,12 @@ export default async function RecipeDetailPage({
                 )}
               </div>
             </div>
+              
+              <div className="w-full mt-8 flex justify-center">
+                <div className="w-full sm:w-2/3 md:w-3/4">
+                  <StartCookButton recipeId={recipe.id} />
+                </div>
+              </div>
           </div>
         </div>
 
