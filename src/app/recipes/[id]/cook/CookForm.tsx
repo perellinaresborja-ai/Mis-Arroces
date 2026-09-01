@@ -253,7 +253,7 @@ export function CookForm({ recipeId, initialData, snapshotData }: { recipeId: st
 
       <div className="flex pt-4 border-t border-border">
         <Button type="button" className="w-full h-14 rounded-2xl font-bold text-lg bg-primary hover:bg-primary/90 text-primary-foreground" onClick={() => submitWithAction('PUBLISH')} disabled={isSubmitting}>
-          {isSubmitting ? "Guardando..." : "Guardar en mi Cuaderno"}
+          {isSubmitting ? "Guardando..." : "Guardar en Mis Arroces"}
         </Button>
       </div>
     </form>
