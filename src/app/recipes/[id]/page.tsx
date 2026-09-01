@@ -277,7 +277,8 @@ export default async function RecipeDetailPage({
                 )}
                 {ratio && (
                   <div className="flex flex-col">
-                    <span className="text-muted-foreground text-[10px] md:text-xs uppercase tracking-wider mb-1">Proporción</span>
+                    <span className="text-muted-foreground text-[10px] md:text-xs uppercase tracking-wider mb-0.5">Proporción</span>
+                    <span className="text-[9px] font-bold text-muted-foreground/60 tracking-widest leading-none mb-1">ARROZ:CALDO</span>
                     <span className="font-semibold text-foreground">1:{ratio}</span>
                   </div>
                 )}
