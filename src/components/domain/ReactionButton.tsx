@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useTransition } from "react"
+import { PaellaIcon } from "@/components/icons/PaellaIcon"
 import { SmilePlus } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { toggleLike } from "@/app/actions/interactions"
@@ -94,13 +95,15 @@ export function ReactionButton({
       >
         <span 
           className={cn(
-            "inline-flex items-center justify-center transition-transform duration-300 text-xl",
-            !myReaction && "grayscale opacity-60 hover:grayscale-0 hover:opacity-100",
-            myReaction === '🥘' ? "scale-110" : "hover:scale-105",
-            iconClassName
+            "inline-flex items-center justify-center transition-transform duration-300",
+            myReaction === '🥘' ? "text-primary scale-110" : "text-muted-foreground hover:text-foreground hover:scale-105"
           )}
         >
-          {myReaction || '🥘'}
+          {myReaction === '🥘' || !myReaction ? (
+            <PaellaIcon filled={myReaction === '🥘'} className={cn("w-6 h-6", iconClassName)} />
+          ) : (
+            <span className={cn("text-xl", iconClassName)}>{myReaction}</span>
+          )}
         </span>
         {!hasReactions && (
            <span className="text-sm font-medium text-muted-foreground">Me gusta</span>
