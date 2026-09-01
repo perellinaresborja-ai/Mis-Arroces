@@ -26,7 +26,7 @@ interface TimerState {
   isRunning: boolean
 }
 
-export function CookModeClient({ recipe, userName }: { recipe: CookModeRecipe, userName?: string | null }) {
+export function CookModeClient({ recipe, userName, reset }: { recipe: CookModeRecipe, userName?: string | null, reset?: boolean }) {
   const router = useRouter()
   const [hasStarted, setHasStarted] = useState(false)
   const [currentStepIndex, setCurrentStepIndex] = useState(0)
@@ -40,6 +40,10 @@ export function CookModeClient({ recipe, userName }: { recipe: CookModeRecipe, u
   // Recovery on mount
   useEffect(() => {
     setIsClient(true)
+    if (reset) {
+      localStorage.removeItem(`cook-mode-${recipe.id}`)
+      return
+    }
     const saved = localStorage.getItem(`cook-mode-${recipe.id}`)
     if (saved) {
       try {

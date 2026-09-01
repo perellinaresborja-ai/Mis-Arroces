@@ -8,7 +8,7 @@ export const metadata: Metadata = {
   description: "Modo inmersivo paso a paso.",
 }
 
-export default async function RecipeCookModePage({ params, searchParams }: { params: Promise<{ id: string }>, searchParams: Promise<{ servings?: string }> }) {
+export default async function RecipeCookModePage({ params, searchParams }: { params: Promise<{ id: string }>, searchParams: Promise<{ servings?: string, reset?: string }> }) {
   const resolvedParams = await params
   const resolvedSearchParams = await searchParams
   const supabase = await createClient()
@@ -38,6 +38,7 @@ export default async function RecipeCookModePage({ params, searchParams }: { par
 
   const requestedServings = resolvedSearchParams.servings ? parseInt(resolvedSearchParams.servings, 10) : (recipe.base_servings || 1);
   const scaleRatio = !isNaN(requestedServings) && requestedServings > 0 ? requestedServings / (recipe.base_servings || 1) : 1;
+  const isReset = resolvedSearchParams.reset === "true";
 
   let userName = null;
   if (user) {
@@ -62,6 +63,6 @@ export default async function RecipeCookModePage({ params, searchParams }: { par
   }
 
   return (
-    <CookModeClient recipe={clientRecipe} userName={userName} />
+    <CookModeClient recipe={clientRecipe} userName={userName} reset={isReset} />
   )
 }
