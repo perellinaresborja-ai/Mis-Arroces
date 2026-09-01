@@ -65,7 +65,7 @@ export function ShortPlayer({ short, currentUserId }: { short: any, currentUserI
 
     startTransition(async () => {
       try {
-        await toggleLike("short" as any, short.id, !newLiked, pathname)
+        await toggleLike("short" as any, short.id, "🥘", pathname)
       } catch (err) {
         setIsLiked(!newLiked)
         setLikeCount((prev: number) => !newLiked ? prev + 1 : Math.max(0, prev - 1))

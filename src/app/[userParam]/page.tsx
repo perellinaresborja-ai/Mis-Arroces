@@ -157,33 +157,34 @@ export default async function PublicProfilePage({
 
       const queries = []
       if (recipeIds.length > 0) {
-        queries.push(supabase.from("recipe_likes").select("recipe_id").in("recipe_id", recipeIds).then(r => ({ type: 'recipe', likes: r.data })))
+        queries.push(supabase.from("recipe_likes").select("recipe_id, emoji, user_id").in("recipe_id", recipeIds).then(r => ({ type: 'recipe', likes: r.data })))
         queries.push(supabase.from("recipe_comments").select("recipe_id").eq("is_deleted", false).in("recipe_id", recipeIds).then(r => ({ type: 'recipe', comments: r.data })))
-        if (user) queries.push(supabase.from("recipe_likes").select("recipe_id").eq("user_id", user.id).in("recipe_id", recipeIds).then(r => ({ type: 'recipe', userLikes: r.data })))
       }
       if (sessionIds.length > 0) {
-        queries.push(supabase.from("session_likes").select("session_id").in("session_id", sessionIds).then(r => ({ type: 'session', likes: r.data })))
+        queries.push(supabase.from("session_likes").select("session_id, emoji, user_id").in("session_id", sessionIds).then(r => ({ type: 'session', likes: r.data })))
         queries.push(supabase.from("session_comments").select("session_id").eq("is_deleted", false).in("session_id", sessionIds).then(r => ({ type: 'session', comments: r.data })))
-        if (user) queries.push(supabase.from("session_likes").select("session_id").eq("user_id", user.id).in("session_id", sessionIds).then(r => ({ type: 'session', userLikes: r.data })))
       }
       if (postIds.length > 0) {
-        queries.push(supabase.from("post_likes").select("post_id").in("post_id", postIds).then(r => ({ type: 'post', likes: r.data })))
+        queries.push(supabase.from("post_likes").select("post_id, emoji, user_id").in("post_id", postIds).then(r => ({ type: 'post', likes: r.data })))
         queries.push(supabase.from("post_comments").select("post_id").eq("is_deleted", false).in("post_id", postIds).then(r => ({ type: 'post', comments: r.data })))
-        if (user) queries.push(supabase.from("post_likes").select("post_id").eq("user_id", user.id).in("post_id", postIds).then(r => ({ type: 'post', userLikes: r.data })))
       }
 
       const results = await Promise.all(queries)
       
-      const counts = { likes: {}, comments: {}, userLikes: new Set() }
+      const counts = { likes: {} as any, reactions: {} as any, comments: {} as any }
       results.forEach((res: any) => {
-        if (res.likes) res.likes.forEach((l: any) => { const id = l.recipe_id || l.session_id || l.post_id; counts.likes[id] = (counts.likes[id] || 0) + 1 })
+        if (res.likes) res.likes.forEach((l: any) => { 
+          const id = l.recipe_id || l.session_id || l.post_id; 
+          counts.likes[id] = (counts.likes[id] || 0) + 1;
+          if (!counts.reactions[id]) counts.reactions[id] = [];
+          counts.reactions[id].push({ emoji: l.emoji, user_id: l.user_id })
+        })
         if (res.comments) res.comments.forEach((c: any) => { const id = c.recipe_id || c.session_id || c.post_id; counts.comments[id] = (counts.comments[id] || 0) + 1 })
-        if (res.userLikes) res.userLikes.forEach((l: any) => counts.userLikes.add(l.recipe_id || l.session_id || l.post_id))
       })
 
       feedItems = feedItems.map(item => ({
         ...item,
-        isLiked: counts.userLikes.has(item.id),
+        reactions: counts.reactions[item.id] || [],
         likeCount: counts.likes[item.id] || 0,
         commentCount: counts.comments[item.id] || 0
       }))

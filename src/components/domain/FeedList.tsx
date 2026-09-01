@@ -45,8 +45,7 @@ export function FeedList({ initialItems, currentUserId }: { initialItems: any[],
               entityId={(item as any).entity_id}
               user={item.data.author}
               createdAt={item.created_at}
-              isLiked={item.isLiked}
-              likeCount={item.likeCount}
+              reactions={item.reactions}
               commentCount={item.commentCount}
               currentUserId={currentUserId}
               followStatus={(item as any).followStatus}
@@ -66,8 +65,7 @@ export function FeedList({ initialItems, currentUserId }: { initialItems: any[],
               entityId={(item as any).entity_id}
               user={item.data.author}
               createdAt={item.created_at}
-              isLiked={item.isLiked}
-              likeCount={item.likeCount}
+              reactions={item.reactions}
               commentCount={item.commentCount}
               currentUserId={currentUserId}
               followStatus={(item as any).followStatus}
@@ -87,8 +85,7 @@ export function FeedList({ initialItems, currentUserId }: { initialItems: any[],
               entityId={(item as any).entity_id}
               user={item.data.author}
               createdAt={item.created_at}
-              isLiked={item.isLiked}
-              likeCount={item.likeCount}
+              reactions={item.reactions}
               commentCount={item.commentCount}
               currentUserId={currentUserId}
               followStatus={(item as any).followStatus}

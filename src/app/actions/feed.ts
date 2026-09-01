@@ -31,25 +31,16 @@ export async function fetchFeedPage(pageIndex: number = 0) {
   const recipeIds = feedItems?.filter(i => i.entity_type === 'recipe').map(i => i.entity_id).filter((id): id is string => id !== null) || []
   const sessionIds = feedItems?.filter(i => i.entity_type === 'session').map(i => i.entity_id).filter((id): id is string => id !== null) || []
 
-  const [postsRes, recipesRes, sessionsRes, likesRes, commentsRes] = await Promise.all([
-    postIds.length > 0 ? supabase.from("social_posts").select(`*, author:profiles!social_posts_author_id_fkey(id, username, display_name, privacy_level, avatar:media_assets!fk_profiles_avatar(storage_path)), post_media(display_order, media:media_assets(id, storage_path)), recipe:recipes(id, name)`).in("id", postIds) : { data: [] },
-    recipeIds.length > 0 ? supabase.from("recipes").select(`*, author:profiles!recipes_owner_id_fkey(id, username, display_name, privacy_level, avatar:media_assets!fk_profiles_avatar(storage_path)), recipe_media(display_order, media:media_assets(id, storage_path))`).in("id", recipeIds) : { data: [] },
-    sessionIds.length > 0 ? supabase.from("cooking_sessions").select(`*, author:profiles!cooking_sessions_user_id_fkey(id, username, display_name, privacy_level, avatar:media_assets!fk_profiles_avatar(storage_path)), session_media(display_order, media:media_assets(id, storage_path)), recipe:recipes(id, name)`).in("id", sessionIds) : { data: [] },
-    user ? Promise.all([
-      postIds.length > 0 ? supabase.from("post_likes").select("post_id").eq("user_id", user.id).in("post_id", postIds) : { data: [] },
-      recipeIds.length > 0 ? supabase.from("recipe_likes").select("recipe_id").eq("user_id", user.id).in("recipe_id", recipeIds) : { data: [] },
-      sessionIds.length > 0 ? supabase.from("session_likes").select("session_id").eq("user_id", user.id).in("session_id", sessionIds) : { data: [] }
-    ]) : Promise.resolve([{data:[]}, {data:[]}, {data:[]}]),
+  const [postsRes, recipesRes, sessionsRes, commentsRes] = await Promise.all([
+    postIds.length > 0 ? supabase.from("social_posts").select(`*, author:profiles!social_posts_author_id_fkey(id, username, display_name, privacy_level, avatar:media_assets!fk_profiles_avatar(storage_path)), post_media(display_order, media:media_assets(id, storage_path)), recipe:recipes(id, name), reactions:post_likes(emoji, user_id)`).in("id", postIds) : { data: [] },
+    recipeIds.length > 0 ? supabase.from("recipes").select(`*, author:profiles!recipes_owner_id_fkey(id, username, display_name, privacy_level, avatar:media_assets!fk_profiles_avatar(storage_path)), recipe_media(display_order, media:media_assets(id, storage_path)), reactions:recipe_likes(emoji, user_id)`).in("id", recipeIds) : { data: [] },
+    sessionIds.length > 0 ? supabase.from("cooking_sessions").select(`*, author:profiles!cooking_sessions_user_id_fkey(id, username, display_name, privacy_level, avatar:media_assets!fk_profiles_avatar(storage_path)), session_media(display_order, media:media_assets(id, storage_path)), recipe:recipes(id, name), reactions:session_likes(emoji, user_id)`).in("id", sessionIds) : { data: [] },
     supabase.from("feed_metrics").select("*").in("entity_id", feedItems?.map(i => i.entity_id).filter(Boolean) || [])
   ])
 
   const posts = postsRes.data || []
   const recipes = recipesRes.data || []
   const sessions = sessionsRes.data || []
-
-  const userLikesPost = new Set(likesRes[0].data?.map(l => l.post_id))
-  const userLikesRecipe = new Set(likesRes[1].data?.map(l => l.recipe_id))
-  const userLikesSession = new Set(likesRes[2].data?.map(l => l.session_id))
 
   const metricsMap = (commentsRes?.data || []).reduce((acc: any, val: any) => {
     acc[`${val.entity_type}:${val.entity_id}`] = { likeCount: val.like_count || 0, commentCount: val.comment_count || 0 };
@@ -62,17 +53,17 @@ export async function fetchFeedPage(pageIndex: number = 0) {
       if (item.entity_type === 'post') {
         const data = posts.find(p => p.id === entityId)
         if (!data) return null
-        return { ...item, data, isLiked: userLikesPost.has(entityId), likeCount: metricsMap[metricsKey]?.likeCount || 0, commentCount: metricsMap[metricsKey]?.commentCount || 0, followStatus: typeof followStatusMap !== "undefined" ? followStatusMap[data.author?.id] || null : null }
+        return { ...item, data, reactions: data.reactions || [], commentCount: metricsMap[metricsKey]?.commentCount || 0, followStatus: typeof followStatusMap !== "undefined" ? followStatusMap[data.author?.id] || null : null }
       }
     if (item.entity_type === 'recipe') {
       const data = recipes.find(r => r.id === entityId)
       if (!data) return null
-      return { ...item, data, isLiked: userLikesRecipe.has(entityId), likeCount: metricsMap[metricsKey]?.likeCount || 0, commentCount: metricsMap[metricsKey]?.commentCount || 0, followStatus: typeof followStatusMap !== "undefined" ? followStatusMap[data.author?.id] || null : null }
+      return { ...item, data, reactions: data.reactions || [], commentCount: metricsMap[metricsKey]?.commentCount || 0, followStatus: typeof followStatusMap !== "undefined" ? followStatusMap[data.author?.id] || null : null }
     }
     if (item.entity_type === 'session') {
       const data = sessions.find(s => s.id === entityId)
       if (!data) return null
-      return { ...item, data, isLiked: userLikesSession.has(entityId), likeCount: metricsMap[metricsKey]?.likeCount || 0, commentCount: metricsMap[metricsKey]?.commentCount || 0, followStatus: typeof followStatusMap !== "undefined" ? followStatusMap[data.author?.id] || null : null }
+      return { ...item, data, reactions: data.reactions || [], commentCount: metricsMap[metricsKey]?.commentCount || 0, followStatus: typeof followStatusMap !== "undefined" ? followStatusMap[data.author?.id] || null : null }
     }
     return null
   }).filter(Boolean) || []

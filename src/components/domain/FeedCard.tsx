@@ -3,7 +3,7 @@
 import { useState } from "react"
 import Link from "next/link"
 import { ShareButton } from "@/components/domain/ShareButton"
-import { LikeButton } from "@/components/domain/LikeButton"
+import { ReactionButton } from "@/components/domain/ReactionButton"
 import { MediaCarousel } from "@/components/domain/MediaCarousel"
 import { MessageCircle, Bookmark } from "lucide-react"
 import { FeedCommentsInline } from "@/components/domain/FeedCommentsInline"
@@ -25,8 +25,7 @@ export interface FeedCardProps {
   createdAt: string
   
   // Counts & State
-  likeCount: number
-  isLiked: boolean
+  reactions: { emoji: string; user_id: string }[]
   commentCount: number
   currentUserId: string | null
   followStatus?: string | null
@@ -53,8 +52,7 @@ export function FeedCard({
   entityId,
   user: initialUser,
   createdAt,
-  likeCount,
-  isLiked,
+  reactions = [],
   commentCount,
   currentUserId,
   followStatus,
@@ -172,12 +170,11 @@ export function FeedCard({
 
       {/* Actions */}
       <footer className="flex items-center gap-6 pt-2 border-t border-border/50 text-muted-foreground">
-        <LikeButton 
+        <ReactionButton 
           entityType={entityType} 
           entityId={entityId} 
-          initialIsLiked={isLiked} 
-          initialLikeCount={likeCount} 
-          isAuthenticated={!!currentUserId}
+          reactions={reactions}
+          currentUserId={currentUserId}
         />
         
         <button onClick={() => {

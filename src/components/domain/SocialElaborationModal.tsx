@@ -1,7 +1,7 @@
 "use client"
 import { MediaImage } from "@/components/domain/MediaImage"
 import { useState, useEffect } from "react"
-import { LikeButton } from "@/components/domain/LikeButton"
+import { ReactionButton } from "@/components/domain/ReactionButton"
 import { ShareButton } from "@/components/domain/ShareButton"
 import { MessageCircle, X, ChevronLeft, ChevronRight, User } from "lucide-react"
 import { PostOptionsMenu } from "./PostOptionsMenu"
@@ -152,12 +152,11 @@ export function SocialElaborationModal({ isOpen, onClose, item, currentUserId }:
 
            {/* Social Bar (Bottom) */}
            <div className="p-4 border-t border-border shrink-0 flex items-center gap-6 bg-card">
-             <LikeButton 
+             <ReactionButton 
                 entityType={item.entity_type}
                 entityId={item.id}
-                initialIsLiked={item.isLiked}
-                initialLikeCount={item.likeCount}
-                isAuthenticated={!!currentUserId}
+                reactions={item.reactions}
+                currentUserId={currentUserId || null}
              />
              <div className="flex items-center gap-1.5 text-muted-foreground">
                <MessageCircle className="w-6 h-6" />

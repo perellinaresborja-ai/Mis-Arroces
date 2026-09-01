@@ -104,24 +104,21 @@ export default async function RecipeDetailPage({
     : null
 
   // Interactions Data
-  let isLiked = false
-  let likeCount = 0
+  let reactions: any[] = []
   let isSaved = false
   let isWantToCook = false
 
   if (recipe.status === 'PUBLISHED') {
     if (user) {
-      const [{ data: likeData }, { data: savedData }, { data: wantData }] = await Promise.all([
-        supabase.from("recipe_likes").select("id").eq("recipe_id", recipe.id).eq("user_id", user.id).single(),
+      const [{ data: savedData }, { data: wantData }] = await Promise.all([
         supabase.from("collections").select("id, collection_recipes!inner(recipe_id)").eq("owner_id", user.id).eq("name", "Guardados").eq("collection_recipes.recipe_id", recipe.id).maybeSingle(),
         supabase.from("want_to_cook").select("id").eq("user_id", user.id).eq("recipe_id", recipe.id).single()
       ])
-      isLiked = !!likeData
       isSaved = !!savedData
       isWantToCook = !!wantData
     }
-    const { count } = await supabase.from("recipe_likes").select("id", { count: 'exact', head: true }).eq("recipe_id", recipe.id)
-    likeCount = count || 0
+    const { data } = await supabase.from("recipe_likes").select("emoji, user_id").eq("recipe_id", recipe.id)
+    reactions = data || []
   }
 
   // Fetch recent cooked sessions for this recipe
@@ -418,8 +415,7 @@ export default async function RecipeDetailPage({
                     entityId={s.id} 
                     user={s.author} 
                     createdAt={s.date || s.created_at} 
-                    isLiked={false} 
-                    likeCount={0} 
+                    reactions={[]}
                     commentCount={0} 
                     currentUserId={user?.id || null} 
                     sessionRating={s.rating} 

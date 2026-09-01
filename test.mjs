@@ -1,0 +1,1 @@
+import { createClient } from '@supabase/supabase-js'; const supabase = createClient('https://zvesoygqssyyojqyswwm.supabase.co', 'sb_publishable_Mb44JxYbS4XJ34ifJWdMzw_52xqn3lW'); supabase.from('recipe_likes').select('emoji').limit(1).then(res => console.log(JSON.stringify(res)));

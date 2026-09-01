@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server"
 import { notFound, redirect } from "next/navigation"
 import Link from "next/link"
 import { ShareButton } from "@/components/domain/ShareButton"
-import { LikeButton } from "@/components/domain/LikeButton"
+import { ReactionButton } from "@/components/domain/ReactionButton"
 import { CommentSection } from "@/components/domain/CommentSection"
 import { MediaCarousel } from "@/components/domain/MediaCarousel"
 
@@ -45,24 +45,21 @@ export default async function PostDetailPage({ params }: { params: Promise<{ id:
     .map((pm: any) => pm.media)
     .filter(Boolean) || []
 
-  // Fetch likes & comments
-  const [{ count: likeCount }, { data: userLike }, { data: commentsRaw }] = await Promise.all([
-    supabase.from("post_likes").select("*", { count: "exact", head: true }).eq("post_id", post.id),
-    user ? supabase.from("post_likes").select("post_id").eq("post_id", post.id).eq("user_id", user.id).single() : { data: null },
+  // Fetch reactions & comments
+  const [{ data: reactions }, { data: commentsRaw }] = await Promise.all([
+    supabase.from("post_likes").select("emoji, user_id").eq("post_id", post.id),
     supabase.from("post_comments").select(`
-      id, content, is_deleted, created_at, parent_id,
-      author:profiles(id, username, display_name, avatar:media_assets!fk_profiles_avatar(storage_path)),
-      likes:post_comment_likes(user_id)
+      id, content, created_at, is_deleted, parent_id,
+      author:profiles!post_comments_author_id_fkey(username, display_name, avatar:media_assets!fk_profiles_avatar(storage_path)),
+      reactions:post_comment_likes(emoji, user_id)
     `).eq("post_id", post.id).order("created_at", { ascending: true })
   ])
 
   const comments = commentsRaw?.map(c => ({
     ...c,
-    like_count: c.likes?.length || 0,
-    user_liked: user ? c.likes?.some((l: any) => l.user_id === user.id) : false
+    reactions: c.reactions || []
   })) || []
 
-  const isLiked = !!userLike
   const avatarUrl = post.author?.avatar?.storage_path 
     ? `${"https://zvesoygqssyyojqyswwm.supabase.co"}/storage/v1/object/public/recipe_media/${post.author.avatar?.storage_path}`
     : null
@@ -112,12 +109,11 @@ export default async function PostDetailPage({ params }: { params: Promise<{ id:
         {/* Action Bar */}
         <footer className="flex items-center justify-between pt-4 border-t border-border/50 text-muted-foreground">
           <div className="flex gap-6">
-            <LikeButton 
+            <ReactionButton 
               entityType="post" 
               entityId={post.id} 
-              initialIsLiked={isLiked} 
-              initialLikeCount={likeCount || 0} 
-              isAuthenticated={!!user}
+              reactions={reactions || []}
+              currentUserId={user?.id || null}
             />
           </div>
           <ShareButton 
