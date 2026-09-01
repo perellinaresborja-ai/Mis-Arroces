@@ -53,7 +53,7 @@ export function AddToCartButton({ recipeId, isAuthenticated, layout = "vertical"
   }
 
   return (
-    <div className={`mt-6 flex gap-3 w-full ${layout === "horizontal" ? "flex-col sm:flex-row" : "flex-col max-w-[380px]"}`}>
+    <div className={`mt-6 flex gap-3 w-full ${layout === "horizontal" ? "flex-row flex-wrap" : "flex-col max-w-[380px]"}`}>
       {isSelecting ? (
         <div className="flex flex-col gap-2 p-3 bg-card border border-border rounded-2xl animate-in zoom-in-95 duration-200">
           <span className="text-sm font-semibold text-center text-muted-foreground flex items-center justify-center gap-1.5"><Users className="w-4 h-4"/> ¿Para cuántas personas comprar?</span>
@@ -73,7 +73,7 @@ export function AddToCartButton({ recipeId, isAuthenticated, layout = "vertical"
         <button 
           onClick={handleInitialClick}
           disabled={loading || added}
-          className={`flex items-center justify-center gap-2 py-3 bg-card border border-primary/20 text-primary font-bold rounded-2xl hover:bg-primary/5 transition-colors disabled:opacity-50 text-sm md:text-base ${layout === "horizontal" ? "flex-1 px-2" : "w-full"}`}
+          className={`flex items-center justify-center gap-2 py-2 bg-card border border-primary/20 text-primary font-bold rounded-2xl hover:bg-primary/5 transition-colors disabled:opacity-50 text-xs sm:text-sm md:text-base ${layout === "horizontal" ? "flex-1 px-1 sm:px-2 whitespace-nowrap" : "w-full"}`}
         >
           {added ? (
             <>
@@ -90,7 +90,7 @@ export function AddToCartButton({ recipeId, isAuthenticated, layout = "vertical"
       {isAuthenticated && !isSelecting && (
         <button
           onClick={() => router.push('/shopping-list')}
-          className="flex items-center justify-center gap-2 w-full py-3 bg-muted/30 border border-border text-foreground font-semibold rounded-2xl hover:bg-muted/50 transition-colors"
+          className={`flex items-center justify-center gap-2 py-2 bg-muted/30 border border-border text-foreground font-semibold rounded-2xl hover:bg-muted/50 transition-colors text-xs sm:text-sm md:text-base ${layout === "horizontal" ? "flex-1 px-1 sm:px-2 whitespace-nowrap" : "w-full"}`}
         >
           <ListChecks className="w-5 h-5 text-muted-foreground" /> Ver mi lista de compra
         </button>
