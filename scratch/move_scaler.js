@@ -1,56 +1,13 @@
-"use client";
+const fs = require('fs');
+const path = require('path');
 
-import { useState } from "react";
-import Link from "next/link";
-import { formatUnitSymbol } from "@/lib/utils";
-import { Users, Droplet, Scaling, Info, Circle } from "lucide-react";
-import { 
-  extractRealRiceGrams, 
-  extractRealBrothGrams, 
-  calculateLayer, 
-  calculateRealBrothRatio,
-  LayerType
-} from "@/lib/paella-calculator";
-import { AddToCartButton } from "@/components/domain/AddToCartButton";
-import { useRecipeState } from "@/components/domain/RecipeStateProvider";
+const targetFile = path.resolve('src/components/domain/InteractiveRecipeView.tsx');
+let code = fs.readFileSync(targetFile, 'utf8');
 
-export function InteractiveRecipeView({ 
-  recipe, 
-  isAuthenticated,
-  children
-}: { 
-  recipe: any, 
-  isAuthenticated: boolean,
-  children?: React.ReactNode
-}) {
-  const { servings, setServings } = useRecipeState();
-  const scaleRatio = servings / (recipe.base_servings || 1);
-  const vessel = recipe.recipe_vessels?.[0];
-  
-  // Base values from recipe
-  const baseRiceGrams = extractRealRiceGrams(recipe.ingredients);
-  const baseBrothGrams = extractRealBrothGrams(recipe.ingredients);
+const regex = /\{\/\* Scaler \*\/\}[\s\S]*?<\/div>[\s\n]*\{\/\* Ingredients List \*\/\}[\s\S]*?<\/ul>\s*<\/div>/;
 
-  // Scaled values
-  const currentRiceGrams = baseRiceGrams ? baseRiceGrams * scaleRatio : null;
-  const currentBrothGrams = baseBrothGrams ? baseBrothGrams * scaleRatio : null;
-  const diameterCm = vessel?.diameter_cm;
-  
-  const layer = (currentRiceGrams && diameterCm) ? calculateLayer(currentRiceGrams, diameterCm) : null;
-  const brothRatio = (currentRiceGrams && currentBrothGrams) ? calculateRealBrothRatio(currentRiceGrams, currentBrothGrams) : null;
-
-  const layerColors: Record<LayerType, string> = {
-    'Fina': 'text-green-600',
-    'Media': 'text-blue-600',
-    'Abundante': 'text-orange-600'
-  };
-
-  const ingredients = [...(recipe.ingredients || [])].sort((a: any, b: any) => a.display_order - b.display_order);
-  const safeNumber = (num: number | null) => (num !== null && isFinite(num) && !isNaN(num)) ? Math.round(num).toString() : "0";
-
-  return (
-    <div className="w-full">
-      {/* Top Header - Solo Ingredientes */}
+// The matched string contains Scaler block AND Ingredients List block.
+const replacement = `{/* Top Header - Solo Ingredientes */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4 bg-muted/40 p-4 rounded-2xl border border-border sm:h-[82px]">
           <h2 className="text-xl md:text-2xl font-bold font-serif text-charcoal">Ingredientes</h2>
         </div>
@@ -83,15 +40,12 @@ export function InteractiveRecipeView({
             <span className="font-bold text-lg w-6 text-center">{servings}</span>
             <button onClick={() => setServings(servings + 1)} className="text-2xl font-light w-8 h-8 flex items-center justify-center rounded-full hover:bg-muted transition-colors text-primary">+</button>
           </div>
-        </div>
+        </div>`;
 
-      <div className="flex flex-col gap-3">
-        <AddToCartButton recipeId={recipe.id} isAuthenticated={isAuthenticated} baseServings={servings} layout="horizontal" />
-      </div>
-      
-      <div className="mt-8 w-full">
-        {children}
-      </div>
-    </div>
-  );
+if (regex.test(code)) {
+  code = code.replace(regex, replacement);
+  fs.writeFileSync(targetFile, code, 'utf8');
+  console.log("Successfully moved Scaler and added Ingredientes title!");
+} else {
+  console.log("Could not find blocks to replace.");
 }
