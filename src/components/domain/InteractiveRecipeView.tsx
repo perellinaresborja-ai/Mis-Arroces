@@ -52,7 +52,7 @@ export function InteractiveRecipeView({
     <div className="w-full">
       {/* Scaler */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4 bg-muted/40 p-4 rounded-2xl border border-border sm:h-[82px]">
-        <h2 className="text-xl font-bold font-serif text-charcoal">Ingredientes</h2>
+        <h2 className="text-lg md:text-xl font-bold font-serif text-charcoal">¿Para cuántos vas a cocinar?</h2>
         <div className="flex items-center gap-3 bg-card px-4 py-2 rounded-xl border border-border shadow-sm">
           <Users className="w-4 h-4 text-muted-foreground" />
           <button onClick={() => setServings(Math.max(1, servings - 1))} className="text-2xl font-light w-8 h-8 flex items-center justify-center rounded-full hover:bg-muted transition-colors text-primary">-</button>
