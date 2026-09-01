@@ -108,7 +108,7 @@ export function AllergensSection({ result, hideTitle }: { result: CalculationRes
       <div className={`bg-card rounded-3xl border border-border p-5 my-6 overflow-hidden ${hideTitle ? 'my-0 border-0 p-0 shadow-none' : ''}`}>
         {!hideTitle && (
           <h3 className="font-bold text-lg flex items-center gap-2 mb-5">
-            <span>Alérgenos Detectados</span>
+            <span>Alérgenos</span>
           </h3>
         )}
         <div className="bg-muted/40 border border-border text-muted-foreground p-4 rounded-xl text-sm flex items-start gap-3">
@@ -125,7 +125,7 @@ export function AllergensSection({ result, hideTitle }: { result: CalculationRes
     <div className={`bg-card rounded-3xl border border-border p-5 my-6 overflow-hidden ${hideTitle ? 'my-0 border-0 p-0 shadow-none' : ''}`}>
       {!hideTitle && (
         <h3 className="font-bold text-lg flex items-center gap-2 mb-5">
-          <span>Alérgenos Detectados</span>
+          <span>Alérgenos</span>
         </h3>
       )}
 
