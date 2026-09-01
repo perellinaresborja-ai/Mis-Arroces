@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 import { PaellaIcon } from "@/components/icons/PaellaIcon"
 import { StoryOwnerMenu } from "./StoryOwnerMenu"
 import { StoryInsightsModal } from "./StoryInsightsModal"
@@ -407,9 +407,9 @@ export function StoriesViewer({ groupedStories: _groupedStories, initialGroupInd
                 />
               </form>
               <div className="flex gap-2 text-2xl shrink-0">
-                {['PAELLA', 'ðŸ˜‚', 'ðŸ˜®', 'ðŸ˜¢', 'ðŸ”¥', 'ðŸ‘'].map(emoji => (
+                {['🥘', '😂', '🔥', '👏', '😮'].map(emoji => (
                     <button key={emoji} onClick={(e) => { e.stopPropagation(); handleReaction(emoji); }} className="hover:scale-125 transition-transform drop-shadow-lg flex items-center justify-center w-8 h-8">
-                      {emoji === 'PAELLA' ? <PaellaIcon className="w-8 h-8 text-primary drop-shadow-md" /> : emoji}
+                      {emoji}
                     </button>
                   ))}
               </div>
@@ -528,7 +528,7 @@ export function StoriesViewer({ groupedStories: _groupedStories, initialGroupInd
                 />
               </form>
               <div className="flex gap-1 bg-black/40 backdrop-blur-md rounded-full px-2 py-1 border border-white/10" onClick={(e) => e.stopPropagation()}>
-                {['PAELLA', 'ðŸ˜‚', 'ðŸ˜®', 'ðŸ˜¢', 'ðŸ”¥'].map(emoji => (
+                {['🥘', '😂', '🔥', '👏', '😮'].map(emoji => (
                   <button 
                     key={emoji}
                     onClick={async () => {
@@ -541,7 +541,7 @@ export function StoriesViewer({ groupedStories: _groupedStories, initialGroupInd
                     }}
                     className="w-8 h-8 flex items-center justify-center text-lg hover:scale-125 transition-transform"
                     >
-                      {emoji === 'PAELLA' ? <PaellaIcon className="w-7 h-7 text-primary drop-shadow-md" /> : emoji}
+                      {emoji}
                     </button>
                 ))}
               </div>
@@ -618,7 +618,7 @@ export function StoriesViewer({ groupedStories: _groupedStories, initialGroupInd
       />
       {floatingEmojis.map(e => (
         <div key={e.id} className="absolute bottom-20 left-1/2 text-4xl animate-float-up pointer-events-none drop-shadow-xl z-50 flex items-center justify-center w-12 h-12" style={{ marginLeft: `${e.x}px` }}>
-          {e.emoji === 'PAELLA' ? <PaellaIcon className="w-12 h-12 text-primary drop-shadow-md" /> : e.emoji}
+          {e.emoji}
         </div>
       ))}
 
