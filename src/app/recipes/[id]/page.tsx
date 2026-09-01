@@ -373,17 +373,9 @@ export default async function RecipeDetailPage({
             <AllergensSection result={nutrition} />
           </div>
 
-          {/* Nutrición (Collapsible) */}
+          {/* Nutrición */}
           <div className="w-full mt-6 mb-8">
-            <details className="group bg-card rounded-3xl border border-border overflow-hidden [&_summary::-webkit-details-marker]:hidden">
-              <summary className="p-5 font-bold text-lg cursor-pointer flex justify-between items-center bg-muted/10 hover:bg-muted/30 transition-colors">
-                Información Nutricional
-                <svg className="w-5 h-5 text-muted-foreground transition-transform group-open:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
-              </summary>
-              <div className="p-1 pt-0">
-                <NutritionSection result={nutrition} servings={recipe.base_servings || 1} hideTitle />
-              </div>
-            </details>
+            <NutritionSection result={nutrition} servings={recipe.base_servings || 1} />
           </div>
           
         </div>
