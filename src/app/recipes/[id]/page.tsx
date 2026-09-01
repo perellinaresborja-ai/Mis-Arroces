@@ -246,12 +246,7 @@ export default async function RecipeDetailPage({
                   <span className="font-semibold text-[15px]">{recipe.rest_time}m reposo</span>
                 </div>
               )}
-              {vesselDetails?.diameter_cm && (
-                <div className="flex items-center gap-3 text-foreground">
-                  <Circle className="w-5 h-5 text-muted-foreground/80" />
-                  <span className="font-semibold text-[15px]">{vesselDetails.diameter_cm} cm</span>
-                </div>
-              )}
+              
             </div>
 
                         {/* Technical Data Card */}
@@ -320,7 +315,7 @@ export default async function RecipeDetailPage({
                         <div className="w-10 h-10 rounded-full bg-primary text-white flex items-center justify-center font-bold text-lg font-serif shadow-sm">
                           {step.step_number}
                         </div>
-                        {/* En mÃ³vil la duraciÃ³n puede ir arriba a la derecha */}
+                        {/* En móvil la duración puede ir arriba a la derecha */}
                         <div className="md:hidden">
                           {step.duration_minutes && (
                             <span className="inline-flex items-center text-xs font-bold text-primary uppercase tracking-wider bg-primary/10 px-3 py-1.5 rounded-xl border border-primary/20">
@@ -366,21 +361,21 @@ export default async function RecipeDetailPage({
               </div>
             ) : (
               <div className="bg-muted/30 border border-border p-8 rounded-3xl text-center">
-                <p className="text-muted-foreground">Esta receta aÃºn no tiene pasos detallados.</p>
+                <p className="text-muted-foreground">Esta receta aún no tiene pasos detallados.</p>
               </div>
             )}
           </div>
 
-          {/* AlÃ©rgenos */}
+          {/* Alérgenos */}
           <div className="w-full mt-10">
             <AllergensSection result={nutrition} />
           </div>
 
-          {/* NutriciÃ³n (Collapsible) */}
+          {/* Nutrición (Collapsible) */}
           <div className="w-full mt-6 mb-8">
             <details className="group bg-card rounded-3xl border border-border overflow-hidden [&_summary::-webkit-details-marker]:hidden">
               <summary className="p-5 font-bold text-lg cursor-pointer flex justify-between items-center bg-muted/10 hover:bg-muted/30 transition-colors">
-                InformaciÃ³n Nutricional
+                Información Nutricional
                 <svg className="w-5 h-5 text-muted-foreground transition-transform group-open:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
               </summary>
               <div className="p-1 pt-0">

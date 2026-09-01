@@ -65,7 +65,7 @@ export function InteractiveRecipeView({
       {(diameterCm || currentRiceGrams) && (
         <div className="mb-6 flex flex-wrap gap-x-6 gap-y-3 p-4 md:p-5 bg-card border border-border rounded-2xl shadow-sm text-sm">
           <div className="w-full mb-1 flex items-center gap-2 text-primary font-bold">
-            <Scaling className="w-4 h-4" /> Paella y CocciÃ³n
+            <Scaling className="w-4 h-4" /> Paella y Cocción
           </div>
           {diameterCm && (
             <div className="flex items-center gap-2">
@@ -88,7 +88,7 @@ export function InteractiveRecipeView({
           {brothRatio !== null && (
             <div className="flex items-center gap-1.5 border-l border-border pl-4">
               <Droplet className="w-4 h-4 text-blue-500" />
-              <span className="text-muted-foreground">ProporciÃ³n</span>
+              <span className="text-muted-foreground">Proporción</span>
               <span className="font-bold">{brothRatio}:1</span>
             </div>
           )}
