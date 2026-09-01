@@ -6,7 +6,6 @@ import { NotificationBell } from "./NotificationBell"
 import { GlobalCreateMenu } from "./GlobalCreateMenu"
 import { createClient } from "@/lib/supabase/client"
 import { useEffect, useState } from "react"
-import { Calculator } from "lucide-react"
 
 export function MobileHeader() {
   const pathname = usePathname()
@@ -36,9 +35,6 @@ export function MobileHeader() {
       <div className="flex items-center gap-3">
         {isAuthenticated && <GlobalCreateMenu />}
         {isAuthenticated && <NotificationBell />}
-        <Link href="/calculadora-capa" className="text-muted-foreground hover:text-foreground transition-colors p-1" aria-label="Calculadora">
-          <Calculator className="w-6 h-6" />
-        </Link>
       </div>
     </div>
   )
