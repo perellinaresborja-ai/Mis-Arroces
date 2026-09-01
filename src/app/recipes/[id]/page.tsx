@@ -66,6 +66,7 @@ export default async function RecipeDetailPage({
       style:rice_styles(name),
       variety:rice_varieties(name),
       heat:heat_sources(name),
+        recipe_vessels(*),
       media:recipe_media(media_assets(id, storage_path, is_deleted)),
       steps:recipe_steps(*, media:media_assets(storage_path)),
       ingredients:recipe_ingredients(
