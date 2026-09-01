@@ -7,7 +7,7 @@ import { formatUnitSymbol } from "@/lib/utils"
 import { calculateNutrition } from "@/lib/nutrition"
 import { NutritionSection, AllergensSection } from "@/components/domain/NutritionSection"
 import { InteractiveRecipeView } from "@/components/domain/InteractiveRecipeView"
-import { Pencil, Clock, Flame, Users, Beaker, ChefHat, Hourglass } from "lucide-react"
+import { Pencil, Clock, Flame, Users, Beaker, ChefHat, Hourglass, Circle } from "lucide-react"
 import { FeedCard } from "@/components/domain/FeedCard"
 import { WantToCookButton } from "@/components/domain/WantToCookButton"
 import { SaveRecipeButton } from "@/components/domain/SaveRecipeButton"
@@ -16,6 +16,8 @@ import { LoHeCocinadoButton } from "@/components/domain/LoHeCocinadoButton"
 
 import { ViewTracker } from "@/components/domain/ViewTracker"
 import { ExpandableImage } from "@/components/ui/ExpandableImage"
+import { RecipeStateProvider } from "@/components/domain/RecipeStateProvider"
+import { StartCookButton } from "@/components/domain/StartCookButton"
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = await params;
@@ -145,16 +147,17 @@ export default async function RecipeDetailPage({
   const vesselDetails = (recipe.recipe_vessels && recipe.recipe_vessels.length > 0) ? recipe.recipe_vessels[0] : null
 
   return (
-    <div className="min-h-screen bg-background pb-24 font-sans">
+    <RecipeStateProvider baseServings={recipe.base_servings || 4}>
+      <div className="min-h-screen bg-background pb-24 font-sans">
       {recipe.owner_id && recipe.owner_id !== user?.id && <ViewTracker eventType="RECIPE_VIEW" entityType="RECIPE" entityId={recipe.id} ownerId={recipe.owner_id} />}
       
       <div className="max-w-6xl mx-auto pt-4 md:pt-10 px-4">
         
         {/* Top 2-Column Section */}
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-8 md:gap-12 items-center">
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-8 md:gap-12 items-start">
           
-          {/* Left Column: Image */}
-          <div className="md:col-span-5">
+          {/* Left Column: Image & Actions */}
+          <div className="md:col-span-5 order-2 md:order-1 flex flex-col gap-6">
             <div className="relative w-full aspect-square bg-muted rounded-2xl md:rounded-3xl overflow-hidden shadow-sm border border-border">
               {imageUrl ? (
                 /* eslint-disable-next-line @next/next/no-img-element */
@@ -164,13 +167,15 @@ export default async function RecipeDetailPage({
                   <span className="text-sm">Sin foto principal</span>
                 </div>
               )}
-              
-              
+            </div>
+            
+            <div className="w-full">
+              <StartCookButton recipeId={recipe.id} />
             </div>
           </div>
 
           {/* Right Column: Title, Desc, Stats, Ficha */}
-          <div className="md:col-span-7 flex flex-col">
+          <div className="md:col-span-7 flex flex-col order-1 md:order-2">
             <div className="flex justify-between items-start gap-4">
               <div>
                 
@@ -238,6 +243,12 @@ export default async function RecipeDetailPage({
                 <div className="flex items-center gap-3 text-foreground">
                   <Hourglass className="w-5 h-5 text-muted-foreground/80" />
                   <span className="font-semibold text-[15px]">{recipe.rest_time}m reposo</span>
+                </div>
+              )}
+              {vesselDetails?.diameter_cm && (
+                <div className="flex items-center gap-3 text-foreground">
+                  <Circle className="w-5 h-5 text-muted-foreground/80" />
+                  <span className="font-semibold text-[15px]">{vesselDetails.diameter_cm} cm</span>
                 </div>
               )}
             </div>
@@ -404,5 +415,6 @@ export default async function RecipeDetailPage({
 
       </div>
     </div>
+    </RecipeStateProvider>
   )
 }

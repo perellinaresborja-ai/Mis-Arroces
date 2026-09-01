@@ -12,6 +12,7 @@ import {
   LayerType
 } from "@/lib/paella-calculator";
 import { AddToCartButton } from "@/components/domain/AddToCartButton";
+import { useRecipeState } from "@/components/domain/RecipeStateProvider";
 
 export function InteractiveRecipeView({ 
   recipe, 
@@ -22,7 +23,7 @@ export function InteractiveRecipeView({
   isAuthenticated: boolean,
   children: React.ReactNode
 }) {
-  const [servings, setServings] = useState(recipe.base_servings || 4);
+  const { servings, setServings } = useRecipeState();
   const scaleRatio = servings / (recipe.base_servings || 1);
   const vessel = recipe.recipe_vessels?.[0];
   
@@ -114,13 +115,6 @@ export function InteractiveRecipeView({
       </div>
 
       <div className="flex flex-col gap-3">
-        <Link 
-          href={`/recipes/${recipe.id}/mode?servings=${servings}`}
-          className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold py-4 rounded-2xl flex items-center justify-center gap-2 text-lg shadow-sm transition-transform active:scale-[0.98]"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-play"><polygon points="6 3 20 12 6 21 6 3"/></svg>
-          EMPEZAR A COCINAR
-        </Link>
         <AddToCartButton recipeId={recipe.id} isAuthenticated={isAuthenticated} baseServings={servings} />
       </div>
       
