@@ -66,6 +66,202 @@ export default async function RecipeDetailPage({
       style:rice_styles(name),
       variety:rice_varieties(name),
       heat:heat_sources(name),
+      recipe_vessels(*),
+      media:recipe_media(media_assets(id, storage_path, is_deleted)),
+      steps:recipe_steps(*, media:media_assets(storage_path)),
+      ingredients:recipe_ingredients(
+        *,
+        unit:units(*),
+        ingredient:ingredients(
+          *,
+          ingredient_allergens(allergens(*))
+        ),
+        canonical:ingredients(normalized_name)
+      )
+    `)
+    .eq("id", resolvedParams.id)
+    .single()
+
+  if (error) {
+    console.error("Error fetching recipe in /recipes/[id]:", error);
+  }
+
+  if (!recipe) redirect("/cookbook")
+
+  // Check auth for edit button
+  const { data: { user } } = await supabase.auth.getUser()
+  const isOwner = user?.id === recipe.owner_id
+
+  // Get primary image
+  const primaryMedia = recipe.media?.[0]?.media_assets?.storage_path
+  const imageUrl = primaryMedia 
+    ? `${"https://zvesoygqssyyojqyswwm.supabase.co"}/storage/v1/object/public/recipe_media/${primaryMedia}`
+    : null
+
+  // Calculate ratio
+  const ratio = (recipe.rice_qty && recipe.stock_qty && recipe.rice_qty > 0)
+    ? (recipe.stock_qty / recipe.rice_qty).toFixed(2)
+    : null
+
+  // Interactions Data
+  let isLiked = false
+  let likeCount = 0
+  let isSaved = false
+  let isWantToCook = false
+
+  if (recipe.status === 'PUBLISHED') {
+    if (user) {
+      const [{ data: likeData }, { data: savedData }, { data: wantData }] = await Promise.all([
+        supabase.from("recipe_likes").select("id").eq("recipe_id", recipe.id).eq("user_id", user.id).single(),
+        supabase.from("collections").select("id, collection_recipes!inner(recipe_id)").eq("owner_id", user.id).eq("name", "Guardados").eq("collection_recipes.recipe_id", recipe.id).maybeSingle(),
+        supabase.from("want_to_cook").select("id").eq("user_id", user.id).eq("recipe_id", recipe.id).single()
+      ])
+      isLiked = !!likeData
+      isSaved = !!savedData
+      isWantToCook = !!wantData
+    }
+    const { count } = await supabase.from("recipe_likes").select("id", { count: 'exact', head: true }).eq("recipe_id", recipe.id)
+    likeCount = count || 0
+  }
+
+  // Fetch recent cooked sessions for this recipe
+  const { data: sessions, count: publicCookCount } = await supabase
+    .from("cooking_sessions")
+    .select(`
+      *,
+      author:profiles!cooking_sessions_user_id_fkey(id, username, display_name, avatar:media_assets!fk_profiles_avatar(storage_path)),
+      session_media(media:media_assets(id, storage_path))
+    `)
+    .eq("recipe_id", recipe.id)
+    .eq("status", "PUBLISHED").eq("visibility", "PUBLIC")
+    .order("date", { ascending: false })
+    .limit(5)
+
+  const mySessions = user ? (await supabase.from("cooking_sessions").select("*, session_media(media:media_assets(storage_path))").eq("recipe_id", recipe.id).eq("user_id", user.id).order("date", { ascending: false })).data || [] : []
+
+  // Fetch all units for nutrition calculation
+  const { data: unitsData } = await supabase.from("units").select("*");
+  const nutrition = calculateNutrition(recipe.ingredients as any, unitsData || [], recipe.base_servings || 1);
+
+  // Derived Values
+  const totalDuration = (recipe.cook_time || 0) + (recipe.rest_time || 0)
+  const vesselDetails = (recipe.recipe_vessels && recipe.recipe_vessels.length > 0) ? recipe.recipe_vessels[0] : null
+
+  return (
+    <RecipeStateProvider baseServings={recipe.base_servings || 4}>
+      <div className="min-h-screen bg-background pb-24 font-sans">
+      {recipe.owner_id && recipe.owner_id !== user?.id && <ViewTracker eventType="RECIPE_VIEW" entityType="RECIPE" entityId={recipe.id} ownerId={recipe.owner_id} />}
+      
+      <div className="max-w-6xl mx-auto pt-4 md:pt-10 px-4">
+        
+        {/* Top 2-Column Section */}
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-8 md:gap-12 items-start">
+          
+          {/* Left Column: Image & Actions */}
+          <div className="md:col-span-5 order-2 md:order-1 flex flex-col gap-6">
+            <div className="relative w-full aspect-square bg-muted rounded-2xl md:rounded-3xl overflow-hidden shadow-sm border border-border">
+              {imageUrl ? (
+                /* eslint-disable-next-line @next/next/no-img-element */
+                <img src={imageUrl} alt={recipe.name} className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-muted-foreground bg-sand/30">
+                  <span className="text-sm">Sin foto principal</span>
+                </div>
+              )}
+            </div>
+            
+            <div className="w-full">
+              <StartCookButton recipeId={recipe.id} />
+            </div>
+          </div>
+
+          {/* Right Column: Title, Desc, Stats, Ficha */}
+          <div className="md:col-span-7 flex flex-col order-1 md:order-2">
+            <div className="flex justify-between items-start gap-4">
+              <div>
+                
+                
+                  {(publicCookCount || 0) >= 5 && (
+                    <div className="inline-flex items-center gap-1.5 bg-primary/10 text-primary px-3 py-1 rounded-full text-xs font-bold border border-primary/20 shadow-sm mb-3">
+                      🔥 Probada por la comunidad
+                    </div>
+                  )}
+                  <h1 className="text-3xl md:text-5xl font-bold leading-tight text-foreground font-serif tracking-tight">
+
+                  {recipe.name}
+                </h1>
+              </div>
+              {isOwner && (
+                <div className="shrink-0 flex gap-2">
+                  <Link href={`/recipes/${recipe.id}/edit`} className="inline-flex items-center justify-center rounded-full px-4 py-2 text-sm font-bold bg-[#E69A21] hover:bg-[#E69A21]/90 text-white border-0 transition-colors shadow-sm">
+                      <Pencil className="w-4 h-4 mr-2" /> Editar
+                    </Link>
+                </div>
+              )}
+                
+                
+              {!isOwner && (
+                  <div className="shrink-0 flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                      <SaveRecipeButton recipeId={recipe.id} initialSaved={isSaved} isAuthenticated={!!user} />
+                      <WantToCookButton recipeId={recipe.id} initialSaved={isWantToCook} isAuthenticated={!!user} />
+                  </div>
+                )}
+            </div>
+
+            {recipe.description && (
+              <p className="mt-4 md:mt-6 text-muted-foreground text-[16px] leading-relaxed max-w-xl">
+                {recipe.description}
+              </p>
+            )}
+
+            {/* Elegant Stats Row */}
+            <div className="flex flex-wrap items-center gap-x-8 lg:gap-x-12 gap-y-5 mt-6 md:mt-8 py-5 border-y border-border">
+              {recipe.base_servings && (
+                <div className="flex items-center gap-3 text-foreground">
+                  <Users className="w-5 h-5 text-muted-foreground/80" />
+                  <span className="font-semibold text-[15px]">{recipe.base_servings} pax</span>
+                </div>
+              )}
+              {recipe.style?.name && (
+                <div className="flex items-center gap-3 text-foreground">
+                  <ChefHat className="w-5 h-5 text-muted-foreground/80" />
+                  <span className="font-semibold text-[15px]">{recipe.style.name}</span>
+                </div>
+              )}
+              {recipe.heat?.name && (
+                <div className="flex items-center gap-3 text-foreground">
+                  <Flame className="w-5 h-5 text-muted-foreground/80" />
+                  <span className="font-semibold text-[15px]">{recipe.heat.name.split('/')[0]}</span>
+                </div>
+              )}
+              {recipe.cook_time && (
+                <div className="flex items-center gap-3 text-foreground">
+                  <Clock className="w-5 h-5 text-muted-foreground/80" />
+                  <span className="font-semibold text-[15px]">{recipe.cook_time} min</span>
+                </div>
+              )}
+              {recipe.rest_time && (
+                <div className="flex items-center gap-3 text-foreground">
+                  <Hourglass className="w-5 h-5 text-muted-foreground/80" />
+                  <span className="font-semibold text-[15px]">{recipe.rest_time}m reposo</span>
+                </div>
+              )}
+              {vesselDetails?.diameter_cm && (
+}: {
+  params: Promise<{ id: string }>
+}) {
+  const resolvedParams = await params
+  const supabase = await createClient()
+
+  // Fetch recipe with related data
+  const { data: recipe, error } = await supabase
+    .from("recipes")
+    .select(`
+      *,
+      style:rice_styles(name),
+      variety:rice_varieties(name),
+      heat:heat_sources(name),
+      recipe_vessels(*),
       media:recipe_media(media_assets(id, storage_path, is_deleted)),
       steps:recipe_steps(*, media:media_assets(storage_path)),
       ingredients:recipe_ingredients(
@@ -254,40 +450,40 @@ export default async function RecipeDetailPage({
             </div>
 
             {/* Technical Data Card */}
-            <div className="mt-8 bg-muted/30 rounded-2xl p-6 border border-border/50 max-w-xl">
-              <h3 className="font-bold text-lg mb-4 text-charcoal font-serif">Ficha Técnica</h3>
-              <ul className="space-y-3 text-sm">
+            <div className="mt-8 bg-muted/20 rounded-2xl p-5 border border-border/50 w-full">
+              <h3 className="font-bold text-base mb-3 text-charcoal font-serif uppercase tracking-wider">Ficha Técnica</h3>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-y-4 gap-x-2 text-sm">
                 {recipe.variety && (
-                  <li className="flex justify-between items-center pb-2 border-b border-border/40">
-                    <span className="text-muted-foreground">Variedad de arroz</span>
-                    <span className="font-medium text-foreground">{recipe.variety.name}</span>
-                  </li>
+                  <div>
+                    <span className="text-muted-foreground block text-xs uppercase tracking-wider mb-0.5">Variedad de arroz</span>
+                    <span className="font-semibold text-foreground">{recipe.variety.name}</span>
+                  </div>
                 )}
                 {recipe.rice_qty && (
-                  <li className="flex justify-between items-center pb-2 border-b border-border/40">
-                    <span className="text-muted-foreground">Cantidad de arroz</span>
-                    <span className="font-medium text-foreground">{recipe.rice_qty}g</span>
-                  </li>
+                  <div>
+                    <span className="text-muted-foreground block text-xs uppercase tracking-wider mb-0.5">Cantidad de arroz</span>
+                    <span className="font-semibold text-foreground">{recipe.rice_qty}g</span>
+                  </div>
                 )}
                 {recipe.stock_qty && (
-                  <li className="flex justify-between items-center pb-2 border-b border-border/40">
-                    <span className="text-muted-foreground">Cantidad de caldo</span>
-                    <span className="font-medium text-foreground">{recipe.stock_qty}ml</span>
-                  </li>
+                  <div>
+                    <span className="text-muted-foreground block text-xs uppercase tracking-wider mb-0.5">Cantidad de caldo</span>
+                    <span className="font-semibold text-foreground">{recipe.stock_qty}ml</span>
+                  </div>
                 )}
                 {ratio && (
-                  <li className="flex justify-between items-center pb-2 border-b border-border/40">
-                    <span className="text-muted-foreground">Proporción</span>
-                    <span className="font-medium text-foreground">1:{ratio}</span>
-                  </li>
+                  <div>
+                    <span className="text-muted-foreground block text-xs uppercase tracking-wider mb-0.5">Proporción</span>
+                    <span className="font-semibold text-foreground">1:{ratio}</span>
+                  </div>
                 )}
                 {vesselDetails?.diameter_cm && (
-                  <li className="flex justify-between items-center pb-2 border-b border-border/40">
-                    <span className="text-muted-foreground">Medida de paella</span>
-                    <span className="font-medium text-foreground">{vesselDetails.diameter_cm} cm</span>
-                  </li>
+                  <div>
+                    <span className="text-muted-foreground block text-xs uppercase tracking-wider mb-0.5">Medida de paella</span>
+                    <span className="font-semibold text-foreground">{vesselDetails.diameter_cm} cm</span>
+                  </div>
                 )}
-              </ul>
+              </div>
             </div>
           </div>
         </div>
