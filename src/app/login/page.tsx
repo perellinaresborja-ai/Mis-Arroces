@@ -13,18 +13,18 @@ export default async function LoginPage({
   const covers = [
     {
       src: "/arroces/carneret.png",
-      title: <>Tu pasión por el <span className="text-primary">arroz</span>,<br />en un solo lugar.</>,
+      title: <>Tu pasión por el <span className="text-primary">arroz</span>, en un solo lugar.</>,
       subtitle: "Descubre nuevas recetas y nuevos arroceros."
     },
     {
       src: "/arroces/marret.png",
-      title: <>Comparte tus<br /><span className="text-primary">arroces</span>.</>,
-      subtitle: <>Inspira, descubre y conecta<br />con otros arroceros.</>
+      title: <>Comparte tus <span className="text-primary">arroces</span>.</>,
+      subtitle: "Inspira, descubre y conecta con otros arroceros."
     },
     {
       src: "/arroces/lallar.jpg",
-      title: <>Cocina. Aprende.<br /><span className="text-primary">Mejora.</span></>,
-      subtitle: <>Guarda cada elaboración y construye<br />tu propia experiencia arrocera.</>
+      title: <>Cocina. Aprende. <span className="text-primary">Mejora.</span></>,
+      subtitle: "Guarda cada elaboración y construye tu propia experiencia arrocera."
     }
   ]
   const randomCover = covers[Math.floor(Math.random() * covers.length)]
