@@ -528,7 +528,3 @@ export function renderOverlayContent(overlay: StoryOverlay, mode: string, ctx?: 
   }
 }
 
-
-
-
-

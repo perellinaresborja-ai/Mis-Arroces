@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 import React, { useRef, useEffect, useState } from 'react';
 import { useGesture } from '@use-gesture/react';
 import { StoryOverlay } from '@/types/stories';
@@ -119,7 +119,3 @@ export function DraggableOverlay({
     </div>
   );
 }
-
-
-
-

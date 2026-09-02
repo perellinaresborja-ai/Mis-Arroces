@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import { useState } from "react"
 import { MoreHorizontal, BarChart2, Share2, Link as LinkIcon, Star, Trash2, X } from "lucide-react"
@@ -38,7 +38,7 @@ export function StoryOwnerMenu({ storyId, onClose, onDeleted, onOpenInsights, on
     // Assuming the path to a story is /stories/[id] or just sharing the app link
     // For now, we can share a deep link if implemented, else fallback
     navigator.clipboard.writeText(window.location.origin + "/stories/" + storyId);
-    alert("Ã‰xito");
+    alert("Éxito");
     onClose();
   };
 
@@ -52,12 +52,12 @@ export function StoryOwnerMenu({ storyId, onClose, onDeleted, onOpenInsights, on
         
         <button onClick={() => { onClose(); onOpenInsights(); }} className="flex items-center gap-3 p-3 hover:bg-muted rounded-xl font-medium transition-colors">
           <BarChart2 className="w-5 h-5 text-primary" />
-          <span>Actividad y estadÃ­sticas</span>
+          <span>Actividad y estadísticas</span>
         </button>
         
         <button onClick={() => { onClose(); onOpenHighlight(); }} className="flex items-center gap-3 p-3 hover:bg-muted rounded-xl font-medium transition-colors">
           <Star className="w-5 h-5 text-yellow-500" />
-          <span>AÃ±adir a destacadas</span>
+          <span>Añadir a destacadas</span>
         </button>
         
         <button onClick={handleCopyLink} className="flex items-center gap-3 p-3 hover:bg-muted rounded-xl font-medium transition-colors">
@@ -77,7 +77,7 @@ export function StoryOwnerMenu({ storyId, onClose, onDeleted, onOpenInsights, on
       <ConfirmModal 
         isOpen={showConfirm}
         title="Eliminar historia"
-        message="Â¿EstÃ¡s seguro de que quieres eliminar esta historia de forma permanente?"
+        message="¿Estás seguro de que quieres eliminar esta historia de forma permanente?"
         confirmText="Eliminar"
         isDestructive={true}
         onConfirm={confirmDelete}
@@ -86,4 +86,3 @@ export function StoryOwnerMenu({ storyId, onClose, onDeleted, onOpenInsights, on
     </div>
   )
 }
-

@@ -598,6 +598,3 @@ export async function deleteHighlight(highlightId: string) {
 }
 
 
-
-
-

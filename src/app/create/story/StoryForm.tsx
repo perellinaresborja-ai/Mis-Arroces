@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import { useState } from "react"
 import { MediaUploader, SelectedMedia } from "@/components/domain/MediaUploader"
@@ -19,7 +19,7 @@ export function StoryForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (media.length === 0) return alert("AÃ±ade una foto o vÃ­deo")
+    if (media.length === 0) return alert("Añade una foto o vídeo")
     
     setIsSubmitting(true)
     try {
@@ -81,4 +81,3 @@ export function StoryForm() {
     </form>
   )
 }
-

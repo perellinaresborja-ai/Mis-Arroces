@@ -161,24 +161,30 @@ export function StoryCreator({
 
   const [showDiscardDialog, setShowDiscardDialog] = useState(false);
 
-  // Init recipe or session if passed
-  useEffect(() => {
-    if (initialRecipe && overlays.length === 0) {
-      setOverlays([{
-        id: 'recipe_'+Date.now(),
-        type: 'RECIPE',
-        x: 0.5, y: 0.8, scale: 1, rotation: 0, zIndex: 1,
-        payload: { title: initialRecipe.name, recipeId: initialRecipe.id, coverUrl: initialRecipe.coverUrl, displayStyle: 'card' }
-      }]);
-    } else if (initialSession && overlays.length === 0) {
-      setOverlays([{
-        id: 'session_'+Date.now(),
-        type: 'SESSION',
-        x: 0.5, y: 0.8, scale: 1, rotation: 0, zIndex: 1,
-        payload: { sessionId: initialSession.id, authorName: initialSession.authorName }
-      }]);
-    }
-  }, []);
+  // Init recipe, session or post if passed
+    useEffect(() => {
+      if (overlays.length > 0) return;
+      let extractedCoverUrl = undefined;
+      let newOverlay: any = null;
+      if (initialRecipe) {
+        extractedCoverUrl = initialRecipe.coverUrl;
+        newOverlay = { id: "recipe_"+Date.now(), type: "RECIPE", x: 0.5, y: 0.8, scale: 1, rotation: 0, zIndex: 1, payload: { title: initialRecipe.name, recipeId: initialRecipe.id, displayStyle: "card" } };
+      } else if (initialSession) {
+        extractedCoverUrl = initialSession.coverUrl;
+        newOverlay = { id: "session_"+Date.now(), type: "SESSION", x: 0.5, y: 0.8, scale: 1, rotation: 0, zIndex: 1, payload: { sessionId: initialSession.id, authorName: initialSession.authorName, title: initialSession.title, displayStyle: "card" } };
+      } else if (initialPost) {
+        extractedCoverUrl = initialPost.coverUrl;
+        newOverlay = { id: "post_"+Date.now(), type: "POST", x: 0.5, y: 0.8, scale: 1, rotation: 0, zIndex: 1, payload: { postId: initialPost.id, authorName: initialPost.authorName, text: initialPost.text, displayStyle: "card" } };
+      }
+      if (newOverlay) {
+        if (extractedCoverUrl) {
+           setDraftMediaUrl(extractedCoverUrl);
+           setDraftMediaType("IMAGE");
+        }
+        setOverlays([newOverlay]);
+        setMode("EDIT");
+      }
+    }, []);
 
   const saveHistory = () => setHistory([...history, [...overlays]]);
 
