@@ -168,3 +168,8 @@
 .animate-float-up {
   animation: float-up 1.5s ease-out forwards;
 }
+
+html, body {
+  overflow-x: hidden;
+  max-width: 100%;
+}
