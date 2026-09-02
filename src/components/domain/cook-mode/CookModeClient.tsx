@@ -160,7 +160,8 @@ export function CookModeClient({ recipe, userName, reset }: { recipe: CookModeRe
         initialText += currentStep.instruction;
         if (currentStep.duration_minutes) {
           initialText += `. Tiempo estimado: ${currentStep.duration_minutes} minuto${currentStep.duration_minutes !== 1 ? 's' : ''}.`
-        } else if (currentStep.notes) {
+        }
+        if (currentStep.notes) {
           initialText += `. ${currentStep.notes}`
         }
       }
@@ -176,6 +177,9 @@ export function CookModeClient({ recipe, userName, reset }: { recipe: CookModeRe
       let repeatText = currentStep.instruction || "";
       if (currentStep.duration_minutes) {
         repeatText += `. Tiempo estimado: ${currentStep.duration_minutes} minuto${currentStep.duration_minutes !== 1 ? 's' : ''}.`
+      }
+      if (currentStep.notes) {
+        repeatText += `. ${currentStep.notes}`
       }
       if (repeatText) speakText(repeatText);
     }, 30000);
