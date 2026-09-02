@@ -214,8 +214,8 @@ export function MessageBubble({ message, isOwn, onReply, currentUserId }: { mess
           {(mType === 'RECIPE' || mType === 'SESSION' || mType === 'STORY') && (
             <div className="bg-background/10 rounded-xl p-3 mb-2 border border-border text-foreground">
               {entityStatus === 'LOADING' && <p className="text-xs opacity-70">Cargando...</p>}
-              {entityStatus === 'EXPIRED' && <p className="text-xs font-bold">Esta historia ya no estÃ¡ disponible.</p>}
-              {entityStatus === 'UNAVAILABLE' && <p className="text-xs font-bold">Esta historia ya no estÃ¡ disponible.</p>}
+              {entityStatus === 'EXPIRED' && <p className="text-xs font-bold">Esta historia ya no está disponible.</p>}
+              {entityStatus === 'UNAVAILABLE' && <p className="text-xs font-bold">Esta historia ya no está disponible.</p>}
               {entityStatus === 'LOADED' && entityData && (
                 <>
                   <div className="flex items-center gap-2 mb-2">

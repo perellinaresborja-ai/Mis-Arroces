@@ -335,8 +335,8 @@ export function renderOverlayContent(overlay: StoryOverlay, mode: string, ctx?: 
       if (style === 'text') {
         return (
           <div onClick={handleClick} className="text-white drop-shadow-md px-2 py-1 flex flex-col items-center cursor-pointer pointer-events-auto hover:opacity-80 transition-opacity">
-            <span className="font-bold text-lg">{p.title || `SesiÃ³n de ${p.authorName}`}</span>
-            <span className="text-xs bg-black/40 px-2 py-0.5 rounded-full mt-1">Ver elaboraciÃ³n âž”</span>
+            <span className="font-bold text-lg">{p.title || `Sesión de ${p.authorName}`}</span>
+            <span className="text-xs bg-black/40 px-2 py-0.5 rounded-full mt-1">Ver elaboración âž”</span>
           </div>
         );
       }
@@ -344,8 +344,8 @@ export function renderOverlayContent(overlay: StoryOverlay, mode: string, ctx?: 
       return (
         <div onClick={handleClick} className="bg-card rounded-2xl overflow-hidden shadow-2xl border border-border flex flex-col w-48 cursor-pointer pointer-events-auto transition-transform hover:scale-105">
           <div className="p-3 flex flex-col gap-1 text-center bg-card">
-            <span className="font-bold text-foreground text-sm truncate">{p.title || `SesiÃ³n de ${p.authorName}`}</span>
-            <span className="text-xs font-semibold text-primary">Ver elaboraciÃ³n</span>
+            <span className="font-bold text-foreground text-sm truncate">{p.title || `Sesión de ${p.authorName}`}</span>
+            <span className="text-xs font-semibold text-primary">Ver elaboración</span>
           </div>
         </div>
       );
@@ -364,8 +364,8 @@ export function renderOverlayContent(overlay: StoryOverlay, mode: string, ctx?: 
       if (style === 'text') {
         return (
           <div onClick={handleClick} className="text-white drop-shadow-md px-2 py-1 flex flex-col items-center cursor-pointer pointer-events-auto hover:opacity-80 transition-opacity">
-            <span className="font-bold text-lg text-center max-w-[200px] truncate">{p.text || `PublicaciÃ³n de ${p.authorName}`}</span>
-            <span className="text-xs bg-black/40 px-2 py-0.5 rounded-full mt-1">Ver publicaciÃ³n âž”</span>
+            <span className="font-bold text-lg text-center max-w-[200px] truncate">{p.text || `Publicación de ${p.authorName}`}</span>
+            <span className="text-xs bg-black/40 px-2 py-0.5 rounded-full mt-1">Ver publicación âž”</span>
           </div>
         );
       }
@@ -375,7 +375,7 @@ export function renderOverlayContent(overlay: StoryOverlay, mode: string, ctx?: 
           {!p.coverUrl && p.text && (<div className="p-4 bg-muted relative flex-1 flex items-center justify-center text-center"><p className="text-sm italic text-muted-foreground line-clamp-3">{p.text}</p></div>)}
           <div className="p-3 flex flex-col gap-1 text-center bg-card border-t border-border/50">
             <span className="font-bold text-foreground text-sm truncate">@{p.authorName}</span>
-            <span className="text-xs font-semibold text-primary">Ver publicaciÃ³n</span>
+            <span className="text-xs font-semibold text-primary">Ver publicación</span>
           </div>
         </div>
       );

@@ -483,33 +483,6 @@ export function StoryCreator({
         
         {/* Editor Main Tools */}
         
-      {/* Recipe Style Selector */}
-      {selectedOverlayId && overlays.find(o => o.id === selectedOverlayId)?.type === 'RECIPE' && (
-        <div className="absolute bottom-[20%] left-1/2 -translate-x-1/2 bg-card/90 backdrop-blur-sm px-4 py-2 rounded-full flex gap-2 z-[100] border border-border shadow-xl">
-          {['card', 'compact', 'text'].map(style => {
-            const ov = overlays.find(o => o.id === selectedOverlayId);
-            const isActive = ov?.type === 'RECIPE' && ov.payload.displayStyle === style;
-            return (
-              <button 
-                key={style}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setOverlays(overlays.map(o => {
-                    if (o.id === selectedOverlayId && o.type === 'RECIPE') {
-                      return { ...o, payload: { ...o.payload, displayStyle: style as 'card'|'compact'|'text' } };
-                    }
-                    return o;
-                  }));
-                }}
-                className={`px-4 py-1.5 rounded-full text-sm font-bold capitalize transition-colors ${isActive ? 'bg-foreground text-background' : 'text-muted-foreground hover:bg-muted'}`}
-              >
-                {style}
-              </button>
-            )
-          })}
-        </div>
-      )}
-
       {mode === 'EDIT' && (
           <div className="p-4 flex flex-col gap-4 h-full">
               <div className={`grid gap-2 ${draftMediaUrl ? 'grid-cols-4' : 'grid-cols-3'}`}>

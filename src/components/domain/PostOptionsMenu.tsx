@@ -51,10 +51,10 @@ export function PostOptionsMenu({
     setShowMenu(false);
     try {
       await togglePin(entityType, entityId, !!isPinned);
-      alert(isPinned ? "PublicaciÃ³n desfijada" : "PublicaciÃ³n fijada en el perfil");
+      alert(isPinned ? "Publicación desfijada" : "Publicación fijada en el perfil");
       router.refresh();
     } catch (e: any) {
-      alert(e.message || "Error al fijar publicaciÃ³n");
+      alert(e.message || "Error al fijar publicación");
     }
   }
 
@@ -120,7 +120,7 @@ export function PostOptionsMenu({
             )}
             {!hidePin && (
               <button onClick={handleFijar} className="flex items-center gap-3 w-full text-left px-4 py-3 text-sm hover:bg-muted font-medium border-b border-border transition-colors text-foreground">
-                {isPinned ? <PinOff className="w-4 h-4" /> : <Pin className="w-4 h-4" />} {isPinned ? "Desfijar de la cuadrÃ­cula" : "Fijar en la cuadrÃ­cula"}
+                {isPinned ? <PinOff className="w-4 h-4" /> : <Pin className="w-4 h-4" />} {isPinned ? "Desfijar de la cuadrícula" : "Fijar en la cuadrícula"}
               </button>
             )}
 
@@ -134,7 +134,7 @@ export function PostOptionsMenu({
               <Edit2 className="w-4 h-4" /> Editar
             </button>
             <button onClick={handleEliminar} className="flex items-center gap-3 w-full text-left px-4 py-3 text-sm hover:bg-destructive/10 text-destructive font-medium transition-colors">
-              <Trash2 className="w-4 h-4" /> Eliminar publicaciÃ³n
+              <Trash2 className="w-4 h-4" /> Eliminar publicación
             </button>
           </div>
         </>
@@ -142,8 +142,8 @@ export function PostOptionsMenu({
 
       <ConfirmModal
         isOpen={showConfirm}
-        title="Eliminar publicaciÃ³n"
-        message="Â¿Seguro que quieres eliminar esta publicaciÃ³n de forma permanente?"
+        title="Eliminar publicación"
+        message="Â¿Seguro que quieres eliminar esta publicación de forma permanente?"
         confirmText="Eliminar"
         isDestructive={true}
         onConfirm={confirmEliminar}
