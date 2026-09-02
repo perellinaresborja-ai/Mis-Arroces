@@ -7,7 +7,7 @@ import { formatUnitSymbol } from "@/lib/utils"
 import { calculateNutrition } from "@/lib/nutrition"
 import { NutritionSection, AllergensSection } from "@/components/domain/NutritionSection"
 import { InteractiveRecipeView } from "@/components/domain/InteractiveRecipeView"
-import { Pencil, Clock, Flame, Users, Beaker, ChefHat, Hourglass, Circle, ChevronDown } from "lucide-react"
+import { Pencil, Clock, Flame, Users, Beaker, ChefHat, Hourglass, Circle } from "lucide-react"
 import { FeedCard } from "@/components/domain/FeedCard"
 import { WantToCookButton } from "@/components/domain/WantToCookButton"
 import { SaveRecipeButton } from "@/components/domain/SaveRecipeButton"
@@ -370,28 +370,12 @@ export default async function RecipeDetailPage({
 
           {/* Alérgenos */}
           <div className="w-full mt-10">
-            <details className="bg-card border border-border rounded-2xl shadow-sm overflow-hidden group">
-              <summary className="flex justify-between items-center w-full p-4 md:p-6 hover:bg-muted/30 transition-colors cursor-pointer list-none [&::-webkit-details-marker]:hidden">
-                <h3 className="font-bold text-lg font-serif">Alérgenos</h3>
-                <ChevronDown className="w-5 h-5 text-muted-foreground transition-transform group-open:rotate-180 shrink-0" />
-              </summary>
-              <div className="p-4 md:p-6 pt-0 border-t border-border mt-0">
-                <AllergensSection result={nutrition} hideTitle />
-              </div>
-            </details>
+            <AllergensSection result={nutrition} />
           </div>
 
           {/* Nutrición */}
           <div className="w-full mt-6 mb-8">
-            <details className="bg-card border border-border rounded-2xl shadow-sm overflow-hidden group">
-              <summary className="flex justify-between items-center w-full p-4 md:p-6 hover:bg-muted/30 transition-colors cursor-pointer list-none [&::-webkit-details-marker]:hidden">
-                <h3 className="font-bold text-lg font-serif">Información Nutricional</h3>
-                <ChevronDown className="w-5 h-5 text-muted-foreground transition-transform group-open:rotate-180 shrink-0" />
-              </summary>
-              <div className="p-4 md:p-6 pt-0 border-t border-border mt-0">
-                <NutritionSection result={nutrition} servings={recipe.base_servings || 1} hideTitle />
-              </div>
-            </details>
+            <NutritionSection result={nutrition} servings={recipe.base_servings || 1} />
           </div>
           
         </div>
