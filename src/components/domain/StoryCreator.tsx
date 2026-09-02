@@ -467,10 +467,17 @@ export function StoryCreator({
           )}
 
           {/* Trash Zone */}
-          {isDraggingOverlay && (
+          {(isDraggingOverlay || selectedOverlayId) && (
             <div 
               id="story-trash" 
-              className="absolute bottom-8 left-1/2 -translate-x-1/2 w-14 h-14 bg-black/50 backdrop-blur rounded-full flex items-center justify-center z-[200] border border-white/20 text-white shadow-2xl transition-all"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (selectedOverlayId) {
+                  setOverlays(overlays.filter(o => o.id !== selectedOverlayId));
+                  setSelectedOverlayId(null);
+                }
+              }}
+              className={`absolute bottom-8 left-1/2 -translate-x-1/2 w-14 h-14 rounded-full flex items-center justify-center z-[200] transition-all cursor-pointer ${isDraggingOverlay ? "bg-red-500/80 scale-90 border-transparent text-white" : "bg-black/50 backdrop-blur border border-white/20 text-white shadow-2xl hover:bg-red-500 hover:scale-110"}`}
             >
               <Trash2 className="w-6 h-6" />
             </div>
