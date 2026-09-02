@@ -16,10 +16,12 @@ const TEXT_FONTS = ['sans-serif', 'serif', 'monospace', 'Impact'];
 
 export function StoryCreator({ 
   initialMedia, 
-  initialRecipe 
+  initialRecipe,
+  initialSession
 }: { 
   initialMedia?: { url: string, type: 'IMAGE'|'VIDEO' },
-  initialRecipe?: { id: string, name: string, coverUrl?: string } 
+  initialRecipe?: { id: string, name: string, coverUrl?: string },
+  initialSession?: { id: string, authorName: string }
 }) {
   const router = useRouter();
   const supabase = createClient();
@@ -38,7 +40,7 @@ export function StoryCreator({
       setDraftMediaType(globalStoryDraftType || 'IMAGE');
       // Set mode to EDIT since we have media
       setMode('EDIT');
-    } else if (!initialMedia && !initialRecipe) {
+    } else if (!initialMedia && !initialRecipe && !initialSession) {
       // Always default to EDIT so the user sees the 'Subir' file picker first,
       // and can manually click 'Texto' if they want a text-only story.
       setMode('EDIT');
@@ -265,6 +267,7 @@ export function StoryCreator({
         background,
         mediaId: await uploadDraftIfNeeded() || undefined,
         recipeId: initialRecipe?.id,
+        sessionId: initialSession?.id,
         // privacy,
         overlays
       });
