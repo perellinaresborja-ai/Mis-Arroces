@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 import React, { useRef, useEffect, useState } from 'react';
 import { useGesture } from '@use-gesture/react';
 import { StoryOverlay } from '@/types/stories';
@@ -9,6 +9,7 @@ interface DraggableOverlayProps {
   onSelect: () => void;
   onUpdate: (overlay: StoryOverlay) => void;
   onDelete: () => void;
+  onTap?: () => void;
   containerRef: React.RefObject<HTMLDivElement | null>;
   children: React.ReactNode;
   onDragStateChange?: (isDragging: boolean) => void;
@@ -21,7 +22,8 @@ export function DraggableOverlay({
   onUpdate, 
   onDelete,
   onDragStateChange,
-  containerRef, 
+  onTap,
+  containerRef,
   children 
 }: DraggableOverlayProps) {
   
@@ -54,14 +56,18 @@ export function DraggableOverlay({
       setLocal(prev => ({ ...prev, x: nextX, y: nextY }));
       return memo;
     },
-    onDragEnd: ({ event, xy: [clientX, clientY] }) => {
+    onDragEnd: ({ event, tap, xy: [clientX, clientY] }) => {
       onDragStateChange?.(false);
       
-      // Hit test for trash zone
-      const droppedOn = document.elementFromPoint(clientX, clientY);
-      if (droppedOn?.closest('#story-trash')) {
-        onDelete();
-        return;
+      if (tap) {
+        if (onTap) onTap();
+      } else {
+        // Hit test for trash zone
+        const droppedOn = document.elementFromPoint(clientX, clientY);
+        if (droppedOn?.closest('#story-trash')) {
+          onDelete();
+          return;
+        }
       }
       
       // Flush to parent
@@ -119,3 +125,4 @@ export function DraggableOverlay({
     </div>
   );
 }
+

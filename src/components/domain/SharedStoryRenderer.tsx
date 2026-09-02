@@ -283,9 +283,8 @@ export function renderOverlayContent(overlay: StoryOverlay, mode: string, ctx?: 
       const style = p.displayStyle || 'compact';
 
       const handleClick = (e: React.MouseEvent) => { 
-        e.stopPropagation();
-        if (mode === 'VIEWER') window.location.href = '/recipes/' + p.recipeId; 
-      };
+          if (mode === 'VIEWER') { e.stopPropagation(); window.location.href = '/recipes/' + p.recipeId; } 
+        };
 
       if (style === 'compact') {
         return (
@@ -326,9 +325,8 @@ export function renderOverlayContent(overlay: StoryOverlay, mode: string, ctx?: 
       const p = overlay.payload;
       const style = p.displayStyle || 'compact';
       const handleClick = (e: React.MouseEvent) => { 
-        e.stopPropagation();
-        if (mode === 'VIEWER') window.location.href = '/sessions/' + p.sessionId; 
-      };
+          if (mode === 'VIEWER') { e.stopPropagation(); window.location.href = '/sessions/' + p.sessionId; } 
+        };
 
       if (style === 'compact') {
         return <div className="bg-orange-100 text-orange-900 px-3 py-1 rounded-full font-bold shadow-lg text-sm flex items-center gap-2 cursor-pointer transition-transform hover:scale-105 pointer-events-auto" onClick={handleClick}>ðŸ§‘â€ðŸ³ {p.authorName} <span className="text-orange-600/50">Ver</span></div>;
@@ -356,9 +354,8 @@ export function renderOverlayContent(overlay: StoryOverlay, mode: string, ctx?: 
       const p = overlay.payload;
       const style = p.displayStyle || 'card';
       const handleClick = (e: React.MouseEvent) => { 
-        e.stopPropagation();
-        if (mode === 'VIEWER') window.location.href = '/posts/' + p.postId; 
-      };
+          if (mode === 'VIEWER') { e.stopPropagation(); window.location.href = '/posts/' + p.postId; } 
+        };
 
       if (style === 'compact') {
         return <div className="bg-card border border-border text-foreground px-3 py-1.5 rounded-full font-bold flex items-center gap-2 shadow-xl cursor-pointer text-sm pointer-events-auto transition-transform hover:scale-105" onClick={handleClick}>@{p.authorName} <span className="text-primary text-xs ml-1 border-l pl-2 border-border/50">Ver</span></div>;

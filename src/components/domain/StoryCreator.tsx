@@ -139,9 +139,9 @@ export function StoryCreator({
   const [isPollModalOpen, setIsPollModalOpen] = useState(false);
   const [isQuestionModalOpen, setIsQuestionModalOpen] = useState(false);
   const [isSliderModalOpen, setIsSliderModalOpen] = useState(false);
-  const [sliderForm, setSliderForm] = useState({ prompt: '', emoji: 'ðŸ˜‹' });
+  const [sliderForm, setSliderForm] = useState({ prompt: '', emoji: '😍' });
   const [questionPrompt, setQuestionPrompt] = useState('');
-  const [pollForm, setPollForm] = useState({ question: '', optionA: 'SÃ­', optionB: 'No' });
+  const [pollForm, setPollForm] = useState({ question: '', optionA: 'Sí', optionB: 'No' });
   const [privacy, setPrivacy] = useState<'PUBLIC'|'FOLLOWERS'>('PUBLIC');
 
   // Drawing
@@ -374,15 +374,24 @@ export function StoryCreator({
 
           {overlays.map((o, i) => (
             <DraggableOverlay
-              key={o.id}
-              overlay={o}
-              isSelected={selectedOverlayId === o.id}
-              onSelect={() => setSelectedOverlayId(o.id)}
-              onUpdate={(updated) => setOverlays(overlays.map(x => x.id === o.id ? updated : x))}
-              onDelete={() => { saveHistory(); setOverlays(overlays.filter(x => x.id !== o.id)); }}
-              onDragStateChange={setIsDraggingOverlay}
-              containerRef={containerRef}
-            >
+                key={o.id}
+                overlay={o}
+                isSelected={selectedOverlayId === o.id}
+                onSelect={() => setSelectedOverlayId(o.id)}
+                onUpdate={(updated) => setOverlays(overlays.map(x => x.id === o.id ? updated : x))}
+                onDelete={() => { saveHistory(); setOverlays(overlays.filter(x => x.id !== o.id)); }}
+                onDragStateChange={setIsDraggingOverlay}
+                containerRef={containerRef}
+                onTap={() => {
+                  if (['RECIPE', 'SESSION', 'POST'].includes(o.type)) {
+                    saveHistory();
+                    const currentStyle = (o.payload as any).displayStyle || 'card';
+                    const nextStyle = currentStyle === 'card' ? 'compact' : (currentStyle === 'compact' ? 'text' : 'card');
+                    const updated = { ...o, payload: { ...(o.payload as any), displayStyle: nextStyle } } as any;
+                    setOverlays(overlays.map(x => x.id === o.id ? updated : x) as any);
+                  }
+                }}
+              >
               <div className="pointer-events-none">
                 {renderOverlayContent(o, "PREVIEW")}
               </div>
@@ -527,8 +536,8 @@ export function StoryCreator({
             
             <div className="mt-auto space-y-4">
               <select value={privacy} onChange={e => setPrivacy(e.target.value as 'PUBLIC'|'FOLLOWERS')} className="w-full bg-muted text-foreground font-medium rounded-2xl p-4 border border-border outline-none focus:border-primary">
-                <option value="PUBLIC">ðŸŒŽ PÃºblico</option>
-                <option value="FOLLOWERS">ðŸ‘¥ Seguidores</option>
+                <option value="PUBLIC">🌍 Público</option>
+                <option value="FOLLOWERS">👥 Seguidores</option>
               </select>
               <button onClick={handlePublish} disabled={isPublishing} className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold p-4 rounded-2xl transition-colors shadow-sm">
                 {isPublishing ? 'Publicando...' : 'Compartir Historia'}
@@ -635,5 +644,6 @@ export function StoryCreator({
     </div>
   );
 }
+
 
 
