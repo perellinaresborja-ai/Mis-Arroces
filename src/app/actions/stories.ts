@@ -1,5 +1,4 @@
-﻿// @ts-nocheck
-"use server"
+﻿"use server"
 
 import { createClient } from "@/lib/supabase/server"
 import { createClient as createAdminClient } from "@supabase/supabase-js"
@@ -152,7 +151,7 @@ export async function fetchActiveStories() {
           // Admin client bypasses RLS on Storage to generate the signature
           const { data: signed } = await adminSupabase.storage.from('recipe_media').createSignedUrl(path, 3600);
           if (signed) {
-            story.story_media[0].media.signed_url = signed.signedUrl;
+            (story.story_media[0].media as any).signed_url = signed.signedUrl;
           }
         }
       }
@@ -223,7 +222,7 @@ export async function markStoryViewed(storyId: string) {
 
   // INSERT ON CONFLICT DO NOTHING relies on unique constraint (story_id, viewer_id)
   await supabase.from("story_views").upsert({ story_id: storyId, viewer_id: user.id }, { onConflict: "story_id, viewer_id", ignoreDuplicates: true })
-    await trackEvent("STORY_VIEW", "STORY", storyId, story.owner_id)
+    if (story) await trackEvent("STORY_VIEW", "STORY", storyId, story.owner_id)
 }
 
 export async function fetchStoryViewers(storyId: string) {
@@ -263,7 +262,7 @@ export async function deleteStory(storyId: string) {
   if (story.story_media && story.story_media.length > 0) {
     const paths = story.story_media.map((sm: {media?: {storage_path?: string}}) => sm.media?.storage_path).filter(Boolean)
     if (paths.length > 0) {
-      await supabase.storage.from("recipe_media").remove(paths)
+      await supabase.storage.from("recipe_media").remove(paths as string[])
     }
   }
 
@@ -300,7 +299,7 @@ export async function toggleStoryReaction(storyId: string, reaction: string) {
 
   if (story && story.owner_id !== user.id) {
     const { createNotification } = await import("@/app/actions/notifications");
-    await createNotification(story.owner_id, 'REACTION', 'story', storyId, { reaction });
+    await createNotification(story.owner_id, 'REACTION' as any, 'story', storyId, { reaction });
   }
 
   return { success: true, action: 'added' }
@@ -439,7 +438,7 @@ export async function submitQuestionReply(storyId: string, ownerId: string, ques
   const conv = await getOrCreateConversation(story.owner_id);
   
   await sendMessage({
-    conversationId: conv.id,
+    conversationId: conv,
     type: 'STORY',
     body: `Respondida a pregunta: "${question}"\n\n${answer}`,
     entityId: storyId
@@ -526,8 +525,8 @@ export async function getStoryInsights(storyId: string) {
       if (pollData) {
         const { data: votes } = await supabase.from('story_poll_votes').select('option').eq('poll_id', pollId);
         const total = votes?.length || 0;
-        const countA = votes?.filter(v => v.option === 'A').length || 0;
-        const countB = votes?.filter(v => v.option === 'B').length || 0;
+        const countA = votes?.filter(v => (v as any).option === 'A').length || 0;
+        const countB = votes?.filter(v => (v as any).option === 'B').length || 0;
         polls.push({
           question: pollData.question,
           optionA: pollData.option_a,
@@ -597,4 +596,8 @@ export async function deleteHighlight(highlightId: string) {
   await supabase.from('story_highlights').delete().eq('id', highlightId);
   return true;
 }
+
+
+
+
 

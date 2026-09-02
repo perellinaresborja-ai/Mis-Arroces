@@ -92,8 +92,8 @@ export function DraggableOverlay({
     }
   });
 
-  const bindProps: any = bind();
-  const handlePointerDown = (e: any) => {
+  const bindProps = bind() as React.DOMAttributes<HTMLDivElement>;
+  const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     if (bindProps.onPointerDown) bindProps.onPointerDown(e);
     e.stopPropagation();
     onSelect();
@@ -119,6 +119,7 @@ export function DraggableOverlay({
     </div>
   );
 }
+
 
 
 

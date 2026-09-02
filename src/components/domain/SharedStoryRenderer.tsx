@@ -424,8 +424,8 @@ export function renderOverlayContent(overlay: StoryOverlay, mode: string, ctx?: 
             // Actually, submitQuestionReply can just fetch the owner_id from storyId!
             await submitQuestionReply(storyId, 'DUMMY_OWNER', p.question, val);
             setSentQ((prev: Record<string, any>) => ({...prev, [qId]: true}));
-          } catch (e: any) {
-            alert(e.message || 'Error al enviar');
+          } catch (e: unknown) {
+            alert((e as Error).message || 'Error al enviar');
           } finally {
             setIsSendingQ((prev: Record<string, any>) => ({...prev, [qId]: false}));
           }
@@ -483,9 +483,9 @@ export function renderOverlayContent(overlay: StoryOverlay, mode: string, ctx?: 
             await upsertSliderValue(storyId, sId, val);
             const newRes = await getSliderResults(sId);
             setSliderResults((prev: Record<string, any>) => ({...prev, [sId]: newRes}));
-          } catch (err: any) {
+          } catch (err: unknown) {
             console.error(err);
-            alert(err.message || 'Error al guardar');
+            alert((err as Error).message || 'Error al guardar');
           } finally {
             if (onResumeRequest) onResumeRequest();
           }
@@ -527,6 +527,8 @@ export function renderOverlayContent(overlay: StoryOverlay, mode: string, ctx?: 
       return null;
   }
 }
+
+
 
 
 
