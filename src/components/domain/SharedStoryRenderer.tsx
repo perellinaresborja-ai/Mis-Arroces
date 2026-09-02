@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 import React from 'react';
 
 import { CSSProperties, useEffect, Dispatch, SetStateAction } from "react"
@@ -300,20 +300,13 @@ export function renderOverlayContent(overlay: StoryOverlay, mode: string, ctx?: 
         return (
           <div onClick={handleClick} className="text-white drop-shadow-md px-2 py-1 flex flex-col items-center cursor-pointer pointer-events-auto hover:opacity-80 transition-opacity">
             <span className="font-bold text-lg">{p.title || 'Receta'}</span>
-            <span className="text-xs bg-black/40 px-2 py-0.5 rounded-full mt-1">Ver receta ➔</span>
+            <span className="text-xs bg-black/40 px-2 py-0.5 rounded-full mt-1">Ver receta âž”</span>
           </div>
         );
       }
 
       return (
         <div onClick={handleClick} className="bg-card rounded-2xl overflow-hidden shadow-2xl border border-border flex flex-col w-48 cursor-pointer pointer-events-auto transition-transform hover:scale-105">
-          <div className="h-28 bg-muted relative">
-            {p.coverUrl ? (
-              <img src={p.coverUrl} className="w-full h-full object-cover" alt={p.title} />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center text-muted-foreground"><Utensils size={32} opacity={0.5}/></div>
-            )}
-          </div>
           <div className="p-3 flex flex-col gap-1 text-center bg-card">
             <span className="font-bold text-foreground text-sm truncate">{p.title || 'Receta'}</span>
             <span className="text-xs font-semibold text-primary">Ver receta</span>
@@ -327,7 +320,7 @@ export function renderOverlayContent(overlay: StoryOverlay, mode: string, ctx?: 
     }
     case 'PROFILE': {
       const p = overlay.payload;
-      return <div className="bg-background text-foreground px-4 py-2 rounded-xl font-bold flex items-center gap-2 shadow-xl border border-border cursor-pointer" onClick={() => { if (mode === 'VIEWER') window.location.href = '/' + p.username; }}>👤 {p.username}</div>;
+      return <div className="bg-background text-foreground px-4 py-2 rounded-xl font-bold flex items-center gap-2 shadow-xl border border-border cursor-pointer" onClick={() => { if (mode === 'VIEWER') window.location.href = '/' + p.username; }}>ðŸ‘¤ {p.username}</div>;
     }
     case 'SESSION': {
       const p = overlay.payload;
@@ -338,30 +331,23 @@ export function renderOverlayContent(overlay: StoryOverlay, mode: string, ctx?: 
       };
 
       if (style === 'compact') {
-        return <div className="bg-orange-100 text-orange-900 px-3 py-1 rounded-full font-bold shadow-lg text-sm flex items-center gap-2 cursor-pointer transition-transform hover:scale-105 pointer-events-auto" onClick={handleClick}>🧑‍🍳 {p.authorName} <span className="text-orange-600/50">Ver</span></div>;
+        return <div className="bg-orange-100 text-orange-900 px-3 py-1 rounded-full font-bold shadow-lg text-sm flex items-center gap-2 cursor-pointer transition-transform hover:scale-105 pointer-events-auto" onClick={handleClick}>ðŸ§‘â€ðŸ³ {p.authorName} <span className="text-orange-600/50">Ver</span></div>;
       }
       
       if (style === 'text') {
         return (
           <div onClick={handleClick} className="text-white drop-shadow-md px-2 py-1 flex flex-col items-center cursor-pointer pointer-events-auto hover:opacity-80 transition-opacity">
-            <span className="font-bold text-lg">{p.title || `Sesión de ${p.authorName}`}</span>
-            <span className="text-xs bg-black/40 px-2 py-0.5 rounded-full mt-1">Ver elaboración ➔</span>
+            <span className="font-bold text-lg">{p.title || `SesiÃ³n de ${p.authorName}`}</span>
+            <span className="text-xs bg-black/40 px-2 py-0.5 rounded-full mt-1">Ver elaboraciÃ³n âž”</span>
           </div>
         );
       }
 
       return (
         <div onClick={handleClick} className="bg-card rounded-2xl overflow-hidden shadow-2xl border border-border flex flex-col w-48 cursor-pointer pointer-events-auto transition-transform hover:scale-105">
-          <div className="h-28 bg-muted relative">
-            {p.coverUrl ? (
-              <img src={p.coverUrl} className="w-full h-full object-cover" alt={p.title || 'Sesión'} />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center text-muted-foreground"><Utensils size={32} opacity={0.5}/></div>
-            )}
-          </div>
           <div className="p-3 flex flex-col gap-1 text-center bg-card">
-            <span className="font-bold text-foreground text-sm truncate">{p.title || `Sesión de ${p.authorName}`}</span>
-            <span className="text-xs font-semibold text-primary">Ver elaboración</span>
+            <span className="font-bold text-foreground text-sm truncate">{p.title || `SesiÃ³n de ${p.authorName}`}</span>
+            <span className="text-xs font-semibold text-primary">Ver elaboraciÃ³n</span>
           </div>
         </div>
       );
@@ -381,26 +367,18 @@ export function renderOverlayContent(overlay: StoryOverlay, mode: string, ctx?: 
       if (style === 'text') {
         return (
           <div onClick={handleClick} className="text-white drop-shadow-md px-2 py-1 flex flex-col items-center cursor-pointer pointer-events-auto hover:opacity-80 transition-opacity">
-            <span className="font-bold text-lg text-center max-w-[200px] truncate">{p.text || `Publicación de ${p.authorName}`}</span>
-            <span className="text-xs bg-black/40 px-2 py-0.5 rounded-full mt-1">Ver publicación ➔</span>
+            <span className="font-bold text-lg text-center max-w-[200px] truncate">{p.text || `PublicaciÃ³n de ${p.authorName}`}</span>
+            <span className="text-xs bg-black/40 px-2 py-0.5 rounded-full mt-1">Ver publicaciÃ³n âž”</span>
           </div>
         );
       }
 
       return (
         <div onClick={handleClick} className="bg-card rounded-2xl overflow-hidden shadow-2xl border border-border flex flex-col w-48 cursor-pointer pointer-events-auto transition-transform hover:scale-105">
-          {p.coverUrl ? (
-            <div className="h-28 bg-muted relative">
-              <img src={p.coverUrl} className="w-full h-full object-cover" alt="Publicación" />
-            </div>
-          ) : (
-            <div className="p-4 bg-muted relative flex-1 flex items-center justify-center text-center">
-              <p className="text-sm italic text-muted-foreground line-clamp-3">{p.text}</p>
-            </div>
-          )}
+          {!p.coverUrl && p.text && (<div className="p-4 bg-muted relative flex-1 flex items-center justify-center text-center"><p className="text-sm italic text-muted-foreground line-clamp-3">{p.text}</p></div>)}
           <div className="p-3 flex flex-col gap-1 text-center bg-card border-t border-border/50">
             <span className="font-bold text-foreground text-sm truncate">@{p.authorName}</span>
-            <span className="text-xs font-semibold text-primary">Ver publicación</span>
+            <span className="text-xs font-semibold text-primary">Ver publicaciÃ³n</span>
           </div>
         </div>
       );
@@ -485,7 +463,7 @@ export function renderOverlayContent(overlay: StoryOverlay, mode: string, ctx?: 
               </div>
             ) : (
               <div className="text-sm font-bold text-center text-green-600 p-2">
-                ¡Enviado!
+                Â¡Enviado!
               </div>
             )}
           </div>
@@ -549,3 +527,6 @@ export function renderOverlayContent(overlay: StoryOverlay, mode: string, ctx?: 
       return null;
   }
 }
+
+
+

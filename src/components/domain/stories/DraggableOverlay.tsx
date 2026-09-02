@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 import React, { useRef, useEffect, useState } from 'react';
 import { useGesture } from '@use-gesture/react';
 import { StoryOverlay } from '@/types/stories';
@@ -92,13 +92,17 @@ export function DraggableOverlay({
     }
   });
 
+  const bindProps: any = bind();
+  const handlePointerDown = (e: any) => {
+    if (bindProps.onPointerDown) bindProps.onPointerDown(e);
+    e.stopPropagation();
+    onSelect();
+  };
+
   return (
     <div
-      {...bind()}
-      onPointerDown={(e) => {
-        e.stopPropagation();
-        onSelect();
-      }}
+      {...bindProps}
+      onPointerDown={handlePointerDown}
       style={{
         position: 'absolute',
         left: `${local.x * 100}%`,
@@ -115,3 +119,6 @@ export function DraggableOverlay({
     </div>
   );
 }
+
+
+
