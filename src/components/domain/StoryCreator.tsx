@@ -159,7 +159,7 @@ export function StoryCreator({
 
   const [showDiscardDialog, setShowDiscardDialog] = useState(false);
 
-  // Init recipe if passed
+  // Init recipe or session if passed
   useEffect(() => {
     if (initialRecipe && overlays.length === 0) {
       setOverlays([{
@@ -167,6 +167,13 @@ export function StoryCreator({
         type: 'RECIPE',
         x: 0.5, y: 0.8, scale: 1, rotation: 0, zIndex: 1,
         payload: { title: initialRecipe.name, recipeId: initialRecipe.id, coverUrl: initialRecipe.coverUrl, displayStyle: 'card' }
+      }]);
+    } else if (initialSession && overlays.length === 0) {
+      setOverlays([{
+        id: 'session_'+Date.now(),
+        type: 'SESSION',
+        x: 0.5, y: 0.8, scale: 1, rotation: 0, zIndex: 1,
+        payload: { sessionId: initialSession.id, authorName: initialSession.authorName }
       }]);
     }
   }, []);
