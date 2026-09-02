@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 import React, { useState, useRef, useEffect } from 'react';
 import { useGesture } from '@use-gesture/react';
 import { useRouter } from 'next/navigation';
@@ -17,11 +17,13 @@ const TEXT_FONTS = ['sans-serif', 'serif', 'monospace', 'Impact'];
 export function StoryCreator({ 
   initialMedia, 
   initialRecipe,
-  initialSession
+  initialSession,
+  initialPost
 }: { 
   initialMedia?: { url: string, type: 'IMAGE'|'VIDEO' },
   initialRecipe?: { id: string, name: string, coverUrl?: string },
-  initialSession?: { id: string, authorName: string }
+  initialSession?: { id: string, authorName: string, title?: string, coverUrl?: string },
+  initialPost?: { id: string, authorName: string, text?: string, coverUrl?: string }
 }) {
   const router = useRouter();
   const supabase = createClient();
@@ -40,7 +42,7 @@ export function StoryCreator({
       setDraftMediaType(globalStoryDraftType || 'IMAGE');
       // Set mode to EDIT since we have media
       setMode('EDIT');
-    } else if (!initialMedia && !initialRecipe && !initialSession) {
+    } else if (!initialMedia && !initialRecipe && !initialSession && !initialPost) {
       // Always default to EDIT so the user sees the 'Subir' file picker first,
       // and can manually click 'Texto' if they want a text-only story.
       setMode('EDIT');
@@ -137,9 +139,9 @@ export function StoryCreator({
   const [isPollModalOpen, setIsPollModalOpen] = useState(false);
   const [isQuestionModalOpen, setIsQuestionModalOpen] = useState(false);
   const [isSliderModalOpen, setIsSliderModalOpen] = useState(false);
-  const [sliderForm, setSliderForm] = useState({ prompt: '', emoji: '😋' });
+  const [sliderForm, setSliderForm] = useState({ prompt: '', emoji: 'ðŸ˜‹' });
   const [questionPrompt, setQuestionPrompt] = useState('');
-  const [pollForm, setPollForm] = useState({ question: '', optionA: 'Sí', optionB: 'No' });
+  const [pollForm, setPollForm] = useState({ question: '', optionA: 'SÃ­', optionB: 'No' });
   const [privacy, setPrivacy] = useState<'PUBLIC'|'FOLLOWERS'>('PUBLIC');
 
   // Drawing
@@ -275,6 +277,7 @@ export function StoryCreator({
         mediaId: await uploadDraftIfNeeded() || undefined,
         recipeId: initialRecipe?.id,
         sessionId: initialSession?.id,
+        postId: initialPost?.id,
         // privacy,
         overlays
       });
@@ -296,8 +299,8 @@ export function StoryCreator({
         <div className="absolute inset-0 z-[200] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm pointer-events-auto">
           <div className="bg-card border border-border w-full max-w-xs rounded-3xl p-6 shadow-2xl flex flex-col gap-5 text-center animate-in fade-in zoom-in-95 duration-200">
             <div>
-              <h3 className="text-xl font-bold font-serif text-charcoal mb-1.5">¿Descartar historia?</h3>
-              <p className="text-muted-foreground text-sm">Si sales ahora, perderás todos los cambios que hayas hecho.</p>
+              <h3 className="text-xl font-bold font-serif text-charcoal mb-1.5">Â¿Descartar historia?</h3>
+              <p className="text-muted-foreground text-sm">Si sales ahora, perderÃ¡s todos los cambios que hayas hecho.</p>
             </div>
             <div className="flex flex-col gap-2.5 mt-2">
               <button 
@@ -518,8 +521,8 @@ export function StoryCreator({
             
             <div className="mt-auto space-y-4">
               <select value={privacy} onChange={e => setPrivacy(e.target.value as 'PUBLIC'|'FOLLOWERS')} className="w-full bg-muted text-foreground font-medium rounded-2xl p-4 border border-border outline-none focus:border-primary">
-                <option value="PUBLIC">🌎 Público</option>
-                <option value="FOLLOWERS">👥 Seguidores</option>
+                <option value="PUBLIC">ðŸŒŽ PÃºblico</option>
+                <option value="FOLLOWERS">ðŸ‘¥ Seguidores</option>
               </select>
               <button onClick={handlePublish} disabled={isPublishing} className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold p-4 rounded-2xl transition-colors shadow-sm">
                 {isPublishing ? 'Publicando...' : 'Compartir Historia'}
@@ -590,11 +593,11 @@ export function StoryCreator({
           <div className="flex flex-col h-full relative">
             {!activeStickerType ? (
               <div className="p-4 grid grid-cols-2 gap-2 overflow-y-auto">
-                <button onClick={() => setActiveStickerType('MENTION')} className="bg-muted hover:bg-muted/80 text-foreground p-4 rounded-2xl flex items-center justify-center gap-2 transition-colors font-medium"><User size={18} className="text-primary"/> Mención</button>
-                <button onClick={() => setActiveStickerType('LOCATION')} className="bg-muted hover:bg-muted/80 text-foreground p-4 rounded-2xl flex items-center justify-center gap-2 transition-colors font-medium"><MapPin size={18} className="text-primary"/> Ubicación</button>
+                <button onClick={() => setActiveStickerType('MENTION')} className="bg-muted hover:bg-muted/80 text-foreground p-4 rounded-2xl flex items-center justify-center gap-2 transition-colors font-medium"><User size={18} className="text-primary"/> MenciÃ³n</button>
+                <button onClick={() => setActiveStickerType('LOCATION')} className="bg-muted hover:bg-muted/80 text-foreground p-4 rounded-2xl flex items-center justify-center gap-2 transition-colors font-medium"><MapPin size={18} className="text-primary"/> UbicaciÃ³n</button>
                 <button onClick={() => setActiveStickerType('RECIPE')} className="bg-muted hover:bg-muted/80 text-foreground p-4 rounded-2xl flex items-center justify-center gap-2 transition-colors font-medium"><ChefHat size={18} className="text-primary"/> Receta</button>
                 <button onClick={() => setActiveStickerType('INGREDIENT')} className="bg-muted hover:bg-muted/80 text-foreground p-4 rounded-2xl flex items-center justify-center gap-2 transition-colors font-medium"><Apple size={18} className="text-primary"/> Ingrediente</button>
-                <button onClick={() => setActiveStickerType('SESSION')} className="bg-muted hover:bg-muted/80 text-foreground p-4 rounded-2xl flex items-center justify-center gap-2 transition-colors font-medium"><ChefHat size={18} className="text-primary"/> Sesión</button>
+                <button onClick={() => setActiveStickerType('SESSION')} className="bg-muted hover:bg-muted/80 text-foreground p-4 rounded-2xl flex items-center justify-center gap-2 transition-colors font-medium"><ChefHat size={18} className="text-primary"/> SesiÃ³n</button>
                 <button onClick={() => setActiveStickerType('PROFILE')} className="bg-muted hover:bg-muted/80 text-foreground p-4 rounded-2xl flex items-center justify-center gap-2 transition-colors font-medium"><User size={18} className="text-primary"/> Perfil</button>
 
               </div>
@@ -626,3 +629,4 @@ export function StoryCreator({
     </div>
   );
 }
+

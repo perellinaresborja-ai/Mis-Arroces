@@ -1,4 +1,4 @@
-export type OverlayType = 'TEXT' | 'MENTION' | 'LOCATION' | 'RECIPE' | 'GIF' | 'DRAWING' | 'POLL' | 'SLIDER' | 'QUESTION' | 'SESSION' | 'PROFILE' | 'INGREDIENT';
+﻿export type OverlayType = 'TEXT' | 'MENTION' | 'LOCATION' | 'RECIPE' | 'GIF' | 'DRAWING' | 'POLL' | 'SLIDER' | 'QUESTION' | 'SESSION' | 'PROFILE' | 'INGREDIENT' | 'POST';
 
 export interface StoryTransform {
   scale: number;
@@ -78,6 +78,19 @@ export interface SessionOverlay extends BaseOverlay {
     sessionId: string;
     authorName: string;
     coverUrl?: string;
+    title?: string;
+    displayStyle?: 'compact' | 'card' | 'text';
+  };
+}
+
+export interface PostOverlay extends BaseOverlay {
+  type: 'POST';
+  payload: {
+    postId: string;
+    authorName: string;
+    text?: string;
+    coverUrl?: string;
+    displayStyle?: 'compact' | 'card' | 'text';
   };
 }
 
@@ -132,7 +145,7 @@ export interface QuestionOverlay extends BaseOverlay {
   };
 }
 
-export type StoryOverlay = TextOverlay | DrawingOverlay | MentionOverlay | LocationOverlay | RecipeOverlay | SessionOverlay | ProfileOverlay | IngredientOverlay | GifOverlay | PollOverlay | SliderOverlay | QuestionOverlay;
+export type StoryOverlay = TextOverlay | DrawingOverlay | MentionOverlay | LocationOverlay | RecipeOverlay | SessionOverlay | ProfileOverlay | IngredientOverlay | GifOverlay | PollOverlay | SliderOverlay | QuestionOverlay | PostOverlay;
 
 export function validateOverlay(overlay: any): boolean {
   if (!overlay || typeof overlay !== 'object') return false;
@@ -152,6 +165,8 @@ export function validateOverlay(overlay: any): boolean {
       return typeof overlay.payload?.recipeId === 'string' && typeof overlay.payload?.title === 'string';
     case 'SESSION':
       return typeof overlay.payload?.sessionId === 'string' && typeof overlay.payload?.authorName === 'string';
+    case 'POST':
+      return typeof overlay.payload?.postId === 'string' && typeof overlay.payload?.authorName === 'string';
     case 'INGREDIENT':
       return typeof overlay.payload?.ingredientId === 'string' && typeof overlay.payload?.name === 'string';
     case 'GIF':

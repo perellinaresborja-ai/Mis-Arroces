@@ -51,24 +51,12 @@ export function PostOptionsMenu({
     setShowMenu(false);
     try {
       await togglePin(entityType, entityId, !!isPinned);
-      alert(isPinned ? "Publicación desfijada" : "Publicación fijada en el perfil");
+      alert(isPinned ? "PublicaciÃ³n desfijada" : "PublicaciÃ³n fijada en el perfil");
       router.refresh();
     } catch (e: any) {
-      alert(e.message || "Error al fijar publicación");
+      alert(e.message || "Error al fijar publicaciÃ³n");
     }
   }
-
-  const handleCrearHistoria = () => {
-    setShowMenu(false);
-    if (entityType === 'recipe') {
-      router.push(`/create/story?recipe_id=${entityId}`);
-    } else if (entityType === 'session') {
-      router.push(`/create/story?session_id=${entityId}`);
-    } else {
-      alert("Solo se pueden crear historias desde recetas o elaboraciones.");
-    }
-  }
-
 
   const handleEditar = () => {
     setShowMenu(false);
@@ -85,6 +73,19 @@ export function PostOptionsMenu({
   const handleEliminar = () => {
     setShowMenu(false);
     setShowConfirm(true);
+  }
+
+  const handleCrearHistoria = () => {
+    setShowMenu(false);
+    if (entityType === 'recipe') {
+      router.push(`/create/story?recipe_id=${entityId}`);
+    } else if (entityType === 'session') {
+      router.push(`/create/story?session_id=${entityId}`);
+    } else if (entityType === 'post') {
+      router.push(`/create/story?post_id=${entityId}`);
+    } else {
+      alert("Solo se pueden crear historias desde recetas, publicaciones o elaboraciones.");
+    }
   }
 
   const confirmEliminar = async () => {
@@ -106,20 +107,20 @@ export function PostOptionsMenu({
       >
         <MoreHorizontal className="w-5 h-5 text-foreground" />
       </button>
-      
+
       {showMenu && (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setShowMenu(false)} />
           <div className="absolute right-0 top-full mt-2 w-56 bg-card border border-border rounded-xl shadow-lg z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-100">
 
-            {(entityType === 'recipe' || entityType === 'session') && (
+            {(entityType === 'recipe' || entityType === 'session' || entityType === 'post') && (
               <button onClick={handleCrearHistoria} className="flex items-center gap-3 w-full text-left px-4 py-3 text-sm hover:bg-muted font-medium border-b border-border transition-colors text-foreground">
                 <PlusCircle className="w-4 h-4" /> Compartir en tu Historia
               </button>
             )}
             {!hidePin && (
               <button onClick={handleFijar} className="flex items-center gap-3 w-full text-left px-4 py-3 text-sm hover:bg-muted font-medium border-b border-border transition-colors text-foreground">
-                {isPinned ? <PinOff className="w-4 h-4" /> : <Pin className="w-4 h-4" />} {isPinned ? "Desfijar de la cuadrícula" : "Fijar en la cuadrícula"}
+                {isPinned ? <PinOff className="w-4 h-4" /> : <Pin className="w-4 h-4" />} {isPinned ? "Desfijar de la cuadrÃ­cula" : "Fijar en la cuadrÃ­cula"}
               </button>
             )}
 
@@ -133,7 +134,7 @@ export function PostOptionsMenu({
               <Edit2 className="w-4 h-4" /> Editar
             </button>
             <button onClick={handleEliminar} className="flex items-center gap-3 w-full text-left px-4 py-3 text-sm hover:bg-destructive/10 text-destructive font-medium transition-colors">
-              <Trash2 className="w-4 h-4" /> Eliminar publicación
+              <Trash2 className="w-4 h-4" /> Eliminar publicaciÃ³n
             </button>
           </div>
         </>
@@ -141,8 +142,8 @@ export function PostOptionsMenu({
 
       <ConfirmModal
         isOpen={showConfirm}
-        title="Eliminar publicación"
-        message="¿Seguro que quieres eliminar esta publicación de forma permanente?"
+        title="Eliminar publicaciÃ³n"
+        message="Â¿Seguro que quieres eliminar esta publicaciÃ³n de forma permanente?"
         confirmText="Eliminar"
         isDestructive={true}
         onConfirm={confirmEliminar}
@@ -151,3 +152,5 @@ export function PostOptionsMenu({
     </div>
   )
 }
+
+
