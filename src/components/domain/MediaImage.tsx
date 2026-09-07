@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import Image from "next/image"
 import { useState } from "react"
@@ -35,7 +35,6 @@ export function MediaImage({
 }: MediaImageProps) {
   const [error, setError] = useState(false)
 
-  // Determine optimal sizes if not provided
   let defaultSizes = sizes
   if (!defaultSizes && fill) {
     switch (variant) {
@@ -48,30 +47,48 @@ export function MediaImage({
     }
   }
 
-  // Handle fallback UI
   if (!src || error) {
     if (fallbackType === 'avatar') {
       return (
-        <div className={`flex items-center justify-center bg-primary/10 text-primary/50 ${className}`}>
+        <div className={lex items-center justify-center bg-primary/10 text-primary/50 }>
           <User className="w-1/2 h-1/2" />
         </div>
       )
     }
     if (fallbackType === 'recipe') {
       return (
-        <div className={`flex items-center justify-center bg-muted text-muted-foreground ${className}`}>
+        <div className={lex items-center justify-center bg-muted text-muted-foreground }>
           <Utensils className="w-8 h-8 opacity-20" />
         </div>
       )
     }
-    return <div className={`bg-muted ${className}`} />
+    return <div className={g-muted } />
   }
 
-  // Next.js Image Optimization
-  // If private (signed URL), we can bypass optimization to avoid cache explosion,
-  // or rely on default behavior. Since Signed URLs change every hour, optimizing them
-  // fills the Next.js cache. We set unoptimized = true for private to be safe, unless Next.js 14 handles it.
   const shouldUnoptimize = unoptimized || isPrivate;
+
+  if (shouldUnoptimize) {
+    if (fill) {
+      return (
+        <img
+          src={src}
+          alt={alt}
+          className={bsolute inset-0 w-full h-full object-cover }
+          onError={() => setError(true)}
+        />
+      )
+    }
+    return (
+      <img
+        src={src}
+        alt={alt}
+        width={width}
+        height={height}
+        className={className}
+        onError={() => setError(true)}
+      />
+    )
+  }
 
   if (fill) {
     return (

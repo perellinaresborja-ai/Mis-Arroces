@@ -138,8 +138,23 @@ export async function updateRecipeFull(id: string, data: any) {
           }
         });
 
+        // TEMPORARY PHASE: Shift step_numbers to avoid UNIQUE(recipe_id, step_number) collision during reorder
+        const stepsToShift = steps.map((s: any, idx: number) => ({
+          id: s.db_id || s.id,
+          recipe_id: id,
+          step_number: idx + 10000,
+          instruction: s.instruction,
+          duration_minutes: s.duration_minutes ? Number(s.duration_minutes) : null,
+          notes: s.notes || undefined,
+          media_id: s.media_id || undefined,
+        }));
+        
+        const { error: shiftError } = await supabase.from("recipe_steps").upsert(stepsToShift);
+        if (shiftError) throw new Error("STEP SHIFT ERROR: " + shiftError.message);
+
+        // FINAL PHASE: Assign final step_numbers
         const stepsToUpsert = steps.map((s: any, idx: number) => ({
-          id: s.db_id || s.id || undefined,
+          id: s.db_id || s.id,
           recipe_id: id,
           step_number: idx + 1,
           instruction: s.instruction,
