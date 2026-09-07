@@ -125,6 +125,7 @@ export function CookModeClient({ recipe, userName, reset }: { recipe: CookModeRe
   }, [hasStarted, requestWakeLock]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // TTS
+  const currentUtterance = useRef<SpeechSynthesisUtterance | null>(null)
   const speakText = (text: string) => {
     if ('speechSynthesis' in window) {
       window.speechSynthesis.cancel() // clear queue
@@ -132,6 +133,10 @@ export function CookModeClient({ recipe, userName, reset }: { recipe: CookModeRe
       utterance.lang = 'es-ES'
       utterance.rate = 0.85 // Slower
       utterance.pitch = 1
+      
+      // Save to ref to prevent Garbage Collection from cutting off speech in Chrome
+      currentUtterance.current = utterance
+      
       window.speechSynthesis.speak(utterance)
     }
   }
@@ -197,6 +202,10 @@ export function CookModeClient({ recipe, userName, reset }: { recipe: CookModeRe
   }, [currentStepIndex, recipe.steps, isClient])
 
   // Timer Tick
+  const [autoAdvance, setAutoAdvance] = useState(false)
+  const autoAdvanceRef = useRef(autoAdvance)
+  useEffect(() => { autoAdvanceRef.current = autoAdvance }, [autoAdvance])
+
   useEffect(() => {
     const interval = setInterval(() => {
       let triggeredAlarms: number[] = []
@@ -242,6 +251,27 @@ export function CookModeClient({ recipe, userName, reset }: { recipe: CookModeRe
           osc.start()
           osc.stop(ctx.currentTime + 0.5)
         } catch(e) {}
+
+        if (autoAdvanceRef.current) {
+          // If auto-advance is enabled, go to the next step
+          setTimeout(() => {
+            setCurrentStepIndex(prevIndex => {
+              if (prevIndex === numKey && prevIndex + 1 < recipe.steps.length) {
+                const nextIdx = prevIndex + 1;
+                // Optionally start the next timer automatically if it has a duration
+                const nextStep = recipe.steps[nextIdx];
+                if (nextStep && nextStep.duration_minutes) {
+                  setTimers(prev => {
+                    const durationMs = nextStep.duration_minutes * 60 * 1000;
+                    return { ...prev, [nextIdx]: { isRunning: true, remainingMs: durationMs, endTime: Date.now() + durationMs } };
+                  });
+                }
+                return nextIdx;
+              }
+              return prevIndex;
+            });
+          }, 3000); // Wait 3 seconds so TTS has time to read the notes before switching!
+        }
       })
       
     }, 100)
@@ -417,10 +447,16 @@ export function CookModeClient({ recipe, userName, reset }: { recipe: CookModeRe
     <div className="min-h-[100dvh] bg-black text-white flex flex-col animate-in fade-in duration-300 select-none relative overflow-hidden">
       <TopActions />
       {/* Header */}
-      <header className="p-6 flex items-center justify-center shrink-0">
+      <header className="p-6 flex flex-col items-center justify-center shrink-0">
         <div className="text-center font-black text-white/40 uppercase tracking-widest text-sm mt-2 md:mt-0">
           Paso {currentStepIndex + 1} de {recipe.steps.length}
         </div>
+        <button 
+          onClick={() => setAutoAdvance(!autoAdvance)} 
+          className={`mt-3 text-xs font-bold px-3 py-1.5 rounded-full flex items-center gap-2 transition-colors ${autoAdvance ? 'bg-primary/20 text-primary border border-primary/30' : 'bg-white/10 text-white/60 border border-white/5 hover:bg-white/20'}`}
+        >
+          {autoAdvance ? 'Avance automático activado' : 'Activar avance automático'}
+        </button>
       </header>
 
       {/* Main Content */}
