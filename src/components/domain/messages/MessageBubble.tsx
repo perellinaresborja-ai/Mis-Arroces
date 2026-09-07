@@ -206,8 +206,14 @@ export function MessageBubble({ message, isOwn, onReply, currentUserId }: { mess
           )}
 
           {mType === 'AUDIO' && realtimeUrl && (
-            <div className="w-full min-w-[200px] mb-2">
-              <audio src={realtimeUrl} controls className="w-full h-10" />
+            <div className="w-full min-w-[200px] mb-2 flex flex-col gap-1">
+              <audio controls className="w-full h-10" preload="metadata" playsInline>
+                <source src={realtimeUrl} type={realtimeUrl.includes('.m4a') || realtimeUrl.includes('.mp4') ? 'audio/mp4' : 'audio/webm'} />
+                Tu navegador no soporta el elemento de audio.
+              </audio>
+              <a href={realtimeUrl} download target="_blank" rel="noopener noreferrer" className="text-[10px] text-muted-foreground underline text-right">
+                Descargar audio original
+              </a>
             </div>
           )}
 

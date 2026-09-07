@@ -44,15 +44,7 @@ export function MessageInput({ conversationId, receiverId, disabled, replyingTo,
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
       
-      let mimeType = 'audio/webm;codecs=opus'
-      if (!MediaRecorder.isTypeSupported(mimeType)) {
-        mimeType = 'audio/mp4' // fallback for Safari
-        if (!MediaRecorder.isTypeSupported(mimeType)) {
-          mimeType = '' // let browser choose default
-        }
-      }
-
-      const mediaRecorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined)
+      const mediaRecorder = new MediaRecorder(stream)
       mediaRecorderRef.current = mediaRecorder
       audioChunksRef.current = []
 
