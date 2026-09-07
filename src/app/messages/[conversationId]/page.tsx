@@ -2,6 +2,7 @@ import { BackButton } from "@/components/domain/BackButton"
 import { fetchMessages, updateReadStatus } from "@/app/actions/messaging"
 import { createClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
+import Link from "next/link"
 import { ClientChat } from "@/components/domain/messages/ClientChat"
 
 export default async function ConversationPage({ params }: { params: { conversationId: string } }) {
@@ -45,17 +46,19 @@ export default async function ConversationPage({ params }: { params: { conversat
     <div className="flex flex-col h-full w-full bg-background relative">
       <div className="flex items-center gap-3 p-4 border-b border-border bg-card shrink-0 sticky top-0 z-10">
         <div><BackButton /></div>
-        {otherMember?.user?.avatar?.storage_path ? (
-          <img src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/recipe_media/${otherMember.user.avatar.storage_path}`} className="w-10 h-10 rounded-full object-cover shrink-0" alt="" />
-        ) : (
-          <div className="w-10 h-10 bg-secondary rounded-full flex items-center justify-center font-bold shrink-0">
-            {otherMember?.user?.username?.[0]?.toUpperCase()}
+        <Link href={`/@${otherMember?.user?.username}`} className="flex items-center gap-3 hover:opacity-80 transition-opacity">
+          {otherMember?.user?.avatar?.storage_path ? (
+            <img src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/recipe_media/${otherMember.user.avatar.storage_path}`} className="w-10 h-10 rounded-full object-cover shrink-0" alt="" />
+          ) : (
+            <div className="w-10 h-10 bg-secondary rounded-full flex items-center justify-center font-bold shrink-0">
+              {otherMember?.user?.username?.[0]?.toUpperCase()}
+            </div>
+          )}
+          <div>
+            <h2 className="font-bold leading-none">{otherMember?.user?.display_name || otherMember?.user?.username}</h2>
+            <p className="text-xs text-muted-foreground mt-1">@{otherMember?.user?.username}</p>
           </div>
-        )}
-        <div>
-          <h2 className="font-bold leading-none">{otherMember?.user?.display_name || otherMember?.user?.username}</h2>
-          <p className="text-xs text-muted-foreground mt-1">@{otherMember?.user?.username}</p>
-        </div>
+        </Link>
       </div>
       
       <ClientChat 
