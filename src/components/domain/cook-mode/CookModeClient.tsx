@@ -126,7 +126,7 @@ export function CookModeClient({ recipe, userName, reset }: { recipe: CookModeRe
 
   // TTS
   const currentUtterance = useRef<SpeechSynthesisUtterance | null>(null)
-  const speakText = (text: string) => {
+  const speakText = (text: string, onEnd?: () => void) => {
     if ('speechSynthesis' in window) {
       window.speechSynthesis.cancel() // clear queue
       const utterance = new SpeechSynthesisUtterance(text)
@@ -134,10 +134,14 @@ export function CookModeClient({ recipe, userName, reset }: { recipe: CookModeRe
       utterance.rate = 0.85 // Slower
       utterance.pitch = 1
       
+      if (onEnd) utterance.onend = onEnd;
+      
       // Save to ref to prevent Garbage Collection from cutting off speech in Chrome
       currentUtterance.current = utterance
       
       window.speechSynthesis.speak(utterance)
+    } else {
+      if (onEnd) onEnd();
     }
   }
 
@@ -170,7 +174,24 @@ export function CookModeClient({ recipe, userName, reset }: { recipe: CookModeRe
         }
       }
       
-      if (initialText) speakText(initialText);
+      if (initialText) {
+        speakText(initialText, () => {
+          // If auto-advance is active, wait until speech ends to start the timer
+          if (autoAdvanceRef.current && currentStep.duration_minutes) {
+            setTimers(prev => {
+              const t = prev[currentStepIndex];
+              if (!t) {
+                const durationMs = currentStep.duration_minutes * 60 * 1000;
+                return { 
+                  ...prev, 
+                  [currentStepIndex]: { isRunning: true, remainingMs: durationMs, endTime: Date.now() + durationMs } 
+                };
+              }
+              return prev;
+            });
+          }
+        });
+      }
       lastSpokenStepIndex.current = currentStepIndex;
     }
 
@@ -200,30 +221,6 @@ export function CookModeClient({ recipe, userName, reset }: { recipe: CookModeRe
       }
     }
   }, [currentStepIndex, recipe.steps, isClient])
-
-  // Auto-start timer when entering a new step if autoAdvance is enabled
-  useEffect(() => {
-    if (isClient && hasStarted && autoAdvanceRef.current && currentStep) {
-      if (currentStep.duration_minutes) {
-        setTimers(prev => {
-          const t = prev[currentStepIndex];
-          // Only start if it hasn't been started yet
-          if (!t) {
-            const durationMs = currentStep.duration_minutes * 60 * 1000;
-            return { 
-              ...prev, 
-              [currentStepIndex]: { 
-                isRunning: true, 
-                remainingMs: durationMs, 
-                endTime: Date.now() + durationMs 
-              } 
-            };
-          }
-          return prev;
-        });
-      }
-    }
-  }, [currentStepIndex, hasStarted, isClient, currentStep])
 
   // Timer Tick
   const [autoAdvance, setAutoAdvance] = useState(false)
