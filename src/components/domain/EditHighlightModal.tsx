@@ -7,6 +7,7 @@ import { ConfirmModal } from "@/components/ui/ConfirmModal"
 export function EditHighlightModal({ highlight, archivedStories, onClose }: { highlight: { id: string, name: string, stories?: { id: string }[] }, archivedStories: { id: string, story_media?: { storage_path: string }[] }[], onClose: () => void }) {
   const [name, setName] = useState(highlight.name)
   const [selectedIds, setSelectedIds] = useState<string[]>(highlight.stories?.map((s: { id: string }) => s.id) || [])
+  const [coverId, setCoverId] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const router = useRouter()
   const supabase = createClient()
@@ -19,8 +20,9 @@ export function EditHighlightModal({ highlight, archivedStories, onClose }: { hi
     if (!name || selectedIds.length === 0) return
     setLoading(true)
     try {
-      // 1. Update highlight name
-      const path = archivedStories.find(s => s.id === selectedIds[0])?.story_media?.[0]?.storage_path;
+      // 1. Update highlight name and cover
+      const effectiveCoverId = coverId && selectedIds.includes(coverId) ? coverId : selectedIds[0];
+      const path = archivedStories.find(s => s.id === effectiveCoverId)?.story_media?.[0]?.storage_path;
       const coverUrl = path ? ('https://zvesoygqssyyojqyswwm.supabase.co/storage/v1/object/public/recipe_media/' + path) : undefined;
       // Re-replaced properly
       const updateData: any = { name };
@@ -85,14 +87,29 @@ export function EditHighlightModal({ highlight, archivedStories, onClose }: { hi
             const isSelected = selectedIds.includes(s.id);
             const path = s.story_media?.[0]?.storage_path;
             const url = path ? ('https://zvesoygqssyyojqyswwm.supabase.co/storage/v1/object/public/recipe_media/' + path) : null;
+            const isCover = coverId ? coverId === s.id : selectedIds[0] === s.id;
             return (
               <div 
                 key={s.id} 
-                className={('aspect-[9/16] bg-zinc-900 relative cursor-pointer ' + (isSelected ? 'ring-2 ring-primary ring-inset' : ''))}
-                onClick={() => toggle(s.id)}
+                className={('aspect-[9/16] bg-zinc-900 relative ' + (isSelected ? 'ring-2 ring-primary ring-inset' : ''))}
               >
-                {url && <img src={url} className="w-full h-full object-cover" />}
-                {isSelected && <div className="absolute inset-0 bg-primary/20 flex items-center justify-center"><div className="w-6 h-6 bg-primary rounded-full text-white flex items-center justify-center font-bold text-xs">✓</div></div>}
+                {url && <img src={url} className="w-full h-full object-cover cursor-pointer" onClick={() => toggle(s.id)} />}
+                {!url && <div className="w-full h-full cursor-pointer" onClick={() => toggle(s.id)}></div>}
+                
+                {isSelected && (
+                  <div className="absolute top-1 left-1 right-1 flex justify-between items-start pointer-events-none">
+                    <div className="w-5 h-5 bg-primary rounded-full text-white flex items-center justify-center font-bold text-[10px] pointer-events-auto">✓</div>
+                  </div>
+                )}
+                
+                {isSelected && url && (
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); setCoverId(s.id); }}
+                    className={`absolute bottom-1 left-1 right-1 text-[10px] py-1 font-bold rounded text-center transition-colors shadow-sm ${isCover ? 'bg-primary text-white' : 'bg-black/50 text-white/80 hover:bg-black/80'}`}
+                  >
+                    {isCover ? 'Portada' : 'Hacer portada'}
+                  </button>
+                )}
               </div>
             )
           })}
