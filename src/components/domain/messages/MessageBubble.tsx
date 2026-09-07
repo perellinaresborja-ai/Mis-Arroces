@@ -61,7 +61,7 @@ export function MessageBubble({ message, isOwn, onReply, currentUserId }: { mess
   useEffect(() => {
     if (mediaUrl) {
       setRealtimeUrl(mediaUrl);
-    } else if ((mType === 'IMAGE' || mType === 'VIDEO') && !mediaUrl) {
+    } else if ((mType === 'IMAGE' || mType === 'VIDEO' || mType === 'AUDIO') && !mediaUrl) {
       // This happens for brand new messages arriving via Realtime 
       // because Realtime doesn't join the message_attachments table.
       const fetchAttachment = async () => {
@@ -203,6 +203,12 @@ export function MessageBubble({ message, isOwn, onReply, currentUserId }: { mess
           
           {mType === 'VIDEO' && realtimeUrl && (
             <video src={realtimeUrl} controls playsInline className="rounded-xl w-full object-cover mb-2 max-h-64" />
+          )}
+
+          {mType === 'AUDIO' && realtimeUrl && (
+            <div className="w-full min-w-[200px] mb-2">
+              <audio src={realtimeUrl} controls className="w-full h-10" />
+            </div>
           )}
 
           {mType === 'LINK' && (

@@ -123,7 +123,7 @@ export function MessagesLayoutClient({ convs, children }: { convs: Record<string
                     )}
                   </div>
                   <p className="text-sm text-muted-foreground truncate mt-0.5">
-                    {c.status === 'REQUEST' ? 'Nueva solicitud' : (c.lastMessage?.body || 'Enviado un archivo adjunto')}
+                    {c.status === 'REQUEST' ? 'Nueva solicitud' : (c.lastMessage?.body || (c.lastMessage?.type === 'AUDIO' ? '🎤 Nota de voz' : 'Enviado un archivo adjunto'))}
                   </p>
                 </div>
 
