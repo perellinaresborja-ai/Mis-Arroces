@@ -15,8 +15,8 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://www.misarroces.es'),
   title: {
-    default: "Mis Arroces | La red social de los arroces",
-    template: "%s | Mis Arroces"
+    default: "misarroces | La red social de los arroces",
+    template: "%s | misarroces"
   },
   description: "Descubre, guarda y comparte las mejores recetas de arroces y paellas. Únete a la comunidad de chefs arroceros y muestra tus paellas al mundo.",
   manifest: "/manifest.json",
@@ -57,8 +57,6 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
   themeColor: "#F7F2E8", // Cream background
 };
 

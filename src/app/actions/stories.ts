@@ -1,4 +1,4 @@
-﻿"use server"
+"use server"
 
 import { createClient } from "@/lib/supabase/server"
 import { createClient as createAdminClient } from "@supabase/supabase-js"
@@ -428,7 +428,7 @@ export async function submitQuestionReply(storyId: string, ownerId: string, ques
   }
 
   if (!story.allow_replies) {
-    throw new Error("Las respuestas estÃ¡n desactivadas para esta historia");
+    throw new Error("Las respuestas están desactivadas para esta historia");
   }
 
   const { data: isBlocked } = await supabase.rpc('is_blocked', { uid1: user.id, uid2: story.owner_id });
@@ -548,7 +548,7 @@ export async function getStoryInsights(storyId: string) {
       const avg = total ? Math.round(responses!.reduce((acc, curr) => acc + curr.value, 0) / total) : 0;
       sliders.push({
         prompt: ov.payload?.question || '',
-        emoji: ov.payload?.emoji || 'Ã°Å¸ËœÂ',
+        emoji: ov.payload?.emoji || '😍',
         average: avg,
         total
       });

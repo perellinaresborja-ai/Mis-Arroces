@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 import { MediaImage } from "@/components/domain/MediaImage"
 import { useState } from "react"
 import { CreateHighlightModal } from "./CreateHighlightModal"
@@ -41,7 +41,7 @@ export function ProfileHighlightsClient({ highlights, archivedStories, isMe }: {
             <div className="w-16 h-16 rounded-full border-2 border-primary/20 bg-muted overflow-hidden flex items-center justify-center p-0.5">
                <div className="w-full h-full rounded-full bg-card overflow-hidden relative">
                  {h.cover_url ? <MediaImage src={h.cover_url} alt={"Image"} className="w-full h-full object-cover" fill={true} /> : <div className="w-full h-full bg-muted-foreground/20" />}
-                 {isMe && <button onClick={(e) => { e.stopPropagation(); setEditingHighlight(h); }} className="absolute -top-1 -right-1 bg-zinc-900 border border-white/20 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs z-10 hover:scale-110 transition-transform">âœŽ</button>}
+                 {isMe && <button onClick={(e) => { e.stopPropagation(); setEditingHighlight(h); }} className="absolute -top-1 -right-1 bg-zinc-900 border border-white/20 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs z-10 hover:scale-110 transition-transform">✏️</button>}
                </div>
             </div>
             <span className="text-xs font-medium truncate w-16 text-center">{h.name}</span>

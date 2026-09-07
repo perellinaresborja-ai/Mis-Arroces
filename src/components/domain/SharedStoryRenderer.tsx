@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 import React from 'react';
 
 import { CSSProperties, useEffect, Dispatch, SetStateAction } from "react"
@@ -460,7 +460,7 @@ export function renderOverlayContent(overlay: StoryOverlay, mode: string, ctx?: 
               </div>
             ) : (
               <div className="text-sm font-bold text-center text-green-600 p-2">
-                Â¡Enviado!
+                ¡Enviado!
               </div>
             )}
           </div>

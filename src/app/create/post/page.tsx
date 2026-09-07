@@ -4,7 +4,7 @@ import { redirect } from "next/navigation"
 import { PostForm } from "./PostForm"
 
 export const metadata = {
-  title: "Nueva Publicación | Mis Arroces",
+  title: "Nueva Publicación",
 }
 
 export default async function CreatePostPage() {
@@ -20,6 +20,7 @@ export default async function CreatePostPage() {
     .from('recipes')
     .select('id, name')
     .eq('owner_id', user.id)
+    .eq('status', 'PUBLISHED')
     .order('created_at', { ascending: false })
 
   return (

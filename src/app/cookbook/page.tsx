@@ -111,7 +111,7 @@ export default async function CookbookPage(props: { searchParams?: Promise<{ tab
           </div>
         ) : (
           <div className="text-center py-20 px-4">
-            <p className="text-muted-foreground text-lg font-medium">TodavÃ­a no has registrado ningÃºn arroz.</p>
+            <p className="text-muted-foreground text-lg font-medium">Todavía no has registrado ningún arroz.</p>
             <Link href="/discover">
               <Button variant="outline" className="mt-4 rounded-xl font-bold">Descubrir arroces</Button>
             </Link>
@@ -127,7 +127,7 @@ export default async function CookbookPage(props: { searchParams?: Promise<{ tab
       ) : (
         <div className="text-center py-20 px-4">
           <p className="text-muted-foreground text-lg font-medium">
-            {tab === "mine" ? "TodavÃ­a no tienes recetas propias." : (tab === "saved" ? "No tienes arroces guardados." : "Busca un arroz que te apetezca y mÃ¡rcalo para cocinarlo.")}
+            {tab === "mine" ? "Todavía no tienes recetas propias." : (tab === "saved" ? "No tienes arroces guardados." : "Busca un arroz que te apetezca y márcalo para cocinarlo.")}
           </p>
           <Link href={tab === "mine" ? "/create/recipe" : "/discover"}>
             <Button variant="outline" className="mt-4 rounded-xl font-bold">

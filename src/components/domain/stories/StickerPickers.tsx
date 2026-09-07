@@ -90,7 +90,7 @@ export function MentionPicker({ onSelect }: { onSelect: (u: { id: string, title:
     title="Mención" icon={UserIcon} placeholder="Buscar usuario..."
     onSelect={onSelect}
     fetchResults={async (q) => {
-      const { data, error } = await supabase.from('profiles').select('id, username, display_name').ilike('username', `%${q}%`).limit(10)
+      const { data, error } = await supabase.from('profiles').select('id, username, display_name').or(`username.ilike.%${q}%,display_name.ilike.%${q}%`).limit(10)
       if (error) console.error("MentionPicker error:", error)
       return (data || []).map(u => ({
         id: u.id,
@@ -108,7 +108,7 @@ export function RecipePicker({ onSelect }: { onSelect: (r: { id: string, title: 
     title="Receta" icon={ChefHat} placeholder="Buscar receta..."
     onSelect={onSelect}
     fetchResults={async (q) => {
-      const { data, error } = await supabase.from('recipes').select('id, name, profiles(username)').ilike('name', `%${q}%`).limit(10)
+      const { data, error } = await supabase.from('recipes').select('id, name, profiles!recipes_owner_id_fkey(username)').ilike('name', `%${q}%`).eq('status', 'PUBLISHED').limit(10)
       if (error) console.error("RecipePicker error:", error)
       return (data || []).map(r => ({
         id: r.id,
@@ -160,7 +160,7 @@ export function ProfilePicker({ onSelect }: { onSelect: (u: { id: string, title:
     title="Perfil" icon={UserIcon} placeholder="Buscar perfil..."
     onSelect={onSelect}
     fetchResults={async (q) => {
-      const { data, error } = await supabase.from('profiles').select('id, username, display_name').ilike('username', `%${q}%`).limit(10)
+      const { data, error } = await supabase.from('profiles').select('id, username, display_name').or(`username.ilike.%${q}%,display_name.ilike.%${q}%`).limit(10)
       if (error) console.error("ProfilePicker error:", error)
       return (data || []).map((u: { id: string, username: string, display_name: string | null }) => ({
         id: u.id,

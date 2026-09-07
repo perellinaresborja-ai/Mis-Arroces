@@ -13,6 +13,7 @@ import { WantToCookButton } from "@/components/domain/WantToCookButton"
 import { SaveRecipeButton } from "@/components/domain/SaveRecipeButton"
 import { AddToCartButton } from "@/components/domain/AddToCartButton"
 import { LoHeCocinadoButton } from "@/components/domain/LoHeCocinadoButton"
+import { RecipeFichaClient } from "@/components/domain/RecipeFichaClient"
 
 import { ViewTracker } from "@/components/domain/ViewTracker"
 import { ExpandableImage } from "@/components/ui/ExpandableImage"
@@ -34,16 +35,16 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   const authorName = (recipe.profiles as any)?.username || 'un chef arrocero';
 
   return {
-    title: `${recipe.name} | Mis Arroces`,
+    title: `${recipe.name}`,
     description: recipe.description || `Deliciosa receta de ${recipe.name} por @${authorName}. Descubre cómo prepararla paso a paso en Mis Arroces.`,
     openGraph: {
-      title: `${recipe.name} | Mis Arroces`,
+      title: `${recipe.name}`,
       description: recipe.description || `Aprende a preparar ${recipe.name} paso a paso.`,
       images: [imageUrl]
     },
     twitter: {
       card: "summary_large_image",
-      title: `${recipe.name} | Mis Arroces`,
+      title: `${recipe.name}`,
       description: recipe.description || `Aprende a preparar ${recipe.name} paso a paso.`,
       images: [imageUrl]
     }
@@ -138,7 +139,54 @@ export default async function RecipeDetailPage({
 
   // Fetch all units for nutrition calculation
   const { data: unitsData } = await supabase.from("units").select("*");
-  const nutrition = calculateNutrition(recipe.ingredients as any, unitsData || [], recipe.base_servings || 1);
+
+  // Inject Rice and Broth if they are only in the Ficha Técnica
+  const ingredientsForNutrition = [...(recipe.ingredients as any || [])];
+  
+  const hasRice = ingredientsForNutrition.some(ing => 
+    ing.canonical?.normalized_name?.toLowerCase().includes('arroz') || 
+    ing.ingredient?.normalized_name?.toLowerCase().includes('arroz') ||
+    ing.display_text?.toLowerCase().includes('arroz')
+  );
+
+  const hasStock = ingredientsForNutrition.some(ing => {
+    const text = (ing.canonical?.normalized_name || ing.ingredient?.normalized_name || ing.display_text || '').toLowerCase();
+    return text.includes('caldo') || text.includes('agua') || text.includes('fumet') || text.includes('fondo');
+  });
+
+  if ((!hasRice && recipe.rice_qty) || (!hasStock && recipe.stock_qty)) {
+    const queries = [];
+    if (!hasRice && recipe.rice_qty) queries.push({ type: 'arroz', qty: recipe.rice_qty });
+    if (!hasStock && recipe.stock_qty) queries.push({ type: 'caldo', qty: recipe.stock_qty });
+    
+    for (const q of queries) {
+      const searchName = (q.type === 'arroz' && recipe.variety?.name) ? `arroz ${recipe.variety.name.toLowerCase()}` : q.type;
+      let { data: defaultIng } = await supabase.from('ingredients')
+        .select('*')
+        .ilike('normalized_name', `%${searchName}%`)
+        .eq('nutrition_complete', true)
+        .limit(1)
+        .maybeSingle();
+
+      if (!defaultIng && q.type === 'arroz') {
+         const fallback = await supabase.from('ingredients').select('*').ilike('normalized_name', '%arroz%').eq('nutrition_complete', true).limit(1).maybeSingle();
+         defaultIng = fallback.data;
+      }
+        
+      if (defaultIng) {
+        const gramUnit = unitsData?.find(u => u.name.toLowerCase() === 'g' || u.name.toLowerCase() === 'ml');
+        ingredientsForNutrition.push({
+          normalized_quantity: q.qty,
+          unit_id: gramUnit?.id,
+          display_text: q.type === 'arroz' ? 'Arroz (Ficha)' : 'Caldo (Ficha)',
+          ingredient: defaultIng,
+          unit: gramUnit
+        });
+      }
+    }
+  }
+
+  const nutrition = calculateNutrition(ingredientsForNutrition, unitsData || [], recipe.base_servings || 1);
 
   // Derived Values
   const totalDuration = (recipe.cook_time || 0) + (recipe.rest_time || 0)
@@ -209,78 +257,7 @@ export default async function RecipeDetailPage({
               </p>
             )}
 
-            {/* Elegant Stats Row */}
-            <div className="flex flex-wrap items-center gap-x-8 lg:gap-x-12 gap-y-5 mt-6 md:mt-0 py-5 border-y border-border">
-              {recipe.base_servings && (
-                <div className="flex items-center gap-3 text-foreground">
-                  <Users className="w-5 h-5 text-muted-foreground/80" />
-                  <span className="font-semibold text-[15px]">{recipe.base_servings} pax</span>
-                </div>
-              )}
-              {recipe.style?.name && (
-                <div className="flex items-center gap-3 text-foreground">
-                  <ChefHat className="w-5 h-5 text-muted-foreground/80" />
-                  <span className="font-semibold text-[15px]">{recipe.style.name}</span>
-                </div>
-              )}
-              {recipe.heat?.name && (
-                <div className="flex items-center gap-3 text-foreground">
-                  <Flame className="w-5 h-5 text-muted-foreground/80" />
-                  <span className="font-semibold text-[15px]">{recipe.heat.name.split('/')[0]}</span>
-                </div>
-              )}
-              {recipe.cook_time && (
-                <div className="flex items-center gap-3 text-foreground">
-                  <Clock className="w-5 h-5 text-muted-foreground/80" />
-                  <span className="font-semibold text-[15px]">{recipe.cook_time} min</span>
-                </div>
-              )}
-              {recipe.rest_time && (
-                <div className="flex items-center gap-3 text-foreground">
-                  <Hourglass className="w-5 h-5 text-muted-foreground/80" />
-                  <span className="font-semibold text-[15px]">{recipe.rest_time}m reposo</span>
-                </div>
-              )}
-              
-            </div>
-
-                        {/* Technical Data Card */}
-            <div className="mt-8 md:mt-0 bg-muted/20 rounded-2xl p-5 border border-border/50 w-full">
-              <h3 className="font-bold text-base mb-4 text-charcoal font-serif uppercase tracking-wider">Ficha Técnica</h3>
-              <div className="flex flex-row flex-wrap sm:flex-nowrap justify-between gap-4 sm:gap-2 md:gap-4 text-sm">
-                {recipe.variety && (
-                  <div className="flex flex-col">
-                    <span className="text-muted-foreground text-[10px] md:text-xs uppercase tracking-wider mb-1">Variedad de arroz</span>
-                    <span className="font-semibold text-foreground">{recipe.variety.name}</span>
-                  </div>
-                )}
-                {recipe.rice_qty && (
-                  <div className="flex flex-col">
-                    <span className="text-muted-foreground text-[10px] md:text-xs uppercase tracking-wider mb-1">Cantidad de arroz</span>
-                    <span className="font-semibold text-foreground">{recipe.rice_qty}g</span>
-                  </div>
-                )}
-                {recipe.stock_qty && (
-                  <div className="flex flex-col">
-                    <span className="text-muted-foreground text-[10px] md:text-xs uppercase tracking-wider mb-1">Cantidad de caldo</span>
-                    <span className="font-semibold text-foreground">{recipe.stock_qty}ml</span>
-                  </div>
-                )}
-                {vesselDetails?.diameter_cm && (
-                  <div className="flex flex-col">
-                    <span className="text-muted-foreground text-[10px] md:text-xs uppercase tracking-wider mb-1">Medida de paella</span>
-                    <span className="font-semibold text-foreground">{vesselDetails.diameter_cm} cm</span>
-                  </div>
-                )}
-                {ratio && (
-                  <div className="flex flex-col">
-                    <span className="text-muted-foreground text-[10px] md:text-xs uppercase tracking-wider mb-0.5">Proporción</span>
-                    <span className="text-[9px] font-bold text-muted-foreground/60 tracking-widest leading-none mb-1">ARROZ:CALDO</span>
-                    <span className="font-semibold text-foreground">1:{ratio}</span>
-                  </div>
-                )}
-              </div>
-            </div>
+            <RecipeFichaClient recipe={recipe} vesselDetails={vesselDetails} baseRatio={ratio} />
               
               <div className="w-full mt-8 md:mt-0 flex justify-center">
                 <div className="w-full sm:w-2/3 md:w-3/4">

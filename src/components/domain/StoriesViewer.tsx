@@ -610,7 +610,7 @@ export function StoriesViewer({ groupedStories: _groupedStories, initialGroupInd
       <ConfirmModal
         isOpen={showConfirm}
         title="Eliminar historia"
-        message="Â¿Estás seguro de que quieres eliminar esta historia de forma permanente?"
+        message="¿Estás seguro de que quieres eliminar esta historia de forma permanente?"
         confirmText="Eliminar"
         isDestructive={true}
         onConfirm={confirmDelete}

@@ -98,8 +98,8 @@ export function calculateNutrition(
         if (Number(ri.ingredient.default_grams_per_unit || 0) > 0) {
            quantityIn100g = (qty * Number(ri.ingredient.default_grams_per_unit)) / 100;
         } else {
-           validIngredients--; // We can't calculate this accurately
-           continue; 
+           // Asumir gramos si no hay unidad, especialmente crítico para arroz/caldo
+           quantityIn100g = qty / 100;
         }
       }
 

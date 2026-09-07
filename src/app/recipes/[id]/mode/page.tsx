@@ -19,7 +19,7 @@ export default async function RecipeCookModePage({ params, searchParams }: { par
   const { data: recipe, error } = await supabase
     .from("recipes")
     .select(`
-      id, name, rice_qty, stock_qty, base_servings,
+      id, name, rice_qty, stock_qty, base_servings, rest_time,
       variety:rice_varieties(name),
       recipe_vessels(diameter_cm),
       steps:recipe_steps(*, media:media_assets(storage_path)),
@@ -48,6 +48,20 @@ export default async function RecipeCookModePage({ params, searchParams }: { par
     }
   }
 
+  const sortedSteps = [...(recipe.steps || [])].sort((a: any, b: any) => a.step_number - b.step_number);
+  
+  if (recipe.rest_time && recipe.rest_time > 0) {
+    sortedSteps.push({
+      id: "virtual-rest-step",
+      recipe_id: recipe.id,
+      step_number: sortedSteps.length > 0 ? sortedSteps[sortedSteps.length - 1].step_number + 1 : 1,
+      instruction: "Deja reposar el arroz",
+      notes: "El reposo es fundamental para que el arroz asiente y absorba los últimos sabores.",
+      duration_minutes: recipe.rest_time,
+      media: null
+    });
+  }
+
   // Prepare recipe data for the client
   const clientRecipe = {
     id: recipe.id,
@@ -59,7 +73,7 @@ export default async function RecipeCookModePage({ params, searchParams }: { par
     stock_qty: recipe.stock_qty ? recipe.stock_qty * scaleRatio : null,
     variety_name: (recipe.variety as any)?.name || null,
     diameter_cm: recipe.recipe_vessels?.[0]?.diameter_cm || null,
-    steps: [...(recipe.steps || [])].sort((a: any, b: any) => a.step_number - b.step_number),
+    steps: sortedSteps,
   }
 
   return (

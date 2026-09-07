@@ -311,8 +311,8 @@ export function CookModeClient({ recipe, userName, reset }: { recipe: CookModeRe
   const TopActions = () => {
     return (
       <div className="absolute top-4 right-4 md:top-6 md:right-6 flex items-center z-50">
-        <Link href={`/recipes/${recipe.id}`} onClick={() => localStorage.removeItem(`cook-mode-${recipe.id}`)} className="p-2 text-white/50 hover:text-white transition-colors">
-          <X className="w-8 h-8" />
+        <Link href={`/recipes/${recipe.id}`} onClick={() => localStorage.removeItem(`cook-mode-${recipe.id}`)} className="p-2 text-white/50 hover:text-white transition-colors" aria-label="Cerrar modo cocina">
+          <X className="w-8 h-8" aria-hidden="true" />
         </Link>
       </div>
     )
@@ -474,14 +474,20 @@ export function CookModeClient({ recipe, userName, reset }: { recipe: CookModeRe
                   <button 
                     onClick={() => resetTimer(currentStepIndex, step.duration_minutes)}
                     className="w-16 py-4 rounded-2xl bg-white/20 text-white flex items-center justify-center hover:bg-white/30 active:scale-95 transition-transform shrink-0"
+                    aria-label="Reiniciar temporizador"
                   >
-                    <RotateCcw className="w-5 h-5" />
+                    <RotateCcw className="w-5 h-5" aria-hidden="true" />
                   </button>
                 )}
               </div>
             </div>
           )}
 
+          {step.notes && (
+            <div className={`mt-2 p-4 rounded-2xl border ${timer?.remainingMs === 0 ? 'bg-primary/20 border-primary/50 text-primary animate-pulse' : 'bg-white/5 border-white/10 text-white/80'} text-center md:text-lg font-medium leading-relaxed`}>
+              {step.notes}
+            </div>
+          )}
         </div>
       </div>
     </main>

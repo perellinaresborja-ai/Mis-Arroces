@@ -3,7 +3,7 @@ import { redirect } from "next/navigation"
 import { ProfileInsightsView } from "./ProfileInsightsView"
 
 export const metadata = {
-  title: 'Mis Estadísticas | Mis Arroces',
+  title: 'Mis Estadísticas',
 }
 
 export default async function ProfileInsightsPage() {

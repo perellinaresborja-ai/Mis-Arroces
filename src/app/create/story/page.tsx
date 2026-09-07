@@ -1,9 +1,10 @@
-﻿import { StoryCreator } from "@/components/domain/StoryCreator"
+import { StoryCreator } from "@/components/domain/StoryCreator"
 import { createClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
+import { Metadata } from "next"
 
-export const metadata = {
-  title: "Crear Story | Mis Arroces",
+export const metadata: Metadata = {
+  title: "Crear Story",
   description: "Crea una nueva Story en Mis Arroces",
 }
 

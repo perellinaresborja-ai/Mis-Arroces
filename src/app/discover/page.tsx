@@ -57,20 +57,51 @@ export default async function DiscoverPage(props: { searchParams?: Promise<{ q?:
     const searchQ = q.startsWith("@") ? q.substring(1) : q
 
     if (tab === "todo" || tab === "arroces") {
-      let req = supabase.from("recipes").select(`
+      const selectFields = `
         *,
         author:profiles!recipes_owner_id_fkey(id, username, display_name, avatar:media_assets!fk_profiles_avatar(storage_path)),
         recipe_media(display_order, media:media_assets(id, storage_path)),
         variety:rice_varieties(name),
         style:rice_styles(name)
-      `).eq("status", "PUBLISHED").order("created_at", { ascending: false }).limit(20)
-      if (q) req = req.ilike("name", `%${q}%`)
-      
+      `;
+      let req = supabase.from("recipes").select(selectFields).eq("status", "PUBLISHED").order("created_at", { ascending: false }).limit(20)
+      if (q) req = req.or(`name.ilike.%${q}%`)
       if (variety) req = req.eq("variety_id", variety)
       if (style) req = req.eq("style_id", style)
-      
       const { data } = await req
-      if (data) searchResults.recipes = data
+      
+      let merged = [...(data || [])]
+      
+      if (q) {
+        // Find matching ingredients
+        const { data: ingData } = await supabase.from('ingredients').select('id').ilike('canonical_name', `%${q}%`);
+        const ingIds = (ingData || []).map(i => i.id);
+        
+        let req2 = supabase.from("recipes").select(`
+          ${selectFields},
+          recipe_ingredients!inner(canonical_ingredient_id, display_text)
+        `).eq("status", "PUBLISHED").limit(20);
+        
+        if (variety) req2 = req2.eq("variety_id", variety)
+        if (style) req2 = req2.eq("style_id", style)
+        
+        if (ingIds.length > 0) {
+           req2 = req2.or(`recipe_ingredients.display_text.ilike.%${q}%,recipe_ingredients.canonical_ingredient_id.in.(${ingIds.join(',')})`)
+        } else {
+           req2 = req2.ilike('recipe_ingredients.display_text', `%${q}%`)
+        }
+        
+        const { data: byIng } = await req2
+        if (byIng) {
+          byIng.forEach(b => {
+             if (!merged.find(m => m.id === b.id)) {
+                merged.push(b);
+             }
+          });
+        }
+      }
+      
+      searchResults.recipes = merged
     }
 
     if (tab === "todo" || tab === "personas") {
@@ -278,11 +309,13 @@ export default async function DiscoverPage(props: { searchParams?: Promise<{ q?:
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4">
           
           {/* Arroces Results */}
-          {(tab === "todo" || tab === "arroces") && searchResults.recipes.length > 0 && (
+          {(tab === "todo" || tab === "arroces") && (
             <section className="space-y-4">
-              {tab === "todo" && <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wider">Arroces</h3>}
-              <div className="grid grid-cols-3 gap-2 md:gap-4">
-                {searchResults.recipes.map((r) => {
+              {tab === "todo" && searchResults.recipes.length > 0 && <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wider">Arroces</h3>}
+              
+              {searchResults.recipes.length > 0 ? (
+                <div className="grid grid-cols-3 gap-2 md:gap-4">
+                  {searchResults.recipes.map((r) => {
                   const media = r.recipe_media?.[0]?.media?.storage_path
                   const imgUrl = media ? `${"https://zvesoygqssyyojqyswwm.supabase.co"}/storage/v1/object/public/recipe_media/${media}` : null
                   return (
@@ -306,7 +339,18 @@ export default async function DiscoverPage(props: { searchParams?: Promise<{ q?:
                     </Link>
                   )
                 })}
-              </div>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center p-8 bg-card border border-border rounded-2xl text-center space-y-3">
+                  <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-2">
+                    <span className="text-xl">🔍</span>
+                  </div>
+                  <h4 className="font-bold">No hay recetas que coincidan</h4>
+                  <p className="text-sm text-muted-foreground">
+                    No hemos encontrado arroces con esos ingredientes o título.
+                  </p>
+                </div>
+              )}
             </section>
           )}
 

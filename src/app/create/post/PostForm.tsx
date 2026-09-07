@@ -74,17 +74,17 @@ export function PostForm({ recipes }: { recipes: { id: string, name: string }[] 
 
       <div className="space-y-2">
         <Label htmlFor="recipeId">Vincular Receta (Opcional)</Label>
-        <select name="recipeId" id="recipeId" className="w-full h-12 px-3 rounded-xl border border-input bg-background">
+        <select name="recipeId" id="recipeId" className="w-full h-12 px-3 rounded-xl border border-input bg-background overflow-hidden text-ellipsis">
           <option value="">No vincular receta</option>
           {recipes?.map(r => (
-            <option key={r.id} value={r.id}>{r.name}</option>
+            <option key={r.id} value={r.id} className="truncate">{r.name}</option>
           ))}
         </select>
       </div>
 
       <div className="space-y-2">
         <Label htmlFor="visibility">Privacidad</Label>
-        <select name="visibility" id="visibility" className="w-full h-12 px-3 rounded-xl border border-input bg-background">
+        <select name="visibility" id="visibility" className="w-full h-12 px-3 rounded-xl border border-input bg-background overflow-hidden text-ellipsis">
           <option value="PUBLIC">Público</option>
           <option value="FOLLOWERS">Solo Seguidores</option>
           <option value="PRIVATE">Solo Yo / Personas Concretas</option>

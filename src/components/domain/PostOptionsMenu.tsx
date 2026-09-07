@@ -143,7 +143,7 @@ export function PostOptionsMenu({
       <ConfirmModal
         isOpen={showConfirm}
         title="Eliminar publicación"
-        message="Â¿Seguro que quieres eliminar esta publicación de forma permanente?"
+        message="¿Seguro que quieres eliminar esta publicación de forma permanente?"
         confirmText="Eliminar"
         isDestructive={true}
         onConfirm={confirmEliminar}
