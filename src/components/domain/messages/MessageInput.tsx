@@ -42,7 +42,12 @@ export function MessageInput({ conversationId, receiverId, disabled, replyingTo,
 
   const startRecording = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        audio: { 
+          echoCancellation: false, 
+          noiseSuppression: false 
+        } 
+      })
       
       const mediaRecorder = new MediaRecorder(stream)
       mediaRecorderRef.current = mediaRecorder
@@ -68,6 +73,7 @@ export function MessageInput({ conversationId, receiverId, disabled, replyingTo,
 
   const cancelRecording = () => {
     if (mediaRecorderRef.current) {
+      mediaRecorderRef.current.onstop = null; // Clear handler just in case
       mediaRecorderRef.current.stop()
       mediaRecorderRef.current.stream.getTracks().forEach(t => t.stop())
     }
@@ -80,10 +86,8 @@ export function MessageInput({ conversationId, receiverId, disabled, replyingTo,
   const stopRecordingAndSend = () => {
     if (!mediaRecorderRef.current) return
     
-    // Create a promise to wait for the stop event which finalizes chunks
     return new Promise<void>((resolve) => {
       mediaRecorderRef.current!.onstop = async () => {
-        mediaRecorderRef.current!.stream.getTracks().forEach(t => t.stop())
         if (timerRef.current) clearInterval(timerRef.current)
         
         setIsRecording(false)
@@ -94,8 +98,11 @@ export function MessageInput({ conversationId, receiverId, disabled, replyingTo,
         const audioBlob = new Blob(audioChunksRef.current, { type: mimeType })
         audioChunksRef.current = []
         
+        // Stop tracks AFTER blob is safely created
+        mediaRecorderRef.current!.stream.getTracks().forEach(t => t.stop())
+        
         if (finalTime < 1 || audioBlob.size === 0) {
-           return resolve() // prevent sending empty/accidental short clicks
+           return resolve()
         }
         
         const ext = mimeType.includes('mp4') ? 'm4a' : 'webm'
@@ -104,6 +111,9 @@ export function MessageInput({ conversationId, receiverId, disabled, replyingTo,
         await sendPayload(audioFile, 'AUDIO', mimeType)
         resolve()
       }
+      
+      // Request data to flush buffer before stopping
+      try { mediaRecorderRef.current!.requestData(); } catch(e){}
       mediaRecorderRef.current!.stop()
     })
   }
