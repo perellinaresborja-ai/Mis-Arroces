@@ -220,9 +220,15 @@ export async function markStoryViewed(storyId: string) {
   const { data: story } = await supabase.from("stories").select("owner_id").eq("id", storyId).single()
   if (story?.owner_id === user.id) return
 
-  // INSERT ON CONFLICT DO NOTHING relies on unique constraint (story_id, viewer_id)
-  await supabase.from("story_views").upsert({ story_id: storyId, viewer_id: user.id }, { onConflict: "story_id, viewer_id", ignoreDuplicates: true })
-    if (story) await trackEvent("STORY_VIEW", "STORY", storyId, story.owner_id)
+  // RLS doesn't allow UPDATE, so upsert can fail. We use insert and ignore unique violation (23505)
+  const { error } = await supabase.from("story_views").insert({ story_id: storyId, viewer_id: user.id })
+  
+  // 23505 is unique_violation, meaning they already viewed it
+  if (!error || error.code === '23505') {
+    if (story && !error) await trackEvent("STORY_VIEW", "STORY", storyId, story.owner_id)
+  } else {
+    console.error("Error marking story viewed:", error)
+  }
 }
 
 export async function fetchStoryViewers(storyId: string) {
