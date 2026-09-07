@@ -50,19 +50,19 @@ export function MediaImage({
   if (!src || error) {
     if (fallbackType === 'avatar') {
       return (
-        <div className={lex items-center justify-center bg-primary/10 text-primary/50 }>
+        <div className={`flex items-center justify-center bg-primary/10 text-primary/50 ${className}`}>
           <User className="w-1/2 h-1/2" />
         </div>
       )
     }
     if (fallbackType === 'recipe') {
       return (
-        <div className={lex items-center justify-center bg-muted text-muted-foreground }>
+        <div className={`flex items-center justify-center bg-muted text-muted-foreground ${className}`}>
           <Utensils className="w-8 h-8 opacity-20" />
         </div>
       )
     }
-    return <div className={g-muted } />
+    return <div className={`bg-muted ${className}`} />
   }
 
   const shouldUnoptimize = unoptimized || isPrivate;
@@ -73,7 +73,7 @@ export function MediaImage({
         <img
           src={src}
           alt={alt}
-          className={bsolute inset-0 w-full h-full object-cover }
+          className={`absolute inset-0 w-full h-full object-cover ${className}`}
           onError={() => setError(true)}
         />
       )
