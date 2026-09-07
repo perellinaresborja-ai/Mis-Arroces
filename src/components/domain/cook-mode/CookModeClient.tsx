@@ -479,12 +479,6 @@ export function CookModeClient({ recipe, userName, reset }: { recipe: CookModeRe
         <div className="text-center font-black text-white/40 uppercase tracking-widest text-sm mt-2 md:mt-0">
           Paso {currentStepIndex + 1} de {recipe.steps.length}
         </div>
-        <button 
-          onClick={() => setAutoAdvance(!autoAdvance)} 
-          className={`mt-3 text-xs font-bold px-3 py-1.5 rounded-full flex items-center gap-2 transition-colors ${autoAdvance ? 'bg-primary/20 text-primary border border-primary/30' : 'bg-white/10 text-white/60 border border-white/5 hover:bg-white/20'}`}
-        >
-          {autoAdvance ? 'Avance automático activado' : 'Activar avance automático'}
-        </button>
       </header>
 
       {/* Main Content */}
@@ -544,6 +538,13 @@ export function CookModeClient({ recipe, userName, reset }: { recipe: CookModeRe
                   </button>
                 )}
               </div>
+              
+              <button 
+                onClick={() => setAutoAdvance(!autoAdvance)} 
+                className={`w-full py-2.5 mt-1 text-sm font-bold rounded-xl flex items-center justify-center gap-2 transition-colors ${autoAdvance ? 'bg-primary/20 text-primary border border-primary/30' : 'bg-black/20 text-white/60 border border-white/5 hover:bg-black/40'}`}
+              >
+                {autoAdvance ? '✅ Avance automático activado' : '⚪ Avance automático desactivado'}
+              </button>
             </div>
           )}
 
