@@ -130,10 +130,13 @@ export function MessageInput({ conversationId, receiverId, disabled, replyingTo,
         const ext = filePayload.name.split('.').pop()
         const path = `${conversationId}/${crypto.randomUUID()}.${ext}`
         
+        // Use a clean MIME type for the Content-Type header
+        const cleanMime = mimeOverride ? mimeOverride.split(';')[0] : filePayload.type.split(';')[0];
+        
         const { error: uploadError } = await supabase.storage.from('message_media').upload(path, filePayload, {
           cacheControl: '3600',
           upsert: false,
-          contentType: mimeOverride || filePayload.type
+          contentType: cleanMime
         })
         if (uploadError) throw uploadError
         mediaPath = path
@@ -150,31 +153,29 @@ export function MessageInput({ conversationId, receiverId, disabled, replyingTo,
       const { data: userData } = await supabase.auth.getUser()
       if (!userData?.user) throw new Error("No user")
 
-      const { data: msg, error: insertError } = await supabase.from('messages').insert({
+      const { data: msgData, error: msgErr } = await supabase.from('messages').insert({
         conversation_id: conversationId,
         sender_id: userData.user.id,
         type: messageType,
-        body: actualContent || null,
-        reply_to_id: replyingTo?.id || null,
-        entity_id: null
-      }).select().single()
+        body: actualContent,
+        reply_to_id: replyingTo?.id || null
+      }).select('id').single()
 
-      if (insertError || !msg) {
-        if (mediaPath) await supabase.storage.from('message_media').remove([mediaPath]).catch(()=>null)
-        throw insertError || new Error("Failed to insert message")
+      if (msgErr || !msgData) {
+        throw msgErr || new Error("Insert failed")
       }
 
       if (mediaPath) {
-        const { error: attachError } = await supabase.from('message_attachments').insert({
-          message_id: msg.id,
+        const { error: attErr } = await supabase.from('message_attachments').insert({
+          message_id: msgData.id,
           storage_path: mediaPath,
           mime_type: filePayload!.type,
           size_bytes: filePayload!.size
         })
-        if (attachError) throw attachError
+        if (attErr) throw attErr
       }
 
-      await notifyNewMessage(conversationId, msg.id).catch(console.error)
+      await notifyNewMessage(conversationId, msgData.id).catch(console.error)
 
       if (typeOverride !== 'AUDIO') {
         setContent("")
