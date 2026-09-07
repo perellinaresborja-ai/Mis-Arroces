@@ -19,10 +19,10 @@ export async function createNotification(
 
   // Check user preferences
   let prefKey = null;
-  if (type === 'FOLLOW') prefKey = 'follows';
+  if (type === 'FOLLOW' || type === 'FOLLOW_REQUEST' || type === 'FOLLOW_ACCEPT') prefKey = 'follows';
   if (type === 'LIKE') prefKey = 'likes';
-  if (type === 'COMMENT') prefKey = 'comments';
-  if (type === 'MENTION') prefKey = 'mentions';
+  if (type === 'COMMENT' || type === 'REPLY') prefKey = 'comments';
+  if (type === 'MENTION' || type === 'TAG') prefKey = 'mentions';
   if (type === 'NEW_MESSAGE') prefKey = 'messages';
   if ((type as string) === 'SYSTEM') prefKey = 'system';
   
@@ -39,8 +39,8 @@ export async function createNotification(
     }
   }
 
-  // Deduplication check for repeatable actions (likes)
-  if (type === 'LIKE') {
+  // Deduplication check for repeatable actions
+  if (type === 'LIKE' || type === 'FOLLOW' || type === 'FOLLOW_REQUEST') {
     const { data: existing } = await supabase
       .from('notifications')
       .select('id')
