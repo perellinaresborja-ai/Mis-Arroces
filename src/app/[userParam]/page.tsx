@@ -102,43 +102,56 @@ export default async function PublicProfilePage({
   
   let highlights: any[] = []
   let archivedStories: any[] = []
-  if (isSelf || canViewPrivate) {
-    highlights = await getProfileHighlights(profile.id)
-  }
-  if (isSelf) {
-    archivedStories = await getArchivedStories()
-  }
   let hasActiveShoppingItems = false
-  if (isSelf) {
-    const { data: list } = await supabase
-      .from('shopping_lists')
-      .select('shopping_list_items(id, is_checked)')
-      .eq('user_id', user.id)
-      .single()
-    if (list && list.shopping_list_items) {
-      hasActiveShoppingItems = list.shopping_list_items.some((i: any) => !i.is_checked)
-    }
+  let feedItems: any[] = []
+  
+  // Parallelize everything!
+  const parallelQueries = [];
+  
+  // 0. Followers
+  parallelQueries.push(supabase.from("follows").select("*", { count: "exact", head: true }).eq("following_id", profile.id).eq("status", "ACCEPTED"));
+  // 1. Following
+  parallelQueries.push(supabase.from("follows").select("*", { count: "exact", head: true }).eq("follower_id", profile.id).eq("status", "ACCEPTED"));
+  
+  // 2. Highlights
+  parallelQueries.push( (isSelf || canViewPrivate) ? getProfileHighlights(profile.id) : Promise.resolve([]) );
+  
+  // 3. Archived Stories
+  parallelQueries.push( isSelf ? getArchivedStories() : Promise.resolve([]) );
+  
+  // 4. Shopping Lists
+  parallelQueries.push( isSelf ? supabase.from('shopping_lists').select('shopping_list_items(id, is_checked)').eq('user_id', user.id).single() : Promise.resolve({ data: null }) );
+
+  // 5, 6, 7. Feed items
+  if (canViewPrivate) {
+    parallelQueries.push(supabase.from("recipes").select(`*, author:profiles!recipes_owner_id_fkey(id, username, display_name, avatar:media_assets!fk_profiles_avatar(storage_path)), recipe_media(display_order, media:media_assets(id, storage_path))`).eq("owner_id", profile.id).eq("status", "PUBLISHED").in("visibility", visibilityFilter));
+    parallelQueries.push(supabase.from("cooking_sessions").select(`*, author:profiles!cooking_sessions_user_id_fkey(id, username, display_name, avatar:media_assets!fk_profiles_avatar(storage_path)), session_media(display_order, media:media_assets(id, storage_path)), recipe:recipes(id, name)`).eq("user_id", profile.id).eq("status", "PUBLISHED").in("visibility", visibilityFilter));
+    parallelQueries.push(supabase.from("social_posts").select(`*, author:profiles!social_posts_author_id_fkey(id, username, display_name, avatar:media_assets!fk_profiles_avatar(storage_path)), post_media(display_order, media:media_assets(id, storage_path)), recipe:recipes(id, name)`).eq("author_id", profile.id).in("visibility", visibilityFilter));
+  } else {
+    parallelQueries.push(Promise.resolve({ data: [] }), Promise.resolve({ data: [] }), Promise.resolve({ data: [] }));
   }
 
-  // Counts
   const [
-    { count: followersCount }, 
-    { count: followingCount }
-  ] = await Promise.all([
-    supabase.from("follows").select("*", { count: "exact", head: true }).eq("following_id", profile.id).eq("status", "ACCEPTED"),
-    supabase.from("follows").select("*", { count: "exact", head: true }).eq("follower_id", profile.id).eq("status", "ACCEPTED")
-  ])
+    followersRes,
+    followingRes,
+    highlightsRes,
+    archivedStoriesRes,
+    shoppingRes,
+    recRes,
+    sesRes,
+    postRes
+  ] = await Promise.all(parallelQueries) as any[];
 
-  // Fetch "Mis Elaboraciones" (Recipes + Sessions + Posts) in one go if they can view
-  let feedItems: any[] = []
+  const followersCount = followersRes.count || 0;
+  const followingCount = followingRes.count || 0;
+  highlights = highlightsRes;
+  archivedStories = archivedStoriesRes;
+  
+  if (shoppingRes.data?.shopping_list_items) {
+    hasActiveShoppingItems = shoppingRes.data.shopping_list_items.some((i: any) => !i.is_checked);
+  }
 
   if (canViewPrivate) {
-    let qRecipes = supabase.from("recipes").select(`*, author:profiles!recipes_owner_id_fkey(id, username, display_name, avatar:media_assets!fk_profiles_avatar(storage_path)), recipe_media(display_order, media:media_assets(id, storage_path))`).eq("owner_id", profile.id).eq("status", "PUBLISHED").in("visibility", visibilityFilter)
-    let qSessions = supabase.from("cooking_sessions").select(`*, author:profiles!cooking_sessions_user_id_fkey(id, username, display_name, avatar:media_assets!fk_profiles_avatar(storage_path)), session_media(display_order, media:media_assets(id, storage_path)), recipe:recipes(id, name)`).eq("user_id", profile.id).eq("status", "PUBLISHED").in("visibility", visibilityFilter)
-    let qPosts = supabase.from("social_posts").select(`*, author:profiles!social_posts_author_id_fkey(id, username, display_name, avatar:media_assets!fk_profiles_avatar(storage_path)), post_media(display_order, media:media_assets(id, storage_path)), recipe:recipes(id, name)`).eq("author_id", profile.id).in("visibility", visibilityFilter)
-
-    const [recRes, sesRes, postRes] = await Promise.all([qRecipes, qSessions, qPosts])
-    
     const recipes = (recRes.data || []).map((r: any) => ({ ...r, entity_type: 'recipe', sort_date: new Date(r.created_at).getTime() }))
     const sessions = (sesRes.data || []).map((s: any) => ({ ...s, entity_type: 'session', sort_date: new Date(s.date || s.created_at).getTime() }))
     const posts = (postRes.data || []).map((p: any) => ({ ...p, entity_type: 'post', sort_date: new Date(p.created_at).getTime() }))
