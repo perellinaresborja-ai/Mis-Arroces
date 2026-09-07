@@ -98,8 +98,11 @@ export function calculateNutrition(
         if (Number(ri.ingredient.default_grams_per_unit || 0) > 0) {
            quantityIn100g = (qty * Number(ri.ingredient.default_grams_per_unit)) / 100;
         } else {
-           // Asumir gramos si no hay unidad, especialmente crítico para arroz/caldo
-           quantityIn100g = qty / 100;
+           // Skip if we have absolutely no way to determine the weight.
+           // Inventing grams indiscriminately for "1" (could be 1 chicken) would falsify nutrition.
+           // Arroz/Caldo injected from Ficha Técnica already provide gram units explicitly.
+           quantityIn100g = 0;
+           validIngredients--; // Revert increment since this ingredient cannot be calculated
         }
       }
 

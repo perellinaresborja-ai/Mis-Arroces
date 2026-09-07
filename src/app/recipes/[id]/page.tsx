@@ -141,7 +141,7 @@ export default async function RecipeDetailPage({
   const { data: unitsData } = await supabase.from("units").select("*");
 
   // Inject Rice and Broth if they are only in the Ficha Técnica
-  const ingredientsForNutrition = [...(recipe.ingredients as any || [])];
+  const ingredientsForNutrition = [...(recipe.ingredients || [])];
   
   const hasRice = ingredientsForNutrition.some(ing => 
     ing.canonical?.normalized_name?.toLowerCase().includes('arroz') || 

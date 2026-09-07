@@ -1,5 +1,4 @@
 import { NotificationBell } from "@/components/domain/NotificationBell";
-// @ts-nocheck
 import { createClient } from "@/lib/supabase/server"
 import Link from "next/link"
 import Image from "next/image"

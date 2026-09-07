@@ -11,7 +11,7 @@ export function UnreadBadge() {
     const fetchCount = async () => {
       try {
         const convs = await fetchConversations();
-        const unreadTotal = convs.reduce((acc: number, c: any) => acc + (c.unreadCount || 0), 0);
+        const unreadTotal = convs.reduce((acc: number, c: { unreadCount?: number }) => acc + (c.unreadCount || 0), 0);
         setCount(unreadTotal);
       } catch (e) {
         console.error(e);

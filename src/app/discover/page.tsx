@@ -147,37 +147,39 @@ export default async function DiscoverPage(props: { searchParams?: Promise<{ q?:
   // Queries for Discover Home (when no search)
   let homeData = { popular: [] as any[], recent: [] as any[], users: [] as any[] }
   if (!isSearchActive) {
-    const { data: popularRecipes, error: popError } = await supabase.from("popular_recipes_v1").select(`
-      *,
-      author:profiles!recipes_owner_id_fkey(id, username, display_name, avatar:media_assets!fk_profiles_avatar(storage_path)),
-      recipe_media(media:media_assets(id, storage_path))
-    `).order("popularity_score", { ascending: false }).limit(10)
+    const [popularRes, recentRes, usersRes] = await Promise.all([
+      supabase.from("popular_recipes_v1").select(`
+        *,
+        author:profiles!recipes_owner_id_fkey(id, username, display_name, avatar:media_assets!fk_profiles_avatar(storage_path)),
+        recipe_media(media:media_assets(id, storage_path))
+      `).order("popularity_score", { ascending: false }).limit(10),
+      
+      supabase.from("recipes").select(`
+        *,
+        author:profiles!recipes_owner_id_fkey(id, username, display_name, avatar:media_assets!fk_profiles_avatar(storage_path)),
+        recipe_media(media:media_assets(id, storage_path))
+      `).eq("status", "PUBLISHED").order("created_at", { ascending: false }).limit(10),
+      
+      supabase.from("profiles").select(`
+        id, username, display_name, account_type, professional_type, privacy_level,
+        avatar:media_assets!fk_profiles_avatar(storage_path)
+      `).eq("privacy_level", "PUBLIC").limit(12)
+    ]);
     
-    if (popError) {
-      console.error("View error, falling back:", popError)
+    if (popularRes.error) {
+      console.error("View error, falling back:", popularRes.error)
       const { data: fallback } = await supabase.from("recipes").select(`
         *,
         author:profiles!recipes_owner_id_fkey(id, username, display_name, avatar:media_assets!fk_profiles_avatar(storage_path)),
         recipe_media(media:media_assets(id, storage_path))
       `).eq("status", "PUBLISHED").order("created_at", { ascending: false }).limit(10)
       if (fallback) homeData.popular = fallback
-    } else if (popularRecipes) {
-      homeData.popular = popularRecipes
+    } else if (popularRes.data) {
+      homeData.popular = popularRes.data
     }
 
-    const { data: recentRecipes } = await supabase.from("recipes").select(`
-        *,
-        author:profiles!recipes_owner_id_fkey(id, username, display_name, avatar:media_assets!fk_profiles_avatar(storage_path)),
-        recipe_media(media:media_assets(id, storage_path))
-      `).eq("status", "PUBLISHED").order("created_at", { ascending: false }).limit(10)
-      if (recentRecipes) homeData.recent = recentRecipes;
-
-      const { data: users } = await supabase.from("profiles").select(`
-      id, username, display_name, account_type, professional_type, privacy_level,
-      avatar:media_assets!fk_profiles_avatar(storage_path)
-    `).eq("privacy_level", "PUBLIC").limit(12) // random or recent, using limit for now
-    
-    if (users) homeData.users = users
+    if (recentRes.data) homeData.recent = recentRes.data;
+    if (usersRes.data) homeData.users = usersRes.data;
   }
 
   // Helper to format avatar URL

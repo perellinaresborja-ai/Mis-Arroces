@@ -50,7 +50,12 @@ export default async function RecipeCookModePage({ params, searchParams }: { par
 
   const sortedSteps = [...(recipe.steps || [])].sort((a: any, b: any) => a.step_number - b.step_number);
   
-  if (recipe.rest_time && recipe.rest_time > 0) {
+  const hasExplicitRestStep = sortedSteps.some(step => 
+    step.instruction.toLowerCase().includes('repos') || 
+    (step.notes && step.notes.toLowerCase().includes('repos'))
+  );
+
+  if (recipe.rest_time && recipe.rest_time > 0 && !hasExplicitRestStep) {
     sortedSteps.push({
       id: "virtual-rest-step",
       recipe_id: recipe.id,
@@ -58,7 +63,10 @@ export default async function RecipeCookModePage({ params, searchParams }: { par
       instruction: "Deja reposar el arroz",
       notes: "El reposo es fundamental para que el arroz asiente y absorba los últimos sabores.",
       duration_minutes: recipe.rest_time,
-      media: null
+      media: null,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      media_id: null
     });
   }
 
