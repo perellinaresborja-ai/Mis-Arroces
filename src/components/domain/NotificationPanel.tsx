@@ -40,7 +40,7 @@ export function NotificationPanel({ onClose, onRead, refreshKey = 0 }: { onClose
 
     // Routing logic
     if (notif.type === 'NEW_MESSAGE') { 
-      const cid = notif.payload?.conversation_id || notif.entity_type;
+      const cid = notif.payload?.conversation_id || notif.entity_id;
       router.push(`/messages/${cid}`); 
     }
     else if (notif.type === 'FOLLOW' || notif.type === 'FOLLOW_ACCEPT') {
