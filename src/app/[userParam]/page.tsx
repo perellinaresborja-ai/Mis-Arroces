@@ -65,12 +65,17 @@ export default async function PublicProfilePage({
   const username = rawParam.startsWith("@") ? rawParam.substring(1) : rawParam
 
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  
+  const [authRes, profileRes] = await Promise.all([
+    supabase.auth.getUser(),
+    supabase.from("profiles")
+      .select(`*, avatar:media_assets!fk_profiles_avatar(storage_path), cover:media_assets!fk_profiles_cover(storage_path)`)
+      .eq("username", username).single()
+  ])
 
-  // Fetch profile WITH the avatar relation just like comments do
-  let { data: profile, error: profileError } = await supabase.from("profiles")
-    .select(`*, avatar:media_assets!fk_profiles_avatar(storage_path), cover:media_assets!fk_profiles_cover(storage_path)`)
-    .eq("username", username).single()
+  const user = authRes.data?.user
+  let profile = profileRes.data
+  let profileError = profileRes.error
   
   if (profileError && profileError.code === 'PGRST116') {
     // try to find in aliases
