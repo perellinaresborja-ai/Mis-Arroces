@@ -27,7 +27,7 @@ export async function fetchConversations() {
   unstable_noStore();
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error("Unauthorized")
+  if (!user) return []
 
   // Fetch excluded users (blocks and mutes) to avoid returning conversations with them
   const [blocksRes, mutesRes] = await Promise.all([
@@ -96,8 +96,8 @@ export async function fetchConversations() {
 
   // Sort by last message time or created_at
   conversations.sort((a, b) => {
-    const timeA = new Date(a.lastMessage?.created_at || a.conversations.created_at).getTime()
-    const timeB = new Date(b.lastMessage?.created_at || b.conversations.created_at).getTime()
+    const timeA = new Date(a.lastMessage?.created_at || a.conversations?.created_at || 0).getTime()
+    const timeB = new Date(b.lastMessage?.created_at || b.conversations?.created_at || 0).getTime()
     return timeB - timeA
   })
 
