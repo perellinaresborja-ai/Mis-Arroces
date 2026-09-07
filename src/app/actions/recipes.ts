@@ -117,21 +117,40 @@ export async function updateRecipeFull(id: string, data: any) {
     throw new Error("La receta no se ha actualizado. No existe o no pertenece al usuario autenticado.");
   }
 
-  if (steps) {
-    await supabase.from("recipe_steps").delete().eq("recipe_id", id);
-    if (steps.length > 0) {
-      const stepsToInsert = steps.map((s: any, idx: number) => ({
-        recipe_id: id,
-        step_number: idx + 1,
-        instruction: s.instruction,
-        duration_minutes: s.duration_minutes ? Number(s.duration_minutes) : null,
-        notes: s.notes || undefined,
-        media_id: s.media_id || undefined,
-      }));
-      const { error: stepInsertError } = await supabase.from("recipe_steps").insert(stepsToInsert);
-      if (stepInsertError) throw new Error("STEP INSERT ERROR: " + stepInsertError.message);
+    if (steps) {
+      const existingStepIds = steps.filter((s: any) => s.db_id).map((s: any) => s.db_id);
+      
+      if (existingStepIds.length > 0) {
+        const { error: delError } = await supabase.from("recipe_steps")
+          .delete()
+          .eq("recipe_id", id)
+          .not("id", "in", '(' + existingStepIds.join(',') + ')');
+        if (delError) throw new Error("STEP DEL ERROR: " + delError.message);
+      } else {
+        await supabase.from("recipe_steps").delete().eq("recipe_id", id);
+      }
+
+      if (steps.length > 0) {
+        const crypto = require('crypto');
+        steps.forEach((s: any) => {
+          if (!s.db_id && !s.id) {
+            s.id = crypto.randomUUID();
+          }
+        });
+
+        const stepsToUpsert = steps.map((s: any, idx: number) => ({
+          id: s.db_id || s.id || undefined,
+          recipe_id: id,
+          step_number: idx + 1,
+          instruction: s.instruction,
+          duration_minutes: s.duration_minutes ? Number(s.duration_minutes) : null,
+          notes: s.notes || undefined,
+          media_id: s.media_id || undefined,
+        }));
+        const { error: stepUpsertError } = await supabase.from("recipe_steps").upsert(stepsToUpsert);
+        if (stepUpsertError) throw new Error("STEP UPSERT ERROR: " + stepUpsertError.message);
+      }
     }
-  }
 
   if (ingredients) {
     const existingIngIds = ingredients.filter((i: any) => i.db_id).map((i: any) => i.db_id);
