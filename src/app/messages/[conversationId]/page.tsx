@@ -1,4 +1,4 @@
-import { BackButton } from "@/components/domain/BackButton"
+﻿import { BackButton } from "@/components/domain/BackButton"
 import { fetchMessages, updateReadStatus } from "@/app/actions/messaging"
 import { createClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
@@ -24,7 +24,7 @@ export default async function ConversationPage({ params }: { params: { conversat
       return (
         <div className="p-8 text-center">
           <h1 className="text-2xl font-bold text-red-500 mb-4">Error de Acceso</h1>
-          <p>No se te reconoce como miembro de esta conversación.</p>
+          <p>No se te reconoce como miembro de esta conversaciÃ³n.</p>
           <p className="mt-4 text-sm text-muted-foreground break-all">Conv ID: {conversationId}</p>
           <p className="text-sm text-muted-foreground break-all">Error: {JSON.stringify(memberErr)}</p>
         </div>
@@ -75,7 +75,7 @@ export default async function ConversationPage({ params }: { params: { conversat
     if (err.message === 'NEXT_REDIRECT') throw err;
     return (
       <div className="p-8 text-center text-red-500">
-        <h1 className="text-2xl font-bold mb-4">Error Crítico en Chat</h1>
+        <h1 className="text-2xl font-bold mb-4">Error CrÃ­tico en Chat</h1>
         <p>{err.message || String(err)}</p>
       </div>
     )

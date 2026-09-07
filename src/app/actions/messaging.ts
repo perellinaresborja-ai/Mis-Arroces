@@ -1,4 +1,4 @@
-"use server"
+﻿"use server"
 
 import { createClient } from "@/lib/supabase/server"
 import { createClient as createAdminClient } from "@supabase/supabase-js"
@@ -83,7 +83,7 @@ export async function fetchConversations() {
       .select('*', { count: 'exact', head: true })
       .eq('conversation_id', cm.conversation_id)
       .neq('sender_id', user.id)
-      .gt('created_at', cm.last_read_at)
+      .gt('created_at', cm.last_read_at || '1970-01-01T00:00:00Z')
       .is('deleted_at', null)
 
     conversations.push({

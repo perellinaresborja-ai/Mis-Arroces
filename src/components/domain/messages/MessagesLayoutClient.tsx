@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 import { useState, useEffect, useTransition, useRef } from "react"
 import { useRouter, usePathname } from "next/navigation"
 import { MoreHorizontal, Pin, PinOff, Trash2 } from "lucide-react"
@@ -66,7 +66,7 @@ export function MessagesLayoutClient({ convs, children }: { convs: Record<string
   const handleDelete = (e: React.MouseEvent, convId: string) => {
     e.stopPropagation()
     setMenuOpenId(null)
-    if (!confirm('¿Ocultar esta conversación? Volverá a aparecer si recibes un mensaje.')) return
+    if (!confirm('Â¿Ocultar esta conversaciÃ³n? VolverÃ¡ a aparecer si recibes un mensaje.')) return
     
     setLocalConvs(prev => prev.filter(c => c.conversation_id !== convId))
     if (pathname === `/messages/${convId}`) router.push('/messages')
@@ -89,7 +89,7 @@ export function MessagesLayoutClient({ convs, children }: { convs: Record<string
         </div>
         
         <div className="flex-1 overflow-y-auto p-4 space-y-4 pb-24 md:pb-4 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-          {localConvs.length === 0 && <p className="text-muted-foreground text-center py-12 text-sm">No tienes mensajes todavía.</p>}
+          {localConvs.length === 0 && <p className="text-muted-foreground text-center py-12 text-sm">No tienes mensajes todavÃ­a.</p>}
           
           {localConvs.map((c) => {
             const isActive = pathname === `/messages/${c.conversation_id}`;
@@ -123,7 +123,7 @@ export function MessagesLayoutClient({ convs, children }: { convs: Record<string
                     )}
                   </div>
                   <p className="text-sm text-muted-foreground truncate mt-0.5">
-                    {c.status === 'REQUEST' ? 'Nueva solicitud' : (c.lastMessage?.body || (c.lastMessage?.type === 'AUDIO' ? '🎤 Nota de voz' : 'Enviado un archivo adjunto'))}
+                    {c.status === 'REQUEST' ? 'Nueva solicitud' : (c.lastMessage?.body || (c.lastMessage?.type === 'AUDIO' ? 'ðŸŽ¤ Nota de voz' : 'Enviado un archivo adjunto'))}
                   </p>
                 </div>
 

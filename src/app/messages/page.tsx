@@ -1,4 +1,4 @@
-import { getOrCreateConversation } from "@/app/actions/messaging"
+﻿import { getOrCreateConversation } from "@/app/actions/messaging"
 import { redirect } from "next/navigation"
 import { MessageCircle } from "lucide-react"
 
@@ -11,7 +11,7 @@ export default async function MessagesPage({ searchParams }: { searchParams: Pro
     try {
       convId = await getOrCreateConversation(sp.to)
     } catch (err) {
-      console.error("Error al crear la conversación:", err)
+      console.error("Error al crear la conversaciÃ³n:", err)
       creationError = err instanceof Error ? err.message : String(err);
     }
     
@@ -24,7 +24,7 @@ export default async function MessagesPage({ searchParams }: { searchParams: Pro
     <div className="flex-1 flex flex-col items-center justify-center p-8 text-center h-full">
       {creationError && (
         <div className="bg-destructive/10 border border-destructive text-destructive p-4 rounded-xl mb-6 max-w-sm">
-          <p className="font-bold">Error iniciando conversación</p>
+          <p className="font-bold">Error iniciando conversaciÃ³n</p>
           <p className="text-sm mt-1">{creationError}</p>
         </div>
       )}
@@ -34,7 +34,7 @@ export default async function MessagesPage({ searchParams }: { searchParams: Pro
       </div>
       <h2 className="text-2xl font-bold mb-2">Tus Mensajes</h2>
       <p className="text-muted-foreground max-w-sm">
-        Selecciona una conversación a la izquierda o inicia un nuevo chat desde el perfil de otro usuario.
+        Selecciona una conversaciÃ³n a la izquierda o inicia un nuevo chat desde el perfil de otro usuario.
       </p>
     </div>
   )
