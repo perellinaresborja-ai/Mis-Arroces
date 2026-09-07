@@ -201,6 +201,30 @@ export function CookModeClient({ recipe, userName, reset }: { recipe: CookModeRe
     }
   }, [currentStepIndex, recipe.steps, isClient])
 
+  // Auto-start timer when entering a new step if autoAdvance is enabled
+  useEffect(() => {
+    if (isClient && hasStarted && autoAdvanceRef.current && currentStep) {
+      if (currentStep.duration_minutes) {
+        setTimers(prev => {
+          const t = prev[currentStepIndex];
+          // Only start if it hasn't been started yet
+          if (!t) {
+            const durationMs = currentStep.duration_minutes * 60 * 1000;
+            return { 
+              ...prev, 
+              [currentStepIndex]: { 
+                isRunning: true, 
+                remainingMs: durationMs, 
+                endTime: Date.now() + durationMs 
+              } 
+            };
+          }
+          return prev;
+        });
+      }
+    }
+  }, [currentStepIndex, hasStarted, isClient, currentStep])
+
   // Timer Tick
   const [autoAdvance, setAutoAdvance] = useState(false)
   const autoAdvanceRef = useRef(autoAdvance)
@@ -338,21 +362,17 @@ export function CookModeClient({ recipe, userName, reset }: { recipe: CookModeRe
     }))
   }
 
-  const TopActions = () => {
-    return (
-      <div className="absolute top-4 right-4 md:top-6 md:right-6 flex items-center z-50">
-        <Link href={`/recipes/${recipe.id}`} onClick={() => localStorage.removeItem(`cook-mode-${recipe.id}`)} className="p-2 text-white/50 hover:text-white transition-colors" aria-label="Cerrar modo cocina">
-          <X className="w-8 h-8" aria-hidden="true" />
-        </Link>
-      </div>
-    )
-  }
+  // Top actions are now inlined to prevent unmounting on every render
 
   // Initial Summary View
   if (!hasStarted) {
     return (
       <div className="min-h-[100dvh] bg-black text-white flex flex-col justify-center p-6 sm:p-10 animate-in fade-in duration-500 relative overflow-hidden">
-        <TopActions />
+      <div className="absolute top-4 right-4 md:top-6 md:right-6 flex items-center z-50">
+        <Link href={`/recipes/${recipe.id}`} onClick={() => localStorage.removeItem(`cook-mode-${recipe.id}`)} className="p-2 text-white/50 hover:text-white transition-colors" aria-label="Cerrar modo cocina">
+          <X className="w-8 h-8" aria-hidden="true" />
+        </Link>
+      </div>
         <div className="max-w-md mx-auto w-full flex flex-col gap-6 md:gap-8 justify-center">
           <div className="space-y-2 md:space-y-4 text-center">
             <h1 className="text-3xl md:text-4xl font-black font-serif leading-tight">{recipe.name}</h1>
@@ -407,7 +427,11 @@ export function CookModeClient({ recipe, userName, reset }: { recipe: CookModeRe
   if (currentStepIndex >= recipe.steps.length) {
     return (
       <div className="min-h-[100dvh] bg-black text-white flex flex-col items-center justify-center p-6 animate-in fade-in zoom-in-95 duration-500 relative overflow-hidden">
-        <TopActions />
+        <div className="absolute top-4 right-4 md:top-6 md:right-6 flex items-center z-50">
+          <Link href={`/recipes/${recipe.id}`} onClick={() => localStorage.removeItem(`cook-mode-${recipe.id}`)} className="p-2 text-white/50 hover:text-white transition-colors" aria-label="Cerrar modo cocina">
+            <X className="w-8 h-8" aria-hidden="true" />
+          </Link>
+        </div>
         <div className="max-w-md text-center flex flex-col gap-8 md:gap-12 w-full">
           <div className="space-y-3">
             <h1 className="text-4xl md:text-6xl font-black font-serif text-primary leading-tight">¡Arroz terminado!</h1>
@@ -445,7 +469,11 @@ export function CookModeClient({ recipe, userName, reset }: { recipe: CookModeRe
 
   return (
     <div className="min-h-[100dvh] bg-black text-white flex flex-col animate-in fade-in duration-300 select-none relative overflow-hidden">
-      <TopActions />
+      <div className="absolute top-4 right-4 md:top-6 md:right-6 flex items-center z-50">
+        <Link href={`/recipes/${recipe.id}`} onClick={() => localStorage.removeItem(`cook-mode-${recipe.id}`)} className="p-2 text-white/50 hover:text-white transition-colors" aria-label="Cerrar modo cocina">
+          <X className="w-8 h-8" aria-hidden="true" />
+        </Link>
+      </div>
       {/* Header */}
       <header className="p-6 flex flex-col items-center justify-center shrink-0">
         <div className="text-center font-black text-white/40 uppercase tracking-widest text-sm mt-2 md:mt-0">
