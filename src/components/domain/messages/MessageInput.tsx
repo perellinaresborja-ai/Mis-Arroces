@@ -60,7 +60,7 @@ export function MessageInput({ conversationId, receiverId, disabled, replyingTo,
         if (e.data.size > 0) audioChunksRef.current.push(e.data)
       }
 
-      mediaRecorder.start(200)
+      mediaRecorder.start()
       setIsRecording(true)
       setRecordingTime(0)
 
@@ -98,24 +98,25 @@ export function MessageInput({ conversationId, receiverId, disabled, replyingTo,
         const finalTime = recordingTime
         setRecordingTime(0)
 
-        const audioBlob = new Blob(audioChunksRef.current, { type: mediaRecorderRef.current!.mimeType || 'audio/webm' })
+        const mimeType = mediaRecorderRef.current!.mimeType || 'audio/webm';
+        const audioBlob = new Blob(audioChunksRef.current, { type: mimeType })
         audioChunksRef.current = []
         
         if (finalTime < 1 || audioBlob.size === 0) {
            return resolve() // prevent sending empty/accidental short clicks
         }
         
-        const ext = audioBlob.type.includes('mp4') ? 'm4a' : 'webm'
-        const audioFile = new File([audioBlob], `voice_note_${Date.now()}.${ext}`, { type: audioBlob.type })
+        const ext = mimeType.includes('mp4') ? 'm4a' : 'webm'
+        const audioFile = new File([audioBlob], `voice_note_${Date.now()}.${ext}`, { type: mimeType })
         
-        await sendPayload(audioFile, 'AUDIO')
+        await sendPayload(audioFile, 'AUDIO', mimeType)
         resolve()
       }
       mediaRecorderRef.current!.stop()
     })
   }
 
-  const sendPayload = async (filePayload: File | null, typeOverride?: string) => {
+  const sendPayload = async (filePayload: File | null, typeOverride?: string, mimeOverride?: string) => {
     setIsSending(true)
     try {
       let messageType = typeOverride || 'TEXT'
@@ -131,7 +132,8 @@ export function MessageInput({ conversationId, receiverId, disabled, replyingTo,
         
         const { error: uploadError } = await supabase.storage.from('message_media').upload(path, filePayload, {
           cacheControl: '3600',
-          upsert: false
+          upsert: false,
+          contentType: mimeOverride || filePayload.type
         })
         if (uploadError) throw uploadError
         mediaPath = path
