@@ -9,14 +9,14 @@ import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Check, X } from "lucide-react"
 
-export function NotificationPanel({ onClose, onRead }: { onClose: () => void, onRead: () => void }) {
+export function NotificationPanel({ onClose, onRead, refreshKey = 0 }: { onClose: () => void, onRead: () => void, refreshKey?: number }) {
   const [notifications, setNotifications] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const router = useRouter()
 
   useEffect(() => {
     loadNotifications()
-  }, [])
+  }, [refreshKey])
 
   const loadNotifications = async () => {
     setLoading(true)
@@ -86,7 +86,13 @@ export function NotificationPanel({ onClose, onRead }: { onClose: () => void, on
       case 'TAG': return <><span className="font-bold">{name}</span> te etiquetó.</>
       case 'FOLLOW': return <><span className="font-bold">{name}</span> empezó a seguirte.</>
       case 'FOLLOW_REQUEST': return <><span className="font-bold">{name}</span> quiere seguirte.</>
-      case 'NEW_MESSAGE': return <><span className="font-bold">{name}</span> te envió un mensaje.</>;
+      case 'NEW_MESSAGE': {
+        const msgType = notif.payload?.message_type;
+        if (msgType === 'AUDIO') return <><span className="font-bold">{name}</span> te envió una nota de voz.</>;
+        if (msgType === 'IMAGE' || msgType === 'VIDEO') return <><span className="font-bold">{name}</span> te envió un archivo adjunto.</>;
+        if (msgType === 'RECIPE' || msgType === 'SESSION' || msgType === 'STORY') return <><span className="font-bold">{name}</span> compartió contenido contigo.</>;
+        return <><span className="font-bold">{name}</span> te envió un mensaje.</>;
+      }
       case 'FOLLOW_ACCEPT': return <><span className="font-bold">{name}</span> aceptó tu solicitud.</>
       case 'COOKED_RECIPE': return <><span className="font-bold">{name}</span> ha cocinado tu receta.</>
       default: return <><span className="font-bold">{name}</span> interactuó contigo.</>

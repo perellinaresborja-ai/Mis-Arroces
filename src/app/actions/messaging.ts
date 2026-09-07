@@ -1,4 +1,4 @@
-﻿"use server"
+"use server"
 
 import { createClient } from "@/lib/supabase/server"
 import { createClient as createAdminClient } from "@supabase/supabase-js"
@@ -162,7 +162,7 @@ export async function sendMessage(params: { conversationId: string; type: 'TEXT'
   
   if (members && members.length > 0) {
     const targetUserId = members[0].user_id
-    await createNotification(targetUserId, 'NEW_MESSAGE', 'conversation', conversationId, { message_id: msg.id, conversation_id: conversationId })
+    await createNotification(targetUserId, 'NEW_MESSAGE', 'conversation', conversationId, { message_id: msg.id, conversation_id: conversationId, message_type: type })
   }
 
   return { success: true, id: msg.id }

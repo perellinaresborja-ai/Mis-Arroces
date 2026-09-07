@@ -33,13 +33,28 @@ export function NotificationBell({ className }: { className?: string }) {
     setUnreadCount(count || 0)
   }
 
+  const [refreshKey, setRefreshKey] = useState(0)
+
   useEffect(() => {
     if (user) {
       fetchUnread()
-      const interval = setInterval(fetchUnread, 30000) // Poll every 30s
-      return () => clearInterval(interval)
+      
+      const channel = supabase.channel(`notifications_${user.id}`)
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'notifications', filter: `recipient_id=eq.${user.id}` },
+          () => {
+            fetchUnread()
+            setRefreshKey(prev => prev + 1)
+          }
+        )
+        .subscribe()
+
+      return () => {
+        supabase.removeChannel(channel)
+      }
     }
-  }, [user])
+  }, [user, supabase])
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -57,12 +72,7 @@ export function NotificationBell({ className }: { className?: string }) {
     <div className={cn("relative", className)} ref={wrapperRef}>
       <button 
         onClick={() => {
-          const nextOpen = !isOpen;
-          setIsOpen(nextOpen);
-          if (nextOpen && unreadCount > 0) {
-            setUnreadCount(0); // Optimistic clear
-            import('@/app/actions/notifications').then(m => m.markAllNotificationsRead());
-          }
+          setIsOpen(!isOpen);
         }} 
         className="relative p-2 rounded-full hover:bg-muted/50 transition-colors"
         aria-label="Notificaciones"
@@ -80,6 +90,7 @@ export function NotificationBell({ className }: { className?: string }) {
           <NotificationPanel 
             onClose={() => setIsOpen(false)} 
             onRead={() => fetchUnread()} 
+            refreshKey={refreshKey}
           />
         </div>
       )}

@@ -1,4 +1,4 @@
-﻿"use server"
+"use server"
 
 import { createClient } from "@/lib/supabase/server"
 import { Database } from "@/types/database.types"
@@ -23,6 +23,7 @@ export async function createNotification(
   if (type === 'LIKE') prefKey = 'likes';
   if (type === 'COMMENT') prefKey = 'comments';
   if (type === 'MENTION') prefKey = 'mentions';
+  if (type === 'NEW_MESSAGE') prefKey = 'messages';
   if ((type as string) === 'SYSTEM') prefKey = 'system';
   
   if (prefKey) {
