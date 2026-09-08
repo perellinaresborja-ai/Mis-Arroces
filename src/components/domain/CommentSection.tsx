@@ -351,7 +351,9 @@ export function CommentSection({ entityType, entityId, comments, currentUserId, 
               if (!newComment.includes(`@${username}`)) {
                 setNewComment(`@${username} ` + newComment)
               }
-              window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' })
+              setTimeout(() => {
+                textareaRef.current?.focus()
+              }, 10)
             }}
             onDelete={handleDelete}
           />
