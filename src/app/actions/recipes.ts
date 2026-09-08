@@ -1,4 +1,4 @@
-// @ts-nocheck
+﻿// @ts-nocheck
 "use server"
 
 import { revalidatePath } from "next/cache"
@@ -86,6 +86,15 @@ export async function updateRecipeStatus(id: string, status: string, scheduledFo
   redirect("/recipes/" + id);
 }
 
+interface RecipeStepInput {
+  id?: string;
+  db_id?: string;
+  instruction: string;
+  duration_minutes?: string | number | null;
+  notes?: string | null;
+  media_id?: string | null;
+}
+
 export async function updateRecipeFull(id: string, data: any) {
   const { createClient } = require("@/lib/supabase/server");
   const supabase = await createClient();
@@ -118,7 +127,7 @@ export async function updateRecipeFull(id: string, data: any) {
   }
 
     if (steps) {
-      const existingStepIds = steps.filter((s: any) => s.db_id).map((s: any) => s.db_id);
+      const existingStepIds = steps.filter((s: RecipeStepInput) => s.db_id).map((s: any) => s.db_id);
       
       if (existingStepIds.length > 0) {
         const { error: delError } = await supabase.from("recipe_steps")
@@ -132,14 +141,14 @@ export async function updateRecipeFull(id: string, data: any) {
 
       if (steps.length > 0) {
         const crypto = require('crypto');
-        steps.forEach((s: any) => {
+        steps.forEach((s: RecipeStepInput) => {
           if (!s.db_id && !s.id) {
             s.id = crypto.randomUUID();
           }
         });
 
         // TEMPORARY PHASE: Shift step_numbers to avoid UNIQUE(recipe_id, step_number) collision during reorder
-        const stepsToShift = steps.map((s: any, idx: number) => ({
+        const stepsToShift = steps.map((s: RecipeStepInput, idx: number) => ({
           id: s.db_id || s.id,
           recipe_id: id,
           step_number: idx + 10000,
@@ -153,7 +162,7 @@ export async function updateRecipeFull(id: string, data: any) {
         if (shiftError) throw new Error("STEP SHIFT ERROR: " + shiftError.message);
 
         // FINAL PHASE: Assign final step_numbers
-        const stepsToUpsert = steps.map((s: any, idx: number) => ({
+        const stepsToUpsert = steps.map((s: RecipeStepInput, idx: number) => ({
           id: s.db_id || s.id,
           recipe_id: id,
           step_number: idx + 1,
