@@ -19,7 +19,7 @@ export function UnreadBadge() {
     }
     fetchCount()
 
-    const channel = supabase.channel('global_unread')
+    const channel = supabase.channel(`global_unread_${Math.random()}`)
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, () => {
         fetchCount()
       })

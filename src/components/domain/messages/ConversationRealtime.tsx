@@ -8,7 +8,7 @@ export function ConversationRealtime({ conversationId }: { conversationId: strin
   
   useEffect(() => {
     const supabase = createClient()
-    const channel = supabase.channel('conv_' + conversationId)
+    const channel = supabase.channel(`conv_${conversationId}_${Math.random()}`)
       .on('postgres_changes', { 
         event: 'INSERT', 
         schema: 'public', 
