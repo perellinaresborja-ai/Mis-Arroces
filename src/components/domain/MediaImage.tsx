@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import Image from "next/image"
 import { useState } from "react"
@@ -65,7 +65,7 @@ export function MediaImage({
     return <div className={`bg-muted ${className}`} />
   }
 
-  const shouldUnoptimize = unoptimized || isPrivate;
+  const shouldUnoptimize = unoptimized || isPrivate || variant === 'avatar';
 
   if (shouldUnoptimize) {
     if (fill) {

@@ -34,7 +34,7 @@ export function ProfileAvatar({ avatarUrl, username }: { avatarUrl: string | nul
             <MediaImage 
               src={avatarUrl} 
               alt={username} 
-              variant="detail"
+              variant="avatar"
               fallbackType="avatar"
               className="object-cover"
             />

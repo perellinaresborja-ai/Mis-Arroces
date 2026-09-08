@@ -86,7 +86,7 @@ export function BottomNav() {
                     "relative w-7 h-7 rounded-full overflow-hidden border-2",
                     isActive ? "border-foreground" : "border-transparent"
                   )}>
-                    <MediaImage src={avatarUrl} alt="Perfil" className="w-full h-full object-cover" fill={true} unoptimized={true} />
+                    <MediaImage src={avatarUrl} alt="Perfil" className="w-full h-full object-cover" fill={true} variant="avatar" fallbackType="avatar" />
                   </div>
                 ) : (
                   <Icon className="h-6 w-6" strokeWidth={isActive ? 2.5 : 2} />

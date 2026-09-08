@@ -100,7 +100,7 @@ export function FollowsModal({
                       <div key={u.id} className="flex items-center justify-between">
                         <Link href={`/@${u.username}`} onClick={() => setIsOpen(false)} className="flex items-center gap-3 hover:opacity-80 transition-opacity">
                           <div className="w-10 h-10 rounded-full bg-muted overflow-hidden shrink-0 relative">
-                            {avatarUrl && <MediaImage src={avatarUrl} alt={u.username} className="w-full h-full object-cover" fill={true} />}
+                            {avatarUrl && <MediaImage src={avatarUrl} alt={u.username} className="w-full h-full object-cover" fill={true} variant="avatar" fallbackType="avatar" />}
                           </div>
                           <div className="flex flex-col">
                             <span className="font-bold text-[15px]">{u.display_name || `@${u.username}`}</span>

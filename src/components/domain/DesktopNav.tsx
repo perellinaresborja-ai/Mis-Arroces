@@ -103,7 +103,7 @@ export function DesktopNav() {
                   "relative w-9 h-9 rounded-full overflow-hidden border-2 flex items-center justify-center shrink-0",
                   (pathname === "/me" || pathname.startsWith("/me/")) ? "border-primary" : "border-transparent"
                 )}>
-                  <MediaImage src={avatarUrl} alt="Perfil" fallbackType="avatar" className="w-full h-full object-cover" fill={true} unoptimized={true} />
+                  <MediaImage src={avatarUrl} alt="Perfil" fallbackType="avatar" className="w-full h-full object-cover" fill={true} variant="avatar" />
                 </div>
               ) : (
                 <div className={cn(
