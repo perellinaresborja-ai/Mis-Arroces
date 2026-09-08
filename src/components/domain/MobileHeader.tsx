@@ -12,12 +12,16 @@ export function MobileHeader() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
 
   useEffect(() => {
-    const checkAuth = async () => {
-      const supabase = createClient()
-      const { data: { user } } = await supabase.auth.getUser()
+    const supabase = createClient()
+    supabase.auth.getUser().then(({ data: { user } }) => {
       setIsAuthenticated(!!user)
-    }
-    checkAuth()
+    })
+    
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setIsAuthenticated(!!session?.user)
+    })
+
+    return () => subscription.unsubscribe()
   }, [])
 
   if (pathname === "/login" || pathname === "/forgot-password" || pathname.includes("/edit") || pathname.includes("/create")) return null;

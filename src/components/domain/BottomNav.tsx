@@ -13,9 +13,8 @@ export function BottomNav() {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchUser = async () => {
-      const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
+    const supabase = createClient();
+    const fetchUser = async (user: any) => {
       if (user) {
         const { data } = await supabase.from('profiles')
           .select(`avatar:media_assets!fk_profiles_avatar(storage_path)`)
@@ -23,12 +22,25 @@ export function BottomNav() {
           .single();
           
         const avatarPath = Array.isArray(data?.avatar) ? data.avatar[0]?.storage_path : data?.avatar?.storage_path;
-          if (avatarPath) {
-            setAvatarUrl(avatarPath.startsWith('http') ? avatarPath : `https://zvesoygqssyyojqyswwm.supabase.co/storage/v1/object/public/recipe_media/${avatarPath}`);
-          }
+        if (avatarPath) {
+          setAvatarUrl(avatarPath.startsWith('http') ? avatarPath : `https://zvesoygqssyyojqyswwm.supabase.co/storage/v1/object/public/recipe_media/${avatarPath}`);
+        } else {
+          setAvatarUrl(null);
+        }
+      } else {
+        setAvatarUrl(null);
       }
     };
-    fetchUser();
+
+    supabase.auth.getUser().then(({ data: { user } }) => fetchUser(user));
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      fetchUser(session?.user);
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   const navItems = [
