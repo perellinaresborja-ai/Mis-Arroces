@@ -39,7 +39,7 @@ export function NotificationBell({ className }: { className?: string }) {
     if (user) {
       fetchUnread()
       
-      const channel = supabase.channel(`notifications_${user.id}`)
+      const channel = supabase.channel(`notifications_${user.id}_${Math.random()}`)
         .on(
           'postgres_changes',
           { event: '*', schema: 'public', table: 'notifications', filter: `recipient_id=eq.${user.id}` },

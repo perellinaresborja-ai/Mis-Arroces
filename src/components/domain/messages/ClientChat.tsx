@@ -12,7 +12,7 @@ export function ClientChat({ initialMessages, userId, conversationId, myStatus, 
   const [replyingTo, setReplyingTo] = useState<Record<string, any> | null>(null)
 
   useEffect(() => {
-    const channel = supabase.channel(`chat_${conversationId}`)
+    const channel = supabase.channel(`chat_${conversationId}_${Math.random()}`)
       .on('postgres_changes', {
         event: '*',
         schema: 'public',
