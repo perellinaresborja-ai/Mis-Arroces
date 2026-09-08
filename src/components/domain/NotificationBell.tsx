@@ -12,7 +12,7 @@ export function NotificationBell({ className }: { className?: string }) {
   const [user, setUser] = useState<any>(null)
   const wrapperRef = useRef<HTMLDivElement>(null)
   
-  const supabase = createClient()
+  const [supabase] = useState(() => createClient())
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
