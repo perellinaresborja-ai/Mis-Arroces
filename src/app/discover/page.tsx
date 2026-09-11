@@ -4,14 +4,16 @@ import Link from "next/link"
 import { DiscoverClient } from "./DiscoverClient"
 import { FeedCard } from "@/components/domain/FeedCard"
 import { Users, BookOpen, Flame, LayoutTemplate, Search } from "lucide-react"
+import { WhatDoIHaveContainer } from "./WhatDoIHaveContainer"
 
-export default async function DiscoverPage(props: { searchParams?: Promise<{ q?: string, tab?: string, variety?: string, style?: string }> }) {
+export default async function DiscoverPage(props: { searchParams?: Promise<{ q?: string, tab?: string, variety?: string, style?: string, hashtag?: string, mode?: string }> }) {
   const searchParams = await props.searchParams
   const q = searchParams?.q || ""
   const tab = searchParams?.tab || "todo"
   const variety = searchParams?.variety || ""
   const style = searchParams?.style || ""
   const hashtag = searchParams?.hashtag || ""
+  const mode = searchParams?.mode || ""
 
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -191,17 +193,21 @@ export default async function DiscoverPage(props: { searchParams?: Promise<{ q?:
   return (
     <div className="p-4 md:p-8 space-y-8 max-w-7xl mx-auto w-full pb-24">
       
-      {/* Search Header */}
-      <DiscoverClient 
-        initialQ={q} 
-        initialTab={tab} 
-        varieties={varieties || []} 
-        styles={styles || []} 
-      />
+      {mode === "que-tengo" ? (
+        <WhatDoIHaveContainer />
+      ) : (
+        <>
+          {/* Search Header */}
+          <DiscoverClient 
+            initialQ={q} 
+            initialTab={tab} 
+            varieties={varieties || []} 
+            styles={styles || []} 
+          />
 
-      {/* DISCOVER HOME (No search active) */}
-      {(!q && tab === "todo") && (
-        <div className="space-y-12 animate-in fade-in duration-500">
+          {/* DISCOVER HOME (No search active) */}
+          {(!q && tab === "todo") && (
+            <div className="space-y-12 animate-in fade-in duration-500">
           
           <section>
             <div className="flex items-center justify-between mb-4">
@@ -425,6 +431,8 @@ export default async function DiscoverPage(props: { searchParams?: Promise<{ q?:
           )}
 
         </div>
+      )}
+        </>
       )}
 
     </div>

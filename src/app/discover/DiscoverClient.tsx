@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
-import { Search, SlidersHorizontal, X } from "lucide-react"
+import { Search, SlidersHorizontal, X, Sparkles } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 
@@ -82,6 +82,20 @@ export function DiscoverClient({
             </button>
           )}
         </div>
+
+        <button
+          type="button"
+          onClick={() => {
+            const params = new URLSearchParams(searchParams.toString())
+            params.set("mode", "que-tengo")
+            router.push(`/discover?${params.toString()}`)
+          }}
+          className="h-12 px-3.5 sm:px-4 rounded-xl bg-card border border-border text-foreground hover:bg-muted font-medium text-xs sm:text-sm flex items-center gap-1.5 shrink-0 transition-colors shadow-sm"
+          title="Buscar recetas por ingredientes que tienes"
+        >
+          <Sparkles className="w-4 h-4 text-primary shrink-0" />
+          <span className="whitespace-nowrap">¿Qué tengo?</span>
+        </button>
       </div>
 
       {/* Tabs (solo si hay bǧsqueda activa) */}

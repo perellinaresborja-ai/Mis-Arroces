@@ -381,3 +381,164 @@ export async function deleteRecipe(recipeId: string) {
   revalidatePath('/cookbook')
   revalidatePath(`/[userParam]`, 'layout')
 }
+
+export async function searchIngredientsAction(query: string) {
+  if (!query || query.trim().length === 0) return []
+  const supabase = await createClient()
+  const cleanQ = query.trim().toLowerCase()
+
+  // Search by canonical_name or normalized_name with limit 8
+  const { data, error } = await supabase
+    .from('ingredients')
+    .select('id, canonical_name, normalized_name')
+    .or(`canonical_name.ilike.%${cleanQ}%,normalized_name.ilike.%${cleanQ}%`)
+    .order('canonical_name')
+    .limit(8)
+
+  if (error) {
+    console.error("searchIngredientsAction error:", error)
+    return []
+  }
+  return data || []
+}
+
+export async function findRecipesByIngredientsAction(userIngredientIds: string[], onlyExact: boolean = false) {
+  if (!userIngredientIds || userIngredientIds.length === 0) return []
+  const supabase = await createClient()
+
+  // 1. Try RPC find_recipes_by_ingredients
+  try {
+    const { data: rpcResults, error: rpcError } = await supabase.rpc('find_recipes_by_ingredients', {
+      p_user_ingredient_ids: userIngredientIds,
+      p_only_exact: onlyExact
+    })
+
+    if (!rpcError && rpcResults) {
+      return rpcResults
+    }
+  } catch (err) {
+    // RPC may not be available on remote before migration; proceed to SQL-like fallback below
+  }
+
+  // 2. High-performance fallback: select published recipes with ingredients
+  const { data: recipes, error } = await supabase
+    .from('recipes')
+    .select(`
+      id,
+      name,
+      slug,
+      scheduled_for,
+      author:profiles!recipes_owner_id_fkey(id, username, display_name, avatar:media_assets!fk_profiles_avatar(storage_path)),
+      recipe_media(is_primary, display_order, media:media_assets(storage_path)),
+      variety:rice_varieties(name),
+      style:rice_styles(name),
+      recipe_ingredients(
+        canonical_ingredient_id,
+        display_text,
+        ingredient:ingredients(id, canonical_name, normalized_name)
+      )
+    `)
+    .eq('status', 'PUBLISHED')
+    .is('deleted_at', null)
+
+  if (error || !recipes) {
+    console.error("findRecipesByIngredientsAction fallback error:", error)
+    return []
+  }
+
+  const { isBasicIngredient } = await import('@/lib/matching')
+  const userSet = new Set(userIngredientIds)
+  const now = new Date()
+
+  const results: any[] = []
+
+  for (const r of recipes) {
+    // Check scheduled_for: only publish if null or in the past
+    if (r.scheduled_for && new Date(r.scheduled_for) > now) continue
+
+    const allIngs = r.recipe_ingredients || []
+    if (allIngs.length === 0) continue
+
+    // Exclude verified basic pantry ingredients (salt, olive oil, water, peppers)
+    const relevant = allIngs.filter((ri: any) => {
+      const norm = ri.ingredient?.normalized_name || ri.display_text?.toLowerCase()
+      return !isBasicIngredient(norm)
+    })
+
+    if (relevant.length === 0) continue
+
+    const matchedNames: string[] = []
+    const missingNames: string[] = []
+    let matchedCount = 0
+
+    for (const ri of relevant) {
+      const ingId = ri.canonical_ingredient_id
+      const displayName = ri.ingredient?.canonical_name || ri.display_text || 'Ingrediente'
+
+      if (ingId && userSet.has(ingId)) {
+        matchedCount++
+        matchedNames.push(displayName)
+      } else {
+        missingNames.push(displayName)
+      }
+    }
+
+    const totalRelevant = relevant.length
+    const missingCount = missingNames.length
+    const matchPct = Math.round((matchedCount / totalRelevant) * 100)
+
+    // Check match criteria
+    if (matchedCount === 0) continue
+
+    if (onlyExact) {
+      if (missingCount !== 0) continue
+    } else {
+      // Deterministic threshold:
+      // (missingCount === 0) OR (matchPct >= 25%) OR (matchedCount >= 2)
+      const passesThreshold = missingCount === 0 || matchPct >= 25 || matchedCount >= 2
+      if (!passesThreshold) continue
+    }
+
+    // Determine primary cover image
+    const sortedMedia = r.recipe_media ? [...r.recipe_media].sort((a: any, b: any) => {
+      if (a.is_primary && !b.is_primary) return -1
+      if (!a.is_primary && b.is_primary) return 1
+      return (a.display_order || 0) - (b.display_order || 0)
+    }) : []
+    const coverImage = sortedMedia[0]?.media?.storage_path || null
+
+    results.push({
+      id: r.id,
+      name: r.name,
+      slug: r.slug,
+      cover_image: coverImage,
+      author: r.author ? {
+        id: r.author.id,
+        username: r.author.username,
+        display_name: r.author.display_name,
+        avatar_path: r.author.avatar?.storage_path || null
+      } : null,
+      variety_name: r.variety?.name || null,
+      style_name: r.style?.name || null,
+      total_relevant: totalRelevant,
+      match_count: matchedCount,
+      missing_count: missingCount,
+      missing_ingredients: missingNames.sort((a, b) => a.localeCompare(b)),
+      match_pct: matchPct
+    })
+  }
+
+  // Strict deterministic ordering:
+  // 1. missingCount ASC (fewer missing ingredients first)
+  // 2. matchPct DESC (higher match percentage)
+  // 3. matchCount DESC (more matched ingredients)
+  // 4. name ASC (alphabetical stable tiebreaker)
+  results.sort((a, b) => {
+    if (a.missing_count !== b.missing_count) return a.missing_count - b.missing_count
+    if (b.match_pct !== a.match_pct) return b.match_pct - a.match_pct
+    if (b.match_count !== a.match_count) return b.match_count - a.match_count
+    return a.name.localeCompare(b.name)
+  })
+
+  return results
+}
