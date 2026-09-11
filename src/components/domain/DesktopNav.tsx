@@ -11,8 +11,13 @@ import { useUserSession } from "@/components/providers/UserSessionProvider"
 
 export function DesktopNav() {
   const pathname = usePathname()
-  const { avatarUrl } = useUserSession()
+  const { user, avatarUrl } = useUserSession()
   const displayAvatar = avatarUrl
+
+  console.log("[AUTH DEBUG] DesktopNav render", {
+    userId: user ? user.id : null,
+    avatarUrl
+  })
 
   const navItems = [
     {
