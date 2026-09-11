@@ -210,8 +210,8 @@ export function CookModeClient({ recipe, userName, reset }: { recipe: CookModeRe
           if (!isMounted) return
 
           // Step 1: NEVER auto-start timer on entrance. User MUST press Play.
-          // Step 2+: If autoAdvance is enabled and step has duration, auto-start timer after instruction finishes speaking.
-          if (currentStepIndex > 0 && autoAdvanceRef.current && currentStep.duration_minutes) {
+          // Step 2+: If cooking was started by user, autoAdvance is enabled and step has duration, auto-start timer after instruction finishes speaking.
+          if (currentStepIndex > 0 && cookingStartedByUserRef.current && autoAdvanceRef.current && currentStep.duration_minutes) {
             setTimers(prev => {
               const t = prev[currentStepIndex]
               if (!t || (!t.isRunning && t.remainingMs > 0)) {
@@ -342,10 +342,6 @@ export function CookModeClient({ recipe, userName, reset }: { recipe: CookModeRe
   const handleStart = () => setHasStarted(true)
   
   const handleNext = () => {
-    // If user advances manually from step 0, mark cooking as started
-    if (currentStepIndex === 0) {
-      setCookingStartedByUser(true)
-    }
     if (currentStepIndex < recipe.steps.length) {
       setCurrentStepIndex(currentStepIndex + 1)
     }
@@ -370,8 +366,10 @@ export function CookModeClient({ recipe, userName, reset }: { recipe: CookModeRe
   }
 
   const toggleTimer = (stepIndex: number, durationMinutes: number) => {
-    // When user plays the timer (especially on step 0), mark cooking as explicitly started
-    setCookingStartedByUser(true)
+    // Only pressing Play on Step 1 enables the cookingStartedByUser flag
+    if (stepIndex === 0) {
+      setCookingStartedByUser(true)
+    }
 
     setTimers(prev => {
       const t = prev[stepIndex]
