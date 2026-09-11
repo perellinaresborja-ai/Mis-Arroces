@@ -299,10 +299,11 @@ export function CookModeClient({ recipe, userName, reset }: { recipe: CookModeRe
   }, [currentStepIndex, recipe.steps, isClient])
 
   // Timer Tick and completion handling
+  const processingFinishedStep = useRef<Record<number, boolean>>({})
+
   useEffect(() => {
     const interval = setInterval(() => {
       const now = Date.now()
-      const finishedSteps: number[] = []
 
       setTimers(prev => {
         let changed = false
@@ -316,9 +317,47 @@ export function CookModeClient({ recipe, userName, reset }: { recipe: CookModeRe
             if (rem <= 0) {
               next[numKey] = { ...t, remainingMs: 0, isRunning: false, endTime: null }
               changed = true
-              if (!completedStepsProcessed.current[numKey]) {
+
+              // Atomic trigger: only process this finished step ONCE
+              if (!completedStepsProcessed.current[numKey] && !processingFinishedStep.current[numKey]) {
                 completedStepsProcessed.current[numKey] = true
-                finishedSteps.push(numKey)
+                processingFinishedStep.current[numKey] = true
+
+                // Execute step completion sequence
+                const runStepCompletion = async (stepIdx: number) => {
+                  // 1. Alarm sound & vibration
+                  if ('vibrate' in navigator) navigator.vibrate([200, 100, 200])
+
+                  try {
+                    const ctx = new (window.AudioContext || (window as any).webkitAudioContext)()
+                    const osc = ctx.createOscillator()
+                    osc.connect(ctx.destination)
+                    osc.start()
+                    osc.stop(ctx.currentTime + 0.5)
+                  } catch (e) {}
+
+                  const stepObj = recipe.steps[stepIdx]
+
+                  // 2. Read notes of the finished step (or alert) and wait until speech is truly finished
+                  let speechMsg = "¡Tiempo cumplido!"
+                  if (stepObj?.notes && stepObj.notes.trim().length > 0) {
+                    speechMsg = `¡Tiempo cumplido! ${stepObj.notes.trim()}`
+                  }
+
+                  await speakText(speechMsg)
+
+                  // 3. Auto-advance logic if enabled: only advances AFTER speech finishes
+                  if (autoAdvanceRef.current) {
+                    if (stepIdx + 1 < recipe.steps.length) {
+                      setCurrentStepIndex(stepIdx + 1)
+                    } else {
+                      // Last step finished -> show final view
+                      setCurrentStepIndex(recipe.steps.length)
+                    }
+                  }
+                }
+
+                runStepCompletion(numKey)
               }
             } else {
               next[numKey] = { ...t, remainingMs: rem }
@@ -327,47 +366,6 @@ export function CookModeClient({ recipe, userName, reset }: { recipe: CookModeRe
           }
         }
         return changed ? next : prev
-      })
-
-      // When timer hits 0:
-      finishedSteps.forEach(async (finishedStepIndex) => {
-        // 1. Alarm sound & vibration
-        if ('vibrate' in navigator) navigator.vibrate([200, 100, 200])
-
-        try {
-          const ctx = new (window.AudioContext || (window as any).webkitAudioContext)()
-          const osc = ctx.createOscillator()
-          osc.connect(ctx.destination)
-          osc.start()
-          osc.stop(ctx.currentTime + 0.5)
-        } catch (e) {}
-
-        const stepObj = recipe.steps[finishedStepIndex]
-
-        console.log("[NOTE TTS]", {
-          notes: stepObj?.notes,
-          voiceEnabled: true,
-          speaking: typeof window !== 'undefined' ? window.speechSynthesis.speaking : false,
-          pending: typeof window !== 'undefined' ? window.speechSynthesis.pending : false,
-          paused: typeof window !== 'undefined' ? window.speechSynthesis.paused : false
-        })
-
-        // 2. Read notes of the finished step (or alert) and wait until speech is truly finished
-        let speechMsg = "¡Tiempo cumplido!"
-        if (stepObj?.notes && stepObj.notes.trim().length > 0) {
-          speechMsg = `¡Tiempo cumplido! ${stepObj.notes.trim()}`
-        }
-        await speakText(speechMsg)
-
-        // 3. Auto-advance logic if enabled: only advances AFTER speech finishes
-        if (autoAdvanceRef.current) {
-          if (finishedStepIndex + 1 < recipe.steps.length) {
-            setCurrentStepIndex(finishedStepIndex + 1)
-          } else {
-            // Last step finished -> show final view
-            setCurrentStepIndex(recipe.steps.length)
-          }
-        }
       })
     }, 100)
 
