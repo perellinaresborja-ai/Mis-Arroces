@@ -126,125 +126,168 @@ export function CookModeClient({ recipe, userName, reset }: { recipe: CookModeRe
 
   // TTS
   const currentUtterance = useRef<SpeechSynthesisUtterance | null>(null)
-  const speakText = (text: string, onEnd?: () => void) => {
-    if ('speechSynthesis' in window) {
-      window.speechSynthesis.cancel() // clear queue
+  const isSpeakingRef = useRef<boolean>(false)
+
+  const speakText = (text: string): Promise<void> => {
+    return new Promise((resolve) => {
+      if (!text || typeof window === 'undefined' || !('speechSynthesis' in window)) {
+        resolve()
+        return
+      }
+
+      window.speechSynthesis.cancel() // cancel active utterances
       const utterance = new SpeechSynthesisUtterance(text)
       utterance.lang = 'es-ES'
-      utterance.rate = 0.85 // Slower
+      utterance.rate = 0.85
       utterance.pitch = 1
-      
-      if (onEnd) utterance.onend = onEnd;
-      
-      // Save to ref to prevent Garbage Collection from cutting off speech in Chrome
+
+      utterance.onstart = () => {
+        isSpeakingRef.current = true
+      }
+
+      const finishSpeech = () => {
+        isSpeakingRef.current = false
+        resolve()
+      }
+
+      utterance.onend = finishSpeech
+      utterance.onerror = finishSpeech
+
       currentUtterance.current = utterance
-      
       window.speechSynthesis.speak(utterance)
-    } else {
-      if (onEnd) onEnd();
-    }
+    })
   }
 
+  // Cooking start state (user must press play manually on Step 1)
+  const [cookingStartedByUser, setCookingStartedByUser] = useState(false)
+  const cookingStartedByUserRef = useRef(cookingStartedByUser)
+  useEffect(() => {
+    cookingStartedByUserRef.current = cookingStartedByUser
+  }, [cookingStartedByUser])
+
   const lastSpokenStepIndex = useRef<number>(-1)
-  
-  // Auto-TTS for steps
-  const currentStep = recipe.steps[currentStepIndex];
-  const isCurrentTimerRunning = currentStep ? timers[currentStepIndex]?.isRunning : false;
-
+  const currentStepIndexRef = useRef(currentStepIndex)
   useEffect(() => {
-    if (!isClient || !hasStarted || !currentStep) return;
-    
-    // Do not repeat if timer is actively running
-    if (isCurrentTimerRunning) return;
-
-    let initialText = ""
-    if (lastSpokenStepIndex.current !== currentStepIndex) {
-      if (!hasWelcomed.current) {
-        const nameGreeting = userName ? `${userName}, ` : '';
-        initialText = `¡Bienvenido! ${nameGreeting}Vamos a cocinar ${recipe.name}. ¡Preparado? ¡Empezamos! `
-        hasWelcomed.current = true
-      }
-
-      if (currentStep.instruction) {
-        initialText += currentStep.instruction;
-        if (currentStep.duration_minutes) {
-          initialText += `. Tiempo estimado: ${currentStep.duration_minutes} minuto${currentStep.duration_minutes !== 1 ? 's' : ''}.`
-        } else if (currentStep.notes) {
-          initialText += `. ${currentStep.notes}`
-        }
-      }
-      
-      if (initialText) {
-        speakText(initialText, () => {
-          // If auto-advance is active, wait until speech ends to start the timer
-          if (autoAdvanceRef.current && currentStep.duration_minutes) {
-            setTimers(prev => {
-              const t = prev[currentStepIndex];
-              if (!t) {
-                const durationMs = currentStep.duration_minutes * 60 * 1000;
-                return { 
-                  ...prev, 
-                  [currentStepIndex]: { isRunning: true, remainingMs: durationMs, endTime: Date.now() + durationMs } 
-                };
-              }
-              return prev;
-            });
-          }
-        });
-      }
-      lastSpokenStepIndex.current = currentStepIndex;
-    }
-
-    // Set up repeat interval every 30 seconds if timer is NOT running
-    const interval = setInterval(() => {
-      if (isCurrentTimerRunning) return;
-      
-      let repeatText = currentStep.instruction || "";
-      if (currentStep.duration_minutes) {
-        repeatText += `. Tiempo estimado: ${currentStep.duration_minutes} minuto${currentStep.duration_minutes !== 1 ? 's' : ''}.`
-      } else if (currentStep.notes) {
-        repeatText += `. ${currentStep.notes}`
-      }
-      if (repeatText) speakText(repeatText);
-    }, 30000);
-
-    return () => clearInterval(interval);
-  }, [currentStepIndex, currentStep, hasStarted, isClient, isCurrentTimerRunning, recipe.name, userName]);
-
-  // Preload next image
-  useEffect(() => {
-    if (isClient && currentStepIndex + 1 < recipe.steps.length) {
-      const nextStep = recipe.steps[currentStepIndex + 1];
-      if (nextStep?.media?.storage_path) {
-        const img = new window.Image();
-        img.src = `https://zvesoygqssyyojqyswwm.supabase.co/storage/v1/object/public/recipe_media/${nextStep.media.storage_path}`;
-      }
-    }
-  }, [currentStepIndex, recipe.steps, isClient])
+    currentStepIndexRef.current = currentStepIndex
+  }, [currentStepIndex])
 
   // Timer Tick
   const [autoAdvance, setAutoAdvance] = useState(false)
   const autoAdvanceRef = useRef(autoAdvance)
   useEffect(() => { autoAdvanceRef.current = autoAdvance }, [autoAdvance])
 
+  // Flag to avoid double triggering step-end processing for the same step
+  const completedStepsProcessed = useRef<Record<number, boolean>>({})
+
+  // Auto-TTS for steps entry & Step 1 reminder
+  const currentStep = recipe.steps[currentStepIndex]
+
+  useEffect(() => {
+    if (!isClient || !hasStarted || !currentStep) return
+
+    let isMounted = true
+
+    // When entering a new step, speak instruction ONLY (never notes)
+    if (lastSpokenStepIndex.current !== currentStepIndex) {
+      lastSpokenStepIndex.current = currentStepIndex
+
+      let entranceText = ""
+      if (!hasWelcomed.current) {
+        const nameGreeting = userName ? `${userName}, ` : ''
+        entranceText = `¡Bienvenido! ${nameGreeting}Vamos a cocinar ${recipe.name}. ¡Preparado? ¡Empezamos! `
+        hasWelcomed.current = true
+      }
+
+      if (currentStep.instruction) {
+        entranceText += currentStep.instruction
+        if (currentStep.duration_minutes) {
+          entranceText += `. Tiempo estimado: ${currentStep.duration_minutes} minuto${currentStep.duration_minutes !== 1 ? 's' : ''}.`
+        }
+      }
+
+      if (entranceText) {
+        speakText(entranceText).then(() => {
+          if (!isMounted) return
+
+          // Step 1: NEVER auto-start timer on entrance. User MUST press Play.
+          // Step 2+: If autoAdvance is enabled and step has duration, auto-start timer after instruction finishes speaking.
+          if (currentStepIndex > 0 && autoAdvanceRef.current && currentStep.duration_minutes) {
+            setTimers(prev => {
+              const t = prev[currentStepIndex]
+              if (!t || (!t.isRunning && t.remainingMs > 0)) {
+                const durationMs = currentStep.duration_minutes * 60 * 1000
+                const rem = t ? t.remainingMs : durationMs
+                return {
+                  ...prev,
+                  [currentStepIndex]: {
+                    isRunning: true,
+                    remainingMs: rem,
+                    endTime: Date.now() + rem
+                  }
+                }
+              }
+              return prev
+            })
+          }
+        })
+      }
+    }
+
+    // Step 1 reminder interval: If on step 0 and cooking hasn't started, repeat instruction every 30 seconds
+    let reminderInterval: NodeJS.Timeout | null = null
+    if (currentStepIndex === 0 && !cookingStartedByUser) {
+      reminderInterval = setInterval(() => {
+        if (!cookingStartedByUserRef.current && currentStepIndexRef.current === 0) {
+          let repeatText = currentStep.instruction || ""
+          if (currentStep.duration_minutes) {
+            repeatText += `. Tiempo estimado: ${currentStep.duration_minutes} minuto${currentStep.duration_minutes !== 1 ? 's' : ''}.`
+          }
+          if (repeatText) {
+            speakText(repeatText)
+          }
+        }
+      }, 30000)
+    }
+
+    return () => {
+      isMounted = false
+      if (reminderInterval) clearInterval(reminderInterval)
+    }
+  }, [currentStepIndex, currentStep, hasStarted, isClient, cookingStartedByUser, recipe.name, userName])
+
+  // Preload next image
+  useEffect(() => {
+    if (isClient && currentStepIndex + 1 < recipe.steps.length) {
+      const nextStep = recipe.steps[currentStepIndex + 1]
+      if (nextStep?.media?.storage_path) {
+        const img = new window.Image()
+        img.src = `https://zvesoygqssyyojqyswwm.supabase.co/storage/v1/object/public/recipe_media/${nextStep.media.storage_path}`
+      }
+    }
+  }, [currentStepIndex, recipe.steps, isClient])
+
+  // Timer Tick and completion handling
   useEffect(() => {
     const interval = setInterval(() => {
-      let triggeredAlarms: number[] = []
-      
+      const now = Date.now()
+      const finishedSteps: number[] = []
+
       setTimers(prev => {
         let changed = false
         const next = { ...prev }
-        const now = Date.now()
-        
+
         for (const key in next) {
-          const numKey = Number(key);
+          const numKey = Number(key)
           const t = next[numKey]
           if (t.isRunning && t.endTime) {
             const rem = t.endTime - now
             if (rem <= 0) {
               next[numKey] = { ...t, remainingMs: 0, isRunning: false, endTime: null }
               changed = true
-              triggeredAlarms.push(numKey)
+              if (!completedStepsProcessed.current[numKey]) {
+                completedStepsProcessed.current[numKey] = true
+                finishedSteps.push(numKey)
+              }
             } else {
               next[numKey] = { ...t, remainingMs: rem }
               changed = true
@@ -253,17 +296,11 @@ export function CookModeClient({ recipe, userName, reset }: { recipe: CookModeRe
         }
         return changed ? next : prev
       })
-      
-      // Run side effects outside the state updater
-      triggeredAlarms.forEach(numKey => {
+
+      // When timer hits 0:
+      finishedSteps.forEach(async (finishedStepIndex) => {
+        // 1. Alarm sound & vibration
         if ('vibrate' in navigator) navigator.vibrate([200, 100, 200])
-        
-        const finishedStep = recipe.steps[numKey];
-        if (finishedStep?.notes) {
-          speakText(`¡Tiempo cumplido! ${finishedStep.notes}`);
-        } else {
-          speakText(`¡Tiempo cumplido!`);
-        }
 
         try {
           const ctx = new (window.AudioContext || (window as any).webkitAudioContext)()
@@ -271,31 +308,29 @@ export function CookModeClient({ recipe, userName, reset }: { recipe: CookModeRe
           osc.connect(ctx.destination)
           osc.start()
           osc.stop(ctx.currentTime + 0.5)
-        } catch(e) {}
+        } catch (e) {}
 
+        const stepObj = recipe.steps[finishedStepIndex]
+
+        // 2. Read notes of the finished step (or alert) and wait until speech is truly finished
+        let speechMsg = "¡Tiempo cumplido!"
+        if (stepObj?.notes && stepObj.notes.trim().length > 0) {
+          speechMsg = `¡Tiempo cumplido! ${stepObj.notes}`
+        }
+        await speakText(speechMsg)
+
+        // 3. Auto-advance logic if enabled
         if (autoAdvanceRef.current) {
-          // If auto-advance is enabled, go to the next step
-          setTimeout(() => {
-            setCurrentStepIndex(prevIndex => {
-              if (prevIndex === numKey && prevIndex + 1 < recipe.steps.length) {
-                const nextIdx = prevIndex + 1;
-                // Optionally start the next timer automatically if it has a duration
-                const nextStep = recipe.steps[nextIdx];
-                if (nextStep && nextStep.duration_minutes) {
-                  setTimers(prev => {
-                    const durationMs = nextStep.duration_minutes * 60 * 1000;
-                    return { ...prev, [nextIdx]: { isRunning: true, remainingMs: durationMs, endTime: Date.now() + durationMs } };
-                  });
-                }
-                return nextIdx;
-              }
-              return prevIndex;
-            });
-          }, 3000); // Wait 3 seconds so TTS has time to read the notes before switching!
+          if (finishedStepIndex + 1 < recipe.steps.length) {
+            setCurrentStepIndex(finishedStepIndex + 1)
+          } else {
+            // Last step finished -> show final view
+            setCurrentStepIndex(recipe.steps.length)
+          }
         }
       })
-      
     }, 100)
+
     return () => clearInterval(interval)
   }, [recipe.steps])
 
@@ -307,6 +342,10 @@ export function CookModeClient({ recipe, userName, reset }: { recipe: CookModeRe
   const handleStart = () => setHasStarted(true)
   
   const handleNext = () => {
+    // If user advances manually from step 0, mark cooking as started
+    if (currentStepIndex === 0) {
+      setCookingStartedByUser(true)
+    }
     if (currentStepIndex < recipe.steps.length) {
       setCurrentStepIndex(currentStepIndex + 1)
     }
@@ -331,6 +370,9 @@ export function CookModeClient({ recipe, userName, reset }: { recipe: CookModeRe
   }
 
   const toggleTimer = (stepIndex: number, durationMinutes: number) => {
+    // When user plays the timer (especially on step 0), mark cooking as explicitly started
+    setCookingStartedByUser(true)
+
     setTimers(prev => {
       const t = prev[stepIndex]
       const now = Date.now()
