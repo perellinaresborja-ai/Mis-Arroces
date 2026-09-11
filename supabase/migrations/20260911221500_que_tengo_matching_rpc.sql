@@ -135,7 +135,7 @@ BEGIN
         c.match_pct
     FROM calculated c
     LEFT JOIN profiles p ON p.id = c.r_owner_id
-    LEFT JOIN media_assets ma_p ON ma_p.id = p.avatar_id
+    LEFT JOIN media_assets ma_p ON ma_p.id = p.avatar_media_id
     LEFT JOIN LATERAL (
         SELECT ma.storage_path
         FROM recipe_media rm_sub
