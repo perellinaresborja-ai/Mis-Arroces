@@ -221,6 +221,159 @@ export function CookModeClient({ recipe, userName, reset }: { recipe: CookModeRe
   // Flag to avoid double triggering step-end processing for the same step
   const completedStepsProcessed = useRef<Record<number, boolean>>({})
 
+  const handleStart = () => setHasStarted(true)
+  
+  const handleNext = () => {
+    if (currentStepIndex < recipe.steps.length) {
+      setCurrentStepIndex(currentStepIndex + 1)
+    }
+  }
+  
+  const handlePrev = () => {
+    if (currentStepIndex > 0) {
+      setCurrentStepIndex(currentStepIndex - 1)
+    }
+  }
+
+  const handleEndCook = () => {
+    localStorage.removeItem(`cook-mode-${recipe.id}`)
+    router.push(`/recipes/${recipe.id}/cook?servings=${recipe.requested_servings}`)
+  }
+
+  const formatTime = (ms: number) => {
+    const totalSeconds = Math.max(0, Math.ceil(ms / 1000))
+    const m = Math.floor(totalSeconds / 60)
+    const s = totalSeconds % 60
+    return `${m}:${s.toString().padStart(2, '0')}`
+  }
+
+  const toggleTimer = (stepIndex: number, durationMinutes: number) => {
+    // Only pressing Play on Step 1 enables the cookingStartedByUser flag
+    if (stepIndex === 0) {
+      setCookingStartedByUser(true)
+    }
+
+    setTimers(prev => {
+      const t = prev[stepIndex]
+      const now = Date.now()
+      
+      if (!t) {
+        // Start fresh
+        const durationMs = durationMinutes * 60 * 1000
+        return { ...prev, [stepIndex]: { isRunning: true, remainingMs: durationMs, endTime: now + durationMs } }
+      }
+      
+      if (t.isRunning) {
+        // Pause
+        return { ...prev, [stepIndex]: { ...t, isRunning: false, endTime: null } }
+      } else {
+        // Resume
+        if (t.remainingMs <= 0) return prev // already done
+        return { ...prev, [stepIndex]: { ...t, isRunning: true, endTime: now + t.remainingMs } }
+      }
+    })
+  }
+
+  const resetTimer = (stepIndex: number, durationMinutes: number) => {
+    setTimers(prev => ({
+      ...prev,
+      [stepIndex]: { isRunning: false, remainingMs: durationMinutes * 60 * 1000, endTime: null }
+    }))
+  }
+
+  // Voice Control Integration (Hooks must remain top-level unconditionally)
+  const [pendingVoiceFinish, setPendingVoiceFinish] = useState(false)
+
+  const voiceHandlers = useMemo(() => ({
+    onNext: () => {
+      handleNext()
+    },
+    onPrev: () => {
+      handlePrev()
+    },
+    onRepeat: () => {
+      const stepToRepeat = recipe.steps[currentStepIndex]
+      if (stepToRepeat?.instruction) {
+        let text = stepToRepeat.instruction
+        if (stepToRepeat.duration_minutes) {
+          text += `. Tiempo estimado: ${stepToRepeat.duration_minutes} minuto${stepToRepeat.duration_minutes !== 1 ? 's' : ''}.`
+        }
+        speakText(text)
+      }
+    },
+    onPause: () => {
+      setTimers(prev => {
+        const t = prev[currentStepIndex]
+        if (t && t.isRunning) {
+          return { ...prev, [currentStepIndex]: { ...t, isRunning: false, endTime: null } }
+        }
+        return prev
+      })
+    },
+    onResume: () => {
+      const curStep = recipe.steps[currentStepIndex]
+      const dur = curStep?.duration_minutes || 0
+      toggleTimer(currentStepIndex, dur)
+    },
+    onWhatLeft: () => {
+      const t = timers[currentStepIndex]
+      const stepDur = recipe.steps[currentStepIndex]?.duration_minutes
+      const remainingMs = t ? t.remainingMs : (stepDur ? stepDur * 60 * 1000 : 0)
+      if (remainingMs <= 0) {
+        speakText("El tiempo ha terminado o este paso no tiene temporizador.")
+      } else {
+        const totalSeconds = Math.ceil(remainingMs / 1000)
+        const mins = Math.floor(totalSeconds / 60)
+        const secs = totalSeconds % 60
+        let speech = "Quedan "
+        if (mins > 0) {
+          speech += `${mins} minuto${mins !== 1 ? 's' : ''}`
+          if (secs > 0) speech += ` y ${secs} segundo${secs !== 1 ? 's' : ''}`
+        } else {
+          speech += `${secs} segundo${secs !== 1 ? 's' : ''}`
+        }
+        speakText(speech)
+      }
+    },
+    onSetTimer: (seconds: number) => {
+      if (currentStepIndex === 0) {
+        setCookingStartedByUser(true)
+      }
+      setTimers(prev => ({
+        ...prev,
+        [currentStepIndex]: {
+          isRunning: true,
+          remainingMs: seconds * 1000,
+          endTime: Date.now() + seconds * 1000,
+        }
+      }))
+    },
+    onFinishRequest: () => {
+      setPendingVoiceFinish(true)
+      speakText("¿Seguro que deseas terminar? Di sí o no.")
+    },
+    onConfirmFinish: () => {
+      setPendingVoiceFinish(false)
+      handleEndCook()
+    },
+    onCancelFinish: () => {
+      setPendingVoiceFinish(false)
+      speakText("De acuerdo, continuamos.")
+    }
+  }), [currentStepIndex, recipe.steps, timers]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const {
+    voiceEnabled,
+    voiceState,
+    feedbackMessage,
+    isSupported: isVoiceSupported,
+    toggleVoice
+  } = useVoiceCommands({
+    handlers: voiceHandlers,
+    isTtsSpeakingRef: isSpeakingRef,
+    pendingFinishConfirmation: pendingVoiceFinish
+  })
+
   // Auto-TTS for steps entry & Step 1 reminder
   const currentStep = recipe.steps[currentStepIndex]
 
@@ -380,158 +533,9 @@ export function CookModeClient({ recipe, userName, reset }: { recipe: CookModeRe
   const layer = (recipe.rice_qty && recipe.diameter_cm) ? calculateLayer(recipe.rice_qty, recipe.diameter_cm) : null
   const ratio = (recipe.rice_qty && recipe.stock_qty) ? calculateRealBrothRatio(recipe.rice_qty, recipe.stock_qty) : null
 
-  const handleStart = () => setHasStarted(true)
-  
-  const handleNext = () => {
-    if (currentStepIndex < recipe.steps.length) {
-      setCurrentStepIndex(currentStepIndex + 1)
-    }
-  }
-  
-  const handlePrev = () => {
-    if (currentStepIndex > 0) {
-      setCurrentStepIndex(currentStepIndex - 1)
-    }
-  }
 
-  const handleEndCook = () => {
-    localStorage.removeItem(`cook-mode-${recipe.id}`)
-    router.push(`/recipes/${recipe.id}/cook?servings=${recipe.requested_servings}`)
-  }
 
-  const formatTime = (ms: number) => {
-    const totalSeconds = Math.max(0, Math.ceil(ms / 1000))
-    const m = Math.floor(totalSeconds / 60)
-    const s = totalSeconds % 60
-    return `${m}:${s.toString().padStart(2, '0')}`
-  }
 
-  const toggleTimer = (stepIndex: number, durationMinutes: number) => {
-    // Only pressing Play on Step 1 enables the cookingStartedByUser flag
-    if (stepIndex === 0) {
-      setCookingStartedByUser(true)
-    }
-
-    setTimers(prev => {
-      const t = prev[stepIndex]
-      const now = Date.now()
-      
-      if (!t) {
-        // Start fresh
-        const durationMs = durationMinutes * 60 * 1000
-        return { ...prev, [stepIndex]: { isRunning: true, remainingMs: durationMs, endTime: now + durationMs } }
-      }
-      
-      if (t.isRunning) {
-        // Pause
-        return { ...prev, [stepIndex]: { ...t, isRunning: false, endTime: null } }
-      } else {
-        // Resume
-        if (t.remainingMs <= 0) return prev // already done
-        return { ...prev, [stepIndex]: { ...t, isRunning: true, endTime: now + t.remainingMs } }
-      }
-    })
-  }
-
-  const resetTimer = (stepIndex: number, durationMinutes: number) => {
-    setTimers(prev => ({
-      ...prev,
-      [stepIndex]: { isRunning: false, remainingMs: durationMinutes * 60 * 1000, endTime: null }
-    }))
-  }
-
-  // Voice Control Integration
-  const [pendingVoiceFinish, setPendingVoiceFinish] = useState(false)
-
-  const voiceHandlers = useMemo(() => ({
-    onNext: () => {
-      handleNext()
-    },
-    onPrev: () => {
-      handlePrev()
-    },
-    onRepeat: () => {
-      const stepToRepeat = recipe.steps[currentStepIndex]
-      if (stepToRepeat?.instruction) {
-        let text = stepToRepeat.instruction
-        if (stepToRepeat.duration_minutes) {
-          text += `. Tiempo estimado: ${stepToRepeat.duration_minutes} minuto${stepToRepeat.duration_minutes !== 1 ? 's' : ''}.`
-        }
-        speakText(text)
-      }
-    },
-    onPause: () => {
-      setTimers(prev => {
-        const t = prev[currentStepIndex]
-        if (t && t.isRunning) {
-          return { ...prev, [currentStepIndex]: { ...t, isRunning: false, endTime: null } }
-        }
-        return prev
-      })
-    },
-    onResume: () => {
-      const curStep = recipe.steps[currentStepIndex]
-      const dur = curStep?.duration_minutes || 0
-      toggleTimer(currentStepIndex, dur)
-    },
-    onWhatLeft: () => {
-      const t = timers[currentStepIndex]
-      const stepDur = recipe.steps[currentStepIndex]?.duration_minutes
-      const remainingMs = t ? t.remainingMs : (stepDur ? stepDur * 60 * 1000 : 0)
-      if (remainingMs <= 0) {
-        speakText("El tiempo ha terminado o este paso no tiene temporizador.")
-      } else {
-        const totalSeconds = Math.ceil(remainingMs / 1000)
-        const mins = Math.floor(totalSeconds / 60)
-        const secs = totalSeconds % 60
-        let speech = "Quedan "
-        if (mins > 0) {
-          speech += `${mins} minuto${mins !== 1 ? 's' : ''}`
-          if (secs > 0) speech += ` y ${secs} segundo${secs !== 1 ? 's' : ''}`
-        } else {
-          speech += `${secs} segundo${secs !== 1 ? 's' : ''}`
-        }
-        speakText(speech)
-      }
-    },
-    onSetTimer: (seconds: number) => {
-      if (currentStepIndex === 0) {
-        setCookingStartedByUser(true)
-      }
-      setTimers(prev => ({
-        ...prev,
-        [currentStepIndex]: {
-          isRunning: true,
-          remainingMs: seconds * 1000,
-          endTime: Date.now() + seconds * 1000,
-        }
-      }))
-    },
-    onFinishRequest: () => {
-      setPendingVoiceFinish(true)
-      speakText("¿Seguro que deseas terminar? Di sí o no.")
-    },
-    onConfirmFinish: () => {
-      setPendingVoiceFinish(false)
-      handleEndCook()
-    },
-    onCancelFinish: () => {
-      setPendingVoiceFinish(false)
-      speakText("De acuerdo, continuamos.")
-    }
-  }), [currentStepIndex, recipe.steps, timers]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  const {
-    voiceEnabled,
-    voiceState,
-    feedbackMessage,
-    isSupported: isVoiceSupported,
-    toggleVoice
-  } = useVoiceCommands({
-    handlers: voiceHandlers,
-    isTtsSpeakingRef: isSpeakingRef,
-    pendingFinishConfirmation: pendingVoiceFinish
-  })
 
   // Top actions are now inlined to prevent unmounting on every render
 
