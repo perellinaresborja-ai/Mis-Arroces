@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import { useState } from "react"
 import Link from "next/link"
@@ -114,6 +114,16 @@ export function FeedCard({
             initialStatus={followStatus || null} 
             targetId={user.id} 
             isPrivate={user.privacy_level === "PRIVATE"} 
+            entityType={entityType}
+            entityId={entityId}
+            postSnapshot={{
+              entityType,
+              entityId,
+              userId: user.id,
+              username: user.username,
+              postContent: postContent || recipeName || undefined,
+              createdAt
+            }}
           />
         ) : (
           <PostOptionsMenu 

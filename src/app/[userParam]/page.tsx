@@ -14,6 +14,7 @@ import { ShareButton } from "@/components/domain/ShareButton"
 import { ProfileShareModal } from "@/components/domain/ProfileShareModal"
 import { ProfileAvatar } from "@/components/domain/ProfileAvatar"
 import { ProfileFollowButton } from "@/components/domain/ProfileFollowButton"
+import { ReportButton } from "@/components/domain/ReportButton"
 
 import { ViewTracker } from "@/components/domain/ViewTracker"
 
@@ -306,6 +307,21 @@ export default async function PublicProfilePage({
                     </Button>
                   </form>
                 )}
+                <ReportButton
+                  targetType="USER"
+                  targetId={profile.id}
+                  reportedUserId={profile.id}
+                  contentSnapshot={{
+                    username: profile.username,
+                    display_name: profile.display_name,
+                    id: profile.id
+                  }}
+                  title="Reportar perfil"
+                  variant="icon"
+                  label="Reportar perfil"
+                  isAuthenticated={!!user}
+                  className="h-10 w-10 border border-border bg-card shadow-sm flex items-center justify-center"
+                />
               </div>
             )}
           

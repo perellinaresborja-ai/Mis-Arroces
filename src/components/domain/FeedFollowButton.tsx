@@ -4,24 +4,33 @@ import { useState, useRef, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { toggleFollow, blockUser } from "@/app/actions/social"
 import { useAuthPrompt } from "@/components/providers/AuthPromptProvider"
-import { UserMinus, Ban } from "lucide-react"
+import { UserMinus, Ban, Flag } from "lucide-react"
 import { ConfirmModal } from "@/components/ui/ConfirmModal"
+import { ReportModal } from "./ReportModal"
 
 export function FeedFollowButton({ 
   isAuthenticated, 
   initialStatus, 
   targetId, 
-  isPrivate 
+  isPrivate,
+  entityType,
+  entityId,
+  postSnapshot
 }: { 
-  isAuthenticated: boolean, 
-  initialStatus: string | null, 
-  targetId: string, 
-  isPrivate: boolean 
+  isAuthenticated: boolean
+  initialStatus: string | null
+  targetId: string
+  isPrivate: boolean
+  entityType?: "recipe" | "session" | "post"
+  entityId?: string
+  postSnapshot?: Record<string, any>
 }) {
   const { showAuthPrompt } = useAuthPrompt()
   const [status, setStatus] = useState<string | null>(initialStatus)
   const [isPending, setIsPending] = useState(false)
   const [showMenu, setShowMenu] = useState(false)
+  const [showReportPost, setShowReportPost] = useState(false)
+  const [showReportUser, setShowReportUser] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -121,21 +130,49 @@ export function FeedFollowButton({
       </Button>
 
       {showMenu && (
-        <div className="absolute right-0 top-full mt-2 w-48 bg-card border border-border rounded-xl shadow-lg z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-100">
+        <div className="absolute right-0 top-full mt-2 w-52 bg-card border border-border rounded-2xl shadow-xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-100">
           <button 
             onClick={handleUnfollow} 
-            className="flex items-center gap-2 w-full text-left px-4 py-3 text-sm hover:bg-muted font-medium border-b border-border text-foreground transition-colors"
+            className="flex items-center gap-2.5 w-full text-left px-4 py-3 text-sm hover:bg-muted font-medium border-b border-border text-foreground transition-colors"
           >
             <UserMinus className="w-4 h-4" /> Dejar de seguir
           </button>
+          
+          {entityId && entityType && (
+            <button 
+              onClick={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                setShowMenu(false)
+                setShowReportPost(true)
+              }} 
+              className="flex items-center gap-2.5 w-full text-left px-4 py-3 text-sm hover:bg-muted font-medium border-b border-border text-foreground transition-colors"
+            >
+              <Flag className="w-4 h-4 text-amber-500" /> Reportar publicación
+            </button>
+          )}
+
+          <button 
+            onClick={(e) => {
+              e.preventDefault()
+              e.stopPropagation()
+              setShowMenu(false)
+              setShowReportUser(true)
+            }} 
+            className="flex items-center gap-2.5 w-full text-left px-4 py-3 text-sm hover:bg-muted font-medium border-b border-border text-foreground transition-colors"
+          >
+            <Flag className="w-4 h-4 text-amber-500" /> Reportar usuario
+          </button>
+
           <button 
             onClick={handleBlock} 
-            className="flex items-center gap-2 w-full text-left px-4 py-3 text-sm hover:bg-destructive/10 font-medium text-destructive transition-colors"
+            className="flex items-center gap-2.5 w-full text-left px-4 py-3 text-sm hover:bg-destructive/10 font-medium text-destructive transition-colors"
           >
             <Ban className="w-4 h-4" /> Bloquear
           </button>
         </div>
       )}
+
       <ConfirmModal
         isOpen={showConfirm}
         title="Bloquear usuario"
@@ -144,6 +181,28 @@ export function FeedFollowButton({
         isDestructive={true}
         onConfirm={confirmBlock}
         onCancel={() => setShowConfirm(false)}
+      />
+
+      {entityId && entityType && (
+        <ReportModal
+          isOpen={showReportPost}
+          onClose={() => setShowReportPost(false)}
+          targetType={entityType === "recipe" ? "RECIPE" : "POST"}
+          targetId={entityId}
+          reportedUserId={targetId}
+          contentSnapshot={postSnapshot || { entityType, entityId, targetId }}
+          title={entityType === "recipe" ? "Reportar receta" : "Reportar publicación"}
+        />
+      )}
+
+      <ReportModal
+        isOpen={showReportUser}
+        onClose={() => setShowReportUser(false)}
+        targetType="USER"
+        targetId={targetId}
+        reportedUserId={targetId}
+        contentSnapshot={{ reported_user_id: targetId }}
+        title="Reportar usuario"
       />
     </div>
   )

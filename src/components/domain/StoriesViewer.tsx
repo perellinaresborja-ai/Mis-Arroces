@@ -22,6 +22,8 @@ import { trackClickAction } from "@/app/actions/tracking"
 import { useRouter } from "next/navigation"
 import { setGlobalStoryDraft } from "@/lib/story-draft"
 
+import { ReportModal } from "./ReportModal"
+
 export function StoriesViewer({ groupedStories: _groupedStories, initialGroupIndex: _initialGroupIndex, stories, initialIndex, onClose, currentUser, currentUserId }: { groupedStories?: any[], initialGroupIndex?: number, stories?: any[], initialIndex?: number, onClose: () => void, currentUser?: any, currentUserId?: string }) {
   const groupedStories = _groupedStories || [{ author: stories?.[0]?.author || stories?.[0]?.profiles || { id: stories?.[0]?.owner_id }, stories: stories || [] }];
   const initialGroupIndex = _initialGroupIndex || 0;
@@ -50,6 +52,7 @@ export function StoriesViewer({ groupedStories: _groupedStories, initialGroupInd
   const [progress, setProgress] = useState(0) // 0 to 100 per story
   const [showMenu, setShowMenu] = useState(false)
   const [showShare, setShowShare] = useState(false)
+  const [showReport, setShowReport] = useState(false)
   const [replyText, setReplyText] = useState("")
   const [isSendingReply, setIsSendingReply] = useState(false)
   
@@ -330,7 +333,7 @@ export function StoriesViewer({ groupedStories: _groupedStories, initialGroupInd
                     <button onClick={handleCopyLink} className="flex items-center gap-4 w-full p-4 hover:bg-white/5 transition-colors text-left border-b border-white/10">
                       <Copy className="w-6 h-6" /> <span className="font-semibold">Copiar enlace</span>
                     </button>
-                    <button onClick={(e) => { e.stopPropagation(); alert('Reportado'); closeMenu(); }} className="flex items-center gap-4 w-full p-4 hover:bg-red-500/20 text-red-500 transition-colors text-left border-b border-white/10">
+                    <button onClick={(e) => { e.stopPropagation(); setShowReport(true); setIsPaused(true); closeMenu(); }} className="flex items-center gap-4 w-full p-4 hover:bg-red-500/20 text-red-500 transition-colors text-left border-b border-white/10">
                       <Flag className="w-6 h-6" /> <span className="font-semibold">Reportar</span>
                     </button>
                   </>
@@ -345,6 +348,25 @@ export function StoriesViewer({ groupedStories: _groupedStories, initialGroupInd
           {showShare && (
             <div className="absolute inset-0 z-[70] pointer-events-auto">
               <ShareDMModal isOpen={showShare} onClose={() => { setShowShare(false); setIsPaused(false); }} entityType="STORY" entityId={currentStory.id} />
+            </div>
+          )}
+
+          {showReport && (
+            <div className="absolute inset-0 z-[70] pointer-events-auto flex items-center justify-center">
+              <ReportModal
+                isOpen={showReport}
+                onClose={() => { setShowReport(false); setIsPaused(false); }}
+                targetType="STORY"
+                targetId={currentStory.id}
+                reportedUserId={currentStory.owner_id}
+                contentSnapshot={{
+                  story_id: currentStory.id,
+                  owner_id: currentStory.owner_id,
+                  media_url: fullUrl,
+                  created_at: currentStory.created_at
+                }}
+                title="Reportar historia"
+              />
             </div>
           )}
 

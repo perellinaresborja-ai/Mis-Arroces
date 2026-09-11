@@ -13,6 +13,7 @@ import Link from "next/link"
 import { cn, formatRelativeTime } from "@/lib/utils"
 import { ConfirmModal } from "@/components/ui/ConfirmModal"
 import { useAuthPrompt } from "@/components/providers/AuthPromptProvider"
+import { ReportButton } from "./ReportButton"
 
 interface Comment {
   id: string
@@ -203,6 +204,25 @@ function CommentThread({ comment, replies, entityType, currentUserId, allowComme
               <button onClick={() => onDelete(comment.id)} className="hover:text-destructive flex items-center gap-1" disabled={isPending}>Eliminar</button>
             </>
           )}
+          {!isOwn && !comment.is_deleted && (
+            <ReportButton
+              targetType="COMMENT"
+              targetId={comment.id}
+              reportedUserId={comment.author.id}
+              contentSnapshot={{
+                commentId: comment.id,
+                entityType,
+                authorUsername: comment.author.username,
+                content: comment.content,
+                created_at: comment.created_at
+              }}
+              title="Reportar comentario"
+              variant="icon"
+              label="Reportar comentario"
+              isAuthenticated={!!currentUserId}
+              className="hover:text-destructive p-0"
+            />
+          )}
         </div>
         
         {replies.length > 0 && (
@@ -252,6 +272,26 @@ function CommentReply({ comment, entityType, currentUserId, allowComments, onRep
             )}
           {isOwn && !comment.is_deleted && (
             <button onClick={() => onDelete(comment.id)} className="hover:text-destructive flex items-center gap-1">Eliminar</button>
+          )}
+          {!isOwn && !comment.is_deleted && (
+            <ReportButton
+              targetType="COMMENT_REPLY"
+              targetId={comment.id}
+              reportedUserId={comment.author.id}
+              contentSnapshot={{
+                replyId: comment.id,
+                parentId: comment.parent_id,
+                entityType,
+                authorUsername: comment.author.username,
+                content: comment.content,
+                created_at: comment.created_at
+              }}
+              title="Reportar respuesta"
+              variant="icon"
+              label="Reportar respuesta"
+              isAuthenticated={!!currentUserId}
+              className="hover:text-destructive p-0"
+            />
           )}
         </div>
       </div>

@@ -6,6 +6,8 @@ import { ShareButton } from "@/components/domain/ShareButton"
 import { ReactionButton } from "@/components/domain/ReactionButton"
 import { CommentSection } from "@/components/domain/CommentSection"
 import { MediaCarousel } from "@/components/domain/MediaCarousel"
+import { PostOptionsMenu } from "@/components/domain/PostOptionsMenu"
+import { ReportButton } from "@/components/domain/ReportButton"
 
 export default async function PostDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = await params
@@ -84,6 +86,35 @@ export default async function PostDetailPage({ params }: { params: Promise<{ id:
               </div>
             </div>
           </Link>
+
+          <div className="flex items-center gap-2">
+            {isOwner ? (
+              <PostOptionsMenu 
+                entityType="post" 
+                entityId={post.id} 
+                allowComments={post.allow_comments} 
+                isPinned={post.is_pinned}
+                hidePin={true}
+              />
+            ) : (
+              <ReportButton
+                targetType="POST"
+                targetId={post.id}
+                reportedUserId={post.author_id}
+                contentSnapshot={{
+                  postId: post.id,
+                  authorId: post.author_id,
+                  authorUsername: post.author?.username,
+                  content: post.content,
+                  createdAt: post.created_at
+                }}
+                title="Reportar publicación"
+                variant="button"
+                label="Reportar"
+                isAuthenticated={!!user}
+              />
+            )}
+          </div>
         </header>
 
         {/* Text */}

@@ -19,6 +19,7 @@ import { ViewTracker } from "@/components/domain/ViewTracker"
 import { ExpandableImage } from "@/components/ui/ExpandableImage"
 import { RecipeStateProvider } from "@/components/domain/RecipeStateProvider"
 import { StartCookButton } from "@/components/domain/StartCookButton"
+import { ReportButton } from "@/components/domain/ReportButton"
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = await params;
@@ -259,9 +260,25 @@ export default async function RecipeDetailPage({
                 
                 
               {!isOwner && (
-                  <div className="shrink-0 flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                  <div className="shrink-0 flex items-center flex-wrap gap-2 w-full sm:w-auto">
                       <SaveRecipeButton recipeId={recipe.id} initialSaved={isSaved} isAuthenticated={!!user} />
                       <WantToCookButton recipeId={recipe.id} initialSaved={isWantToCook} isAuthenticated={!!user} />
+                      <ReportButton
+                        targetType="RECIPE"
+                        targetId={recipe.id}
+                        reportedUserId={recipe.owner_id}
+                        contentSnapshot={{
+                          recipeId: recipe.id,
+                          name: recipe.name,
+                          owner_id: recipe.owner_id,
+                          created_at: recipe.created_at
+                        }}
+                        title="Reportar receta"
+                        variant="icon"
+                        label="Reportar receta"
+                        isAuthenticated={!!user}
+                        className="border border-border bg-card shadow-sm p-2"
+                      />
                   </div>
                 )}
             </div>

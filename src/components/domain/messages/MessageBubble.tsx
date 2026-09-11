@@ -2,11 +2,12 @@
 import { useState, useEffect, useTransition } from "react"
 import { formatRelativeTime } from "@/lib/utils"
 import Link from "next/link"
-import { Reply, Copy, Trash2, SmilePlus } from "lucide-react"
+import { Reply, Copy, Trash2, SmilePlus, Flag } from "lucide-react"
 import { unsendMessage } from "@/app/actions/messaging"
 import { toggleMessageReaction } from "@/app/actions/reactions"
 import { createClient } from "@/lib/supabase/client"
 import { StoriesViewer } from "../StoriesViewer"
+import { ReportModal } from "../ReportModal"
 
 export function MessageBubble({ message, isOwn, onReply, currentUserId }: { message: Record<string, unknown>, isOwn: boolean, onReply?: () => void, currentUserId?: string }) {
   const [isPending, startTransition] = useTransition();
@@ -29,6 +30,7 @@ export function MessageBubble({ message, isOwn, onReply, currentUserId }: { mess
   const mediaUrl = attachmentPath ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/message_media/${attachmentPath}` : null;
   const supabase = createClient();
   const [showMenu, setShowMenu] = useState(false);
+  const [showReport, setShowReport] = useState(false);
   const [replyData, setReplyData] = useState<Record<string, any> | null>(message.parent as any || null);
   const isDeleted = !!message.deleted_at;
 
@@ -308,13 +310,24 @@ export function MessageBubble({ message, isOwn, onReply, currentUserId }: { mess
 
         {/* NORMAL MENU */}
           {showMenu && (
-            <div className={`absolute top-8 ${isOwn ? '-left-32' : '-right-32'} w-32 bg-card border border-border shadow-lg rounded-2xl overflow-hidden z-50 text-foreground`}>
+            <div className={`absolute top-8 ${isOwn ? '-left-36' : '-right-36'} w-36 bg-card border border-border shadow-lg rounded-2xl overflow-hidden z-50 text-foreground`}>
               <button onClick={handleReply} className="w-full text-left px-3 py-2 text-sm flex items-center gap-2 hover:bg-muted transition-colors">
                 <Reply className="w-4 h-4" /> Responder
               </button>
             <button onClick={handleCopy} className="w-full text-left px-3 py-2 text-sm flex items-center gap-2 hover:bg-muted transition-colors">
               <Copy className="w-4 h-4" /> Copiar
             </button>
+            {!isOwn && (
+              <button 
+                onClick={() => {
+                  setShowMenu(false);
+                  setShowReport(true);
+                }} 
+                className="w-full text-left px-3 py-2 text-sm flex items-center gap-2 hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <Flag className="w-4 h-4 text-amber-500" /> Reportar
+              </button>
+            )}
             {isOwn && (
               <button onClick={handleUnsend} className="w-full text-left px-3 py-2 text-sm flex items-center gap-2 hover:bg-muted text-destructive transition-colors">
                 <Trash2 className="w-4 h-4" /> Anular
@@ -322,6 +335,23 @@ export function MessageBubble({ message, isOwn, onReply, currentUserId }: { mess
             )}
           </div>
         )}
+
+        <ReportModal
+          isOpen={showReport}
+          onClose={() => setShowReport(false)}
+          targetType="MESSAGE"
+          targetId={message.id as string}
+          reportedUserId={(message.sender_id || message.user_id) as string || null}
+          contentSnapshot={{
+            messageId: message.id,
+            conversationId: message.conversation_id,
+            senderId: message.sender_id || message.user_id,
+            type: message.type,
+            content: mContent,
+            createdAt: mCreatedAt
+          }}
+          title="Reportar mensaje"
+        />
       </div>
     </div>
   );
