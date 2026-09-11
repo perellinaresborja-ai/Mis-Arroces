@@ -15,18 +15,48 @@ interface FeedCommentsInlineProps {
 export function FeedCommentsInline({ isOpen, entityType, entityId, currentUserId, allowComments }: FeedCommentsInlineProps) {
   const [comments, setComments] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const [hasMore, setHasMore] = useState(false)
+  const [offset, setOffset] = useState(0)
   const [fetched, setFetched] = useState(false)
+  const PAGE_SIZE = 50
 
   useEffect(() => {
     if (isOpen && !fetched) {
       setLoading(true)
-      getComments(entityType, entityId, currentUserId).then(data => {
+      setOffset(0)
+      getComments(entityType, entityId, currentUserId, PAGE_SIZE, 0).then(data => {
         setComments(data)
+        const rootCount = data.filter((c: any) => !c.parent_id).length
+        setHasMore(rootCount >= PAGE_SIZE)
+        setOffset(PAGE_SIZE)
         setLoading(false)
         setFetched(true)
       })
     }
   }, [isOpen, entityType, entityId, currentUserId, fetched])
+
+  const handleLoadMore = async () => {
+    if (loadingMore || !hasMore) return
+    setLoadingMore(true)
+    try {
+      const nextBatch = await getComments(entityType, entityId, currentUserId, PAGE_SIZE, offset)
+      const nextRootCount = nextBatch.filter((c: any) => !c.parent_id).length
+      setComments(prev => {
+        const existingIds = new Set(prev.map((c: any) => c.id))
+        const newUnique = nextBatch.filter((c: any) => !existingIds.has(c.id))
+        return [...prev, ...newUnique]
+      })
+      setOffset(prev => prev + PAGE_SIZE)
+      if (nextRootCount < PAGE_SIZE) {
+        setHasMore(false)
+      }
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setLoadingMore(false)
+    }
+  }
 
   if (!isOpen) return null
 
@@ -51,6 +81,9 @@ export function FeedCommentsInline({ isOpen, entityType, entityId, currentUserId
           allowComments={allowComments}
           onCommentAdded={handleCommentAdded}
           onCommentDeleted={handleCommentDeleted}
+          hasMore={hasMore}
+          loadingMore={loadingMore}
+          onLoadMore={handleLoadMore}
         />
       )}
     </div>

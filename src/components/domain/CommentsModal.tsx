@@ -23,13 +23,21 @@ export function CommentsModal({ isOpen, onClose, entityType, entityId, currentUs
   const router = useRouter()
   const [comments, setComments] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const [hasMore, setHasMore] = useState(false)
+  const [offset, setOffset] = useState(0)
+  const PAGE_SIZE = 50
 
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = "hidden"
       setLoading(true)
-      getComments(entityType, entityId, currentUserId).then(data => {
+      setOffset(0)
+      getComments(entityType, entityId, currentUserId, PAGE_SIZE, 0).then(data => {
         setComments(data)
+        const rootCount = data.filter((c: any) => !c.parent_id).length
+        setHasMore(rootCount >= PAGE_SIZE)
+        setOffset(PAGE_SIZE)
         setLoading(false)
       })
     } else {
@@ -37,6 +45,28 @@ export function CommentsModal({ isOpen, onClose, entityType, entityId, currentUs
     }
     return () => { document.body.style.overflow = "" }
   }, [isOpen, entityType, entityId, currentUserId])
+
+  const handleLoadMore = async () => {
+    if (loadingMore || !hasMore) return
+    setLoadingMore(true)
+    try {
+      const nextBatch = await getComments(entityType, entityId, currentUserId, PAGE_SIZE, offset)
+      const nextRootCount = nextBatch.filter((c: any) => !c.parent_id).length
+      setComments(prev => {
+        const existingIds = new Set(prev.map((c: any) => c.id))
+        const newUnique = nextBatch.filter((c: any) => !existingIds.has(c.id))
+        return [...prev, ...newUnique]
+      })
+      setOffset(prev => prev + PAGE_SIZE)
+      if (nextRootCount < PAGE_SIZE) {
+        setHasMore(false)
+      }
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setLoadingMore(false)
+    }
+  }
 
   if (!isOpen) return null
 
@@ -78,6 +108,9 @@ export function CommentsModal({ isOpen, onClose, entityType, entityId, currentUs
               allowComments={allowComments}
               onCommentAdded={handleCommentAdded}
               onCommentDeleted={handleCommentDeleted}
+              hasMore={hasMore}
+              loadingMore={loadingMore}
+              onLoadMore={handleLoadMore}
             />
           )}
         </div>

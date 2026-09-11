@@ -299,7 +299,24 @@ function CommentReply({ comment, entityType, currentUserId, allowComments, onRep
   )
 }
 
-export function CommentSection({ entityType, entityId, comments, currentUserId, allowComments, onCommentAdded, onCommentDeleted }: CommentSectionProps & { onCommentAdded?: (c: any) => void, onCommentDeleted?: (id: string) => void }) {
+export function CommentSection({ 
+  entityType, 
+  entityId, 
+  comments, 
+  currentUserId, 
+  allowComments, 
+  onCommentAdded, 
+  onCommentDeleted,
+  hasMore = false,
+  loadingMore = false,
+  onLoadMore
+}: CommentSectionProps & { 
+  onCommentAdded?: (c: any) => void, 
+  onCommentDeleted?: (id: string) => void,
+  hasMore?: boolean,
+  loadingMore?: boolean,
+  onLoadMore?: () => void
+}) {
   const { showAuthPrompt } = useAuthPrompt()
   const router = useRouter()
   const pathname = usePathname()
@@ -348,29 +365,35 @@ export function CommentSection({ entityType, entityId, comments, currentUserId, 
     })
   }
 
-  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
 
   const handleDelete = (commentId: string) => {
-    setConfirmDeleteId(commentId);
+    setDeleteConfirmId(commentId)
   }
 
-  const confirmDeleteAction = () => {
-    if (!confirmDeleteId) return;
-    startTransition(async () => {
-      setLocalComments(prev => prev.map(c => c.id === confirmDeleteId ? { ...c, is_deleted: true, content: "Comentario eliminado" } : c))
-      await deleteComment(entityType, confirmDeleteId)
-      if (onCommentDeleted) onCommentDeleted(confirmDeleteId)
-      setConfirmDeleteId(null)
-    })
+  const executeDelete = async () => {
+    if (!deleteConfirmId) return
+    const idToDelete = deleteConfirmId
+    setDeleteConfirmId(null)
+
+    // Optimistic delete
+    setLocalComments(prev => prev.map(c => c.id === idToDelete ? { ...c, is_deleted: true, content: "Comentario eliminado" } : c))
+    if (onCommentDeleted) onCommentDeleted(idToDelete)
+
+    try {
+      await deleteComment(entityType, idToDelete, pathname)
+    } catch (err) {
+      console.error(err)
+    }
   }
 
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col h-full">
       
       <ConfirmModal
-        isOpen={!!confirmDeleteId}
-        onCancel={() => setConfirmDeleteId(null)}
-        onConfirm={confirmDeleteAction}
+        isOpen={!!deleteConfirmId}
+        onCancel={() => setDeleteConfirmId(null)}
+        onConfirm={executeDelete}
         title="Eliminar comentario"
         message="¿Estás seguro de que quieres eliminar este comentario? Esta acción no se puede deshacer."
         confirmText="Eliminar"
@@ -398,6 +421,18 @@ export function CommentSection({ entityType, entityId, comments, currentUserId, 
             onDelete={handleDelete}
           />
         ))}
+
+        {hasMore && (
+          <div className="pt-2 pb-1 text-center">
+            <button
+              onClick={onLoadMore}
+              disabled={loadingMore}
+              className="text-xs font-semibold text-primary hover:underline transition-colors disabled:opacity-50"
+            >
+              {loadingMore ? "Cargando más comentarios..." : "Ver más comentarios"}
+            </button>
+          </div>
+        )}
       </div>
     
       <div className="sticky bottom-0 bg-background/95 backdrop-blur pt-2 pb-safe-bottom z-10 w-full mt-4 border-t border-border/50">

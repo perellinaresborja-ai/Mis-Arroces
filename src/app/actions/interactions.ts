@@ -1,4 +1,4 @@
-﻿"use server"
+"use server"
 
 import { createClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
@@ -215,49 +215,77 @@ export async function toggleWantToCook(recipeId: string, isWantToCook: boolean, 
   if (pathToRevalidate) revalidatePath(pathToRevalidate)
 }
 
-export async function getComments(entityType: EntityType, entityId: string, currentUserId: string | null) {
+export async function getComments(
+  entityType: EntityType, 
+  entityId: string, 
+  currentUserId: string | null,
+  limit: number = 50,
+  offset: number = 0
+) {
   const supabase = await createClient()
-  let query = null
-  let ownerId = null
+  let table = ""
+  let foreignKey = ""
+  let likesRelation = ""
+  let ownerId: string | null = null
 
   if (entityType === 'recipe') {
+    table = "recipe_comments"
+    foreignKey = "recipe_id"
+    likesRelation = "recipe_comment_likes"
     const { data: ent } = await supabase.from('recipes').select('owner_id').eq('id', entityId).single()
-    ownerId = ent?.owner_id
-    query = supabase.from("recipe_comments").select(`
-      *,
-      author:profiles!recipe_comments_author_id_fkey(id, username, display_name, avatar:media_assets!fk_profiles_avatar(storage_path)),
-      reactions:recipe_comment_likes(user_id, emoji)
-    `).eq("recipe_id", entityId).order("created_at", { ascending: true })
+    ownerId = ent?.owner_id || null
   } else if (entityType === 'session') {
+    table = "session_comments"
+    foreignKey = "session_id"
+    likesRelation = "session_comment_likes"
     const { data: ent } = await supabase.from('cooking_sessions').select('user_id').eq('id', entityId).single()
-    ownerId = ent?.user_id
-    query = supabase.from("session_comments").select(`
-      *,
-      author:profiles!session_comments_author_id_fkey(id, username, display_name, avatar:media_assets!fk_profiles_avatar(storage_path)),
-      reactions:session_comment_likes(user_id, emoji)
-    `).eq("session_id", entityId).order("created_at", { ascending: true })
+    ownerId = ent?.user_id || null
   } else if (entityType === 'post') {
+    table = "post_comments"
+    foreignKey = "post_id"
+    likesRelation = "post_comment_likes"
     const { data: ent } = await supabase.from('social_posts').select('author_id').eq('id', entityId).single()
-    ownerId = ent?.author_id
-    query = supabase.from("post_comments").select(`
-      *,
-      author:profiles!post_comments_author_id_fkey(id, username, display_name, avatar:media_assets!fk_profiles_avatar(storage_path)),
-      reactions:post_comment_likes(user_id, emoji)
-    `).eq("post_id", entityId).order("created_at", { ascending: true })
+    ownerId = ent?.author_id || null
   } else if (entityType === 'short') {
+    table = "short_comments"
+    foreignKey = "short_id"
+    likesRelation = "short_comment_likes"
     const { data: ent } = await supabase.from('shorts').select('owner_id').eq('id', entityId).single()
-    ownerId = ent?.owner_id
-    query = supabase.from("short_comments").select(`
-      *,
-      author:profiles!short_comments_author_id_fkey(id, username, display_name, avatar:media_assets!fk_profiles_avatar(storage_path)),
-      reactions:short_comment_likes(user_id, emoji)
-    `).eq("short_id", entityId).order("created_at", { ascending: true })
+    ownerId = ent?.owner_id || null
   }
 
-  if (!query) return []
+  if (!table) return []
 
-  const { data, error } = await query
-  if (error || !data) return []
+  const selectQuery = `
+    *,
+    author:profiles!${table}_author_id_fkey(id, username, display_name, avatar:media_assets!fk_profiles_avatar(storage_path)),
+    reactions:${likesRelation}(user_id, emoji)
+  `
+
+  // 1. Fetch paginated top-level (root) comments
+  const { data: rootComments, error: rootError } = await (supabase.from(table as any) as any)
+    .select(selectQuery)
+    .eq(foreignKey, entityId)
+    .is("parent_id", null)
+    .order("created_at", { ascending: true })
+    .range(offset, offset + limit - 1)
+
+  if (rootError || !rootComments) return []
+
+  // 2. Fetch all replies corresponding to these loaded root comments
+  const rootIds = (rootComments as any[]).map(c => c.id)
+  let replies: any[] = []
+  if (rootIds.length > 0) {
+    const { data: repliesData } = await (supabase.from(table as any) as any)
+      .select(selectQuery)
+      .in("parent_id", rootIds)
+      .order("created_at", { ascending: true })
+    if (repliesData) {
+      replies = repliesData
+    }
+  }
+
+  const data = [...rootComments, ...replies]
 
   // Fetch hidden words for the owner
   let hiddenWords: string[] = []

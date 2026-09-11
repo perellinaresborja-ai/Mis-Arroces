@@ -14,14 +14,22 @@ export function SocialElaborationModal({ isOpen, onClose, item, currentUserId }:
   const [currentIndex, setCurrentIndex] = useState(0)
   const [comments, setComments] = useState<any[]>([])
   const [loadingComments, setLoadingComments] = useState(false)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const [hasMore, setHasMore] = useState(false)
+  const [offset, setOffset] = useState(0)
+  const PAGE_SIZE = 50
 
   // Prevent background scroll when open and load comments
   useEffect(() => {
     if (isOpen && item) {
       document.body.style.overflow = 'hidden'
       setLoadingComments(true)
-      getComments(item.entity_type, item.id, currentUserId || null).then(data => {
+      setOffset(0)
+      getComments(item.entity_type, item.id, currentUserId || null, PAGE_SIZE, 0).then(data => {
         setComments(data)
+        const rootCount = data.filter((c: any) => !c.parent_id).length
+        setHasMore(rootCount >= PAGE_SIZE)
+        setOffset(PAGE_SIZE)
         setLoadingComments(false)
       })
     } else {
@@ -29,6 +37,28 @@ export function SocialElaborationModal({ isOpen, onClose, item, currentUserId }:
     }
     return () => { document.body.style.overflow = '' }
   }, [isOpen, item, currentUserId])
+
+  const handleLoadMore = async () => {
+    if (loadingMore || !hasMore || !item) return
+    setLoadingMore(true)
+    try {
+      const nextBatch = await getComments(item.entity_type, item.id, currentUserId || null, PAGE_SIZE, offset)
+      const nextRootCount = nextBatch.filter((c: any) => !c.parent_id).length
+      setComments(prev => {
+        const existingIds = new Set(prev.map((c: any) => c.id))
+        const newUnique = nextBatch.filter((c: any) => !existingIds.has(c.id))
+        return [...prev, ...newUnique]
+      })
+      setOffset(prev => prev + PAGE_SIZE)
+      if (nextRootCount < PAGE_SIZE) {
+        setHasMore(false)
+      }
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setLoadingMore(false)
+    }
+  }
 
   if (!isOpen || !item) return null
 
@@ -135,19 +165,22 @@ export function SocialElaborationModal({ isOpen, onClose, item, currentUserId }:
                </Link>
              </div>
              
-             {loadingComments ? (
-               <div className="text-center text-muted-foreground py-8">Cargando comentarios...</div>
-             ) : (
-               <CommentSection 
-                  entityType={item.entity_type} 
-                  entityId={item.id} 
-                  currentUserId={currentUserId || null}
-                  comments={comments}
-                  allowComments={true}
-                  onCommentAdded={handleCommentAdded}
-                  onCommentDeleted={handleCommentDeleted}
-               />
-             )}
+              {loadingComments ? (
+                <div className="text-center text-muted-foreground py-8">Cargando comentarios...</div>
+              ) : (
+                <CommentSection 
+                   entityType={item.entity_type} 
+                   entityId={item.id} 
+                   currentUserId={currentUserId || null}
+                   comments={comments}
+                   allowComments={true}
+                   onCommentAdded={handleCommentAdded}
+                   onCommentDeleted={handleCommentDeleted}
+                   hasMore={hasMore}
+                   loadingMore={loadingMore}
+                   onLoadMore={handleLoadMore}
+                />
+              )}
            </div>
 
            {/* Social Bar (Bottom) */}
