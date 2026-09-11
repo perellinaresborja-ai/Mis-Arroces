@@ -17,9 +17,20 @@ export interface VoiceCommandHandlers {
   onCancelFinish: () => void
 }
 
+// Accent & punctuation normalizer
+function normalizeSpanish(str: string): string {
+  return str
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "") // remove accents
+    .replace(/[.,/#!$%^&*;:{}=\-_`~()¿?¡!]/g, " ") // remove punctuation
+    .replace(/\s+/g, " ")
+    .trim()
+}
+
 // Convert Spanish words to numbers
 function parseSpanishNumber(wordOrDigits: string): number | null {
-  const trimmed = wordOrDigits.trim().toLowerCase()
+  const trimmed = normalizeSpanish(wordOrDigits)
   const num = parseInt(trimmed, 10)
   if (!isNaN(num)) return num
 
@@ -41,20 +52,16 @@ function parseSpanishNumber(wordOrDigits: string): number | null {
     "trece": 13,
     "catorce": 14,
     "quince": 15,
-    "dieciséis": 16,
     "dieciseis": 16,
     "diecisiete": 17,
     "dieciocho": 18,
     "diecinueve": 19,
     "veinte": 20,
     "veintiuno": 21,
-    "veintidós": 22,
     "veintidos": 22,
-    "veintitrés": 23,
     "veintitres": 23,
     "veinticuatro": 24,
     "veinticinco": 25,
-    "veintiséis": 26,
     "veintiseis": 26,
     "veintisiete": 27,
     "veintiocho": 28,
@@ -82,7 +89,7 @@ function parseSpanishNumber(wordOrDigits: string): number | null {
 }
 
 export function parseTimerCommand(transcript: string): number | null {
-  const clean = transcript.toLowerCase().trim()
+  const clean = normalizeSpanish(transcript)
   
   // Regex for minutes: (temporizador|pon|ajusta)? (de)? (X) minuto(s)?
   const minMatch = clean.match(/(?:temporizador|pon|ajusta|cuenta)?\s*(?:de)?\s*([a-z0-9\s]+?)\s*minuto(?:s)?(?:\b|$)/i)
@@ -121,6 +128,7 @@ export function useVoiceCommands({
 
   const recognitionRef = useRef<any>(null)
   const isManuallyStoppedRef = useRef<boolean>(true)
+  const isPermanentErrorRef = useRef<boolean>(false)
   const feedbackTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const handlersRef = useRef(handlers)
   const pendingFinishRef = useRef(pendingFinishConfirmation)
@@ -146,39 +154,48 @@ export function useVoiceCommands({
     if (typeof window !== "undefined") {
       const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
       if (!SpeechRecognition) {
+        console.log("[VOICE] unsupported")
         setIsSupported(false)
         setVoiceState("unsupported")
+      } else {
+        console.log("[VOICE] supported")
       }
     }
   }, [])
 
   // Command parser
   const processTranscript = useCallback((rawTranscript: string) => {
-    const text = rawTranscript.toLowerCase().trim()
-    console.log("[VoiceControl] Received transcript:", text)
+    const original = rawTranscript.trim()
+    const normalized = normalizeSpanish(original)
+    console.log(`[VOICE] onresult transcript="${original}"`)
+    console.log(`[VOICE] normalized="${normalized}"`)
 
     // Check if in confirmation mode for finish
     if (pendingFinishRef.current) {
-      if (text.includes("sí") || text.includes("si") || text.includes("confirmar") || text.includes("afirmativo") || text.includes("correcto")) {
+      if (normalized.includes("si") || normalized.includes("confirmar") || normalized.includes("afirmativo") || normalized.includes("correcto")) {
+        console.log('[VOICE] command="CONFIRM_FINISH"')
         showFeedback("Confirmado: terminando", 2000)
         handlersRef.current.onConfirmFinish()
         return
       }
-      if (text.includes("no") || text.includes("cancelar") || text.includes("espera") || text.includes("todavía no") || text.includes("seguir")) {
+      if (normalized.includes("no") || normalized.includes("cancelar") || normalized.includes("espera") || normalized.includes("todavia no") || normalized.includes("seguir")) {
+        console.log('[VOICE] command="CANCEL_FINISH"')
         showFeedback("Terminación cancelada", 2000)
         handlersRef.current.onCancelFinish()
         return
       }
+      console.log("[VOICE] no command matched")
       showFeedback("Por favor di 'sí' para confirmar o 'no' para continuar", 3000)
       return
     }
 
     // 1. TERMINAR (Must require confirmation)
     if (
-      text.includes("terminar elaboración") ||
-      text.includes("terminar") ||
-      text.includes("finalizar")
+      normalized.includes("terminar elaboracion") ||
+      normalized.includes("terminar") ||
+      normalized.includes("finalizar")
     ) {
+      console.log('[VOICE] command="FINISH"')
       showFeedback("¿Seguro que deseas terminar? Di 'sí' o 'no'", 4000)
       handlersRef.current.onFinishRequest()
       return
@@ -186,11 +203,12 @@ export function useVoiceCommands({
 
     // 2. SIGUIENTE
     if (
-      text.includes("siguiente paso") ||
-      text.includes("siguiente") ||
-      text.includes("continuar paso") ||
-      text.includes("avanzar")
+      normalized.includes("siguiente paso") ||
+      normalized.includes("siguiente") ||
+      normalized.includes("continuar paso") ||
+      normalized.includes("avanzar")
     ) {
+      console.log('[VOICE] command="NEXT"')
       showFeedback("Siguiente paso", 1500)
       handlersRef.current.onNext()
       return
@@ -198,10 +216,11 @@ export function useVoiceCommands({
 
     // 3. ANTERIOR
     if (
-      text.includes("paso anterior") ||
-      text.includes("anterior") ||
-      text.includes("volver")
+      normalized.includes("paso anterior") ||
+      normalized.includes("anterior") ||
+      normalized.includes("volver")
     ) {
+      console.log('[VOICE] command="PREV"')
       showFeedback("Paso anterior", 1500)
       handlersRef.current.onPrev()
       return
@@ -209,10 +228,11 @@ export function useVoiceCommands({
 
     // 4. REPETIR
     if (
-      text.includes("repite el paso") ||
-      text.includes("repite") ||
-      text.includes("repetir")
+      normalized.includes("repite el paso") ||
+      normalized.includes("repite") ||
+      normalized.includes("repetir")
     ) {
+      console.log('[VOICE] command="REPEAT"')
       showFeedback("Repitiendo paso...", 1500)
       handlersRef.current.onRepeat()
       return
@@ -220,23 +240,23 @@ export function useVoiceCommands({
 
     // 5. TIEMPO RESTANTE
     if (
-      text.includes("cuánto queda") ||
-      text.includes("cuanto queda") ||
-      text.includes("cuánto tiempo queda") ||
-      text.includes("cuanto tiempo queda") ||
-      text.includes("tiempo restante")
+      normalized.includes("cuanto queda") ||
+      normalized.includes("cuanto tiempo queda") ||
+      normalized.includes("tiempo restante")
     ) {
+      console.log('[VOICE] command="WHAT_LEFT"')
       handlersRef.current.onWhatLeft()
       return
     }
 
     // 6. PAUSA
     if (
-      text.includes("pausa") ||
-      text.includes("pausar") ||
-      text.includes("para el temporizador") ||
-      text.includes("para el timer")
+      normalized.includes("pausa") ||
+      normalized.includes("pausar") ||
+      normalized.includes("para el temporizador") ||
+      normalized.includes("para el timer")
     ) {
+      console.log('[VOICE] command="PAUSE"')
       showFeedback("Pausa", 1500)
       handlersRef.current.onPause()
       return
@@ -244,20 +264,21 @@ export function useVoiceCommands({
 
     // 7. CONTINUAR
     if (
-      text.includes("continúa") ||
-      text.includes("continua") ||
-      text.includes("continuar") ||
-      text.includes("reanuda") ||
-      text.includes("reanudar")
+      normalized.includes("continua") ||
+      normalized.includes("continuar") ||
+      normalized.includes("reanuda") ||
+      normalized.includes("reanudar")
     ) {
+      console.log('[VOICE] command="RESUME"')
       showFeedback("Reanudando", 1500)
       handlersRef.current.onResume()
       return
     }
 
     // 8. TEMPORIZADOR
-    const timerSeconds = parseTimerCommand(text)
+    const timerSeconds = parseTimerCommand(normalized)
     if (timerSeconds !== null) {
+      console.log(`[VOICE] command="SET_TIMER" (${timerSeconds}s)`)
       const mins = Math.floor(timerSeconds / 60)
       const secs = timerSeconds % 60
       const desc = mins > 0 ? `${mins} min${secs > 0 ? ` ${secs}s` : ""}` : `${secs}s`
@@ -266,8 +287,8 @@ export function useVoiceCommands({
       return
     }
 
-    // If text was heard but nothing recognized in closed vocabulary
-    if (text.length > 2) {
+    console.log("[VOICE] no command matched")
+    if (normalized.length > 2) {
       showFeedback("No he entendido el comando", 2000)
     }
   }, [showFeedback])
@@ -277,6 +298,7 @@ export function useVoiceCommands({
     if (!voiceEnabled) {
       isManuallyStoppedRef.current = true
       if (recognitionRef.current) {
+        console.log("[VOICE] manually stopped")
         try {
           recognitionRef.current.abort()
         } catch (_) {}
@@ -290,12 +312,16 @@ export function useVoiceCommands({
 
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
     if (!SpeechRecognition) {
+      console.log("[VOICE] unsupported")
       setIsSupported(false)
       setVoiceState("unsupported")
       return
     }
 
     isManuallyStoppedRef.current = false
+    isPermanentErrorRef.current = false
+
+    console.log("[VOICE] start requested")
 
     const recognition = new SpeechRecognition()
     recognition.lang = "es-ES"
@@ -304,23 +330,33 @@ export function useVoiceCommands({
     recognition.maxAlternatives = 1
 
     recognition.onstart = () => {
+      console.log("[VOICE] onstart")
       setVoiceState("listening")
     }
 
     recognition.onaudiostart = () => {
-      setVoiceState("listening")
+      console.log("[VOICE] onaudiostart")
+    }
+
+    recognition.onsoundstart = () => {
+      console.log("[VOICE] onsoundstart")
     }
 
     recognition.onspeechstart = () => {
-      // User is speaking
+      console.log("[VOICE] onspeechstart")
       setVoiceState("processing")
+    }
+
+    recognition.onnomatch = () => {
+      console.log("[VOICE] onnomatch")
+      setVoiceState("listening")
     }
 
     recognition.onresult = (event: any) => {
       setVoiceState("listening")
       // Check if TTS is currently speaking. If so, ignore to avoid feedback loop!
       if (isTtsSpeakingRef.current) {
-        console.log("[VoiceControl] Ignored speech because TTS is active.")
+        console.log("[VOICE] Ignored speech because TTS is active.")
         return
       }
 
@@ -337,35 +373,44 @@ export function useVoiceCommands({
     }
 
     recognition.onerror = (event: any) => {
-      console.warn("[VoiceControl] Speech recognition error:", event.error)
+      console.log(`[VOICE] onerror error="${event.error}"`)
       if (event.error === "not-allowed" || event.error === "service-not-allowed") {
-        setVoiceState("error")
-        showFeedback("Permiso de micrófono denegado", 3000)
-        setVoiceEnabled(false)
+        isPermanentErrorRef.current = true
         isManuallyStoppedRef.current = true
+        setVoiceState("error")
+        showFeedback("Permite el acceso al micrófono para usar el control por voz.", 4000)
+        setVoiceEnabled(false)
+      } else if (event.error === "audio-capture") {
+        isPermanentErrorRef.current = true
+        isManuallyStoppedRef.current = true
+        setVoiceState("error")
+        showFeedback("No se ha detectado ningún micrófono.", 4000)
+        setVoiceEnabled(false)
       } else if (event.error === "no-speech") {
         // Normal silence timeout in some browsers, keep listening
         setVoiceState("listening")
+      } else if (event.error === "aborted") {
+        // Expected when stopped manually
       } else {
         setVoiceState("listening")
       }
     }
 
     recognition.onend = () => {
+      console.log("[VOICE] onend")
       // Auto-restart if still enabled and not manually stopped
-      if (!isManuallyStoppedRef.current && voiceEnabled) {
-        try {
-          recognition.start()
-        } catch (e) {
-          // If restart fails immediately, retry after brief delay
-          setTimeout(() => {
-            if (!isManuallyStoppedRef.current) {
-              try {
-                recognition.start()
-              } catch (_) {}
+      if (!isManuallyStoppedRef.current && !isPermanentErrorRef.current && voiceEnabled) {
+        console.log("[VOICE] restart requested")
+        setTimeout(() => {
+          if (!isManuallyStoppedRef.current && !isPermanentErrorRef.current && voiceEnabled) {
+            try {
+              recognition.start()
+              console.log("[VOICE] recognition.start OK (restart)")
+            } catch (e: any) {
+              console.warn("[VOICE] restart failed:", e?.message)
             }
-          }, 300)
-        }
+          }
+        }, 300)
       } else {
         setVoiceState("off")
       }
@@ -373,8 +418,9 @@ export function useVoiceCommands({
 
     try {
       recognition.start()
+      console.log("[VOICE] recognition.start OK")
     } catch (e) {
-      console.error("[VoiceControl] Could not start speech recognition:", e)
+      console.error("[VOICE] recognition.start failed exception:", e)
       setVoiceState("error")
     }
 
@@ -389,10 +435,36 @@ export function useVoiceCommands({
     }
   }, [voiceEnabled, processTranscript, isTtsSpeakingRef, showFeedback])
 
-  const toggleVoice = useCallback(() => {
-    if (!isSupported) {
-      showFeedback("Control por voz no disponible en este navegador", 3500)
+  const toggleVoice = useCallback(async () => {
+    if (typeof window === "undefined") return
+
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+    if (!SpeechRecognition) {
+      console.log("[VOICE] unsupported")
+      showFeedback("Control por voz no disponible en este navegador.", 3500)
       return
+    }
+
+    // Explicit microphone permission check upon activation
+    if (!voiceEnabled) {
+      if (typeof navigator !== "undefined" && navigator.mediaDevices?.getUserMedia) {
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+          // Immediately stop tracks to free mic for SpeechRecognition
+          stream.getTracks().forEach(t => t.stop())
+        } catch (err: any) {
+          console.log(`[VOICE] getUserMedia denied/error: ${err?.name || err?.message}`)
+          if (err.name === "NotAllowedError" || err.name === "PermissionDeniedError") {
+            showFeedback("Permite el acceso al micrófono para usar el control por voz.", 4000)
+            setVoiceState("error")
+            return
+          } else if (err.name === "NotFoundError" || err.name === "DevicesNotFoundError") {
+            showFeedback("No se ha detectado ningún micrófono.", 4000)
+            setVoiceState("error")
+            return
+          }
+        }
+      }
     }
 
     setVoiceEnabled(prev => {
@@ -404,7 +476,7 @@ export function useVoiceCommands({
       }
       return next
     })
-  }, [isSupported, showFeedback])
+  }, [voiceEnabled, showFeedback])
 
   return {
     voiceEnabled,
