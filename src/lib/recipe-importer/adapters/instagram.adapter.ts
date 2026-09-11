@@ -24,7 +24,7 @@ export class InstagramAdapter {
       }
 
       const accessToken = `${appId}|${clientToken}`
-      const oembedUrl = `https://graph.facebook.com/v21.0/instagram_oembed?url=${encodeURIComponent(`https://www.instagram.com/p/${shortcode}/`)}&access_token=${accessToken}`
+      const oembedUrl = `https://graph.facebook.com/v21.0/instagram_oembed?url=${encodeURIComponent(url)}&access_token=${accessToken}`
 
       const controller = new AbortController()
       const timeout = setTimeout(() => controller.abort(), 8000)

@@ -60,10 +60,14 @@ export function detectPlatformAndNormalizeUrl(rawUrl: string): DetectionResult {
   // - instagram.com/reel/SHORTCODE/...
   // - instagram.com/reels/SHORTCODE/...
   if (hostname === "instagram.com" || hostname === "instagr.am") {
+    const isReel = pathname.startsWith("/reel/") || pathname.startsWith("/reels/")
     const match = pathname.match(/^\/(?:p|reel|reels)\/([a-zA-Z0-9_-]+)/i)
     const shortcode = match ? match[1] : null
 
-    const cleanPath = shortcode ? `/p/${shortcode}/` : pathname
+    let cleanPath = pathname
+    if (shortcode) {
+      cleanPath = isReel ? `/reel/${shortcode}/` : `/p/${shortcode}/`
+    }
     return {
       platform: "INSTAGRAM",
       normalizedUrl: `https://www.instagram.com${cleanPath}`,
