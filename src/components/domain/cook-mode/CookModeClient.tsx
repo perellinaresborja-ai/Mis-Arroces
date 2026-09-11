@@ -203,10 +203,19 @@ export function CookModeClient({ recipe, userName, reset }: { recipe: CookModeRe
     currentStepIndexRef.current = currentStepIndex
   }, [currentStepIndex])
 
-  // Timer Tick
+  // Auto-advance mode
   const [autoAdvance, setAutoAdvance] = useState(false)
   const autoAdvanceRef = useRef(autoAdvance)
-  useEffect(() => { autoAdvanceRef.current = autoAdvance }, [autoAdvance])
+  const toggleAutoAdvance = () => {
+    setAutoAdvance(prev => {
+      const next = !prev
+      autoAdvanceRef.current = next
+      return next
+    })
+  }
+  useEffect(() => {
+    autoAdvanceRef.current = autoAdvance
+  }, [autoAdvance])
 
   // Flag to avoid double triggering step-end processing for the same step
   const completedStepsProcessed = useRef<Record<number, boolean>>({})
@@ -325,20 +334,21 @@ export function CookModeClient({ recipe, userName, reset }: { recipe: CookModeRe
 
                 // Execute step completion sequence
                 const runStepCompletion = async (stepIdx: number) => {
-                  // 1. Vibration
-                  if ('vibrate' in navigator) navigator.vibrate([200, 100, 200])
+                  // 1. Vibration if supported
+                  if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+                    try {
+                      navigator.vibrate([200, 100, 200])
+                    } catch (_) {}
+                  }
 
                   const stepObj = recipe.steps[stepIdx]
 
-                  // 2. Read notes of the finished step (or alert) and wait until speech is truly finished
-                  let speechMsg = "¡Tiempo cumplido!"
+                  // 2. Read ONLY notes of the finished step (no beep, alarm, or prefix phrase)
                   if (stepObj?.notes && stepObj.notes.trim().length > 0) {
-                    speechMsg = `¡Tiempo cumplido! ${stepObj.notes.trim()}`
+                    await speakText(stepObj.notes.trim())
                   }
 
-                  await speakText(speechMsg)
-
-                  // 3. Auto-advance logic if enabled: only advances AFTER speech finishes
+                  // 3. Auto-advance logic: check live autoAdvanceRef.current immediately after speech
                   if (autoAdvanceRef.current) {
                     if (stepIdx + 1 < recipe.steps.length) {
                       setCurrentStepIndex(stepIdx + 1)
@@ -607,7 +617,7 @@ export function CookModeClient({ recipe, userName, reset }: { recipe: CookModeRe
               </div>
               
               <button 
-                onClick={() => setAutoAdvance(!autoAdvance)} 
+                onClick={toggleAutoAdvance} 
                 className={`w-full py-2.5 mt-1 text-sm font-bold rounded-xl flex items-center justify-center gap-2 transition-colors ${autoAdvance ? 'bg-primary/20 text-primary border border-primary/30' : 'bg-black/20 text-white/60 border border-white/5 hover:bg-black/40'}`}
               >
                 {autoAdvance ? '✅ Avance automático activado' : '⚪ Avance automático desactivado'}
