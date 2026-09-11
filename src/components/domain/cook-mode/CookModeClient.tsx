@@ -151,7 +151,7 @@ export function CookModeClient({ recipe, userName, reset }: { recipe: CookModeRe
       utterance.pitch = 1
 
       let hasFinished = false
-      const finishSpeech = () => {
+      const finishSpeech = (reason?: string) => {
         if (hasFinished) return
         hasFinished = true
         isSpeakingRef.current = false
@@ -159,13 +159,18 @@ export function CookModeClient({ recipe, userName, reset }: { recipe: CookModeRe
       }
 
       utterance.onstart = () => {
+        console.log("[NOTE TTS] utterance.onstart", { text })
         isSpeakingRef.current = true
       }
 
-      utterance.onend = finishSpeech
+      utterance.onend = (e) => {
+        console.log("[NOTE TTS] utterance.onend", { text, elapsedTime: e.elapsedTime })
+        finishSpeech("onend")
+      }
+
       utterance.onerror = (e) => {
-        // If canceled intentionally by a newer call, don't keep waiting
-        finishSpeech()
+        console.log("[NOTE TTS] utterance.onerror", { text, error: e.error })
+        finishSpeech("onerror")
       }
 
       currentUtterance.current = utterance
@@ -177,8 +182,9 @@ export function CookModeClient({ recipe, userName, reset }: { recipe: CookModeRe
             window.speechSynthesis.resume()
           }
           window.speechSynthesis.speak(utterance)
-        } catch {
-          finishSpeech()
+        } catch (err) {
+          console.log("[NOTE TTS] speak exception", err)
+          finishSpeech("exception")
         }
       }, 50)
     })
@@ -337,6 +343,14 @@ export function CookModeClient({ recipe, userName, reset }: { recipe: CookModeRe
         } catch (e) {}
 
         const stepObj = recipe.steps[finishedStepIndex]
+
+        console.log("[NOTE TTS]", {
+          notes: stepObj?.notes,
+          voiceEnabled: true,
+          speaking: typeof window !== 'undefined' ? window.speechSynthesis.speaking : false,
+          pending: typeof window !== 'undefined' ? window.speechSynthesis.pending : false,
+          paused: typeof window !== 'undefined' ? window.speechSynthesis.paused : false
+        })
 
         // 2. Read notes of the finished step (or alert) and wait until speech is truly finished
         let speechMsg = "¡Tiempo cumplido!"
