@@ -1,4 +1,4 @@
-﻿'use server';
+'use server';
 
 import { createClient } from "@/lib/supabase/server"
 import { createClient as createSupabaseAdmin } from "@supabase/supabase-js"
@@ -56,6 +56,7 @@ export async function deleteUserAccount(formData: FormData) {
     return { error: 'Fallo inesperado al eliminar la cuenta.' }
   }
 
+  revalidatePath('/', 'layout')
   redirect('/')
 }
 

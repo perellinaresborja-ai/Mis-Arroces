@@ -7,6 +7,7 @@ import { deleteRecipe } from "@/app/actions/recipes"
 import { useRouter } from "next/navigation"
 import { MediaImage } from "./MediaImage"
 import { ConfirmModal } from "@/components/ui/ConfirmModal"
+import { Button } from "@/components/ui/button"
 
 export function CookbookRecipeCard({ recipe, tab }: { recipe: any, tab: string }) {
   const router = useRouter()
@@ -80,6 +81,35 @@ export function CookbookRecipeCard({ recipe, tab }: { recipe: any, tab: string }
           >
             <Trash2 className="w-4 h-4" />
           </button>
+        </div>
+      )}
+
+      {tab === 'want' && (
+        <div className="absolute top-2 right-2 z-20 flex items-center gap-2">
+          <button 
+            onClick={async (e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setIsDeleting(true);
+              const { toggleWantToCook } = await import("@/app/actions/recipes");
+              await toggleWantToCook(recipe.id, false);
+              router.refresh();
+            }}
+            className="bg-black/50 hover:bg-destructive text-white p-1.5 rounded-full transition-colors"
+            title="Quitar de Voy a cocinar"
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
+      {tab === 'want' && (
+        <div className="mt-2 w-full">
+          <Link href={`/recipes/${recipe.id}/cook`}>
+            <Button className="w-full rounded-xl font-bold text-xs" size="sm">
+              Empezar a cocinar
+            </Button>
+          </Link>
         </div>
       )}
 

@@ -61,6 +61,7 @@ export const viewport: Viewport = {
 };
 
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
+import { UserSessionProvider } from "@/components/providers/UserSessionProvider";
 
 export default async function RootLayout({
   children,
@@ -68,37 +69,50 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   let pendingLegal = false;
+  let avatarUrl: string | null = null;
   try {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
       pendingLegal = await checkPendingLegal(user.id);
+      
+      const { data } = await supabase.from('profiles')
+        .select(`avatar:media_assets!fk_profiles_avatar(storage_path)`)
+        .eq('id', user.id)
+        .single();
+        
+      const avatarPath = Array.isArray(data?.avatar) ? data.avatar[0]?.storage_path : data?.avatar?.storage_path;
+      if (avatarPath) {
+        avatarUrl = avatarPath.startsWith('http') ? avatarPath : `https://zvesoygqssyyojqyswwm.supabase.co/storage/v1/object/public/recipe_media/${avatarPath}`;
+      }
     }
   } catch(e) {}
   return (
     <html lang="es" suppressHydrationWarning>
       <body className={`${inter.className} antialiased bg-background text-foreground safe-area-pt safe-area-pb overflow-x-hidden`}>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-          <AuthPromptProvider>
-          <LegalConsentGate pendingLegal={pendingLegal} />
-          {/* Desktop Header */}
-          <DesktopNav />
-          {/* Mobile Header */}
-          <MobileHeader />
-          
-          {/* Responsive global container */}
-          <div className="flex min-h-[100dvh] md:min-h-[calc(100vh-64px)] w-full flex-col bg-background relative max-w-7xl mx-auto px-0 md:px-8">
-            <main className="flex-1 pb-20 md:pb-8">
-              {children}
-            </main>
+          <UserSessionProvider initialAvatarUrl={avatarUrl}>
+            <AuthPromptProvider>
+            <LegalConsentGate pendingLegal={pendingLegal} />
+            {/* Desktop Header */}
+            <DesktopNav />
+            {/* Mobile Header */}
+            <MobileHeader />
             
+            {/* Responsive global container */}
+            <div className="flex min-h-[100dvh] md:min-h-[calc(100vh-64px)] w-full flex-col bg-background relative max-w-7xl mx-auto px-0 md:px-8">
+              <main className="flex-1 w-full pb-16 md:pb-0 pt-0">
+                {children}
+              </main>
+            </div>
+            
+            {/* Mobile Navigation */}
             <BottomNav />
-          </div>
-        </AuthPromptProvider>
+            <SpeedInsights />
+            </AuthPromptProvider>
+          </UserSessionProvider>
         </ThemeProvider>
-        <SpeedInsights />
       </body>
     </html>
   );
 }
-

@@ -5,22 +5,15 @@ import { Bell } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { NotificationPanel } from "./NotificationPanel"
 import { cn } from "@/lib/utils"
+import { useUserSession } from "@/components/providers/UserSessionProvider"
 
 export function NotificationBell({ className }: { className?: string }) {
   const [unreadCount, setUnreadCount] = useState(0)
   const [isOpen, setIsOpen] = useState(false)
-  const [user, setUser] = useState<any>(null)
+  const { user } = useUserSession()
   const wrapperRef = useRef<HTMLDivElement>(null)
   
   const [supabase] = useState(() => createClient())
-
-  useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      if (data.user) {
-        setUser(data.user)
-      }
-    })
-  }, [supabase])
 
   const fetchUnread = async () => {
     if (!user) return

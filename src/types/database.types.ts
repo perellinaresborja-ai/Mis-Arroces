@@ -1855,7 +1855,8 @@ export type Database = {
       recipes: {
         Row: {
           allow_comments: boolean
-          base_servings: number
+            base_servings: number
+            deleted_at: string | null
           cook_time: number | null
           created_at: string
           derived_from_id: string | null
@@ -1881,7 +1882,8 @@ export type Database = {
         }
         Insert: {
           allow_comments?: boolean
-          base_servings?: number
+            base_servings?: number
+            deleted_at?: string | null
           cook_time?: number | null
           created_at?: string
           derived_from_id?: string | null
@@ -1907,7 +1909,8 @@ export type Database = {
         }
         Update: {
           allow_comments?: boolean
-          base_servings?: number
+            base_servings?: number
+            deleted_at?: string | null
           cook_time?: number | null
           created_at?: string
           derived_from_id?: string | null
@@ -3564,4 +3567,5 @@ export const Constants = {
     },
   },
 } as const
+
 

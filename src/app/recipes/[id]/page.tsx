@@ -89,6 +89,21 @@ export default async function RecipeDetailPage({
 
   if (!recipe) redirect("/cookbook")
 
+  if (recipe.deleted_at) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4 pb-24 md:pb-8">
+        <div className="bg-card border border-border p-8 rounded-3xl text-center max-w-sm w-full shadow-sm">
+          <ChefHat className="w-12 h-12 mx-auto text-muted-foreground mb-4 opacity-50" />
+          <h1 className="text-xl font-bold mb-2 text-foreground">Receta no disponible</h1>
+          <p className="text-muted-foreground mb-6 text-sm">Esta receta ha sido eliminada por su autor o ya no está disponible.</p>
+          <Link href="/cookbook">
+            <Button className="w-full rounded-xl font-bold">Volver al Recetario</Button>
+          </Link>
+        </div>
+      </div>
+    )
+  }
+
   // Check auth for edit button
   const { data: { user } } = await supabase.auth.getUser()
   const isOwner = user?.id === recipe.owner_id

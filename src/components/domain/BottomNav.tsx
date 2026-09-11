@@ -5,43 +5,12 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { BookOpen, Compass, User, Home, MessageCircle, Calculator } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useEffect, useState } from "react";
-import { createClient } from "@/lib/supabase/client";
+import { useUserSession } from "@/components/providers/UserSessionProvider";
 
 export function BottomNav() {
   const pathname = usePathname();
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
-
-  useEffect(() => {
-    const supabase = createClient();
-    const fetchUser = async (user: any) => {
-      if (user) {
-        const { data } = await supabase.from('profiles')
-          .select(`avatar:media_assets!fk_profiles_avatar(storage_path)`)
-          .eq('id', user.id)
-          .single();
-          
-        const avatarPath = Array.isArray(data?.avatar) ? data.avatar[0]?.storage_path : data?.avatar?.storage_path;
-        if (avatarPath) {
-          setAvatarUrl(avatarPath.startsWith('http') ? avatarPath : `https://zvesoygqssyyojqyswwm.supabase.co/storage/v1/object/public/recipe_media/${avatarPath}`);
-        } else {
-          setAvatarUrl(null);
-        }
-      } else {
-        setAvatarUrl(null);
-      }
-    };
-
-    supabase.auth.getUser().then(({ data: { user } }) => fetchUser(user));
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      fetchUser(session?.user);
-    });
-
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, []);
+  const { avatarUrl } = useUserSession();
+  const displayAvatar = avatarUrl;
 
   const navItems = [
     {
@@ -93,12 +62,12 @@ export function BottomNav() {
               )}
             >
               <div className="flex items-center justify-center transition-colors p-1 relative">
-                {item.isAvatar && avatarUrl ? (
+                {item.isAvatar && displayAvatar ? (
                   <div className={cn(
                     "relative w-7 h-7 rounded-full overflow-hidden border-2",
                     isActive ? "border-foreground" : "border-transparent"
                   )}>
-                    <MediaImage src={avatarUrl} alt="Perfil" className="w-full h-full object-cover" fill={true} variant="avatar" fallbackType="avatar" />
+                    <MediaImage src={displayAvatar} alt="Perfil" className="w-full h-full object-cover" fill={true} variant="avatar" fallbackType="avatar" />
                   </div>
                 ) : (
                   <Icon className="h-6 w-6" strokeWidth={isActive ? 2.5 : 2} />

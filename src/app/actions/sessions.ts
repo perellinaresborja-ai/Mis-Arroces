@@ -123,6 +123,11 @@ export async function createCookingSession(formData: FormData) {
     }
   }
 
+  // Auto-remove from "Voy a cocinar" since the user has cooked it
+  if (recipeId) {
+    await supabase.from("want_to_cook").delete().eq("recipe_id", recipeId).eq("user_id", user.id);
+  }
+
   revalidatePath(`/recipes/${recipeId}`)
   revalidatePath("/cookbook")
   redirect(`/sessions/${session.id}`)

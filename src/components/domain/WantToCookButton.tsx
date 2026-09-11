@@ -38,7 +38,7 @@ export function WantToCookButton({ recipeId, initialSaved, isAuthenticated }: { 
       disabled={isLoading}
     >
       <ChefHat className="w-4 h-4 mr-2" />
-      {saved ? "Quiero cocinarlo" : "Quiero cocinarlo"}
+      {saved ? "En Voy a cocinar" : "Voy a cocinar"}
     </Button>
   )
 }

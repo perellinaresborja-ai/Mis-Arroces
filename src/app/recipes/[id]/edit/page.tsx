@@ -33,7 +33,7 @@ export default async function EditRecipePage({
     .eq("id", resolvedParams.id)
     .single()
 
-  if (!recipe) redirect("/cookbook")
+  if (!recipe || recipe.deleted_at) redirect("/cookbook")
   
   // Security check: Only owner can edit
   if (recipe.owner_id !== user.id) redirect(`/recipes/${recipe.id}`)

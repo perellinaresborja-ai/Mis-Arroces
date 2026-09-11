@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useState } from "react"
 import Link from "next/link"
@@ -101,7 +101,7 @@ export function FeedCard({
             </div>
             {user.display_name && (
               <div className="text-[13px] text-muted-foreground flex items-center gap-1">
-                <Link href={`/@${user.username}`} className="hover:underline">@{user.username}</Link> <span>·</span> {formatRelativeTime(createdAt)}
+                <Link href={`/@${user.username}`} className="hover:underline">@{user.username}</Link> <span>Â·</span> {formatRelativeTime(createdAt)}
               </div>
             )}
           </div>
@@ -167,7 +167,7 @@ export function FeedCard({
       {/* Session Details */}
       {entityType === 'session' && (sessionRating || sessionSocarrat) && (
         <div className="flex gap-4">
-          {sessionRating && <div className="text-sm">Valoración: <strong>{"⭐".repeat(sessionRating)}</strong></div>}
+          {sessionRating && <div className="text-sm">ValoraciÃ³n: <strong>{"â­".repeat(sessionRating)}</strong></div>}
           {sessionSocarrat && <div className="text-sm">Socarrat: <strong>Nivel {sessionSocarrat}</strong></div>}
         </div>
       )}
@@ -185,7 +185,7 @@ export function FeedCard({
         
         <button onClick={() => {
             if (!currentUserId) {
-              showAuthPrompt("Crea tu cuenta para participar en la conversación.")
+              showAuthPrompt("Crea tu cuenta para participar en la conversaciÃ³n.")
               return
             }
             setIsCommentsOpen(!isCommentsOpen)
@@ -195,7 +195,7 @@ export function FeedCard({
         </button>
         
         <ShareButton 
-          title={entityType === 'recipe' ? (recipeName || "") : `Publicación de ${user.display_name || `@${user.username}`}`} 
+          title={entityType === 'recipe' ? (recipeName || "") : `PublicaciÃ³n de ${user.display_name || `@${user.username}`}`} 
           text=""
           path={`/p/${entityType}/${entityId}`} 
         />

@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { MoreHorizontal, Bookmark, MessageSquareOff, Edit2, Trash2 } from "lucide-react"
-import { useRouter } from "next/navigation"
+import { useRouter, usePathname } from "next/navigation"
 import { toggleComments, deleteEntity, toggleBookmark, togglePin } from "@/app/actions/post_options"
 import { Pin, PinOff, PlusCircle } from "lucide-react"
 import { ConfirmModal } from "@/components/ui/ConfirmModal"
@@ -24,6 +24,7 @@ export function PostOptionsMenu({
 }) {
   const [showMenu, setShowMenu] = useState(false)
   const router = useRouter()
+  const pathname = usePathname()
 
   const handleGuardar = async () => {
     setShowMenu(false);
@@ -92,12 +93,31 @@ export function PostOptionsMenu({
     setShowConfirm(false);
     try {
       await deleteEntity(entityType, entityId);
-      if (onDeleted) onDeleted();
-      router.refresh();
+      if (onDeleted) {
+        onDeleted();
+      } else {
+        if (pathname === `/sessions/${entityId}`) {
+          router.push('/cookbook?tab=cooked');
+        } else if (pathname === `/recipes/${entityId}`) {
+          router.push('/cookbook');
+        } else if (pathname === `/posts/${entityId}`) {
+          router.push('/');
+        } else {
+          router.refresh();
+        }
+      }
     } catch (e) {
       alert("Error al eliminar");
     }
   }
+
+  const getEntityLabel = () => {
+    if (entityType === 'recipe') return 'receta';
+    if (entityType === 'session') return 'elaboración';
+    return 'publicación';
+  }
+
+  const label = getEntityLabel();
 
   return (
     <div className="relative">
@@ -134,7 +154,7 @@ export function PostOptionsMenu({
               <Edit2 className="w-4 h-4" /> Editar
             </button>
             <button onClick={handleEliminar} className="flex items-center gap-3 w-full text-left px-4 py-3 text-sm hover:bg-destructive/10 text-destructive font-medium transition-colors">
-              <Trash2 className="w-4 h-4" /> Eliminar publicación
+              <Trash2 className="w-4 h-4" /> Eliminar {label}
             </button>
           </div>
         </>
@@ -142,8 +162,8 @@ export function PostOptionsMenu({
 
       <ConfirmModal
         isOpen={showConfirm}
-        title="Eliminar publicación"
-        message="¿Seguro que quieres eliminar esta publicación de forma permanente?"
+        title={`Eliminar ${label}`}
+        message={`¿Seguro que quieres eliminar esta ${label} de forma permanente?`}
         confirmText="Eliminar"
         isDestructive={true}
         onConfirm={confirmEliminar}

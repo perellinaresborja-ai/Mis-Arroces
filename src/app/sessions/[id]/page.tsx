@@ -11,6 +11,9 @@ import { ChevronLeft } from "lucide-react"
 import { ProfileAvatar } from "@/components/domain/ProfileAvatar"
 
 import { ViewTracker } from "@/components/domain/ViewTracker"
+import { ExpandableImage } from "@/components/ui/ExpandableImage"
+import { PostOptionsMenu } from "@/components/domain/PostOptionsMenu"
+
 export default async function SessionDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = await params
   const supabase = await createClient()
@@ -62,7 +65,17 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
             <ChevronLeft className="w-6 h-6" />
           </Link>
           <span className="font-bold text-sm">Resultado</span>
-          <div className="w-10"></div>
+          <div className="w-10 flex justify-end">
+            {user?.id === session.user_id && (
+              <PostOptionsMenu 
+                entityType="session" 
+                entityId={session.id} 
+                allowComments={session.allow_comments} 
+                hidePin={true} 
+                isPinned={session.is_pinned}
+              />
+            )}
+          </div>
         </div>
       </header>
 

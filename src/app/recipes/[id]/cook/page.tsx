@@ -13,14 +13,14 @@ export default async function CookRecipePage({ params, searchParams }: { params:
   const { data: recipe } = await supabase
     .from("recipes")
     .select(`
-      id, name, rice_qty, stock_qty, variety_id, base_servings, cook_time,
+      id, name, rice_qty, stock_qty, variety_id, base_servings, cook_time, deleted_at,
       recipe_vessels(diameter_cm, vessel_type_id),
       rice_varieties(name)
     `)
     .eq("id", resolvedParams.id)
     .single()
 
-  if (!recipe) notFound()
+  if (!recipe || recipe.deleted_at) notFound()
 
   // Calculate scaled values if servings override is provided
   const baseServings = recipe.base_servings || 1;

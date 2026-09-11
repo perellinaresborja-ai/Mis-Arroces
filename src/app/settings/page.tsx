@@ -3,7 +3,7 @@ import { redirect } from "next/navigation"
 import Link from "next/link"
 import { ChevronLeft, ChevronRight, User, Shield, Moon, Bell, Calculator, ShoppingCart, UtensilsCrossed, BookOpen, Bookmark, ShieldAlert, Info, LogOut, SearchX, MicOff } from "lucide-react"
 import { PrivacyToggle } from "./components/PrivacyToggle"
-import { signOutAction } from "@/app/actions/logout"
+import { LogoutButton } from "./components/LogoutButton"
 import ThemeSelectorRow from "./components/ThemeSelectorRow"
 import DeleteAccountRow from "./components/DeleteAccountRow"
 
@@ -175,11 +175,7 @@ export default async function SettingsPage() {
           </section>
 
           <div className="pt-6 pb-8">
-            <form action={signOutAction}>
-              <button className="w-full py-4 text-red-500 font-bold hover:bg-red-50/10 hover:text-red-400 transition-colors rounded-3xl flex items-center justify-center gap-2" type="submit">
-                <LogOut className="w-5 h-5" /> Cerrar Sesión
-              </button>
-            </form>
+            <LogoutButton />
             <div className="text-center mt-8">
               <span className="text-xs text-muted-foreground font-medium">Mis Arroces v1.0</span>
             </div>

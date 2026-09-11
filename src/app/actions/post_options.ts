@@ -36,25 +36,34 @@ export async function deleteEntity(entityType: string, entityId: string) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error("Unauthorized")
 
-  let table = 'social_posts'
-  let authorField = 'author_id'
-  
   if (entityType === 'recipe') {
-    table = 'recipes'
-    authorField = 'owner_id'
-  } else if (entityType === 'session') {
-    table = 'cooking_sessions'
-    authorField = 'user_id'
+    // 1. Delete saves and want_to_cook
+    await supabase.from('saves').delete().eq('recipe_id', entityId);
+    await supabase.from('want_to_cook').delete().eq('recipe_id', entityId);
+
+    // 2. Soft delete the recipe
+    const { error } = await supabase
+      .from('recipes')
+      .update({ deleted_at: new Date().toISOString() })
+      .eq('id', entityId)
+      .eq('owner_id', user.id);
+    if (error) throw error;
+  } else {
+    let table = 'social_posts'
+    let authorField = 'author_id'
+    
+    if (entityType === 'session') {
+      table = 'cooking_sessions'
+      authorField = 'user_id'
+    }
+
+    const { error } = await supabase.from(table as any)
+      .delete()
+      .eq('id', entityId)
+      .eq(authorField, user.id)
+
+    if (error) throw error
   }
-
-  const { error } = await supabase.from(table as any)
-    .delete()
-    .eq('id', entityId)
-    .eq(authorField, user.id)
-
-  if (error) throw error
-
-  // The cascade should handle comments, likes, media, etc.
 }
 
 export async function toggleBookmark(entityType: string, entityId: string) {

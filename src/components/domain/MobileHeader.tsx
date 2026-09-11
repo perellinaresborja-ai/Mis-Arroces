@@ -4,25 +4,12 @@ import Image from "next/image"
 import { usePathname } from "next/navigation"
 import { NotificationBell } from "./NotificationBell"
 import { GlobalCreateMenu } from "./GlobalCreateMenu"
-import { createClient } from "@/lib/supabase/client"
-import { useEffect, useState } from "react"
+import { useUserSession } from "@/components/providers/UserSessionProvider"
 
 export function MobileHeader() {
   const pathname = usePathname()
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
-
-  useEffect(() => {
-    const supabase = createClient()
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      setIsAuthenticated(!!user)
-    })
-    
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setIsAuthenticated(!!session?.user)
-    })
-
-    return () => subscription.unsubscribe()
-  }, [])
+  const { user } = useUserSession()
+  const isAuthenticated = !!user
 
   if (pathname === "/login" || pathname === "/forgot-password" || pathname.includes("/edit") || pathname.includes("/create")) return null;
 

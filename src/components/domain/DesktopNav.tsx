@@ -2,48 +2,17 @@
 import { MediaImage } from "@/components/domain/MediaImage"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { useEffect, useState } from "react"
-import { createClient } from "@/lib/supabase/client"
 import { Flame, PlaySquare, User, Home, MessageCircle, BookOpen, Compass, Calculator } from "lucide-react"
 import { cn } from "@/lib/utils"
 import Image from "next/image"
 import { NotificationBell } from "@/components/domain/NotificationBell"
 import { GlobalCreateMenu } from "@/components/domain/GlobalCreateMenu"
+import { useUserSession } from "@/components/providers/UserSessionProvider"
 
 export function DesktopNav() {
   const pathname = usePathname()
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
-
-  useEffect(() => {
-    const supabase = createClient();
-    const fetchUser = async (user: any) => {
-      if (user) {
-        const { data } = await supabase.from('profiles')
-          .select(`avatar:media_assets!fk_profiles_avatar(storage_path)`)
-          .eq('id', user.id)
-          .single();
-          
-        const avatarPath = Array.isArray(data?.avatar) ? data.avatar[0]?.storage_path : data?.avatar?.storage_path;
-        if (avatarPath) {
-          setAvatarUrl(avatarPath.startsWith('http') ? avatarPath : `https://zvesoygqssyyojqyswwm.supabase.co/storage/v1/object/public/recipe_media/${avatarPath}`);
-        } else {
-          setAvatarUrl(null);
-        }
-      } else {
-        setAvatarUrl(null);
-      }
-    };
-
-    supabase.auth.getUser().then(({ data: { user } }) => fetchUser(user));
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      fetchUser(session?.user);
-    });
-
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, []);
+  const { avatarUrl } = useUserSession()
+  const displayAvatar = avatarUrl
 
   const navItems = [
     {
@@ -110,12 +79,12 @@ export function DesktopNav() {
             <GlobalCreateMenu />
             <NotificationBell />
             <Link href="/me" className={cn("transition-colors hover:opacity-80", pathname === "/me" || pathname.startsWith("/me/") ? "opacity-100" : "opacity-80")}>
-              {avatarUrl ? (
+              {displayAvatar ? (
                 <div className={cn(
                   "relative w-9 h-9 rounded-full overflow-hidden border-2 flex items-center justify-center shrink-0",
                   (pathname === "/me" || pathname.startsWith("/me/")) ? "border-primary" : "border-transparent"
                 )}>
-                  <MediaImage src={avatarUrl} alt="Perfil" fallbackType="avatar" className="w-full h-full object-cover" fill={true} variant="avatar" />
+                  <MediaImage src={displayAvatar} alt="Perfil" fallbackType="avatar" className="w-full h-full object-cover" fill={true} variant="avatar" />
                 </div>
               ) : (
                 <div className={cn(

@@ -1,4 +1,4 @@
-﻿// @ts-nocheck
+// @ts-nocheck
 "use server"
 
 import { revalidatePath } from "next/cache"
@@ -312,7 +312,13 @@ export async function toggleWantToCook(recipeId: string, wantToCook: boolean) {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) throw new Error("No session");
 
+  // Prevent cooking deleted recipes
+  const { data: recipe } = await supabase.from("recipes").select("deleted_at").eq("id", recipeId).single();
+  if (!recipe || recipe.deleted_at) throw new Error("Receta no disponible");
+
   if (wantToCook) {
+    // To prevent duplicates if the unique constraint is missing, we delete first then insert
+    await supabase.from('want_to_cook').delete().eq('recipe_id', recipeId).eq('user_id', session.user.id);
     await supabase.from('want_to_cook').insert({ recipe_id: recipeId, user_id: session.user.id });
   } else {
     await supabase.from('want_to_cook').delete().eq('recipe_id', recipeId).eq('user_id', session.user.id);
@@ -327,11 +333,13 @@ export async function toggleSaveRecipe(recipeId: string, saved: boolean) {
   if (!session) throw new Error("No session");
 
   if (saved) {
+    const { data: recipe } = await supabase.from("recipes").select("owner_id, deleted_at").eq("id", recipeId).single();
+    if (!recipe || recipe.deleted_at) throw new Error("Receta no disponible");
+
     await supabase.from('saves').insert({ recipe_id: recipeId, user_id: session.user.id });
     try {
-      const { data } = await supabase.from("recipes").select("owner_id").eq("id", recipeId).single();
-      if (data?.owner_id && data.owner_id !== session.user.id) {
-        await trackEvent("SAVE", "RECIPE", recipeId, data.owner_id);
+      if (recipe.owner_id && recipe.owner_id !== session.user.id) {
+        await trackEvent("SAVE", "RECIPE", recipeId, recipe.owner_id);
       }
     } catch(e) {}
   } else {
@@ -347,9 +355,20 @@ export async function deleteRecipe(recipeId: string) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error("Unauthorized")
 
+  // Verify ownership before modifying related records
+  const { data: recipe } = await supabase.from('recipes').select('id').eq('id', recipeId).eq('owner_id', user.id).single();
+  if (!recipe) throw new Error("Unauthorized or not found");
+
+  // 1. Delete saves for this recipe across all users
+  await supabase.from('saves').delete().eq('recipe_id', recipeId);
+  
+  // 2. Delete want_to_cook entries for this recipe
+  await supabase.from('want_to_cook').delete().eq('recipe_id', recipeId);
+
+  // 3. Soft delete the recipe (leaves cooking_sessions intact)
   const { error } = await supabase
     .from('recipes')
-    .delete()
+    .update({ deleted_at: new Date().toISOString() })
     .eq('id', recipeId)
     .eq('owner_id', user.id)
 
@@ -357,4 +376,8 @@ export async function deleteRecipe(recipeId: string) {
     console.error("Delete recipe error:", error)
     throw new Error(error.message)
   }
+
+  revalidatePath('/')
+  revalidatePath('/cookbook')
+  revalidatePath(`/[userParam]`, 'layout')
 }
