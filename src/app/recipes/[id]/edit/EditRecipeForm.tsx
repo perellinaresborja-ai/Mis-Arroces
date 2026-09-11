@@ -115,6 +115,13 @@ export default function EditRecipeForm({ recipe, catalogs }: { recipe: any, cata
     let finalStatus = recipe.status
     let finalScheduledFor = recipe.scheduled_for || null
 
+    if (action === 'PUBLISH' || action === 'SCHEDULE') {
+      const currentServings = getValues('base_servings')
+      if (!currentServings || Number(currentServings) <= 0) {
+        return alert("Por favor, indica el número de comensales antes de publicar la receta.")
+      }
+    }
+
     if (action === 'DRAFT') {
       finalStatus = 'DRAFT'
       finalScheduledFor = null
@@ -129,6 +136,12 @@ export default function EditRecipeForm({ recipe, catalogs }: { recipe: any, cata
       // Keep existing status and scheduled_for
       finalStatus = recipe.status
       finalScheduledFor = recipe.scheduled_for
+      if (finalStatus === 'PUBLISHED') {
+        const currentServings = getValues('base_servings')
+        if (!currentServings || Number(currentServings) <= 0) {
+          return alert("Una receta publicada debe tener indicado el número de comensales.")
+        }
+      }
     }
 
     setValue('status', finalStatus)
@@ -340,7 +353,7 @@ export default function EditRecipeForm({ recipe, catalogs }: { recipe: any, cata
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4 pt-4 border-t border-border/50 mt-4">
             <div className="space-y-2">
               <Label>Comensales</Label>
-              <Input type="number" {...register("base_servings")} />
+              <Input type="number" placeholder="Pendiente de definir" {...register("base_servings")} />
             </div>
             <div className="space-y-2">
               <Label>CocciÃ³n (min)</Label>

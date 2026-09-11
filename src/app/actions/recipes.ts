@@ -74,6 +74,15 @@ export async function updateRecipeStatus(id: string, status: string, scheduledFo
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("Auth");
+
+  // Validate base_servings when publishing
+  if (status === 'PUBLISHED') {
+    const { data: rec } = await supabase.from("recipes").select("base_servings").eq("id", id).maybeSingle();
+    if (!rec || !rec.base_servings || rec.base_servings <= 0) {
+      throw new Error("Debes indicar el número de comensales antes de publicar la receta.");
+    }
+  }
+
   await supabase.from("recipes").update({ status, scheduled_for: scheduledFor }).eq("id", id).eq("owner_id", user.id);
   const { revalidatePath } = require("next/cache");
   const { redirect } = require("next/navigation");
@@ -105,9 +114,14 @@ export async function updateRecipeFull(id: string, data: any) {
   
   // Clean empty strings to null for postgres
   const baseData = { ...rawBaseData };
-  if (baseData.base_servings === null || baseData.base_servings === "") baseData.base_servings = 1;
+  if (baseData.base_servings === "") baseData.base_servings = null;
   for (const key of Object.keys(baseData)) {
     if (baseData[key] === '') baseData[key] = null;
+  }
+
+  // Validate base_servings when publishing
+  if (baseData.status === 'PUBLISHED' && (!baseData.base_servings || Number(baseData.base_servings) <= 0)) {
+    throw new Error("Debes indicar el número de comensales antes de publicar la receta.");
   }
   
   const { data: updatedRecipe, error: recipeError } = await supabase

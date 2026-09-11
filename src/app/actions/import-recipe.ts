@@ -2,8 +2,8 @@
 
 import { revalidatePath } from "next/cache"
 import { createClient } from "@/lib/supabase/server"
-import { safeFetchHtml } from "@/lib/recipe-importer/ssrf"
-import { extractRecipeFromJsonLd } from "@/lib/recipe-importer/extractor"
+import { detectPlatformAndNormalizeUrl } from "@/lib/recipe-importer/detector"
+import { fetchRecipeFromAnyUrl } from "@/lib/recipe-importer/registry"
 import { parseAndMatchIngredient } from "@/lib/recipe-importer/matcher"
 import { getCatalogs } from "@/app/actions/recipes"
 
@@ -12,6 +12,7 @@ export interface ImportRecipeActionResult {
   recipeId?: string
   error?: string
   existingDraftId?: string
+  isInsufficient?: boolean
 }
 
 export async function importRecipeFromUrlAction(
@@ -24,19 +25,30 @@ export async function importRecipeFromUrlAction(
     return { success: false, error: "Debes iniciar sesión para importar recetas." }
   }
 
-  const cleanUrl = rawUrl?.trim()
-  if (!cleanUrl) {
+  const trimmed = rawUrl?.trim()
+  if (!trimmed) {
     return { success: false, error: "Por favor, introduce la URL de la receta." }
   }
 
-  // 1. Check duplicate imports by the same user if not forced
+  // 1. Detect platform and canonicalize URL (strip tracking, canonicalize shorts, etc.)
+  let detection: ReturnType<typeof detectPlatformAndNormalizeUrl>
+  try {
+    detection = detectPlatformAndNormalizeUrl(trimmed)
+  } catch (err: any) {
+    return { success: false, error: err.message || "Enlace no válido." }
+  }
+
+  const canonicalUrl = detection.normalizedUrl
+  const platform = detection.platform
+
+  // 2. Check duplicate imports by the same user if not forced
   if (!forceNew) {
     try {
       const { data: existing } = await (supabase
         .from("recipes") as any)
         .select("id, name, status")
         .eq("owner_id", user.id)
-        .eq("source_url", cleanUrl)
+        .eq("source_url", canonicalUrl)
         .is("deleted_at", null)
         .maybeSingle()
 
@@ -48,80 +60,64 @@ export async function importRecipeFromUrlAction(
         }
       }
     } catch {
-      // If column source_url does not exist yet, continue gracefully
+      // If error querying, continue gracefully
     }
   }
 
-  // 2. Fetch HTML securely with SSRF protections
-  let html: string
-  try {
-    html = await safeFetchHtml(cleanUrl)
-  } catch (err: any) {
-    return { success: false, error: err.message || "Error al conectar con la web indicada." }
+  // 3. Delegate to registered platform adapter
+  const importResult = await fetchRecipeFromAnyUrl(canonicalUrl)
+
+  if (!importResult.success || !importResult.recipe) {
+    return {
+      success: false,
+      isInsufficient: importResult.isInsufficient,
+      error: importResult.error || "No se ha podido procesar esta receta."
+    }
   }
 
-  // 3. Extract Schema.org Recipe data
-  let extracted: ReturnType<typeof extractRecipeFromJsonLd>
-  try {
-    extracted = extractRecipeFromJsonLd(html)
-  } catch (err: any) {
-    return { success: false, error: err.message || "No se ha encontrado ninguna receta compatible en esta página." }
-  }
+  const recipeData = importResult.recipe
 
   // 4. Fetch catalogs for conservative ingredient matching
   const catalogs = await getCatalogs()
 
-  // 5. Create DRAFT recipe in database
-  const slug = `${extracted.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)+/g, "")}-${Date.now()}`
+  // 5. Generate clean slug
+  const titleForSlug = recipeData.title || "receta-importada"
+  const slug = `${titleForSlug.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)+/g, "")}-${Date.now()}`
 
-  // Never invent technical data: only assign if extracted from source
+  // 6. Create DRAFT recipe in database without hallucinating missing data
   const recipeInsertPayload: any = {
     owner_id: user.id,
-    name: extracted.name,
+    name: recipeData.title || "Receta Importada",
     slug,
-    description: extracted.description || null,
+    description: recipeData.description || null,
     status: "DRAFT", // ALWAYS DRAFT, NEVER PUBLISHED
-    source_url: cleanUrl,
-    source_platform: "WEB",
-    base_servings: extracted.recipeYield ?? null,
-    cook_time: extracted.cookTimeMinutes || extracted.totalTimeMinutes || null,
+    source_url: canonicalUrl,
+    source_platform: platform,
+    base_servings: recipeData.servings ?? null,
+    cook_time: recipeData.cook_time_minutes || recipeData.total_time_minutes || null,
   }
 
-  let newRecipe: any = null
-  let { data: inserted, error: recipeError } = await supabase
+  const { data: inserted, error: recipeError } = await supabase
     .from("recipes")
     .insert(recipeInsertPayload)
     .select("id")
     .single()
 
-  if (recipeError && (recipeError.message?.includes("source_url") || recipeError.code === "PGRST204")) {
-    // If source_url column has not been added yet via migration in remote DB, retry without source_url
-    delete recipeInsertPayload.source_url
-    const retry = await supabase
-      .from("recipes")
-      .insert(recipeInsertPayload)
-      .select("id")
-      .single()
-    inserted = retry.data
-    recipeError = retry.error
-  }
-
   if (recipeError || !inserted) {
     console.error("Error creating draft recipe from import:", recipeError)
     return { success: false, error: "No se ha podido crear el borrador de la receta." }
   }
-  newRecipe = inserted
 
-  const recipeId = newRecipe.id
+  const recipeId = inserted.id
 
-  // 6. Insert parsed ingredients
-  if (extracted.ingredients && extracted.ingredients.length > 0) {
-    const ingsToInsert = extracted.ingredients.map((rawIng, idx) => {
-      const parsed = parseAndMatchIngredient(rawIng, catalogs)
+  // 7. Insert parsed ingredients preserving raw text
+  if (recipeData.ingredients && recipeData.ingredients.length > 0) {
+    const ingsToInsert = recipeData.ingredients.map((ing, idx) => {
+      const parsed = parseAndMatchIngredient(ing.raw_text, catalogs)
       return {
         recipe_id: recipeId,
         display_order: idx + 1,
-        display_text: parsed.displayText,
+        display_text: parsed.displayText || ing.raw_text,
         normalized_quantity: parsed.normalizedQuantity,
         unit_id: parsed.unitId,
         canonical_ingredient_id: parsed.canonicalIngredientId,
@@ -135,12 +131,12 @@ export async function importRecipeFromUrlAction(
     }
   }
 
-  // 7. Insert instructions / steps preserving sequence order
-  if (extracted.instructions && extracted.instructions.length > 0) {
-    const stepsToInsert = extracted.instructions.map((step, idx) => ({
+  // 8. Insert instructions preserving sequence
+  if (recipeData.instructions && recipeData.instructions.length > 0) {
+    const stepsToInsert = recipeData.instructions.map((step, idx) => ({
       recipe_id: recipeId,
-      step_number: idx + 1,
-      instruction: step.instruction,
+      step_number: step.step_number || idx + 1,
+      instruction: step.text,
       duration_minutes: null, // Don't invent times per step
       notes: step.notes || null,
     }))
