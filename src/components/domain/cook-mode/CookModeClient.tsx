@@ -135,26 +135,52 @@ export function CookModeClient({ recipe, userName, reset }: { recipe: CookModeRe
         return
       }
 
-      window.speechSynthesis.cancel() // cancel active utterances
+      // If speech synthesis is already speaking something, cancel it before starting new speech
+      if (window.speechSynthesis.speaking || window.speechSynthesis.pending) {
+        window.speechSynthesis.cancel()
+      }
+
+      // Resume speech synthesis in case the browser paused it in the background
+      if (window.speechSynthesis.paused) {
+        window.speechSynthesis.resume()
+      }
+
       const utterance = new SpeechSynthesisUtterance(text)
       utterance.lang = 'es-ES'
       utterance.rate = 0.85
       utterance.pitch = 1
 
-      utterance.onstart = () => {
-        isSpeakingRef.current = true
-      }
-
+      let hasFinished = false
       const finishSpeech = () => {
+        if (hasFinished) return
+        hasFinished = true
         isSpeakingRef.current = false
         resolve()
       }
 
+      utterance.onstart = () => {
+        isSpeakingRef.current = true
+      }
+
       utterance.onend = finishSpeech
-      utterance.onerror = finishSpeech
+      utterance.onerror = (e) => {
+        // If canceled intentionally by a newer call, don't keep waiting
+        finishSpeech()
+      }
 
       currentUtterance.current = utterance
-      window.speechSynthesis.speak(utterance)
+
+      // Brief delay after cancel() ensures Chromium's speech engine clears without dropping the new utterance
+      setTimeout(() => {
+        try {
+          if (window.speechSynthesis.paused) {
+            window.speechSynthesis.resume()
+          }
+          window.speechSynthesis.speak(utterance)
+        } catch {
+          finishSpeech()
+        }
+      }, 50)
     })
   }
 
@@ -315,11 +341,11 @@ export function CookModeClient({ recipe, userName, reset }: { recipe: CookModeRe
         // 2. Read notes of the finished step (or alert) and wait until speech is truly finished
         let speechMsg = "¡Tiempo cumplido!"
         if (stepObj?.notes && stepObj.notes.trim().length > 0) {
-          speechMsg = `¡Tiempo cumplido! ${stepObj.notes}`
+          speechMsg = `¡Tiempo cumplido! ${stepObj.notes.trim()}`
         }
         await speakText(speechMsg)
 
-        // 3. Auto-advance logic if enabled
+        // 3. Auto-advance logic if enabled: only advances AFTER speech finishes
         if (autoAdvanceRef.current) {
           if (finishedStepIndex + 1 < recipe.steps.length) {
             setCurrentStepIndex(finishedStepIndex + 1)
