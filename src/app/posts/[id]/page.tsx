@@ -123,7 +123,7 @@ export default async function PostDetailPage({ params }: { params: Promise<{ id:
         {/* Media */}
         {mediaItems.length > 0 && (
           <div className="rounded-2xl overflow-hidden border border-border/50">
-            <MediaCarousel items={mediaItems} />
+            <MediaCarousel items={mediaItems} priority={true} />
           </div>
         )}
 

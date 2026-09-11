@@ -160,17 +160,14 @@ export function CookModeClient({ recipe, userName, reset }: { recipe: CookModeRe
       }
 
       utterance.onstart = () => {
-        console.log("[NOTE TTS] utterance.onstart", { text })
         isSpeakingRef.current = true
       }
 
       utterance.onend = (e) => {
-        console.log("[NOTE TTS] utterance.onend", { text, elapsedTime: e.elapsedTime })
         finishSpeech("onend")
       }
 
       utterance.onerror = (e) => {
-        console.log("[NOTE TTS] utterance.onerror", { text, error: e.error })
         finishSpeech("onerror")
       }
 
@@ -184,7 +181,7 @@ export function CookModeClient({ recipe, userName, reset }: { recipe: CookModeRe
           }
           window.speechSynthesis.speak(utterance)
         } catch (err) {
-          console.log("[NOTE TTS] speak exception", err)
+          console.error("[TTS] speak exception", err)
           finishSpeech("exception")
         }
       }, 50)

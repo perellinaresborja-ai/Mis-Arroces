@@ -10,7 +10,7 @@ interface MediaItem {
 }
 
 import Link from "next/link";
-export function MediaCarousel({ items, bucket = "recipe_media", href }: { items: MediaItem[], bucket?: string, href?: string }) {
+export function MediaCarousel({ items, bucket = "recipe_media", href, priority = false }: { items: MediaItem[], bucket?: string, href?: string, priority?: boolean }) {
   const [currentIndex, setCurrentIndex] = useState(0)
   
   if (!items || items.length === 0) return null
@@ -26,10 +26,10 @@ export function MediaCarousel({ items, bucket = "recipe_media", href }: { items:
     <div className="relative w-full aspect-square md:aspect-[4/3] rounded-2xl overflow-hidden bg-black/5">
       {href ? (
         <Link href={href} className="absolute inset-0">
-          <Image src={getImageUrl(items[currentIndex].storage_path)} alt={`Media ${currentIndex + 1}`} fill sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" className="object-cover" priority={currentIndex === 0} />
+          <Image src={getImageUrl(items[currentIndex].storage_path)} alt={`Media ${currentIndex + 1}`} fill sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" className="object-cover" priority={priority && currentIndex === 0} />
         </Link>
       ) : (
-        <Image src={getImageUrl(items[currentIndex].storage_path)} alt={`Media ${currentIndex + 1}`} fill sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" className="object-cover" priority={currentIndex === 0} />
+        <Image src={getImageUrl(items[currentIndex].storage_path)} alt={`Media ${currentIndex + 1}`} fill sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" className="object-cover" priority={priority && currentIndex === 0} />
       )}
 
       {items.length > 1 && (

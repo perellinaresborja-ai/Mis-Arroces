@@ -47,6 +47,7 @@ export interface FeedCardProps {
 
   // Media
   media: { id: string, storage_path: string }[]
+  priority?: boolean
 }
 
 export function FeedCard({
@@ -67,7 +68,8 @@ export function FeedCard({
   sessionSocarrat,
   linkedRecipe,
   isPinned,
-  media
+  media,
+  priority = false
 }: FeedCardProps) {
 
   const user = initialUser || { username: 'usuario_desconocido', display_name: 'Usuario Desconocido', avatar: null };
@@ -152,7 +154,7 @@ export function FeedCard({
       {/* Media */}
       {media.length > 0 && (
         <div className="rounded-2xl overflow-hidden border border-border/50">
-          <MediaCarousel items={media} href={href} />
+          <MediaCarousel items={media} href={href} priority={priority} />
         </div>
       )}
 

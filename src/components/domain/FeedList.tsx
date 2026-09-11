@@ -35,7 +35,7 @@ export function FeedList({ initialItems, currentUserId }: { initialItems: any[],
 
   return (
     <div className="space-y-4">
-      {items.map((item: any) => {
+      {items.map((item: any, index: number) => {
         if ((item as any).entity_type === 'post') {
           const media = item.data.post_media?.sort((a,b)=>(a.display_order||0)-(b.display_order||0)).map((pm: any) => pm.media).filter(Boolean) || []
           return (
@@ -54,6 +54,7 @@ export function FeedList({ initialItems, currentUserId }: { initialItems: any[],
               postContent={item.data.content}
               linkedRecipe={item.data.recipe}
               media={media}
+              priority={index === 0}
             />
           )
         }
@@ -76,6 +77,7 @@ export function FeedList({ initialItems, currentUserId }: { initialItems: any[],
               recipeName={item.data.name}
               recipeType={item.data.rice_type}
               media={media}
+              priority={index === 0}
             />
           )
         }
@@ -99,6 +101,7 @@ export function FeedList({ initialItems, currentUserId }: { initialItems: any[],
               sessionSocarrat={item.data.socarrat_level}
               linkedRecipe={item.data.recipe}
               media={media}
+              priority={index === 0}
             />
           )
         }
