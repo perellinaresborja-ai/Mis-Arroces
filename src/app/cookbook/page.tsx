@@ -30,8 +30,7 @@ export default async function CookbookPage(props: { searchParams?: Promise<{ tab
     const { data } = await supabase.from("saves").select("recipes(*, recipe_media!recipe_media_recipe_id_fkey(display_order, media:media_assets(storage_path)), variety:rice_varieties(name), style:rice_styles(name), author:profiles!recipes_owner_id_fkey(username))").eq("user_id", user.id).order("saved_at", { ascending: false })
     recipes = data?.map(d => d.recipes).filter(Boolean) || []
   } else if (tab === "want") {
-    const { data } = await supabase.from("want_to_cook").select("recipes(*, recipe_media!recipe_media_recipe_id_fkey(display_order, media:media_assets(storage_path)), variety:rice_varieties(name), style:rice_styles(name), author:profiles!recipes_owner_id_fkey(username))").eq("user_id", user.id).order("added_at", { ascending: false })
-    recipes = data?.map(d => d.recipes).filter(Boolean) || []
+    redirect("/discover")
   } else if (tab === "cooked") {
     const { data } = await supabase.from("cooking_sessions").select("*, session_media(display_order, media:media_assets(storage_path)), recipe:recipes(id, name)").eq("user_id", user.id).order("created_at", { ascending: false })
     sessions = data || []
@@ -73,8 +72,8 @@ export default async function CookbookPage(props: { searchParams?: Promise<{ tab
           Guardados
         </Link>
         <Link 
-          href="?tab=want" 
-          className={`pb-3 font-medium transition-colors whitespace-nowrap border-b-2 ${tab === 'want' ? 'border-primary text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground'}`}
+          href="/discover" 
+          className={`pb-3 font-medium transition-colors whitespace-nowrap border-b-2 border-transparent text-muted-foreground hover:text-foreground`}
         >
           Quiero cocinar
         </Link>
