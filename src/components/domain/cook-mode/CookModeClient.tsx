@@ -1,11 +1,12 @@
 "use client"
 
-import { useState, useEffect, useRef, useCallback } from "react"
-import { ChevronLeft, ChevronRight, Check, Play, Pause, RotateCcw, Volume2, X, Maximize } from "lucide-react"
+import { useState, useEffect, useRef, useCallback, useMemo } from "react"
+import { ChevronLeft, ChevronRight, Check, Play, Pause, RotateCcw, Volume2, X, Maximize, Mic, MicOff, AlertCircle } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
 import { calculateLayer, calculateRealBrothRatio } from "@/lib/paella-calculator"
 import { useRouter } from "next/navigation"
+import { useVoiceCommands, type VoiceState } from "./useVoiceCommands"
 
 interface CookModeRecipe {
   id: string
@@ -439,6 +440,99 @@ export function CookModeClient({ recipe, userName, reset }: { recipe: CookModeRe
     }))
   }
 
+  // Voice Control Integration
+  const [pendingVoiceFinish, setPendingVoiceFinish] = useState(false)
+
+  const voiceHandlers = useMemo(() => ({
+    onNext: () => {
+      handleNext()
+    },
+    onPrev: () => {
+      handlePrev()
+    },
+    onRepeat: () => {
+      const stepToRepeat = recipe.steps[currentStepIndex]
+      if (stepToRepeat?.instruction) {
+        let text = stepToRepeat.instruction
+        if (stepToRepeat.duration_minutes) {
+          text += `. Tiempo estimado: ${stepToRepeat.duration_minutes} minuto${stepToRepeat.duration_minutes !== 1 ? 's' : ''}.`
+        }
+        speakText(text)
+      }
+    },
+    onPause: () => {
+      setTimers(prev => {
+        const t = prev[currentStepIndex]
+        if (t && t.isRunning) {
+          return { ...prev, [currentStepIndex]: { ...t, isRunning: false, endTime: null } }
+        }
+        return prev
+      })
+    },
+    onResume: () => {
+      const curStep = recipe.steps[currentStepIndex]
+      const dur = curStep?.duration_minutes || 0
+      toggleTimer(currentStepIndex, dur)
+    },
+    onWhatLeft: () => {
+      const t = timers[currentStepIndex]
+      const stepDur = recipe.steps[currentStepIndex]?.duration_minutes
+      const remainingMs = t ? t.remainingMs : (stepDur ? stepDur * 60 * 1000 : 0)
+      if (remainingMs <= 0) {
+        speakText("El tiempo ha terminado o este paso no tiene temporizador.")
+      } else {
+        const totalSeconds = Math.ceil(remainingMs / 1000)
+        const mins = Math.floor(totalSeconds / 60)
+        const secs = totalSeconds % 60
+        let speech = "Quedan "
+        if (mins > 0) {
+          speech += `${mins} minuto${mins !== 1 ? 's' : ''}`
+          if (secs > 0) speech += ` y ${secs} segundo${secs !== 1 ? 's' : ''}`
+        } else {
+          speech += `${secs} segundo${secs !== 1 ? 's' : ''}`
+        }
+        speakText(speech)
+      }
+    },
+    onSetTimer: (seconds: number) => {
+      if (currentStepIndex === 0) {
+        setCookingStartedByUser(true)
+      }
+      setTimers(prev => ({
+        ...prev,
+        [currentStepIndex]: {
+          isRunning: true,
+          remainingMs: seconds * 1000,
+          endTime: Date.now() + seconds * 1000,
+        }
+      }))
+    },
+    onFinishRequest: () => {
+      setPendingVoiceFinish(true)
+      speakText("¿Seguro que deseas terminar? Di sí o no.")
+    },
+    onConfirmFinish: () => {
+      setPendingVoiceFinish(false)
+      handleEndCook()
+    },
+    onCancelFinish: () => {
+      setPendingVoiceFinish(false)
+      speakText("De acuerdo, continuamos.")
+    }
+  }), [currentStepIndex, recipe.steps, timers]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const {
+    voiceEnabled,
+    voiceState,
+    feedbackMessage,
+    isSupported: isVoiceSupported,
+    toggleVoice
+  } = useVoiceCommands({
+    handlers: voiceHandlers,
+    isTtsSpeakingRef: isSpeakingRef,
+    pendingFinishConfirmation: pendingVoiceFinish
+  })
+
   // Top actions are now inlined to prevent unmounting on every render
 
   // Initial Summary View
@@ -552,11 +646,55 @@ export function CookModeClient({ recipe, userName, reset }: { recipe: CookModeRe
         </Link>
       </div>
       {/* Header */}
-      <header className="p-6 flex flex-col items-center justify-center shrink-0">
-        <div className="text-center font-black text-white/40 uppercase tracking-widest text-sm mt-2 md:mt-0">
+      <header className="p-4 sm:p-6 flex items-center justify-between shrink-0 relative">
+        {/* Voice Control Toggle Button */}
+        <div className="flex items-center gap-2 z-10">
+          <button
+            onClick={toggleVoice}
+            disabled={!isVoiceSupported}
+            className={`px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-2 border transition-all ${
+              !isVoiceSupported
+                ? "bg-white/5 border-white/10 text-white/40 cursor-not-allowed"
+                : voiceEnabled
+                ? voiceState === "processing"
+                  ? "bg-amber-500/20 text-amber-300 border-amber-500/40 animate-pulse"
+                  : "bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
+                : "bg-white/10 border-white/10 text-white/60 hover:bg-white/20 hover:text-white"
+            }`}
+            aria-label={voiceEnabled ? "Desactivar control por voz" : "Activar control por voz"}
+            title={!isVoiceSupported ? "Control por voz no disponible en este navegador" : "Control por voz"}
+          >
+            {voiceEnabled ? (
+              <>
+                <span className={`w-2 h-2 rounded-full ${voiceState === "processing" ? "bg-amber-400" : "bg-emerald-400 animate-ping"}`} />
+                <Mic className="w-3.5 h-3.5" />
+                <span>{voiceState === "processing" ? "Procesando..." : "Escuchando"}</span>
+              </>
+            ) : (
+              <>
+                <MicOff className="w-3.5 h-3.5" />
+                <span>Voz: OFF</span>
+              </>
+            )}
+          </button>
+        </div>
+
+        {/* Step indicator centered */}
+        <div className="text-center font-black text-white/40 uppercase tracking-widest text-xs sm:text-sm">
           Paso {currentStepIndex + 1} de {recipe.steps.length}
         </div>
+
+        {/* Spacer to balance the top bar layout */}
+        <div className="w-24 sm:w-28" />
       </header>
+
+      {/* Floating feedback message for voice commands */}
+      {feedbackMessage && (
+        <div className="absolute top-16 left-1/2 -translate-x-1/2 z-40 bg-zinc-900/90 backdrop-blur border border-primary/40 text-white text-xs sm:text-sm font-semibold px-4 py-2 rounded-full shadow-2xl flex items-center gap-2 animate-in fade-in slide-in-from-top-2 duration-200">
+          <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+          {feedbackMessage}
+        </div>
+      )}
 
       {/* Main Content */}
       <main className="flex-1 flex flex-col items-center justify-center px-6 py-2 overflow-hidden min-h-0">
@@ -653,6 +791,43 @@ export function CookModeClient({ recipe, userName, reset }: { recipe: CookModeRe
           <ChevronRight className="w-8 h-8" />
         </button>
       </footer>
+
+      {/* Confirmation Dialog for Terminar command */}
+      {pendingVoiceFinish && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-6 animate-in fade-in duration-200">
+          <div className="bg-card text-card-foreground border border-border rounded-3xl p-6 sm:p-8 max-w-sm w-full shadow-2xl flex flex-col items-center text-center gap-6">
+            <div className="w-14 h-14 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center text-primary">
+              <AlertCircle className="w-8 h-8" />
+            </div>
+            <div className="space-y-2">
+              <h3 className="text-2xl font-black font-serif">¿Terminar cocinado?</h3>
+              <p className="text-sm text-muted-foreground">
+                Di <span className="font-bold text-foreground">"sí"</span> para confirmar o <span className="font-bold text-foreground">"no"</span> para continuar cocinando.
+              </p>
+            </div>
+            <div className="flex gap-3 w-full">
+              <button
+                onClick={() => {
+                  setPendingVoiceFinish(false)
+                  speakText("De acuerdo, continuamos.")
+                }}
+                className="flex-1 py-3.5 rounded-2xl bg-white/10 hover:bg-white/20 text-white font-bold transition-colors"
+              >
+                No / Continuar
+              </button>
+              <button
+                onClick={() => {
+                  setPendingVoiceFinish(false)
+                  handleEndCook()
+                }}
+                className="flex-1 py-3.5 rounded-2xl bg-primary text-white font-bold hover:bg-primary/90 transition-colors shadow-lg"
+              >
+                Sí / Terminar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
