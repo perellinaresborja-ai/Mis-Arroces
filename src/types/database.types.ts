@@ -972,6 +972,73 @@ export type Database = {
           },
         ]
       }
+      moderation_reports: {
+        Row: {
+          content_snapshot: Json | null
+          created_at: string
+          details: string | null
+          id: string
+          reason: string
+          reported_user_id: string | null
+          reporter_id: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: "PENDING" | "REVIEWED" | "ACTIONED" | "DISMISSED"
+          target_id: string
+          target_type: "POST" | "COMMENT" | "COMMENT_REPLY" | "RECIPE" | "STORY" | "USER" | "MESSAGE"
+        }
+        Insert: {
+          content_snapshot?: Json | null
+          created_at?: string
+          details?: string | null
+          id?: string
+          reason: string
+          reported_user_id?: string | null
+          reporter_id?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: "PENDING" | "REVIEWED" | "ACTIONED" | "DISMISSED"
+          target_id: string
+          target_type: "POST" | "COMMENT" | "COMMENT_REPLY" | "RECIPE" | "STORY" | "USER" | "MESSAGE"
+        }
+        Update: {
+          content_snapshot?: Json | null
+          created_at?: string
+          details?: string | null
+          id?: string
+          reason?: string
+          reported_user_id?: string | null
+          reporter_id?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: "PENDING" | "REVIEWED" | "ACTIONED" | "DISMISSED"
+          target_id?: string
+          target_type?: "POST" | "COMMENT" | "COMMENT_REPLY" | "RECIPE" | "STORY" | "USER" | "MESSAGE"
+        }
+        Relationships: [
+          {
+            foreignKeyName: "moderation_reports_reported_user_id_fkey"
+            columns: ["reported_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "moderation_reports_reporter_id_fkey"
+            columns: ["reporter_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "moderation_reports_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notifications: {
         Row: {
           actor_id: string | null
