@@ -35,14 +35,14 @@ export function UserSessionProvider({
   const [avatarUrl, setAvatarUrl] = useState<string | null>(initialAvatarUrl)
   const [isLoading, setIsLoading] = useState(true)
 
-  // Track request sequence to prevent race conditions
+  // Track active user ID and request sequence to prevent redundant calls and race conditions
+  const activeUserIdRef = useRef<string | null>(null)
+  const previousPathnameRef = useRef<string>(pathname)
   const requestIdRef = useRef(0)
 
   const fetchAvatarForUser = async (userId: string | null, targetRequestId: number) => {
-    console.log("[AUTH DEBUG] fetchAvatarForUser START", { userId, targetRequestId })
     if (!userId) {
       if (requestIdRef.current === targetRequestId) {
-        console.log("[AUTH DEBUG] setAvatarUrl", { valor: null })
         setAvatarUrl(null)
       }
       return
@@ -50,70 +50,60 @@ export function UserSessionProvider({
 
     try {
       const supabase = createClient()
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from("profiles")
         .select(`avatar:media_assets!fk_profiles_avatar(storage_path)`)
         .eq("id", userId)
         .single()
 
-      const avatarData: any = data?.avatar
-      const avatarPath = Array.isArray(avatarData) ? avatarData[0]?.storage_path : avatarData?.storage_path
-      console.log("[AUTH DEBUG] profile response", {
-        userId,
-        "avatar storage_path": avatarPath,
-        error: error ? error.message : null
-      })
-
       // Ensure this response matches the latest active request
       if (requestIdRef.current !== targetRequestId) {
-        console.log("[AUTH DEBUG] ignoring stale response", { targetRequestId, current: requestIdRef.current })
         return
       }
 
+      const avatarData: any = data?.avatar
+      const avatarPath = Array.isArray(avatarData) ? avatarData[0]?.storage_path : avatarData?.storage_path
       if (avatarPath) {
         const fullUrl = avatarPath.startsWith("http")
           ? avatarPath
           : `https://zvesoygqssyyojqyswwm.supabase.co/storage/v1/object/public/recipe_media/${avatarPath}`
-        console.log("[AUTH DEBUG] setAvatarUrl", { valor: fullUrl })
         setAvatarUrl(fullUrl)
       } else {
-        console.log("[AUTH DEBUG] setAvatarUrl", { valor: null })
         setAvatarUrl(null)
       }
-    } catch (err: any) {
-      console.log("[AUTH DEBUG] profile response error", { userId, error: err?.message })
+    } catch {
       if (requestIdRef.current === targetRequestId) {
-        console.log("[AUTH DEBUG] setAvatarUrl", { valor: null })
         setAvatarUrl(null)
       }
     }
   }
 
-  const syncAuth = async () => {
+  const syncAuth = async (forceRefetch = false) => {
     const currentReq = ++requestIdRef.current
     try {
       const supabase = createClient()
       const { data: { user: currentUser } } = await supabase.auth.getUser()
 
-      console.log("[AUTH DEBUG] syncAuth run", {
-        pathname,
-        "user id obtenido o null": currentUser ? currentUser.id : null
-      })
-
       if (requestIdRef.current !== currentReq) return
 
+      const currentUserId = currentUser ? currentUser.id : null
+      const userChanged = activeUserIdRef.current !== currentUserId
+
       setUser(currentUser)
+      activeUserIdRef.current = currentUserId
+
       if (currentUser) {
-        await fetchAvatarForUser(currentUser.id, currentReq)
+        // Only query profile/avatar if the user actually changed or a force refresh was requested
+        if (userChanged || forceRefetch) {
+          await fetchAvatarForUser(currentUser.id, currentReq)
+        }
       } else {
-        console.log("[AUTH DEBUG] setAvatarUrl", { valor: null })
         setAvatarUrl(null)
       }
-    } catch (err: any) {
-      console.log("[AUTH DEBUG] syncAuth error", err)
+    } catch {
       if (requestIdRef.current === currentReq) {
+        activeUserIdRef.current = null
         setUser(null)
-        console.log("[AUTH DEBUG] setAvatarUrl", { valor: null })
         setAvatarUrl(null)
       }
     } finally {
@@ -123,31 +113,44 @@ export function UserSessionProvider({
     }
   }
 
-  // 1. Sync on mount AND on every route change (e.g. navigation away from /login)
+  // 1. Route transition sync:
+  // Detect transitions away from auth routes (/login, /forgot-password) or when transitioning from anonymous
   useEffect(() => {
-    console.log("[AUTH DEBUG] provider route effect triggered", { pathname })
-    syncAuth()
+    const prevPath = previousPathnameRef.current
+    previousPathnameRef.current = pathname
+
+    const wasAuthRoute = prevPath === "/login" || prevPath === "/forgot-password"
+    const isAnonymous = activeUserIdRef.current === null
+
+    // If navigating from auth routes or if we don't have an active user, check if session changed
+    if (wasAuthRoute || isAnonymous) {
+      syncAuth()
+    }
   }, [pathname])
 
   // 2. Real-time auth state changes listener
   useEffect(() => {
-    console.log("[AUTH DEBUG] provider mounted - subscribing to onAuthStateChange")
     const supabase = createClient()
 
+    // Initial sync on mount
+    syncAuth()
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log("[AUTH DEBUG] onAuthStateChange", {
-        event,
-        "session user id": session?.user ? session.user.id : null
-      })
       const currentReq = ++requestIdRef.current
       if (event === "SIGNED_OUT" || !session?.user) {
+        activeUserIdRef.current = null
         setUser(null)
-        console.log("[AUTH DEBUG] setAvatarUrl", { valor: null })
         setAvatarUrl(null)
         setIsLoading(false)
       } else {
+        const sessionUserId = session.user.id
+        const userChanged = activeUserIdRef.current !== sessionUserId
+        activeUserIdRef.current = sessionUserId
         setUser(session.user)
-        await fetchAvatarForUser(session.user.id, currentReq)
+
+        if (userChanged) {
+          await fetchAvatarForUser(session.user.id, currentReq)
+        }
         setIsLoading(false)
       }
     })
@@ -163,7 +166,7 @@ export function UserSessionProvider({
         user,
         avatarUrl,
         isLoading,
-        refreshAvatar: syncAuth,
+        refreshAvatar: () => syncAuth(true),
       }}
     >
       {children}
