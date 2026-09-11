@@ -325,16 +325,8 @@ export function CookModeClient({ recipe, userName, reset }: { recipe: CookModeRe
 
                 // Execute step completion sequence
                 const runStepCompletion = async (stepIdx: number) => {
-                  // 1. Alarm sound & vibration
+                  // 1. Vibration
                   if ('vibrate' in navigator) navigator.vibrate([200, 100, 200])
-
-                  try {
-                    const ctx = new (window.AudioContext || (window as any).webkitAudioContext)()
-                    const osc = ctx.createOscillator()
-                    osc.connect(ctx.destination)
-                    osc.start()
-                    osc.stop(ctx.currentTime + 0.5)
-                  } catch (e) {}
 
                   const stepObj = recipe.steps[stepIdx]
 
