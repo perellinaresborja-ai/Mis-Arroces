@@ -1,4 +1,4 @@
-﻿-- Migration: Moderation and Security Reports System V1
+-- Migration: Moderation and Security Reports System V1
 -- Table: moderation_reports
 
 CREATE TABLE IF NOT EXISTS public.moderation_reports (
@@ -32,14 +32,14 @@ ON public.moderation_reports(status, created_at DESC);
 ALTER TABLE public.moderation_reports ENABLE ROW LEVEL SECURITY;
 
 -- Reporters can create reports (must be their own UID)
-CREATE POLICY Users can create own reports
+CREATE POLICY "Users can create own reports"
 ON public.moderation_reports
 FOR INSERT
 TO authenticated
 WITH CHECK (auth.uid() = reporter_id);
 
 -- Reporters can view their own reports
-CREATE POLICY Users can view own reports
+CREATE POLICY "Users can view own reports"
 ON public.moderation_reports
 FOR SELECT
 TO authenticated
