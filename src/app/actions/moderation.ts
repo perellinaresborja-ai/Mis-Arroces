@@ -355,29 +355,25 @@ export async function createModerationReport(
   }
 }
 
+import { createClient as createSupabaseAdmin } from "@supabase/supabase-js"
+
+function getAdminClient() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseServiceRole = process.env.SUPABASE_SERVICE_ROLE_KEY
+  if (!supabaseUrl || !supabaseServiceRole) {
+    throw new Error("Faltan credenciales de administración del servidor.")
+  }
+  return createSupabaseAdmin(supabaseUrl, supabaseServiceRole)
+}
+
 /**
  * Server-side check for moderator privileges.
- * Relies on ADMIN_USER_IDS env var or designated role in profiles.
+ * Relies strictly on the server-only environment variable ADMIN_USER_IDS.
+ * Note: Neither profiles nor any public table contains an 'ADMIN' role column.
  */
-async function isUserAuthorizedModerator(supabase: any, userId: string): Promise<boolean> {
-  // Check admin env whitelist if set
+async function isUserAuthorizedModerator(userId: string): Promise<boolean> {
   const adminIds = (process.env.ADMIN_USER_IDS || "").split(",").map(id => id.trim()).filter(Boolean)
-  if (adminIds.includes(userId)) {
-    return true
-  }
-
-  // Check profiles table for role or status if present
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("account_status, account_type")
-    .eq("id", userId)
-    .maybeSingle()
-
-  if (profile && (profile as any).role === "ADMIN") {
-    return true
-  }
-
-  return false
+  return adminIds.includes(userId)
 }
 
 export interface ModerationReportItem {
@@ -398,6 +394,7 @@ export interface ModerationReportItem {
 /**
  * Internal Review mechanism: List moderation reports by status.
  * Strictly protected on server by moderator authorization check.
+ * Uses admin client server-side to read across RLS policies after verifying user identity.
  */
 export async function getModerationReports(filter?: {
   status?: ModerationStatus
@@ -411,12 +408,13 @@ export async function getModerationReports(filter?: {
       return { success: false, error: "No autenticado." }
     }
 
-    const isAuthorized = await isUserAuthorizedModerator(supabase, user.id)
+    const isAuthorized = await isUserAuthorizedModerator(user.id)
     if (!isAuthorized) {
       return { success: false, error: "No tienes permisos de moderación." }
     }
 
-    let query = (supabase as any)
+    const adminClient = getAdminClient()
+    let query = (adminClient as any)
       .from("moderation_reports")
       .select("*")
       .order("created_at", { ascending: false })
@@ -465,7 +463,7 @@ export async function reviewModerationReport(params: {
       return { success: false, error: "No autenticado." }
     }
 
-    const isAuthorized = await isUserAuthorizedModerator(supabase, user.id)
+    const isAuthorized = await isUserAuthorizedModerator(user.id)
     if (!isAuthorized) {
       return { success: false, error: "No tienes permisos de moderación." }
     }
@@ -476,7 +474,8 @@ export async function reviewModerationReport(params: {
       reviewed_by: user.id
     }
 
-    const { error } = await (supabase as any)
+    const adminClient = getAdminClient()
+    const { error } = await (adminClient as any)
       .from("moderation_reports")
       .update(updatePayload)
       .eq("id", reportId)
