@@ -16,10 +16,10 @@ export function CookbookHeaderActions() {
           variant="outline"
           onClick={() => setShowImportModal(true)}
           className="h-10 px-4 rounded-full font-medium text-xs sm:text-sm border-border hover:bg-muted/80 flex items-center gap-1.5"
-          title="Importar una receta desde un enlace web"
+          title="Importar una receta desde un enlace"
         >
           <Globe className="w-4 h-4 text-primary" />
-          <span>Traer de la web</span>
+          <span>Traer receta</span>
         </Button>
 
         <Link href="/create/recipe" className="flex-1 md:flex-initial">

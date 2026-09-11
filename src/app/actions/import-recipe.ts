@@ -82,12 +82,9 @@ export async function importRecipeFromUrlAction(
     description: extracted.description || null,
     status: "DRAFT", // ALWAYS DRAFT, NEVER PUBLISHED
     source_url: cleanUrl,
+    source_platform: "WEB",
+    base_servings: extracted.recipeYield ?? null,
     cook_time: extracted.cookTimeMinutes || extracted.totalTimeMinutes || null,
-  }
-
-  // Only assign base_servings if extracted from source; otherwise omit so DB uses default or user fills it in editor
-  if (extracted.recipeYield !== null && extracted.recipeYield !== undefined) {
-    recipeInsertPayload.base_servings = extracted.recipeYield
   }
 
   let newRecipe: any = null

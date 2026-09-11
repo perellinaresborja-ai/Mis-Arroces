@@ -86,7 +86,7 @@ export function ImportRecipeModal({
             <Globe className="w-5 h-5" />
           </div>
           <div>
-            <h2 className="text-xl font-bold">Trae tus arroces</h2>
+            <h2 className="text-xl font-bold">Traer receta</h2>
             <p className="text-xs text-muted-foreground mt-0.5">
               Pega el enlace de una receta y prepararemos un borrador para que puedas revisarlo antes de publicarlo.
             </p>
