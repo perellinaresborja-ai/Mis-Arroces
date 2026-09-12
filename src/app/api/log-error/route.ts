@@ -6,3 +6,5 @@ export async function POST(req: Request) {
   console.log('CLIENT ERROR LOGGED:', text);
   return NextResponse.json({ ok: true });
 }
+
+
