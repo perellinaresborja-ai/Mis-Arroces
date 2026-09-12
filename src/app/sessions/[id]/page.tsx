@@ -14,6 +14,78 @@ import { ViewTracker } from "@/components/domain/ViewTracker"
 import { ExpandableImage } from "@/components/ui/ExpandableImage"
 import { PostOptionsMenu } from "@/components/domain/PostOptionsMenu"
 
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
+  const resolvedParams = await params
+  const supabase = await createClient()
+
+  const { data: session } = await supabase
+    .from("cooking_sessions")
+    .select(`
+      id, notes, visibility, date, rating, socarrat_level,
+      author:profiles!cooking_sessions_user_id_fkey(username, display_name, avatar:media_assets!fk_profiles_avatar(storage_path)),
+      recipe:recipes(id, name),
+      session_media(display_order, media:media_assets(storage_path))
+    `)
+    .eq("id", resolvedParams.id)
+    .single()
+
+  if (!session || session.visibility !== "PUBLIC") {
+    return {
+      title: "Elaboración no encontrada",
+      robots: {
+        index: false,
+        follow: false,
+      },
+    }
+  }
+
+  const authorName = session.author?.display_name || session.author?.username || "un arrocero"
+  const recipeName = session.recipe?.name ? ` de ${session.recipe.name}` : ""
+  const title = `Elaboración${recipeName} por @${session.author?.username || authorName}`
+  const description = session.notes 
+    ? (session.notes.length > 150 ? session.notes.slice(0, 147) + "..." : session.notes)
+    : `Mira los detalles del cocinado${recipeName} realizado por @${authorName} en misarroces.`
+
+  const firstMedia = session.session_media?.sort((a: any, b: any) => a.display_order - b.display_order)?.[0]?.media?.storage_path
+  const imageUrl = firstMedia
+    ? `https://zvesoygqssyyojqyswwm.supabase.co/storage/v1/object/public/recipe_media/${firstMedia}`
+    : "https://www.misarroces.es/logopaellaicono.png"
+  const canonicalUrl = `https://www.misarroces.es/sessions/${session.id}`
+
+  return {
+    title,
+    description,
+    alternates: {
+      canonical: canonicalUrl,
+    },
+    openGraph: {
+      title: `${title} | misarroces`,
+      description,
+      url: canonicalUrl,
+      type: "article",
+      siteName: "misarroces",
+      images: [{
+        url: imageUrl,
+        alt: title,
+      }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: `${title} | misarroces`,
+      description,
+      images: [imageUrl],
+    },
+    robots: {
+      index: true,
+      follow: true,
+      googleBot: {
+        index: true,
+        follow: true,
+      },
+    },
+  }
+}
+
 export default async function SessionDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = await params
   const supabase = await createClient()

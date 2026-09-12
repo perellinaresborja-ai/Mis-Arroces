@@ -1,13 +1,32 @@
 import { MetadataRoute } from "next";
 import { createClient } from "@supabase/supabase-js";
 
+export const revalidate = 3600; // revalidate sitemap every hour
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://www.misarroces.es";
-  const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://zvesoygqssyyojqyswwm.supabase.co';
+  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'sb_publishable_Mb44JxYbS4XJ34ifJWdMzw_52xqn3lW';
+  const supabase = createClient(supabaseUrl, supabaseKey);
 
-  // Fetch dynamic routes
-  const { data: recipes } = await supabase.from('recipes').select('id, updated_at').order('updated_at', { ascending: false }).limit(500);
-  const { data: profiles } = await supabase.from('profiles').select('username, updated_at').order('updated_at', { ascending: false }).limit(500);
+  // Fetch only public, published, non-deleted recipes
+  const { data: recipes } = await supabase
+    .from('recipes')
+    .select('id, updated_at')
+    .eq('status', 'PUBLISHED')
+    .eq('visibility', 'PUBLIC')
+    .is('deleted_at', null)
+    .order('updated_at', { ascending: false })
+    .limit(1000);
+
+  // Fetch only public profiles
+  const { data: profiles } = await supabase
+    .from('profiles')
+    .select('username, updated_at')
+    .eq('privacy_level', 'PUBLIC')
+    .not('username', 'is', null)
+    .order('updated_at', { ascending: false })
+    .limit(1000);
 
   const recipeEntries: MetadataRoute.Sitemap = (recipes || []).map((recipe) => ({
     url: `${baseUrl}/recipes/${recipe.id}`,
@@ -17,7 +36,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   }));
 
   const profileEntries: MetadataRoute.Sitemap = (profiles || []).map((profile) => ({
-    url: `${baseUrl}/${profile.username}`,
+    url: `${baseUrl}/@${profile.username}`,
     lastModified: profile.updated_at ? new Date(profile.updated_at) : new Date(),
     changeFrequency: 'weekly',
     priority: 0.7,
@@ -36,13 +55,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "hourly",
       priority: 0.9,
     },
-    {
-      url: `${baseUrl}/cookbook`,
-      lastModified: new Date(),
-      changeFrequency: "daily",
-      priority: 0.8,
-    },
     ...recipeEntries,
     ...profileEntries
   ];
 }
+

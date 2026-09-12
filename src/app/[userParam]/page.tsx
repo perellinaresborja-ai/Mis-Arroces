@@ -24,31 +24,64 @@ export async function generateMetadata({ params }: { params: Promise<{ userParam
   const username = rawParam.startsWith("@") ? rawParam.substring(1) : rawParam;
 
   const supabase = await createClient();
-  const { data: profile } = await supabase.from("profiles").select("display_name, bio, avatar:media_assets!fk_profiles_avatar(storage_path)").eq("username", username).single();
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("display_name, bio, privacy_level, avatar:media_assets!fk_profiles_avatar(storage_path)")
+    .eq("username", username)
+    .single();
 
-  if (!profile) return {};
+  if (!profile) {
+    return {
+      title: "Perfil no encontrado",
+      robots: {
+        index: false,
+        follow: false,
+      },
+    };
+  }
 
+  const isPublic = profile.privacy_level === "PUBLIC";
   const avatarUrl = profile.avatar?.storage_path 
-    ? `${"https://zvesoygqssyyojqyswwm.supabase.co"}/storage/v1/object/public/recipe_media/${profile.avatar.storage_path}`
-    : "/logopaellaicono.png";
+    ? `https://zvesoygqssyyojqyswwm.supabase.co/storage/v1/object/public/recipe_media/${profile.avatar.storage_path}`
+    : "https://www.misarroces.es/logopaellaicono.png";
 
-  const title = profile.display_name ? `${profile.display_name} (@${username}) | Mis Arroces` : `@${username} | Mis Arroces`;
-  const description = profile.bio || `Descubre las elaboraciones, recetas y paellas de @${username} en Mis Arroces.`;
+  const canonicalUrl = `https://www.misarroces.es/@${username}`;
+  const displayName = profile.display_name || username;
+  const title = `${displayName} (@${username})`;
+  const description = profile.bio || `Descubre las elaboraciones, recetas y paellas de @${username} en misarroces.`;
 
   return {
     title,
     description,
+    alternates: {
+      canonical: canonicalUrl,
+    },
     openGraph: {
-      title,
+      title: `${title} | misarroces`,
       description,
-      images: [avatarUrl]
+      url: canonicalUrl,
+      type: "profile",
+      siteName: "misarroces",
+      images: [{
+        url: avatarUrl,
+        alt: `@${username}`,
+      }],
     },
     twitter: {
       card: "summary_large_image",
-      title,
+      title: `${title} | misarroces`,
       description,
-      images: [avatarUrl]
-    }
+      images: [avatarUrl],
+    },
+    robots: {
+      index: isPublic,
+      follow: isPublic,
+      googleBot: {
+        index: isPublic,
+        follow: isPublic,
+        'max-image-preview': 'large',
+      },
+    },
   };
 }
 

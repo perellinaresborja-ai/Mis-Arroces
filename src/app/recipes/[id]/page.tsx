@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { redirect } from "next/navigation"
+import { redirect, notFound } from "next/navigation"
 import Link from "next/link"
 import { createClient } from "@/lib/supabase/server"
 import { Button } from "@/components/ui/button"
@@ -24,31 +24,64 @@ import { ReportButton } from "@/components/domain/ReportButton"
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = await params;
   const supabase = await createClient();
-  const { data: recipe } = await supabase.from("recipes").select("name, description, profiles(username), media:recipe_media!recipe_media_recipe_id_fkey(media_assets(storage_path))").eq("id", resolvedParams.id).single();
+  const { data: recipe } = await supabase
+    .from("recipes")
+    .select("id, name, description, status, visibility, deleted_at, profiles:recipes_owner_id_fkey(username, display_name), media:recipe_media!recipe_media_recipe_id_fkey(media_assets(storage_path))")
+    .eq("id", resolvedParams.id)
+    .single();
   
-  if (!recipe) return {};
+  if (!recipe || recipe.deleted_at || recipe.status !== "PUBLISHED" || recipe.visibility !== "PUBLIC") {
+    return {
+      title: "Receta no encontrada",
+      robots: {
+        index: false,
+        follow: false,
+      },
+    };
+  }
 
   const primaryMedia = (recipe.media?.[0] as any)?.media_assets?.storage_path;
   const imageUrl = primaryMedia 
-    ? `${"https://zvesoygqssyyojqyswwm.supabase.co"}/storage/v1/object/public/recipe_media/${primaryMedia}`
-    : "/logopaellaicono.png";
+    ? `https://zvesoygqssyyojqyswwm.supabase.co/storage/v1/object/public/recipe_media/${primaryMedia}`
+    : "https://www.misarroces.es/logopaellaicono.png";
 
-  const authorName = (recipe.profiles as any)?.username || 'un chef arrocero';
+  const authorName = (recipe.profiles as any)?.display_name || (recipe.profiles as any)?.username || 'un chef arrocero';
+  const canonicalUrl = `https://www.misarroces.es/recipes/${recipe.id}`;
+  const metaDescription = recipe.description || `Deliciosa receta de ${recipe.name} por @${authorName}. Descubre ingredientes, tiempos, proporciones y preparación paso a paso en misarroces.`;
 
   return {
     title: `${recipe.name}`,
-    description: recipe.description || `Deliciosa receta de ${recipe.name} por @${authorName}. Descubre cómo prepararla paso a paso en Mis Arroces.`,
+    description: metaDescription,
+    alternates: {
+      canonical: canonicalUrl,
+    },
     openGraph: {
-      title: `${recipe.name}`,
-      description: recipe.description || `Aprende a preparar ${recipe.name} paso a paso.`,
-      images: [imageUrl]
+      title: `${recipe.name} | misarroces`,
+      description: metaDescription,
+      url: canonicalUrl,
+      type: "article",
+      siteName: "misarroces",
+      images: [{
+        url: imageUrl,
+        alt: recipe.name,
+      }],
     },
     twitter: {
       card: "summary_large_image",
-      title: `${recipe.name}`,
-      description: recipe.description || `Aprende a preparar ${recipe.name} paso a paso.`,
-      images: [imageUrl]
-    }
+      title: `${recipe.name} | misarroces`,
+      description: metaDescription,
+      images: [imageUrl],
+    },
+    robots: {
+      index: true,
+      follow: true,
+      googleBot: {
+        index: true,
+        follow: true,
+        'max-image-preview': 'large',
+        'max-snippet': -1,
+      },
+    },
   };
 }
 
@@ -65,6 +98,7 @@ export default async function RecipeDetailPage({
     .from("recipes")
     .select(`
       *,
+      author:profiles!recipes_owner_id_fkey(id, username, display_name),
       style:rice_styles(name),
       variety:rice_varieties(name),
       heat:heat_sources(name),
@@ -88,7 +122,23 @@ export default async function RecipeDetailPage({
     console.error("Error fetching recipe in /recipes/[id]:", error);
   }
 
-  if (!recipe) redirect("/cookbook")
+  if (!recipe) notFound()
+
+  // Check auth for edit button
+  const { data: { user } } = await supabase.auth.getUser()
+  const isOwner = user?.id === recipe.owner_id
+
+  if (recipe.deleted_at && !isOwner) {
+    notFound()
+  }
+
+  if (recipe.visibility === 'PRIVATE' && !isOwner) {
+    notFound()
+  }
+
+  if (recipe.status !== 'PUBLISHED' && !isOwner) {
+    notFound()
+  }
 
   if (recipe.deleted_at) {
     return (
@@ -104,10 +154,6 @@ export default async function RecipeDetailPage({
       </div>
     )
   }
-
-  // Check auth for edit button
-  const { data: { user } } = await supabase.auth.getUser()
-  const isOwner = user?.id === recipe.owner_id
 
   // Get primary image
   const primaryMedia = recipe.media?.[0]?.media_assets?.storage_path
@@ -204,12 +250,78 @@ export default async function RecipeDetailPage({
 
   const nutrition = calculateNutrition(ingredientsForNutrition, unitsData || [], recipe.base_servings || 1);
 
-  // Derived Values
-  const totalDuration = (recipe.cook_time || 0) + (recipe.rest_time || 0)
-  const vesselDetails = (recipe.recipe_vessels && recipe.recipe_vessels.length > 0) ? recipe.recipe_vessels[0] : null
+  // Build Schema.org Recipe JSON-LD (strictly for public published recipes)
+  const isPublicRecipe = recipe.status === 'PUBLISHED' && recipe.visibility === 'PUBLIC' && !recipe.deleted_at;
+  const authorProfile = recipe.author;
+  const authorName = authorProfile?.display_name || authorProfile?.username || "misarroces chef";
+  const authorUrl = authorProfile?.username ? `https://www.misarroces.es/@${authorProfile.username}` : undefined;
+
+  // Schema.org ingredients
+  const schemaIngredients: string[] = (recipe.ingredients || []).map((ing: any) => {
+    const qty = ing.quantity || ing.normalized_quantity || "";
+    const unit = ing.unit?.name || "";
+    const name = ing.display_text || ing.canonical?.normalized_name || ing.ingredient?.name || "";
+    return [qty, unit, name].filter(Boolean).join(" ").trim();
+  }).filter((s: string) => s.length > 0);
+
+  // If ficha tecnica has rice / stock not already listed, include them
+  if (recipe.rice_qty && !schemaIngredients.some(i => i.toLowerCase().includes("arroz"))) {
+    schemaIngredients.unshift(`${recipe.rice_qty} g arroz ${recipe.variety?.name || ""}`.trim());
+  }
+  if (recipe.stock_qty && !schemaIngredients.some(i => i.toLowerCase().includes("caldo") || i.toLowerCase().includes("fumet"))) {
+    schemaIngredients.push(`${recipe.stock_qty} ml caldo`);
+  }
+
+  // Schema.org instructions (HowToStep)
+  const schemaInstructions = (recipe.steps || [])
+    .sort((a: any, b: any) => (a.step_number || 0) - (b.step_number || 0))
+    .map((s: any, idx: number) => ({
+      "@type": "HowToStep",
+      "position": idx + 1,
+      "name": s.title || `Paso ${idx + 1}`,
+      "text": s.instruction || s.description || s.content || `Paso ${idx + 1}`,
+      ...(s.media?.storage_path ? {
+        "image": `https://zvesoygqssyyojqyswwm.supabase.co/storage/v1/object/public/recipe_media/${s.media.storage_path}`
+      } : {})
+    }));
+
+  const recipeSchema = isPublicRecipe ? {
+    "@context": "https://schema.org",
+    "@type": "Recipe",
+    "name": recipe.name,
+    "description": recipe.description || `Receta de ${recipe.name} en misarroces.`,
+    "image": imageUrl ? [imageUrl] : ["https://www.misarroces.es/logopaellaicono.png"],
+    "author": {
+      "@type": "Person",
+      "name": authorName,
+      ...(authorUrl ? { "url": authorUrl } : {})
+    },
+    "datePublished": recipe.created_at,
+    "dateModified": recipe.updated_at || recipe.created_at,
+    "recipeYield": `${recipe.base_servings || 4} raciones`,
+    "prepTime": recipe.prep_time ? `PT${recipe.prep_time}M` : undefined,
+    "cookTime": recipe.cook_time ? `PT${recipe.cook_time}M` : undefined,
+    "totalTime": totalDuration ? `PT${totalDuration}M` : undefined,
+    "recipeCategory": recipe.style?.name || "Arroz",
+    "recipeCuisine": "Española",
+    "recipeIngredient": schemaIngredients,
+    "recipeInstructions": schemaInstructions.length > 0 ? schemaInstructions : undefined,
+    ...(nutrition?.calories ? {
+      "nutrition": {
+        "@type": "NutritionInformation",
+        "calories": `${nutrition.calories} calorías`
+      }
+    } : {})
+  } : null;
 
   return (
     <RecipeStateProvider baseServings={recipe.base_servings || 4}>
+      {recipeSchema && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(recipeSchema) }}
+        />
+      )}
       <div className="min-h-screen bg-background pb-24 font-sans">
       {recipe.owner_id && recipe.owner_id !== user?.id && <ViewTracker eventType="RECIPE_VIEW" entityType="RECIPE" entityId={recipe.id} ownerId={recipe.owner_id} />}
       

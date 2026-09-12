@@ -9,6 +9,73 @@ import { MediaCarousel } from "@/components/domain/MediaCarousel"
 import { PostOptionsMenu } from "@/components/domain/PostOptionsMenu"
 import { ReportButton } from "@/components/domain/ReportButton"
 
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
+  const resolvedParams = await params
+  const supabase = await createClient()
+
+  const { data: post } = await supabase
+    .from("social_posts")
+    .select(`
+      id, content, visibility,
+      author:profiles!social_posts_author_id_fkey(username, display_name, avatar:media_assets!fk_profiles_avatar(storage_path)),
+      post_media(display_order, media:media_assets(storage_path))
+    `)
+    .eq("id", resolvedParams.id)
+    .single()
+
+  if (!post || post.visibility !== "PUBLIC") {
+    return {
+      title: "Publicación no encontrada",
+      robots: {
+        index: false,
+        follow: false,
+      },
+    }
+  }
+
+  const authorName = post.author?.display_name || post.author?.username || "un arrocero"
+  const title = `Publicación de @${post.author?.username || authorName}`
+  const description = post.content ? (post.content.length > 150 ? post.content.slice(0, 147) + "..." : post.content) : `Mira la publicación de @${authorName} en misarroces.`
+  const firstMedia = post.post_media?.sort((a: any, b: any) => a.display_order - b.display_order)?.[0]?.media?.storage_path
+  const imageUrl = firstMedia
+    ? `https://zvesoygqssyyojqyswwm.supabase.co/storage/v1/object/public/recipe_media/${firstMedia}`
+    : "https://www.misarroces.es/logopaellaicono.png"
+  const canonicalUrl = `https://www.misarroces.es/posts/${post.id}`
+
+  return {
+    title,
+    description,
+    alternates: {
+      canonical: canonicalUrl,
+    },
+    openGraph: {
+      title: `${title} | misarroces`,
+      description,
+      url: canonicalUrl,
+      type: "article",
+      siteName: "misarroces",
+      images: [{
+        url: imageUrl,
+        alt: title,
+      }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: `${title} | misarroces`,
+      description,
+      images: [imageUrl],
+    },
+    robots: {
+      index: true,
+      follow: true,
+      googleBot: {
+        index: true,
+        follow: true,
+      },
+    },
+  }
+}
+
 export default async function PostDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = await params
   const supabase = await createClient()

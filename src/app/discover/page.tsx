@@ -5,6 +5,21 @@ import { DiscoverClient } from "./DiscoverClient"
 import { FeedCard } from "@/components/domain/FeedCard"
 import { Users, BookOpen, Flame, LayoutTemplate, Search } from "lucide-react"
 import { WhatDoIHaveContainer } from "./WhatDoIHaveContainer"
+import type { Metadata } from "next"
+
+export const metadata: Metadata = {
+  title: "Descubrir recetas y paellas",
+  description: "Explora las mejores recetas de arroces, paellas, creadores y técnicas arroceras en misarroces.",
+  alternates: {
+    canonical: "https://www.misarroces.es/discover",
+  },
+  openGraph: {
+    title: "Descubrir recetas y paellas | misarroces",
+    description: "Explora las mejores recetas de arroces, paellas, creadores y técnicas arroceras en misarroces.",
+    url: "https://www.misarroces.es/discover",
+    siteName: "misarroces",
+  },
+}
 
 export default async function DiscoverPage(props: { searchParams?: Promise<{ q?: string, tab?: string, variety?: string, style?: string, hashtag?: string, mode?: string }> }) {
   const searchParams = await props.searchParams

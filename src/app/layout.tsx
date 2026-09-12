@@ -25,19 +25,19 @@ export const metadata: Metadata = {
     type: "website",
     locale: "es_ES",
     url: "/",
-    siteName: "Mis Arroces",
-    title: "Mis Arroces | La red social de los arroces",
+    siteName: "misarroces",
+    title: "misarroces | La red social de los arroces",
     description: "Descubre, guarda y comparte las mejores recetas de arroces y paellas.",
     images: [{
       url: "/logopaellaicono.png",
       width: 1200,
       height: 630,
-      alt: "Mis Arroces Logo"
+      alt: "misarroces"
     }]
   },
   twitter: {
     card: "summary_large_image",
-    title: "Mis Arroces | La red social de los arroces",
+    title: "misarroces | La red social de los arroces",
     description: "Descubre, guarda y comparte las mejores recetas de arroces y paellas.",
     images: ["/logopaellaicono.png"]
   },

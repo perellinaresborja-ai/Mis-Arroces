@@ -6,8 +6,32 @@ export default function robots(): MetadataRoute.Robots {
     rules: {
       userAgent: "*",
       allow: "/",
-      disallow: ["/settings", "/me", "/onboarding", "/shopping-list", "/create", "/messages"],
+      disallow: [
+        "/settings",
+        "/me",
+        "/onboarding",
+        "/shopping-list",
+        "/create",
+        "/messages",
+        "/cookbook",
+        "/auth",
+        "/api",
+        "/invite",
+        "/update-password",
+        "/forgot-password",
+        "/profile/edit",
+        "/profile/requests",
+        "/profile/story-archive",
+        "/profile/insights",
+        "/recipes/*/edit",
+        "/recipes/*/cook",
+        "/recipes/*/mode",
+        "/posts/*/edit",
+        "/sessions/*/edit",
+        "/p/"
+      ],
     },
     sitemap: `${baseUrl}/sitemap.xml`,
   }
 }
+
