@@ -250,13 +250,17 @@ export default async function RecipeDetailPage({
 
   const nutrition = calculateNutrition(ingredientsForNutrition, unitsData || [], recipe.base_servings || 1);
 
+  // Derived Values
+  const totalDuration = (recipe.cook_time || 0) + (recipe.rest_time || 0);
+  const vesselDetails = (recipe.recipe_vessels && recipe.recipe_vessels.length > 0) ? recipe.recipe_vessels[0] : null;
+
   // Build Schema.org Recipe JSON-LD (strictly for public published recipes)
   const isPublicRecipe = recipe.status === 'PUBLISHED' && recipe.visibility === 'PUBLIC' && !recipe.deleted_at;
   const authorProfile = recipe.author;
-  const authorName = authorProfile?.display_name || authorProfile?.username || "misarroces chef";
+  const authorName = authorProfile?.display_name || authorProfile?.username || null;
   const authorUrl = authorProfile?.username ? `https://www.misarroces.es/@${authorProfile.username}` : undefined;
 
-  // Schema.org ingredients
+  // Schema.org ingredients: only real ingredients stored
   const schemaIngredients: string[] = (recipe.ingredients || []).map((ing: any) => {
     const qty = ing.quantity || ing.normalized_quantity || "";
     const unit = ing.unit?.name || "";
@@ -264,54 +268,45 @@ export default async function RecipeDetailPage({
     return [qty, unit, name].filter(Boolean).join(" ").trim();
   }).filter((s: string) => s.length > 0);
 
-  // If ficha tecnica has rice / stock not already listed, include them
-  if (recipe.rice_qty && !schemaIngredients.some(i => i.toLowerCase().includes("arroz"))) {
-    schemaIngredients.unshift(`${recipe.rice_qty} g arroz ${recipe.variety?.name || ""}`.trim());
-  }
-  if (recipe.stock_qty && !schemaIngredients.some(i => i.toLowerCase().includes("caldo") || i.toLowerCase().includes("fumet"))) {
-    schemaIngredients.push(`${recipe.stock_qty} ml caldo`);
-  }
-
-  // Schema.org instructions (HowToStep)
+  // Schema.org instructions: only real stored steps, ordered
   const schemaInstructions = (recipe.steps || [])
     .sort((a: any, b: any) => (a.step_number || 0) - (b.step_number || 0))
-    .map((s: any, idx: number) => ({
-      "@type": "HowToStep",
-      "position": idx + 1,
-      "name": s.title || `Paso ${idx + 1}`,
-      "text": s.instruction || s.description || s.content || `Paso ${idx + 1}`,
-      ...(s.media?.storage_path ? {
-        "image": `https://zvesoygqssyyojqyswwm.supabase.co/storage/v1/object/public/recipe_media/${s.media.storage_path}`
-      } : {})
-    }));
+    .map((s: any, idx: number) => {
+      const stepText = s.instruction || s.description || s.content;
+      if (!stepText) return null;
+      return {
+        "@type": "HowToStep",
+        "position": idx + 1,
+        "name": s.title || `Paso ${idx + 1}`,
+        "text": stepText,
+        ...(s.media?.storage_path ? {
+          "image": `https://zvesoygqssyyojqyswwm.supabase.co/storage/v1/object/public/recipe_media/${s.media.storage_path}`
+        } : {})
+      };
+    })
+    .filter(Boolean);
 
   const recipeSchema = isPublicRecipe ? {
     "@context": "https://schema.org",
     "@type": "Recipe",
     "name": recipe.name,
-    "description": recipe.description || `Receta de ${recipe.name} en misarroces.`,
+    ...(recipe.description ? { "description": recipe.description } : {}),
     "image": imageUrl ? [imageUrl] : ["https://www.misarroces.es/logopaellaicono.png"],
-    "author": {
-      "@type": "Person",
-      "name": authorName,
-      ...(authorUrl ? { "url": authorUrl } : {})
-    },
-    "datePublished": recipe.created_at,
-    "dateModified": recipe.updated_at || recipe.created_at,
-    "recipeYield": `${recipe.base_servings || 4} raciones`,
-    "prepTime": recipe.prep_time ? `PT${recipe.prep_time}M` : undefined,
-    "cookTime": recipe.cook_time ? `PT${recipe.cook_time}M` : undefined,
-    "totalTime": totalDuration ? `PT${totalDuration}M` : undefined,
-    "recipeCategory": recipe.style?.name || "Arroz",
-    "recipeCuisine": "Española",
-    "recipeIngredient": schemaIngredients,
-    "recipeInstructions": schemaInstructions.length > 0 ? schemaInstructions : undefined,
-    ...(nutrition?.calories ? {
-      "nutrition": {
-        "@type": "NutritionInformation",
-        "calories": `${nutrition.calories} calorías`
+    ...(authorName ? {
+      "author": {
+        "@type": "Person",
+        "name": authorName,
+        ...(authorUrl ? { "url": authorUrl } : {})
       }
-    } : {})
+    } : {}),
+    ...(recipe.created_at ? { "datePublished": recipe.created_at } : {}),
+    ...(recipe.updated_at ? { "dateModified": recipe.updated_at } : {}),
+    ...(recipe.base_servings ? { "recipeYield": `${recipe.base_servings} raciones` } : {}),
+    ...(recipe.prep_time ? { "prepTime": `PT${recipe.prep_time}M` } : {}),
+    ...(recipe.cook_time ? { "cookTime": `PT${recipe.cook_time}M` } : {}),
+    ...(totalDuration > 0 ? { "totalTime": `PT${totalDuration}M` } : {}),
+    ...(schemaIngredients.length > 0 ? { "recipeIngredient": schemaIngredients } : {}),
+    ...(schemaInstructions.length > 0 ? { "recipeInstructions": schemaInstructions } : {})
   } : null;
 
   return (
