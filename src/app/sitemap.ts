@@ -1,7 +1,8 @@
 import { MetadataRoute } from "next";
 import { createClient } from "@supabase/supabase-js";
 
-export const revalidate = 3600; // revalidate sitemap every hour
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://www.misarroces.es";
