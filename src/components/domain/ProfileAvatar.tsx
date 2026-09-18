@@ -57,34 +57,42 @@ export function ProfileAvatar({
       <div className="relative w-full h-full flex items-center justify-center">
         {/* Ring wrapper if story exists */}
         <div 
-          className={`w-full h-full rounded-full transition-all flex items-center justify-center p-1.5 ${
+          className={`w-full h-full rounded-full transition-all flex items-center justify-center p-1 ${
             hasActiveStories 
-              ? `border-4 ${allSeen ? 'border-border' : 'border-primary shadow-sm hover:scale-[1.02] cursor-pointer'}`
+              ? allSeen 
+                ? 'border-[3.5px] border-muted-foreground/40' 
+                : 'bg-gradient-to-tr from-amber-500 via-orange-500 to-amber-400 p-[3.5px] shadow-lg shadow-orange-500/20 hover:scale-[1.02] cursor-pointer'
               : ''
           }`}
         >
           <div 
             className={`w-full h-full rounded-full overflow-hidden bg-background relative select-none ${
-              hasActiveStories 
-                ? 'cursor-pointer hover:opacity-95' 
-                : avatarUrl 
-                ? 'cursor-pointer hover:opacity-90 transition-opacity' 
-                : ''
+              hasActiveStories && !allSeen ? 'p-1 bg-background' : ''
             }`}
-            onClick={handleAvatarClick}
-            onKeyDown={handleKeyDown}
-            tabIndex={hasActiveStories ? 0 : avatarUrl ? 0 : undefined}
-            role={hasActiveStories || avatarUrl ? "button" : undefined}
-            aria-label={hasActiveStories ? `Ver historia de ${username}` : avatarUrl ? `Ver foto de perfil de ${username}` : undefined}
-            title={hasActiveStories ? `Ver historia de ${username}` : avatarUrl ? "Ver foto de perfil" : undefined}
           >
-            <MediaImage 
-              src={avatarUrl} 
-              alt={username} 
-              variant="avatar" 
-              fallbackType="avatar" 
-              className="object-cover w-full h-full" 
-            />
+            <div 
+              className={`w-full h-full rounded-full overflow-hidden relative ${
+                hasActiveStories 
+                  ? 'cursor-pointer hover:opacity-95' 
+                  : avatarUrl 
+                  ? 'cursor-pointer hover:opacity-90 transition-opacity' 
+                  : ''
+              }`}
+              onClick={handleAvatarClick}
+              onKeyDown={handleKeyDown}
+              tabIndex={hasActiveStories ? 0 : avatarUrl ? 0 : undefined}
+              role={hasActiveStories || avatarUrl ? "button" : undefined}
+              aria-label={hasActiveStories ? `Ver historia de ${username}` : avatarUrl ? `Ver foto de perfil de ${username}` : undefined}
+              title={hasActiveStories ? `Ver historia de ${username}` : avatarUrl ? "Ver foto de perfil" : undefined}
+            >
+              <MediaImage 
+                src={avatarUrl} 
+                alt={username} 
+                variant="avatar" 
+                fallbackType="avatar" 
+                className="object-cover w-full h-full" 
+              />
+            </div>
           </div>
         </div>
 
