@@ -211,6 +211,86 @@ export async function fetchActiveStories() {
   return result
 }
 
+export async function fetchUserActiveStories(targetUserId: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  // 1. Fetch active stories for this specific user
+  // Supabase RLS automatically applies visibility, privacy and blocks
+  const { data, error } = await supabase
+    .from("stories")
+    .select(`
+      *,
+      author:profiles!stories_owner_id_fkey(id, username, display_name, avatar:media_assets!fk_profiles_avatar(storage_path)),
+      story_media(media:media_assets(storage_path)),
+      view_count:story_views(count),
+      recipe:recipes(id, name, recipe_media(media:media_assets(storage_path))),
+      session:cooking_sessions(id, session_media(media:media_assets(storage_path)))
+    `)
+    .eq("owner_id", targetUserId)
+    .gt("expires_at", new Date().toISOString())
+    .order("created_at", { ascending: true })
+
+  if (error || !data || data.length === 0) return null
+
+  // 2. Fetch current user's views for these stories to determine allSeen
+  const storyIds = data.map(s => s.id)
+  let userSeenSet = new Set<string>()
+  if (user && storyIds.length > 0) {
+    const { data: myViews } = await supabase
+      .from('story_views')
+      .select('story_id')
+      .eq('viewer_id', user.id)
+      .in('story_id', storyIds)
+    if (myViews) {
+      myViews.forEach(v => userSeenSet.add(v.story_id))
+    }
+  }
+
+  // 3. Generate signed URLs for story media using SERVICE_ROLE if available
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (serviceKey) {
+    const adminSupabase = createAdminClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://zvesoygqssyyojqyswwm.supabase.co',
+      serviceKey
+    );
+    for (const story of data) {
+      if (story.story_media && story.story_media.length > 0) {
+        const path = story.story_media[0].media?.storage_path;
+        if (path) {
+          const { data: signed } = await adminSupabase.storage.from('recipe_media').createSignedUrl(path, 3600);
+          if (signed) {
+            (story.story_media[0].media as any).signed_url = signed.signedUrl;
+          }
+        }
+      }
+    }
+  }
+
+  // 4. Build single group format identical to StoriesBar
+  const isOwner = user && user.id === targetUserId;
+  let allSeen = true;
+
+  const stories = data.map((story: any) => {
+    const hasSeen = userSeenSet.has(story.id);
+    if (!hasSeen && !isOwner) {
+      allSeen = false;
+    }
+    return {
+      ...story,
+      hasSeen,
+      viewCount: story.view_count?.[0]?.count || 0
+    };
+  });
+
+  return {
+    author: data[0].author,
+    stories,
+    allSeen,
+    lastUpdated: data[data.length - 1].created_at
+  };
+}
+
 export async function markStoryViewed(storyId: string) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()

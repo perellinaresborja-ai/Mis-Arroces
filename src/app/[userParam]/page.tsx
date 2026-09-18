@@ -1,7 +1,7 @@
 // @ts-nocheck
 import { createClient } from "@/lib/supabase/server"
 import { getProfileHighlights } from "@/app/actions/highlights"
-import { getArchivedStories } from "@/app/actions/stories"
+import { getArchivedStories, fetchUserActiveStories } from "@/app/actions/stories"
 import { notFound, redirect } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
@@ -155,7 +155,10 @@ export default async function PublicProfilePage({
   // 4. Shopping Lists
   parallelQueries.push( isSelf ? supabase.from('shopping_lists').select('shopping_list_items(id, is_checked)').eq('user_id', user.id).single() : Promise.resolve({ data: null }) );
 
-  // 5, 6, 7. Feed items
+  // 5. Active stories for this user profile (visible to current visitor)
+  parallelQueries.push( fetchUserActiveStories(profile.id) );
+
+  // 6, 7, 8. Feed items
   if (canViewPrivate) {
     parallelQueries.push(supabase.from("recipes").select(`*, author:profiles!recipes_owner_id_fkey(id, username, display_name, avatar:media_assets!fk_profiles_avatar(storage_path)), recipe_media(display_order, media:media_assets(id, storage_path))`).eq("owner_id", profile.id).eq("status", "PUBLISHED").in("visibility", visibilityFilter));
     parallelQueries.push(supabase.from("cooking_sessions").select(`*, author:profiles!cooking_sessions_user_id_fkey(id, username, display_name, avatar:media_assets!fk_profiles_avatar(storage_path)), session_media(display_order, media:media_assets(id, storage_path)), recipe:recipes(id, name)`).eq("user_id", profile.id).eq("status", "PUBLISHED").in("visibility", visibilityFilter));
@@ -170,6 +173,7 @@ export default async function PublicProfilePage({
     highlightsRes,
     archivedStoriesRes,
     shoppingRes,
+    activeStoryGroupRes,
     recRes,
     sesRes,
     postRes
@@ -179,6 +183,7 @@ export default async function PublicProfilePage({
   const followingCount = followingRes.count || 0;
   highlights = highlightsRes;
   archivedStories = archivedStoriesRes;
+  const activeStoryGroup = activeStoryGroupRes;
   
   if (shoppingRes.data?.shopping_list_items) {
     hasActiveShoppingItems = shoppingRes.data.shopping_list_items.some((i: any) => !i.is_checked);
@@ -266,7 +271,13 @@ export default async function PublicProfilePage({
           <div className="max-w-4xl mx-auto px-4 sm:px-6 relative z-10 flex flex-col items-center pb-4 w-full" style={{ marginTop: '-100px' }}>
             {/* AVATAR OVERLAP */}
             <div className="aspect-square shrink-0 bg-background rounded-full p-1 shadow-sm relative" style={{ width: '200px', height: '200px' }}>
-            <ProfileAvatar avatarUrl={avatarUrl} username={profile.username} />
+            <ProfileAvatar 
+              avatarUrl={avatarUrl} 
+              username={profile.username} 
+              activeStoryGroup={activeStoryGroup}
+              isMe={isSelf}
+              currentUser={user}
+            />
           </div>
           
           <div className="mt-3 text-center w-full">
