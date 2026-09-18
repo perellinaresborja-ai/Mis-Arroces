@@ -2,7 +2,8 @@
 
 import React, { useState } from "react"
 import { AlertTriangle, Flag, Loader2, CheckCircle2, X } from "lucide-react"
-import { createModerationReport, MODERATION_REASONS, ModerationTargetType } from "@/app/actions/moderation"
+import { createModerationReport } from "@/app/actions/moderation"
+import { MODERATION_REASONS, type ModerationTargetType } from "@/types/moderation"
 
 interface ReportModalProps {
   isOpen: boolean

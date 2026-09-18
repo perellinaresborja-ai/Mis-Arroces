@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { Flag } from "lucide-react"
 import { ReportModal } from "./ReportModal"
-import { ModerationTargetType } from "@/app/actions/moderation"
+import type { ModerationTargetType } from "@/types/moderation"
 import { useAuthPrompt } from "@/components/providers/AuthPromptProvider"
 
 interface ReportButtonProps {
