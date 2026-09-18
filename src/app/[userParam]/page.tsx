@@ -31,13 +31,7 @@ export async function generateMetadata({ params }: { params: Promise<{ userParam
     .single();
 
   if (!profile) {
-    return {
-      title: "Perfil no encontrado",
-      robots: {
-        index: false,
-        follow: false,
-      },
-    };
+    notFound();
   }
 
   const isPublic = profile.privacy_level === "PUBLIC";

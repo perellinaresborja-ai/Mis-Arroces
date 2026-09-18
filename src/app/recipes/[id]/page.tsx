@@ -31,13 +31,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
     .single();
   
   if (!recipe || recipe.deleted_at || recipe.status !== "PUBLISHED" || recipe.visibility !== "PUBLIC") {
-    return {
-      title: "Receta no encontrada",
-      robots: {
-        index: false,
-        follow: false,
-      },
-    };
+    notFound();
   }
 
   const primaryMedia = (recipe.media?.[0] as any)?.media_assets?.storage_path;
