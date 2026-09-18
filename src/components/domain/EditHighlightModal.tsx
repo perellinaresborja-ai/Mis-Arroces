@@ -3,123 +3,270 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import { ConfirmModal } from "@/components/ui/ConfirmModal"
+import { ArrowUp, ArrowDown, Trash2, Image as ImageIcon, ListOrdered, Check } from "lucide-react"
 
-export function EditHighlightModal({ highlight, archivedStories, onClose }: { highlight: { id: string, name: string, stories?: { id: string }[] }, archivedStories: { id: string, story_media?: { storage_path: string }[] }[], onClose: () => void }) {
+export function EditHighlightModal({
+  highlight,
+  archivedStories,
+  onClose
+}: {
+  highlight: { id: string; name: string; cover_url?: string; stories?: { id: string }[] };
+  archivedStories: { id: string; story_media?: { storage_path?: string; media?: { storage_path?: string } }[] }[];
+  onClose: () => void;
+}) {
   const [name, setName] = useState(highlight.name)
+  const [activeTab, setActiveTab] = useState<'select' | 'order'>('select')
   const [selectedIds, setSelectedIds] = useState<string[]>(highlight.stories?.map((s: { id: string }) => s.id) || [])
   const [coverId, setCoverId] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const router = useRouter()
   const supabase = createClient()
 
+  const getMediaStoragePath = (s: { id: string; story_media?: { storage_path?: string; media?: { storage_path?: string } }[] }) => {
+    return s.story_media?.[0]?.storage_path || s.story_media?.[0]?.media?.storage_path;
+  }
+
+  const getMediaUrl = (storagePath?: string | null) => {
+    if (!storagePath) return null;
+    if (storagePath.startsWith('http')) return storagePath;
+    return `https://zvesoygqssyyojqyswwm.supabase.co/storage/v1/object/public/recipe_media/${storagePath}`;
+  }
+
   const toggle = (id: string) => {
     setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])
   }
 
+  const moveStory = (index: number, direction: 'up' | 'down') => {
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= selectedIds.length) return;
+    const newIds = [...selectedIds];
+    const temp = newIds[index];
+    newIds[index] = newIds[targetIndex];
+    newIds[targetIndex] = temp;
+    setSelectedIds(newIds);
+  }
+
   const save = async () => {
-    if (!name || selectedIds.length === 0) return
+    if (!name.trim() || selectedIds.length === 0) return
     setLoading(true)
     try {
-      // 1. Update highlight name and cover
-      const effectiveCoverId = coverId && selectedIds.includes(coverId) ? coverId : selectedIds[0];
-      const path = archivedStories.find(s => s.id === effectiveCoverId)?.story_media?.[0]?.storage_path;
-      const coverUrl = path ? ('https://zvesoygqssyyojqyswwm.supabase.co/storage/v1/object/public/recipe_media/' + path) : undefined;
-      // Re-replaced properly
-      const updateData: any = { name };
+      // 1. Resolve cover URL
+      let coverUrl: string | undefined = undefined;
+      if (coverId && selectedIds.includes(coverId)) {
+        const coverStory = archivedStories.find(s => s.id === coverId);
+        const path = coverStory ? getMediaStoragePath(coverStory) : null;
+        if (path) coverUrl = getMediaUrl(path) || undefined;
+      } else if (selectedIds.length > 0) {
+        const firstStory = archivedStories.find(s => s.id === selectedIds[0]);
+        const path = firstStory ? getMediaStoragePath(firstStory) : null;
+        if (path) coverUrl = getMediaUrl(path) || undefined;
+      }
+
+      // 2. Update highlight metadata
+      const updateData: { name: string; cover_url?: string } = { name: name.trim() };
       if (coverUrl) updateData.cover_url = coverUrl;
-      await supabase.from('story_highlights').update(updateData).eq('id', highlight.id)
+      const { error: updateError } = await supabase.from('story_highlights').update(updateData).eq('id', highlight.id);
+      if (updateError) throw updateError;
       
-      // 2. Delete old relations
-      await supabase.from('highlight_stories').delete().eq('highlight_id', highlight.id)
+      // 3. Re-link stories preserving explicit manual order
+      await supabase.from('highlight_stories').delete().eq('highlight_id', highlight.id);
       
-      // 3. Insert new relations
       const newRelations = selectedIds.map((storyId, idx) => ({
         highlight_id: highlight.id,
         story_id: storyId,
         display_order: idx
-      }))
-      await supabase.from('highlight_stories').insert(newRelations)
+      }));
+      const { error: insertError } = await supabase.from('highlight_stories').insert(newRelations);
+      if (insertError) throw insertError;
 
-      router.refresh()
-      onClose()
+      router.refresh();
+      onClose();
     } catch (e) {
-      console.error(e)
+      console.error("Error saving highlight:", e);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
   }
 
   const [showConfirm, setShowConfirm] = useState(false);
 
-  const handleDelete = () => {
-    setShowConfirm(true);
-  }
-
   const confirmDelete = async () => {
     setShowConfirm(false);
-    setLoading(true)
+    setLoading(true);
     try {
-      await supabase.from('story_highlights').delete().eq('id', highlight.id)
-      router.refresh()
-      onClose()
+      await supabase.from('story_highlights').delete().eq('id', highlight.id);
+      router.refresh();
+      onClose();
     } catch (e) {
-      console.error(e)
+      console.error("Error deleting highlight:", e);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
   }
 
   return (
     <div className="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-4">
-      <div className="bg-zinc-950 border border-white/10 w-full max-w-sm rounded-2xl p-4 flex flex-col max-h-[80vh]">
-        <h2 className="font-bold text-lg mb-4 text-white">Editar Destacada</h2>
+      <div className="bg-card border border-border text-foreground w-full max-w-sm rounded-3xl p-4 flex flex-col max-h-[85vh] shadow-2xl animate-in zoom-in-95 duration-200">
+        <h2 className="font-bold text-lg mb-3">Editar Destacada</h2>
         
         <input 
           type="text" 
-          placeholder="Nombre..." 
-          className="border border-white/20 rounded-xl p-3 mb-4 bg-zinc-900 w-full text-white outline-none focus:border-primary"
+          placeholder="Nombre de la colección..." 
+          className="border border-border rounded-xl p-3 mb-3 bg-background w-full text-foreground outline-none focus:border-primary text-sm"
           value={name}
           onChange={e => setName(e.target.value)}
         />
 
-        <div className="overflow-y-auto flex-1 grid grid-cols-3 gap-1 mb-4">
-          {archivedStories.map(s => {
-            const isSelected = selectedIds.includes(s.id);
-            const path = s.story_media?.[0]?.storage_path;
-            const url = path ? ('https://zvesoygqssyyojqyswwm.supabase.co/storage/v1/object/public/recipe_media/' + path) : null;
-            const isCover = coverId ? coverId === s.id : selectedIds[0] === s.id;
-            return (
-              <div 
-                key={s.id} 
-                className={('aspect-[9/16] bg-zinc-900 relative ' + (isSelected ? 'ring-2 ring-primary ring-inset' : ''))}
-              >
-                {url && <img src={url} className="w-full h-full object-cover cursor-pointer" onClick={() => toggle(s.id)} />}
-                {!url && <div className="w-full h-full cursor-pointer" onClick={() => toggle(s.id)}></div>}
-                
-                {isSelected && (
-                  <div className="absolute top-1 left-1 right-1 flex justify-between items-start pointer-events-none">
-                    <div className="w-5 h-5 bg-primary rounded-full text-white flex items-center justify-center font-bold text-[10px] pointer-events-auto">✓</div>
-                  </div>
-                )}
-                
-                {isSelected && url && (
-                  <button 
-                    onClick={(e) => { e.stopPropagation(); setCoverId(s.id); }}
-                    className={`absolute bottom-1 left-1 right-1 text-[10px] py-1 font-bold rounded text-center transition-colors shadow-sm ${isCover ? 'bg-primary text-white' : 'bg-black/50 text-white/80 hover:bg-black/80'}`}
-                  >
-                    {isCover ? 'Portada' : 'Hacer portada'}
-                  </button>
-                )}
-              </div>
-            )
-          })}
+        {/* Tab Selector */}
+        <div className="flex border-b border-border mb-3 text-xs font-semibold">
+          <button
+            onClick={() => setActiveTab('select')}
+            className={`flex-1 py-2 flex items-center justify-center gap-1.5 border-b-2 transition-colors ${
+              activeTab === 'select' ? 'border-primary text-primary font-bold' : 'border-transparent text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <ImageIcon className="w-3.5 h-3.5" />
+            Historias ({selectedIds.length})
+          </button>
+          <button
+            onClick={() => setActiveTab('order')}
+            disabled={selectedIds.length === 0}
+            className={`flex-1 py-2 flex items-center justify-center gap-1.5 border-b-2 transition-colors disabled:opacity-40 ${
+              activeTab === 'order' ? 'border-primary text-primary font-bold' : 'border-transparent text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <ListOrdered className="w-3.5 h-3.5" />
+            Ordenar ({selectedIds.length})
+          </button>
         </div>
 
-        <div className="flex gap-2 justify-between pt-4 border-t border-white/10">
-          <button onClick={handleDelete} disabled={loading} className="px-4 py-2 rounded-xl bg-red-500/20 text-red-500 font-bold">Eliminar</button>
+        {/* Tab 1: Selection & Cover */}
+        {activeTab === 'select' && (
+          <div className="overflow-y-auto flex-1 grid grid-cols-3 gap-1.5 mb-3 pr-0.5">
+            {archivedStories.map(s => {
+              const isSelected = selectedIds.includes(s.id);
+              const path = getMediaStoragePath(s);
+              const url = getMediaUrl(path);
+              const isCover = coverId ? coverId === s.id : (selectedIds[0] === s.id && !coverId);
+
+              return (
+                <div 
+                  key={s.id} 
+                  className={`aspect-[9/16] bg-muted relative rounded-xl overflow-hidden cursor-pointer transition-all ${
+                    isSelected ? 'ring-2 ring-primary ring-inset' : 'opacity-70 hover:opacity-100'
+                  }`}
+                  onClick={() => toggle(s.id)}
+                >
+                  {url ? (
+                    <img src={url} alt="Story" className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full bg-primary/10 flex items-center justify-center text-[10px] text-muted-foreground p-1 text-center">
+                      Sin imagen
+                    </div>
+                  )}
+                  
+                  {isSelected && (
+                    <div className="absolute top-1 left-1 w-5 h-5 bg-primary rounded-full text-primary-foreground flex items-center justify-center font-bold text-[10px] shadow-sm">
+                      <Check className="w-3 h-3" />
+                    </div>
+                  )}
+                  
+                  {isSelected && url && (
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); setCoverId(s.id); }}
+                      className={`absolute bottom-1 left-1 right-1 text-[9px] py-0.5 px-1 font-bold rounded text-center transition-colors shadow-sm ${
+                        isCover ? 'bg-primary text-primary-foreground' : 'bg-black/60 text-white hover:bg-black/80'
+                      }`}
+                    >
+                      {isCover ? 'Portada' : 'Hacer portada'}
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Tab 2: Reorder Sequence */}
+        {activeTab === 'order' && (
+          <div className="overflow-y-auto flex-1 flex flex-col gap-1.5 mb-3 pr-0.5">
+            {selectedIds.map((id, index) => {
+              const story = archivedStories.find(s => s.id === id);
+              const path = story ? getMediaStoragePath(story) : null;
+              const url = getMediaUrl(path);
+              const isCover = coverId ? coverId === id : (selectedIds[0] === id && !coverId);
+
+              return (
+                <div
+                  key={id}
+                  className="flex items-center gap-2 p-2 bg-muted/50 border border-border rounded-xl text-xs"
+                >
+                  <span className="font-bold text-muted-foreground w-4 text-center">{index + 1}</span>
+                  <div className="w-9 h-14 bg-muted rounded-lg overflow-hidden shrink-0 relative">
+                    {url ? (
+                      <img src={url} alt="Thumbnail" className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-[8px] text-muted-foreground">Story</div>
+                    )}
+                    {isCover && (
+                      <span className="absolute bottom-0 inset-x-0 bg-primary text-primary-foreground text-[7px] text-center font-bold">
+                        Portada
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <span className="font-semibold block truncate">Historia #{index + 1}</span>
+                    <span className="text-[10px] text-muted-foreground">{isCover ? 'Portada de destacada' : 'En secuencia'}</span>
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <button
+                      onClick={() => moveStory(index, 'up')}
+                      disabled={index === 0}
+                      className="p-1 rounded bg-background hover:bg-muted disabled:opacity-30 transition-colors"
+                      title="Mover arriba"
+                    >
+                      <ArrowUp className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      onClick={() => moveStory(index, 'down')}
+                      disabled={index === selectedIds.length - 1}
+                      className="p-1 rounded bg-background hover:bg-muted disabled:opacity-30 transition-colors"
+                      title="Mover abajo"
+                    >
+                      <ArrowDown className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Footer Actions */}
+        <div className="flex gap-2 justify-between pt-3 border-t border-border mt-auto">
+          <button 
+            onClick={() => setShowConfirm(true)} 
+            disabled={loading} 
+            className="px-3 py-2 rounded-xl bg-red-500/10 text-red-600 hover:bg-red-500/20 font-bold text-xs flex items-center gap-1 transition-colors"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+            Eliminar
+          </button>
           <div className="flex gap-2">
-            <button onClick={onClose} disabled={loading} className="px-4 py-2 rounded-xl bg-white/10 text-white font-bold">Cancelar</button>
-            <button onClick={save} disabled={loading || !name || selectedIds.length===0} className="px-4 py-2 rounded-xl bg-primary text-primary-foreground font-bold disabled:opacity-50">Guardar</button>
+            <button 
+              onClick={onClose} 
+              disabled={loading} 
+              className="px-3 py-2 rounded-xl bg-muted text-foreground hover:bg-muted/80 font-bold text-xs transition-colors"
+            >
+              Cancelar
+            </button>
+            <button 
+              onClick={save} 
+              disabled={loading || !name.trim() || selectedIds.length === 0} 
+              className="px-4 py-2 rounded-xl bg-primary text-primary-foreground font-bold text-xs disabled:opacity-50 hover:bg-primary/90 transition-colors"
+            >
+              {loading ? "Guardando..." : "Guardar"}
+            </button>
           </div>
         </div>
       </div>
@@ -127,7 +274,7 @@ export function EditHighlightModal({ highlight, archivedStories, onClose }: { hi
       <ConfirmModal
         isOpen={showConfirm}
         title="Eliminar destacada"
-        message="¿Eliminar destacada? Las historias no se borrarán de tu archivo."
+        message="¿Eliminar destacada? Las historias permanecerán guardadas de forma segura en tu archivo."
         confirmText="Eliminar"
         isDestructive={true}
         onConfirm={confirmDelete}

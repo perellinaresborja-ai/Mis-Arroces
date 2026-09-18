@@ -15,8 +15,17 @@ export default async function Home() {
 
   
 
+  let currentUserProfile: any = null;
+
   if (user) {
-    const { data: profile } = await supabase.from("profiles").select("onboarding_completed, username, display_name").eq("id", user.id).single()
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("id, onboarding_completed, username, display_name, avatar:media_assets!fk_profiles_avatar(storage_path)")
+      .eq("id", user.id)
+      .single()
+
+    currentUserProfile = profile;
+
     if (!profile?.onboarding_completed) {
       // Check if it's a legacy user (has custom username or display name != Chef Arrocero)
       const isNewUser = profile?.username?.startsWith("arrocero") && profile?.display_name === "Chef Arrocero";
@@ -54,7 +63,7 @@ export default async function Home() {
       <div className="flex-1 w-full max-w-2xl mx-auto space-y-4 pt-4 px-2 sm:px-0">
         
         {/* Stories Bar */}
-          {user && <StoriesBar groupedStories={activeStories} currentUser={user} />}
+          {user && <StoriesBar groupedStories={activeStories} currentUser={currentUserProfile || user} />}
 
         {user && feed.length === 0 && (
           <div className="text-center p-12 bg-card rounded-3xl border border-border mt-8">

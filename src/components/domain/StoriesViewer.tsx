@@ -7,17 +7,15 @@ import { AddToHighlightModal } from "./AddToHighlightModal"
 
 import { useState, useEffect, useRef } from "react"
 import { formatRelativeTime } from "@/lib/utils"
-import { X, Trash2, MoreHorizontal, Copy, Share2, MessageCircle, Flag, BarChart2 as BarChartIcon , Send } from "lucide-react"
-import { markStoryViewed, fetchStoryViewers, deleteStory } from "@/app/actions/stories"
+import { X, Trash2, MoreHorizontal, Copy, Share2, MessageCircle, Flag, BarChart2, BarChart2 as BarChartIcon, Send, User, Plus } from "lucide-react"
+import { MediaImage } from "@/components/domain/MediaImage"
+import { markStoryViewed, fetchStoryViewers, deleteStory, toggleStoryReaction } from "@/app/actions/stories"
 import Link from "next/link"
 import { SharedStoryRenderer } from "./SharedStoryRenderer"
 import { getOrCreateConversation, sendMessage } from "@/app/actions/messaging"
-import { toggleStoryReaction } from "@/app/actions/stories"
-
 import { EntityInsightsModal } from "./EntityInsightsModal"
 import { SaveRecipeButton } from "./SaveRecipeButton"
 import { ConfirmModal } from "@/components/ui/ConfirmModal"
-import { BarChart2, Plus } from "lucide-react"
 import { trackClickAction } from "@/app/actions/tracking"
 import { useRouter } from "next/navigation"
 import { setGlobalStoryDraft } from "@/lib/story-draft"
@@ -243,11 +241,12 @@ export function StoriesViewer({ groupedStories: _groupedStories, initialGroupInd
 
   if (!currentStory) return null
 
-    const fallbackRecipeMediaObj = currentStory.recipe?.recipe_media?.[0]?.media;
-  const mediaObj = currentStory.story_media?.[0]?.media || fallbackRecipeMediaObj;
-  const mediaPath = mediaObj?.storage_path;
+  const fallbackRecipeMediaObj = currentStory.recipe?.recipe_media?.[0]?.media;
+  const rawStoryMedia = currentStory.story_media?.[0];
+  const mediaObj = rawStoryMedia?.media || fallbackRecipeMediaObj;
+  const mediaPath = mediaObj?.storage_path || rawStoryMedia?.storage_path;
   const isVideo = mediaPath?.match(/\.(mp4|webm|ogg)$/i);
-  const fullUrl = mediaObj?.signed_url || (mediaPath ? `${"https://zvesoygqssyyojqyswwm.supabase.co"}/storage/v1/object/public/recipe_media/${mediaPath}` : "");
+  const fullUrl = mediaObj?.signed_url || (mediaPath ? (mediaPath.startsWith('http') ? mediaPath : `${"https://zvesoygqssyyojqyswwm.supabase.co"}/storage/v1/object/public/recipe_media/${mediaPath}`) : "");
 
   const handlePointerDown = () => setIsPaused(true)
   const handlePointerUp = () => {
@@ -594,11 +593,20 @@ export function StoriesViewer({ groupedStories: _groupedStories, initialGroupInd
               ) : (
                 viewers.map(v => (
                   <Link href={`/@${v.username}`} key={v.id} className="flex items-center gap-3 p-3 hover:bg-white/5 rounded-2xl transition-colors">
-                    <div className="w-10 h-10 rounded-full bg-muted overflow-hidden flex items-center justify-center shrink-0">
+                    <div className="w-10 h-10 rounded-full bg-muted overflow-hidden flex items-center justify-center shrink-0 relative">
                       {v.avatar?.storage_path ? (
-                        <img src={`${"https://zvesoygqssyyojqyswwm.supabase.co"}/storage/v1/object/public/recipe_media/${v.avatar.storage_path}`} className="w-full h-full object-cover" />
+                        <MediaImage
+                          src={`https://zvesoygqssyyojqyswwm.supabase.co/storage/v1/object/public/recipe_media/${v.avatar.storage_path}`}
+                          alt={v.display_name || v.username}
+                          className="w-full h-full object-cover"
+                          fill={true}
+                          variant="avatar"
+                          fallbackType="avatar"
+                        />
+                      ) : (v.display_name || v.username) ? (
+                        <span className="font-bold text-muted-foreground text-sm">{(v.display_name || v.username).charAt(0).toUpperCase()}</span>
                       ) : (
-                        <span className="font-bold text-muted-foreground text-sm">{(v.display_name || v.username || "?").charAt(0).toUpperCase()}</span>
+                        <User className="w-5 h-5 text-muted-foreground" />
                       )}
                     </div>
                     <div>
