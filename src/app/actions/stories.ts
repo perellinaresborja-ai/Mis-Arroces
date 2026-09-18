@@ -502,9 +502,14 @@ export async function getArchivedStories() {
   
   const { data, error } = await supabase
     .from('stories')
-    .select('*, author:profiles!stories_owner_id_fkey(*), story_media(media_id, media:media_assets(storage_path))')
+    .select(`
+      *,
+      author:profiles!stories_owner_id_fkey(id, username, display_name, avatar:media_assets!fk_profiles_avatar(storage_path)),
+      story_media(media_id, media:media_assets(storage_path)),
+      recipe:recipes(id, name, recipe_media(media:media_assets(storage_path))),
+      session:cooking_sessions(id, session_media(media:media_assets(storage_path)))
+    `)
     .eq('owner_id', user.id)
-    
     .order('created_at', { ascending: false });
     
   if (error) throw error;

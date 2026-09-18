@@ -11,7 +11,7 @@ export function EditHighlightModal({
   onClose
 }: {
   highlight: { id: string; name: string; cover_url?: string; stories?: { id: string }[] };
-  archivedStories: { id: string; story_media?: { storage_path?: string; media?: { storage_path?: string } }[] }[];
+  archivedStories: any[];
   onClose: () => void;
 }) {
   const [name, setName] = useState(highlight.name)
@@ -22,8 +22,12 @@ export function EditHighlightModal({
   const router = useRouter()
   const supabase = createClient()
 
-  const getMediaStoragePath = (s: { id: string; story_media?: { storage_path?: string; media?: { storage_path?: string } }[] }) => {
-    return s.story_media?.[0]?.storage_path || s.story_media?.[0]?.media?.storage_path;
+  const getMediaStoragePath = (s: any): string | null => {
+    return s.story_media?.[0]?.media?.storage_path || 
+      s.story_media?.[0]?.storage_path || 
+      s.recipe?.recipe_media?.[0]?.media?.storage_path || 
+      s.session?.session_media?.[0]?.media?.storage_path || 
+      null;
   }
 
   const getMediaUrl = (storagePath?: string | null) => {
@@ -160,8 +164,18 @@ export function EditHighlightModal({
                   {url ? (
                     <img src={url} alt="Story" className="w-full h-full object-cover" />
                   ) : (
-                    <div className="w-full h-full bg-primary/10 flex items-center justify-center text-[10px] text-muted-foreground p-1 text-center">
-                      Sin imagen
+                    <div className="w-full h-full bg-zinc-900 flex flex-col items-center justify-center text-center p-2">
+                      {s.overlays?.find((o: any) => o.type === 'TEXT')?.payload?.text ? (
+                        <span className="text-[10px] font-bold text-white line-clamp-3">
+                          {s.overlays.find((o: any) => o.type === 'TEXT').payload.text}
+                        </span>
+                      ) : s.recipe?.name ? (
+                        <span className="text-[9px] font-semibold text-white/90 line-clamp-2">
+                          {s.recipe.name}
+                        </span>
+                      ) : (
+                        <span className="text-[9px] text-zinc-400">Historia</span>
+                      )}
                     </div>
                   )}
                   
