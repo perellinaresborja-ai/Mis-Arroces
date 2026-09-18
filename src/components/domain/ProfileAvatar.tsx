@@ -57,17 +57,17 @@ export function ProfileAvatar({
       <div className="relative w-full h-full flex items-center justify-center">
         {/* Ring wrapper if story exists */}
         <div 
-          className={`w-full h-full rounded-full transition-all flex items-center justify-center p-1 ${
+          className={`w-full h-full rounded-full transition-all flex items-center justify-center ${
             hasActiveStories 
               ? allSeen 
-                ? 'border-[3.5px] border-muted-foreground/40' 
-                : 'bg-gradient-to-tr from-amber-500 via-orange-500 to-amber-400 p-[3.5px] shadow-lg shadow-orange-500/20 hover:scale-[1.02] cursor-pointer'
+                ? 'p-[3px] border-[3.5px] border-orange-500/50 hover:scale-[1.01] cursor-pointer' 
+                : 'bg-gradient-to-tr from-amber-500 via-orange-500 to-amber-400 p-[4px] shadow-lg shadow-orange-500/25 hover:scale-[1.02] cursor-pointer'
               : ''
           }`}
         >
           <div 
             className={`w-full h-full rounded-full overflow-hidden bg-background relative select-none ${
-              hasActiveStories && !allSeen ? 'p-1 bg-background' : ''
+              hasActiveStories ? 'p-1 bg-background' : ''
             }`}
           >
             <div 

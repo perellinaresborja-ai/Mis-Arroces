@@ -273,7 +273,7 @@ export async function fetchUserActiveStories(targetUserId: string) {
 
   const stories = data.map((story: any) => {
     const hasSeen = userSeenSet.has(story.id);
-    if (!hasSeen && !isOwner) {
+    if (!hasSeen) {
       allSeen = false;
     }
     return {
