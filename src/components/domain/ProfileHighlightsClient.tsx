@@ -1,16 +1,19 @@
 "use client"
+
 import { MediaImage } from "@/components/domain/MediaImage"
 import { useState } from "react"
 import { CreateHighlightModal } from "./CreateHighlightModal"
 import { EditHighlightModal } from "./EditHighlightModal"
+import { ReorderHighlightsModal } from "./ReorderHighlightsModal"
 import { StoriesViewer } from "./StoriesViewer"
-import { Plus, Pencil } from "lucide-react"
+import { Plus, Pencil, ArrowUpDown } from "lucide-react"
 
 interface HighlightData {
   id: string;
   name: string;
   cover_url?: string;
   user_id?: string;
+  sort_order?: number;
   stories?: any[];
 }
 
@@ -24,6 +27,7 @@ export function ProfileHighlightsClient({
   isMe: boolean;
 }) {
   const [showCreate, setShowCreate] = useState(false)
+  const [showReorder, setShowReorder] = useState(false)
   const [selectedHighlight, setSelectedHighlight] = useState<HighlightData | null>(null)
   const [editingHighlight, setEditingHighlight] = useState<HighlightData | null>(null)
 
@@ -31,7 +35,18 @@ export function ProfileHighlightsClient({
     <div className="w-full max-w-[672px] mx-auto px-4 mb-6">
       <div className="flex items-center justify-between mb-3">
         <h3 className="font-bold text-sm">Destacadas</h3>
+        {isMe && highlights.length > 1 && (
+          <button
+            type="button"
+            onClick={() => setShowReorder(true)}
+            className="flex items-center gap-1 text-xs text-primary hover:text-primary/80 font-semibold px-2 py-1 rounded-lg hover:bg-primary/10 transition-colors"
+          >
+            <ArrowUpDown className="w-3.5 h-3.5" />
+            <span>Reordenar</span>
+          </button>
+        )}
       </div>
+      
       <div className="flex gap-4 overflow-x-auto pb-2 hide-scrollbar">
         {isMe && (
           <div 
@@ -71,6 +86,7 @@ export function ProfileHighlightsClient({
               </div>
               {isMe && (
                 <button 
+                  type="button"
                   onClick={(e) => { 
                     e.stopPropagation(); 
                     setEditingHighlight(h); 
@@ -99,6 +115,13 @@ export function ProfileHighlightsClient({
         <CreateHighlightModal 
           archivedStories={archivedStories} 
           onClose={() => setShowCreate(false)} 
+        />
+      )}
+
+      {showReorder && (
+        <ReorderHighlightsModal
+          highlights={highlights}
+          onClose={() => setShowReorder(false)}
         />
       )}
 

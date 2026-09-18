@@ -316,10 +316,22 @@ export async function createStoryHighlight(name: string, storyIds: string[], cov
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("Unauthorized");
   
+  // Get max sort_order for user
+  const { data: maxOrderRow } = await supabase
+    .from('story_highlights')
+    .select('sort_order')
+    .eq('user_id', user.id)
+    .order('sort_order', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  const nextSortOrder = maxOrderRow ? (maxOrderRow.sort_order ?? 0) + 1 : 0;
+
   const { data: highlight, error } = await supabase.from('story_highlights').insert({
     user_id: user.id,
     name,
-    cover_url: coverUrl
+    cover_url: coverUrl,
+    sort_order: nextSortOrder
   }).select().single();
   
   if (error) throw error;
