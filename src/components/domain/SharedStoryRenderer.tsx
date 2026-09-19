@@ -299,7 +299,7 @@ export function renderOverlayContent(overlay: StoryOverlay, mode: string, ctx?: 
         return (
           <div onClick={handleClick} className="text-white drop-shadow-md px-2 py-1 flex flex-col items-center cursor-pointer pointer-events-auto hover:opacity-80 transition-opacity">
             <span className="font-bold text-lg">{p.title || 'Receta'}</span>
-            <span className="text-xs bg-black/40 px-2 py-0.5 rounded-full mt-1">Ver receta âž”</span>
+            <span className="text-xs bg-black/40 px-2 py-0.5 rounded-full mt-1">Ver receta →</span>
           </div>
         );
       }
@@ -319,7 +319,7 @@ export function renderOverlayContent(overlay: StoryOverlay, mode: string, ctx?: 
     }
     case 'PROFILE': {
       const p = overlay.payload;
-      return <div className="bg-background text-foreground px-4 py-2 rounded-xl font-bold flex items-center gap-2 shadow-xl border border-border cursor-pointer" onClick={() => { if (mode === 'VIEWER') window.location.href = '/' + p.username; }}>ðŸ‘¤ {p.username}</div>;
+      return <div className="bg-background text-foreground px-4 py-2 rounded-xl font-bold flex items-center gap-2 shadow-xl border border-border cursor-pointer" onClick={() => { if (mode === 'VIEWER') window.location.href = '/' + p.username; }}>👤 {p.username}</div>;
     }
     case 'SESSION': {
       const p = overlay.payload;
@@ -329,14 +329,14 @@ export function renderOverlayContent(overlay: StoryOverlay, mode: string, ctx?: 
         };
 
       if (style === 'compact') {
-        return <div className="bg-orange-100 text-orange-900 px-3 py-1 rounded-full font-bold shadow-lg text-sm flex items-center gap-2 cursor-pointer transition-transform hover:scale-105 pointer-events-auto" onClick={handleClick}>ðŸ§‘â€ðŸ³ {p.authorName} <span className="text-orange-600/50">Ver</span></div>;
+        return <div className="bg-orange-100 text-orange-900 px-3 py-1 rounded-full font-bold shadow-lg text-sm flex items-center gap-2 cursor-pointer transition-transform hover:scale-105 pointer-events-auto" onClick={handleClick}>🧑‍🍳 {p.authorName} <span className="text-orange-600/50">Ver</span></div>;
       }
       
       if (style === 'text') {
         return (
           <div onClick={handleClick} className="text-white drop-shadow-md px-2 py-1 flex flex-col items-center cursor-pointer pointer-events-auto hover:opacity-80 transition-opacity">
             <span className="font-bold text-lg">{p.title || `Sesión de ${p.authorName}`}</span>
-            <span className="text-xs bg-black/40 px-2 py-0.5 rounded-full mt-1">Ver elaboración âž”</span>
+            <span className="text-xs bg-black/40 px-2 py-0.5 rounded-full mt-1">Ver elaboración →</span>
           </div>
         );
       }
@@ -365,7 +365,7 @@ export function renderOverlayContent(overlay: StoryOverlay, mode: string, ctx?: 
         return (
           <div onClick={handleClick} className="text-white drop-shadow-md px-2 py-1 flex flex-col items-center cursor-pointer pointer-events-auto hover:opacity-80 transition-opacity">
             <span className="font-bold text-lg text-center max-w-[200px] truncate">{p.text || `Publicación de ${p.authorName}`}</span>
-            <span className="text-xs bg-black/40 px-2 py-0.5 rounded-full mt-1">Ver publicación âž”</span>
+            <span className="text-xs bg-black/40 px-2 py-0.5 rounded-full mt-1">Ver publicación →</span>
           </div>
         );
       }

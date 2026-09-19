@@ -273,7 +273,7 @@ export default function EditRecipeForm({ recipe, catalogs }: { recipe: any, cata
   <form onSubmit={(e) => e.preventDefault()} className="space-y-8 pb-32">
       <div className="space-y-8">
         {/* Basic Info */}
-        <CollapsibleSection title="InformaciÃ³n BÃ¡sica" defaultOpen={true}>
+        <CollapsibleSection title="Información Básica" defaultOpen={true}>
           <div className="space-y-2 mb-6">
             <Label>Foto de Portada (Obligatoria)</Label>
             <RecipeMediaManager 
@@ -289,7 +289,7 @@ export default function EditRecipeForm({ recipe, catalogs }: { recipe: any, cata
             </div>
             
             <div className="space-y-2">
-              <Label>DescripciÃ³n</Label>
+              <Label>Descripción</Label>
               <textarea 
                 {...register("description")} 
                 className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2" 
@@ -301,12 +301,12 @@ export default function EditRecipeForm({ recipe, catalogs }: { recipe: any, cata
               <div className="space-y-2">
                 <Label>Privacidad</Label>
                 <select {...register("visibility")} className="w-full h-10 px-3 rounded-md border border-input bg-background">
-                  <option value="PUBLIC">PÃºblico (Visible para todos)</option>
+                  <option value="PUBLIC">Público (Visible para todos)</option>
                   <option value="FOLLOWERS">Solo mis Seguidores</option>
                   <option value="PRIVATE">Privado (Solo yo)</option>
                 </select>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Controla quiÃ©n puede ver la receta una vez que estÃ© publicada.
+                  Controla quién puede ver la receta una vez que esté publicada.
                 </p>
               </div>
             </div>
@@ -314,7 +314,7 @@ export default function EditRecipeForm({ recipe, catalogs }: { recipe: any, cata
         </CollapsibleSection>
 
         {/* Technical Details */}
-        <CollapsibleSection title="Detalles TÃ©cnicos">
+        <CollapsibleSection title="Detalles Técnicos">
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
             <div className="space-y-2">
@@ -342,9 +342,9 @@ export default function EditRecipeForm({ recipe, catalogs }: { recipe: any, cata
               <Label>Dificultad</Label>
               <select {...register("difficulty")} className="w-full h-10 px-3 rounded-md border border-input bg-background">
                 <option value="">Selecciona...</option>
-                <option value="EASY">FÃ¡cil</option>
+                <option value="EASY">Fácil</option>
                 <option value="MEDIUM">Media</option>
-                <option value="HARD">DifÃ­cil</option>
+                <option value="HARD">Difícil</option>
                 <option value="EXPERT">Experto</option>
               </select>
             </div>
@@ -356,7 +356,7 @@ export default function EditRecipeForm({ recipe, catalogs }: { recipe: any, cata
               <Input type="number" placeholder="Pendiente de definir" {...register("base_servings")} />
             </div>
             <div className="space-y-2">
-              <Label>CocciÃ³n (min)</Label>
+              <Label>Cocción (min)</Label>
               <Input type="number" {...register("cook_time")} />
             </div>
             <div className="space-y-2">
@@ -377,7 +377,7 @@ export default function EditRecipeForm({ recipe, catalogs }: { recipe: any, cata
               </select>
             </div>
             <div className="space-y-2">
-              <Label>DiÃ¡metro (cm)</Label>
+              <Label>Diámetro (cm)</Label>
               <Input type="number" step="0.1" {...register("vessel_diameter_cm")} placeholder="Ej. 40" />
             </div>
           </div>
@@ -414,7 +414,7 @@ export default function EditRecipeForm({ recipe, catalogs }: { recipe: any, cata
                     </div>
                   </div>
                   <div className="space-y-1">
-                    <Label className="text-xs text-muted-foreground uppercase">Â¿CÃ“MO LA QUIERES?</Label>
+                    <Label className="text-xs text-muted-foreground uppercase">¿CÓMO LA QUIERES?</Label>
                     <div className="flex gap-2">
                       {(['Fina', 'Media', 'Abundante'] as LayerType[]).map((l) => (
                         <Button
@@ -455,7 +455,7 @@ export default function EditRecipeForm({ recipe, catalogs }: { recipe: any, cata
             <div className="flex items-center gap-1">
               <AddToCartButton recipeId={recipe.id} isAuthenticated={true} layout="icon" />
               <Button type="button" variant="outline" size="sm" onClick={() => appendIng({ display_text: "", normalized_quantity: "", unit_id: "", is_scalable: true })}>
-                <Plus className="w-4 h-4 mr-1" /> AÃ±adir
+                <Plus className="w-4 h-4 mr-1" /> Añadir
               </Button>
             </div>
           }>
@@ -484,7 +484,7 @@ export default function EditRecipeForm({ recipe, catalogs }: { recipe: any, cata
                   </div>
                   <div className="flex items-center gap-2 mt-1">
                     <input type="checkbox" id={`scale-${idx}`} {...register(`ingredients.${idx}.is_scalable`)} className="rounded border-input text-primary focus:ring-primary" />
-                    <label htmlFor={`scale-${idx}`} className="text-xs text-muted-foreground cursor-pointer">Escala con el nÂº de comensales</label>
+                    <label htmlFor={`scale-${idx}`} className="text-xs text-muted-foreground cursor-pointer">Escala con el nº de comensales</label>
                   </div>
                 </div>
                 <Button type="button" variant="ghost" size="icon" className="text-destructive shrink-0" onClick={() => removeIng(idx)}>
@@ -492,7 +492,7 @@ export default function EditRecipeForm({ recipe, catalogs }: { recipe: any, cata
                 </Button>
               </div>
             ))}
-            {ingFields.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">No hay ingredientes aÃ±adidos.</p>}
+            {ingFields.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">No hay ingredientes añadidos.</p>}
 
             
           </div>
@@ -502,9 +502,9 @@ export default function EditRecipeForm({ recipe, catalogs }: { recipe: any, cata
         <EscandalloSection recipeId={recipe.id} initialIngredients={ingFields} catalogs={catalogs} baseServings={Number(watch("base_servings") || 2)} setValue={setValue} />
 
           {/* Steps */}
-        <CollapsibleSection title="Pasos de ElaboraciÃ³n" rightAction={<Button type="button" variant="outline" size="sm" onClick={() => appendStep({ instruction: "", duration_minutes: "", notes: "" })}>
-              <Plus className="w-4 h-4 mr-1" /> AÃ±adir
-            </Button>}>
+        <CollapsibleSection title="Pasos de Elaboración" rightAction={<Button type="button" variant="outline" size="sm" onClick={() => appendStep({ instruction: "", duration_minutes: "", notes: "" })}>
+               <Plus className="w-4 h-4 mr-1" /> Añadir
+             </Button>}>
           <div className="space-y-4">
             {stepFields.map((field, idx) => (
               <div key={field.id} className="relative flex flex-col md:flex-row gap-3 md:gap-4 items-start bg-muted/40 p-3 md:p-5 rounded-3xl border border-border shadow-sm">
@@ -530,7 +530,7 @@ export default function EditRecipeForm({ recipe, catalogs }: { recipe: any, cata
                     <textarea 
                       {...register(`steps.${idx}.instruction`, { required: true })}
                       className="flex min-h-[90px] w-full rounded-2xl border border-border bg-background px-4 py-3 text-sm ring-offset-background placeholder:text-muted-foreground/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 resize-y"
-                      placeholder="Ej. SofreÃ­r la carne a fuego medio hasta que estÃ© dorada." 
+                      placeholder="Ej. Sofreír la carne a fuego medio hasta que esté dorada." 
                     />
                   </div>
                   
@@ -551,7 +551,7 @@ export default function EditRecipeForm({ recipe, catalogs }: { recipe: any, cata
                 </div>
               </div>
             ))}
-            {stepFields.length === 0 && <p className="text-sm text-muted-foreground text-center py-6">No hay pasos aÃ±adidos. Escribe el primer paso.</p>}
+            {stepFields.length === 0 && <p className="text-sm text-muted-foreground text-center py-6">No hay pasos añadidos. Escribe el primer paso.</p>}
           </div>
         </CollapsibleSection>
 
@@ -581,19 +581,19 @@ export default function EditRecipeForm({ recipe, catalogs }: { recipe: any, cata
           </CollapsibleSection>
         )}
 
-        <CollapsibleSection title="InformaciÃ³n Nutricional">
+        <CollapsibleSection title="Información Nutricional">
           <div className="space-y-4">
             <div className="text-sm text-muted-foreground mb-4">
-              Los valores nutricionales se calculan automÃ¡ticamente basÃ¡ndose en los ingredientes canÃ³nicos. No es necesario introducirlos a mano.
+              Los valores nutricionales se calculan automáticamente basándose en los ingredientes canónicos. No es necesario introducirlos a mano.
             </div>
             <NutritionSection result={nutritionResult} servings={watchedPortions || 1} hideTitle />
           </div>
         </CollapsibleSection>
 
-        <CollapsibleSection title="AlÃ©rgenos">
+        <CollapsibleSection title="Alérgenos">
           <div className="space-y-4">
             <div className="text-sm text-muted-foreground mb-4">
-              Los alÃ©rgenos se detectan automÃ¡ticamente. Si falta alguno, asegÃºrate de que el ingrediente estÃ© bien escrito.
+              Los alérgenos se detectan automáticamente. Si falta alguno, asegúrate de que el ingrediente esté bien escrito.
             </div>
             <AllergensSection result={nutritionResult} hideTitle />
           </div>
