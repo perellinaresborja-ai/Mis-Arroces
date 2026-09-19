@@ -1,7 +1,6 @@
 "use client"
 
 import { useState } from "react"
-import { useRouter } from "next/navigation"
 import { MediaImage } from "./MediaImage"
 import { StoriesViewer } from "./StoriesViewer"
 
@@ -27,7 +26,6 @@ export function ProfileAvatar({
 }: ProfileAvatarProps) {
   const [isPhotoOpen, setIsPhotoOpen] = useState(false)
   const [isViewerOpen, setIsViewerOpen] = useState(false)
-  const router = useRouter()
 
   const hasActiveStories = Boolean(activeStoryGroup && activeStoryGroup.stories.length > 0)
   const allSeen = activeStoryGroup?.allSeen ?? true
@@ -45,11 +43,6 @@ export function ProfileAvatar({
       e.preventDefault()
       handleAvatarClick()
     }
-  }
-
-  const handleAddStoryClick = (e: React.MouseEvent) => {
-    e.stopPropagation()
-    router.push("/create/story")
   }
 
   return (
@@ -95,19 +88,6 @@ export function ProfileAvatar({
             </div>
           </div>
         </div>
-
-        {/* Plus (+) Button for Owner to create a new Story */}
-        {isMe && (
-          <button 
-            type="button"
-            onClick={handleAddStoryClick}
-            aria-label="Crear nueva historia"
-            title="Crear nueva historia"
-            className="absolute bottom-2 right-2 w-9 h-9 bg-[#E69A21] text-white rounded-full border-[3px] border-background flex items-center justify-center text-xl font-bold shadow-md z-10 cursor-pointer hover:scale-110 active:scale-95 transition-transform"
-          >
-            +
-          </button>
-        )}
       </div>
 
       {/* Expanded Photo Modal when NO active story */}
