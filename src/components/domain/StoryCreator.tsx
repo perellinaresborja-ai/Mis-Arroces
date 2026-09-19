@@ -585,7 +585,7 @@ export function StoryCreator({
 
         {/* Sticker Tray Mode */}
         {mode === 'STICKER' && (
-          <div className="flex flex-col h-full relative">
+          <div className="flex flex-col h-[340px] md:h-full relative bg-card">
             {!activeStickerType ? (
               <div className="p-4 grid grid-cols-2 gap-2 overflow-y-auto">
                 <button onClick={() => setActiveStickerType('MENTION')} className="bg-muted hover:bg-muted/80 text-foreground p-4 rounded-2xl flex items-center justify-center gap-2 transition-colors font-medium"><User size={18} className="text-primary"/> Mención</button>
@@ -597,8 +597,17 @@ export function StoryCreator({
               </div>
             ) : (
               <div className="absolute inset-0 z-10 bg-card flex flex-col">
-                <div className="p-2 border-b border-border flex items-center">
-                  <button onClick={() => setActiveStickerType(null)} className="text-muted-foreground hover:text-foreground font-medium p-2 transition-colors">Volver</button>
+                <div className="p-3 border-b border-border flex items-center justify-between">
+                  <button onClick={() => setActiveStickerType(null)} className="text-sm font-semibold text-primary hover:underline px-2 py-1">← Volver</button>
+                  <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                    {activeStickerType === 'MENTION' && 'Mención'}
+                    {activeStickerType === 'LOCATION' && 'Ubicación'}
+                    {activeStickerType === 'RECIPE' && 'Receta'}
+                    {activeStickerType === 'INGREDIENT' && 'Ingrediente'}
+                    {activeStickerType === 'SESSION' && 'Sesión'}
+                    {activeStickerType === 'PROFILE' && 'Perfil'}
+                  </span>
+                  <div className="w-10" />
                 </div>
                 <div className="flex-1 overflow-hidden relative">
                   {activeStickerType === 'MENTION' && <MentionPicker onSelect={(u) => handleStickerSelect('MENTION', u)} />}

@@ -3,7 +3,7 @@ import React from 'react';
 
 import { CSSProperties, useEffect, Dispatch, SetStateAction } from "react"
 import { StoryOverlay, StoryTransform, StoryBackground, PollOverlay, QuestionOverlay, SliderOverlay, RecipeOverlay, SessionOverlay, MentionOverlay, ProfileOverlay, LocationOverlay, IngredientOverlay, GifOverlay, TextOverlay } from "@/types/stories"
-import { MapPin, Utensils } from "lucide-react"
+import { MapPin, Utensils, ChefHat } from "lucide-react"
 
 interface PollResultData {
   countA?: number;
@@ -272,41 +272,57 @@ export function renderOverlayContent(overlay: StoryOverlay, mode: string, ctx?: 
     }
     case 'MENTION': {
       const p = overlay.payload;
-      return <div className="bg-gradient-to-tr from-pink-500 to-orange-400 text-white px-3 py-1 rounded-full font-bold shadow-lg cursor-pointer" onClick={() => { if (mode === 'VIEWER') window.location.href = '/' + p.username; }}>@{p.username}</div>;
+      return (
+        <div 
+          className="bg-primary text-primary-foreground px-4 py-2 rounded-2xl font-bold shadow-2xl flex items-center gap-1.5 border border-primary-foreground/20 cursor-pointer text-sm"
+          onClick={() => { if (mode === 'VIEWER') window.location.href = '/' + p.username; }}
+        >
+          <span>@</span>
+          <span>{p.username}</span>
+        </div>
+      );
     }
     case 'LOCATION': {
       const p = overlay.payload;
-      return <div className="bg-white/90 text-black px-3 py-1 rounded-lg font-bold flex items-center gap-1 shadow-lg cursor-pointer"><MapPin className="w-4 h-4"/> {p.name}</div>;
+      return (
+        <div 
+          className="bg-card text-foreground px-4 py-2 rounded-2xl font-bold flex items-center gap-2 shadow-2xl border border-border cursor-pointer text-sm"
+        >
+          <MapPin className="w-4 h-4 text-primary shrink-0"/> 
+          <span className="truncate max-w-[200px]">{p.name}</span>
+        </div>
+      );
     }
     case 'RECIPE': {
       const p = overlay.payload;
       const style = p.displayStyle || 'compact';
 
       const handleClick = (e: React.MouseEvent) => { 
-          if (mode === 'VIEWER') { e.stopPropagation(); window.location.href = '/recipes/' + p.recipeId; } 
-        };
+        if (mode === 'VIEWER') { e.stopPropagation(); window.location.href = '/recipes/' + p.recipeId; } 
+      };
 
       if (style === 'compact') {
         return (
-          <div onClick={handleClick} className="bg-card border border-border text-foreground px-3 py-1.5 rounded-full font-bold flex items-center gap-2 shadow-xl cursor-pointer text-sm pointer-events-auto transition-transform hover:scale-105">
+          <div onClick={handleClick} className="bg-card border border-border text-foreground px-4 py-2 rounded-2xl font-bold flex items-center gap-2 shadow-2xl cursor-pointer text-sm pointer-events-auto transition-transform hover:scale-105">
+            <ChefHat className="w-4 h-4 text-primary shrink-0" />
             <span className="truncate max-w-[150px]">{p.title || 'Receta'}</span>
-            <span className="text-primary text-xs ml-1 border-l pl-2 border-border/50">Ver</span>
+            <span className="text-primary text-xs ml-1 border-l pl-2 border-border font-semibold">Ver</span>
           </div>
         );
       }
 
       if (style === 'text') {
         return (
-          <div onClick={handleClick} className="text-white drop-shadow-md px-2 py-1 flex flex-col items-center cursor-pointer pointer-events-auto hover:opacity-80 transition-opacity">
+          <div onClick={handleClick} className="text-white drop-shadow-md px-3 py-1.5 flex flex-col items-center cursor-pointer pointer-events-auto hover:opacity-80 transition-opacity">
             <span className="font-bold text-lg">{p.title || 'Receta'}</span>
-            <span className="text-xs bg-black/40 px-2 py-0.5 rounded-full mt-1">Ver receta →</span>
+            <span className="text-xs bg-black/50 border border-white/20 px-3 py-1 rounded-full mt-1 font-medium">Ver receta →</span>
           </div>
         );
       }
 
       return (
         <div onClick={handleClick} className="bg-card rounded-2xl overflow-hidden shadow-2xl border border-border flex flex-col w-48 cursor-pointer pointer-events-auto transition-transform hover:scale-105">
-          <div className="p-3 flex flex-col gap-1 text-center bg-card">
+          <div className="p-3.5 flex flex-col gap-1 text-center bg-card">
             <span className="font-bold text-foreground text-sm truncate">{p.title || 'Receta'}</span>
             <span className="text-xs font-semibold text-primary">Ver receta</span>
           </div>
@@ -315,35 +331,57 @@ export function renderOverlayContent(overlay: StoryOverlay, mode: string, ctx?: 
     }
     case 'INGREDIENT': {
       const p = overlay.payload;
-      return <div className="bg-green-100 text-green-800 px-3 py-1 rounded-lg font-bold shadow-lg text-sm cursor-pointer">{p.name}</div>;
+      return (
+        <div className="bg-card text-foreground px-4 py-2 rounded-2xl font-bold shadow-2xl text-sm border border-border flex items-center gap-2 cursor-pointer">
+          <span className="text-base">🥘</span>
+          <span>{p.name}</span>
+        </div>
+      );
     }
     case 'PROFILE': {
       const p = overlay.payload;
-      return <div className="bg-background text-foreground px-4 py-2 rounded-xl font-bold flex items-center gap-2 shadow-xl border border-border cursor-pointer" onClick={() => { if (mode === 'VIEWER') window.location.href = '/' + p.username; }}>👤 {p.username}</div>;
+      return (
+        <div 
+          className="bg-card text-foreground px-4 py-2 rounded-2xl font-bold flex items-center gap-2 shadow-2xl border border-border cursor-pointer text-sm" 
+          onClick={() => { if (mode === 'VIEWER') window.location.href = '/' + p.username; }}
+        >
+          <span className="text-primary">👤</span>
+          <span>@{p.username}</span>
+        </div>
+      );
     }
     case 'SESSION': {
       const p = overlay.payload;
       const style = p.displayStyle || 'compact';
       const handleClick = (e: React.MouseEvent) => { 
-          if (mode === 'VIEWER') { e.stopPropagation(); window.location.href = '/sessions/' + p.sessionId; } 
-        };
+        if (mode === 'VIEWER') { e.stopPropagation(); window.location.href = '/sessions/' + p.sessionId; } 
+      };
 
       if (style === 'compact') {
-        return <div className="bg-orange-100 text-orange-900 px-3 py-1 rounded-full font-bold shadow-lg text-sm flex items-center gap-2 cursor-pointer transition-transform hover:scale-105 pointer-events-auto" onClick={handleClick}>🧑‍🍳 {p.authorName} <span className="text-orange-600/50">Ver</span></div>;
+        return (
+          <div 
+            className="bg-card text-foreground border border-border px-4 py-2 rounded-2xl font-bold shadow-2xl text-sm flex items-center gap-2 cursor-pointer transition-transform hover:scale-105 pointer-events-auto" 
+            onClick={handleClick}
+          >
+            <span>🧑‍🍳</span> 
+            <span className="truncate max-w-[150px]">{p.authorName || 'Cocinero'}</span> 
+            <span className="text-primary text-xs ml-1 border-l pl-2 border-border font-semibold">Ver</span>
+          </div>
+        );
       }
       
       if (style === 'text') {
         return (
-          <div onClick={handleClick} className="text-white drop-shadow-md px-2 py-1 flex flex-col items-center cursor-pointer pointer-events-auto hover:opacity-80 transition-opacity">
+          <div onClick={handleClick} className="text-white drop-shadow-md px-3 py-1.5 flex flex-col items-center cursor-pointer pointer-events-auto hover:opacity-80 transition-opacity">
             <span className="font-bold text-lg">{p.title || `Sesión de ${p.authorName}`}</span>
-            <span className="text-xs bg-black/40 px-2 py-0.5 rounded-full mt-1">Ver elaboración →</span>
+            <span className="text-xs bg-black/50 border border-white/20 px-3 py-1 rounded-full mt-1 font-medium">Ver elaboración →</span>
           </div>
         );
       }
 
       return (
         <div onClick={handleClick} className="bg-card rounded-2xl overflow-hidden shadow-2xl border border-border flex flex-col w-48 cursor-pointer pointer-events-auto transition-transform hover:scale-105">
-          <div className="p-3 flex flex-col gap-1 text-center bg-card">
+          <div className="p-3.5 flex flex-col gap-1 text-center bg-card">
             <span className="font-bold text-foreground text-sm truncate">{p.title || `Sesión de ${p.authorName}`}</span>
             <span className="text-xs font-semibold text-primary">Ver elaboración</span>
           </div>
@@ -354,18 +392,26 @@ export function renderOverlayContent(overlay: StoryOverlay, mode: string, ctx?: 
       const p = overlay.payload;
       const style = p.displayStyle || 'card';
       const handleClick = (e: React.MouseEvent) => { 
-          if (mode === 'VIEWER') { e.stopPropagation(); window.location.href = '/posts/' + p.postId; } 
-        };
+        if (mode === 'VIEWER') { e.stopPropagation(); window.location.href = '/posts/' + p.postId; } 
+      };
 
       if (style === 'compact') {
-        return <div className="bg-card border border-border text-foreground px-3 py-1.5 rounded-full font-bold flex items-center gap-2 shadow-xl cursor-pointer text-sm pointer-events-auto transition-transform hover:scale-105" onClick={handleClick}>@{p.authorName} <span className="text-primary text-xs ml-1 border-l pl-2 border-border/50">Ver</span></div>;
+        return (
+          <div 
+            className="bg-card border border-border text-foreground px-4 py-2 rounded-2xl font-bold flex items-center gap-2 shadow-2xl cursor-pointer text-sm pointer-events-auto transition-transform hover:scale-105" 
+            onClick={handleClick}
+          >
+            <span>@{p.authorName}</span> 
+            <span className="text-primary text-xs ml-1 border-l pl-2 border-border font-semibold">Ver</span>
+          </div>
+        );
       }
 
       if (style === 'text') {
         return (
-          <div onClick={handleClick} className="text-white drop-shadow-md px-2 py-1 flex flex-col items-center cursor-pointer pointer-events-auto hover:opacity-80 transition-opacity">
+          <div onClick={handleClick} className="text-white drop-shadow-md px-3 py-1.5 flex flex-col items-center cursor-pointer pointer-events-auto hover:opacity-80 transition-opacity">
             <span className="font-bold text-lg text-center max-w-[200px] truncate">{p.text || `Publicación de ${p.authorName}`}</span>
-            <span className="text-xs bg-black/40 px-2 py-0.5 rounded-full mt-1">Ver publicación →</span>
+            <span className="text-xs bg-black/50 border border-white/20 px-3 py-1 rounded-full mt-1 font-medium">Ver publicación →</span>
           </div>
         );
       }
@@ -373,7 +419,7 @@ export function renderOverlayContent(overlay: StoryOverlay, mode: string, ctx?: 
       return (
         <div onClick={handleClick} className="bg-card rounded-2xl overflow-hidden shadow-2xl border border-border flex flex-col w-48 cursor-pointer pointer-events-auto transition-transform hover:scale-105">
           {!p.coverUrl && p.text && (<div className="p-4 bg-muted relative flex-1 flex items-center justify-center text-center"><p className="text-sm italic text-muted-foreground line-clamp-3">{p.text}</p></div>)}
-          <div className="p-3 flex flex-col gap-1 text-center bg-card border-t border-border/50">
+          <div className="p-3.5 flex flex-col gap-1 text-center bg-card border-t border-border">
             <span className="font-bold text-foreground text-sm truncate">@{p.authorName}</span>
             <span className="text-xs font-semibold text-primary">Ver publicación</span>
           </div>
