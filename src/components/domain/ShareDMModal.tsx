@@ -35,7 +35,14 @@ export function ShareDMModal({
   const [sentTo, setSentTo] = useState<Set<string>>(new Set())
   const [sendingTo, setSendingTo] = useState<Set<string>>(new Set())
   const [copied, setCopied] = useState(false)
+  const [canNativeShare, setCanNativeShare] = useState(false)
   const supabase = createClient()
+
+  useEffect(() => {
+    if (typeof navigator !== "undefined" && typeof navigator.share === "function") {
+      setCanNativeShare(true)
+    }
+  }, [])
 
   const getShareUrl = () => {
     const origin = typeof window !== "undefined" ? window.location.origin : "https://www.misarroces.es"
@@ -47,11 +54,12 @@ export function ShareDMModal({
 
   const getShareText = () => {
     if (entityType === "STORY") {
-      return authorName 
-        ? `¡Mira la historia de ${authorName} en Mis Arroces! 🥘` 
-        : `¡Mira esta historia en Mis Arroces! 🥘`
+      const cleanUsername = authorName ? authorName.replace(/^@/, '') : ""
+      return cleanUsername 
+        ? `Historia de @${cleanUsername} en Mis Arroces` 
+        : `Historia en Mis Arroces`
     }
-    return caption || "¡Echa un vistazo a esto en Mis Arroces! 🥘"
+    return caption || "Publicación en Mis Arroces"
   }
 
   const handleWhatsApp = () => {
@@ -62,8 +70,30 @@ export function ShareDMModal({
 
   const handleCopyLink = async () => {
     const url = getShareUrl()
-    if (typeof navigator !== "undefined" && navigator.clipboard) {
-      await navigator.clipboard.writeText(url)
+    let success = false
+    if (typeof navigator !== "undefined" && navigator.clipboard && navigator.clipboard.writeText) {
+      try {
+        await navigator.clipboard.writeText(url)
+        success = true
+      } catch {
+        success = false
+      }
+    }
+    if (!success && typeof document !== "undefined") {
+      try {
+        const textarea = document.createElement("textarea")
+        textarea.value = url
+        textarea.style.position = "fixed"
+        textarea.style.opacity = "0"
+        document.body.appendChild(textarea)
+        textarea.select()
+        success = document.execCommand("copy")
+        document.body.removeChild(textarea)
+      } catch {
+        success = false
+      }
+    }
+    if (success) {
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     }
@@ -147,11 +177,33 @@ export function ShareDMModal({
               className="w-full flex items-center justify-center gap-3 py-3 px-4 rounded-2xl bg-[#25D366] hover:bg-[#1ebd5b] text-white font-bold text-sm shadow-md transition-all active:scale-[0.99] cursor-pointer"
             >
               <WhatsAppIcon className="w-5 h-5" />
-              <span>Compartir por WhatsApp</span>
+              <span>Compartir en WhatsApp</span>
             </button>
 
-            {/* Quick Actions: Copy Link & Native Share */}
-            <div className="grid grid-cols-2 gap-2">
+            {/* Quick Actions: Compartir... & Copiar enlace */}
+            {canNativeShare ? (
+              <div className="grid grid-cols-2 gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleNativeShare}
+                  className="w-full rounded-2xl font-semibold border-border hover:bg-muted py-2.5 h-auto text-xs"
+                >
+                  <Share2 className="w-4 h-4 mr-1.5" />
+                  Compartir…
+                </Button>
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleCopyLink}
+                  className="w-full rounded-2xl font-semibold border-border hover:bg-muted py-2.5 h-auto text-xs"
+                >
+                  {copied ? <Check className="w-4 h-4 mr-1.5 text-green-500" /> : <Copy className="w-4 h-4 mr-1.5" />}
+                  {copied ? "Enlace copiado" : "Copiar enlace"}
+                </Button>
+              </div>
+            ) : (
               <Button
                 type="button"
                 variant="outline"
@@ -159,19 +211,9 @@ export function ShareDMModal({
                 className="w-full rounded-2xl font-semibold border-border hover:bg-muted py-2.5 h-auto text-xs"
               >
                 {copied ? <Check className="w-4 h-4 mr-1.5 text-green-500" /> : <Copy className="w-4 h-4 mr-1.5" />}
-                {copied ? "¡Copiado!" : "Copiar enlace"}
+                {copied ? "Enlace copiado" : "Copiar enlace"}
               </Button>
-
-              <Button
-                type="button"
-                variant="outline"
-                onClick={handleNativeShare}
-                className="w-full rounded-2xl font-semibold border-border hover:bg-muted py-2.5 h-auto text-xs"
-              >
-                <Share2 className="w-4 h-4 mr-1.5" />
-                Otras apps
-              </Button>
-            </div>
+            )}
           </div>
 
           {/* Divider */}

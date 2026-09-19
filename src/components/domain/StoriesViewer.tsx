@@ -106,11 +106,18 @@ export function StoriesViewer({ groupedStories: _groupedStories, initialGroupInd
     setIsPaused(false);
   }
   
-  const handleCopyLink = (e: React.MouseEvent) => {
+  const [linkCopied, setLinkCopied] = useState(false)
+  const handleCopyLink = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    navigator.clipboard.writeText(window.location.origin + '/?story=' + currentStory.id);
-    alert('Enlace copiado');
-    closeMenu();
+    const url = window.location.origin + '/?story=' + currentStory.id;
+    if (navigator.clipboard) {
+      await navigator.clipboard.writeText(url);
+    }
+    setLinkCopied(true);
+    setTimeout(() => {
+      setLinkCopied(false);
+      closeMenu();
+    }, 1200);
   }
   const [viewers, setViewers] = useState<{id: string, username: string, display_name?: string, avatar?: {storage_path: string}}[]>([]);
   const [showViewers, setShowViewers] = useState(false)
@@ -315,7 +322,7 @@ export function StoriesViewer({ groupedStories: _groupedStories, initialGroupInd
                       <Share2 className="w-6 h-6" /> <span className="font-semibold">Compartir</span>
                     </button>
                     <button onClick={handleCopyLink} className="flex items-center gap-4 w-full p-4 hover:bg-white/5 transition-colors text-left border-b border-white/10">
-                      <Copy className="w-6 h-6" /> <span className="font-semibold">Copiar enlace</span>
+                      <Copy className="w-6 h-6" /> <span className="font-semibold">{linkCopied ? "Enlace copiado" : "Copiar enlace"}</span>
                     </button>
                     <button onClick={(e) => { handleDelete(e); closeMenu(); }} className="flex items-center gap-4 w-full p-4 hover:bg-red-500/20 text-red-500 transition-colors text-left border-b border-white/10">
                       <Trash2 className="w-6 h-6" /> <span className="font-semibold">Eliminar Story</span>
@@ -330,7 +337,7 @@ export function StoriesViewer({ groupedStories: _groupedStories, initialGroupInd
                       <MessageCircle className="w-6 h-6" /> <span className="font-semibold">Enviar por mensaje</span>
                     </button>
                     <button onClick={handleCopyLink} className="flex items-center gap-4 w-full p-4 hover:bg-white/5 transition-colors text-left border-b border-white/10">
-                      <Copy className="w-6 h-6" /> <span className="font-semibold">Copiar enlace</span>
+                      <Copy className="w-6 h-6" /> <span className="font-semibold">{linkCopied ? "Enlace copiado" : "Copiar enlace"}</span>
                     </button>
                     <button onClick={(e) => { e.stopPropagation(); setShowReport(true); setIsPaused(true); closeMenu(); }} className="flex items-center gap-4 w-full p-4 hover:bg-red-500/20 text-red-500 transition-colors text-left border-b border-white/10">
                       <Flag className="w-6 h-6" /> <span className="font-semibold">Reportar</span>
