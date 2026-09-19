@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache"
 import { trackEvent } from "@/app/actions/analytics"
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
+import { createClient as createAdminClient } from "@supabase/supabase-js"
 
 export async function createQuickRecipe(formData: FormData) {
   const supabase = await createClient()
@@ -52,7 +53,7 @@ export async function getCatalogs() {
   
   const [styles, varieties, vessels, heats, units, ingredients] = await Promise.all([
     supabase.from("rice_styles").select("*"),
-    supabase.from("rice_varieties").select("*"),
+    supabase.from("rice_varieties").select("*").order("name"),
     supabase.from("vessel_types").select("*"),
     supabase.from("heat_sources").select("*"),
     supabase.from("units").select("*"),
@@ -584,3 +585,58 @@ export async function findRecipesByIngredientsAction(userIngredientIds: string[]
 
   return results
 }
+
+export async function getOrCreateRiceVariety(name: string) {
+  const trimmed = name?.trim();
+  if (!trimmed) {
+    throw new Error("El nombre de la variedad no puede estar vacío");
+  }
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("No autorizado");
+
+  // Check if variety already exists (case-insensitive)
+  const { data: existing } = await supabase
+    .from("rice_varieties")
+    .select("id, name")
+    .ilike("name", trimmed)
+    .maybeSingle();
+
+  if (existing) {
+    return existing;
+  }
+
+  // Capitalize first letter of each word or standard capitalization
+  const formattedName = trimmed.charAt(0).toUpperCase() + trimmed.slice(1);
+
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const client = serviceKey
+    ? createAdminClient(process.env.NEXT_PUBLIC_SUPABASE_URL || '', serviceKey)
+    : supabase;
+
+  const { data: created, error: insertError } = await client
+    .from("rice_varieties")
+    .insert({ name: formattedName })
+    .select("id, name")
+    .single();
+
+  if (insertError) {
+    // Retry finding in case of race condition or duplicate
+    const { data: retryData } = await supabase
+      .from("rice_varieties")
+      .select("id, name")
+      .ilike("name", formattedName)
+      .maybeSingle();
+
+    if (retryData) {
+      return retryData;
+    }
+    console.error("Error creating rice variety:", insertError);
+    throw new Error("No se pudo guardar la nueva variedad de arroz");
+  }
+
+  revalidatePath("/recipes", "layout");
+  revalidatePath("/discover");
+  return created;
+}

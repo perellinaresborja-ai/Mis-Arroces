@@ -20,6 +20,7 @@ import { RecipeMediaManager, MediaItem } from "./RecipeMediaManager"
 import { StepMediaManager, StepMediaItem } from "./StepMediaManager"
 import { uploadMedia } from "@/services/media/client"
 import { validateRecipeForPublishing } from "@/lib/recipe-validator"
+import { RiceVarietySelect } from "@/components/domain/recipes/RiceVarietySelect"
 
 
 function CollapsibleSection({ id, title, defaultOpen = false, forceOpen, children, rightAction }: { id?: string, title: React.ReactNode, defaultOpen?: boolean, forceOpen?: boolean, children: React.ReactNode, rightAction?: React.ReactNode }) {
@@ -390,10 +391,12 @@ export default function EditRecipeForm({ recipe, catalogs }: { recipe: any, cata
             </div>
             <div className="space-y-2">
               <Label>Variedad de Arroz</Label>
-              <select {...register("variety_id")} className="w-full h-10 px-3 rounded-md border border-input bg-background">
-                <option value="">Selecciona...</option>
-                {catalogs.varieties.map((v: any) => <option key={v.id} value={v.id}>{v.name}</option>)}
-              </select>
+              <RiceVarietySelect
+                value={watch("variety_id")}
+                onChange={(val) => setValue("variety_id", val, { shouldDirty: true, shouldValidate: true })}
+                initialVarieties={catalogs.varieties || []}
+              />
+              <input type="hidden" {...register("variety_id")} />
             </div>
             <div className="space-y-2">
               <Label>Fuente de calor</Label>
