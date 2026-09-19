@@ -1945,6 +1945,7 @@ export type Database = {
           style_id: string | null
           updated_at: string
           variety_id: string | null
+          custom_variety: string | null
           visibility: Database["public"]["Enums"]["visibility_level_enum"]
         }
         Insert: {
@@ -1972,6 +1973,7 @@ export type Database = {
           style_id?: string | null
           updated_at?: string
           variety_id?: string | null
+          custom_variety?: string | null
           visibility?: Database["public"]["Enums"]["visibility_level_enum"]
         }
         Update: {
@@ -1999,6 +2001,7 @@ export type Database = {
           style_id?: string | null
           updated_at?: string
           variety_id?: string | null
+          custom_variety?: string | null
           visibility?: Database["public"]["Enums"]["visibility_level_enum"]
         }
         Relationships: [

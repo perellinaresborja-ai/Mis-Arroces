@@ -216,7 +216,8 @@ export default async function RecipeDetailPage({
     if (!hasStock && recipe.stock_qty) queries.push({ type: 'caldo', qty: recipe.stock_qty });
     
     for (const q of queries) {
-      const searchName = (q.type === 'arroz' && recipe.variety?.name) ? `arroz ${recipe.variety.name.toLowerCase()}` : q.type;
+      const varietyLabel = recipe.variety?.name || recipe.custom_variety;
+      const searchName = (q.type === 'arroz' && varietyLabel) ? `arroz ${varietyLabel.toLowerCase()}` : q.type;
       let { data: defaultIng } = await supabase.from('ingredients')
         .select('*')
         .ilike('normalized_name', `%${searchName}%`)

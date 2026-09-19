@@ -73,6 +73,7 @@ export default function EditRecipeForm({ recipe, catalogs }: { recipe: any, cata
       scheduled_for: recipe.scheduled_for || "",
       style_id: recipe.style_id || "",
       variety_id: recipe.variety_id || "",
+      custom_variety: recipe.custom_variety || "",
       heat_source_id: recipe.heat_source_id || "",
       base_servings: recipe.base_servings || "",
       rice_qty: recipe.rice_qty || "",
@@ -392,11 +393,16 @@ export default function EditRecipeForm({ recipe, catalogs }: { recipe: any, cata
             <div className="space-y-2">
               <Label>Variedad de Arroz</Label>
               <RiceVarietySelect
-                value={watch("variety_id")}
-                onChange={(val) => setValue("variety_id", val, { shouldDirty: true, shouldValidate: true })}
+                varietyId={watch("variety_id")}
+                customVariety={watch("custom_variety")}
+                onChange={({ varietyId, customVariety }) => {
+                  setValue("variety_id", varietyId || "", { shouldDirty: true, shouldValidate: true })
+                  setValue("custom_variety", customVariety || "", { shouldDirty: true, shouldValidate: true })
+                }}
                 initialVarieties={catalogs.varieties || []}
               />
               <input type="hidden" {...register("variety_id")} />
+              <input type="hidden" {...register("custom_variety")} />
             </div>
             <div className="space-y-2">
               <Label>Fuente de calor</Label>

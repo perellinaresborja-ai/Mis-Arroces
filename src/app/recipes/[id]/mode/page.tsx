@@ -19,7 +19,7 @@ export default async function RecipeCookModePage({ params, searchParams }: { par
   const { data: recipe, error } = await supabase
     .from("recipes")
     .select(`
-      id, name, rice_qty, stock_qty, base_servings, rest_time,
+      id, name, rice_qty, stock_qty, base_servings, rest_time, custom_variety,
       variety:rice_varieties(name),
       recipe_vessels(diameter_cm),
       steps:recipe_steps(*, media:media_assets(storage_path)),
@@ -79,7 +79,7 @@ export default async function RecipeCookModePage({ params, searchParams }: { par
     scale_ratio: scaleRatio,
     rice_qty: recipe.rice_qty ? recipe.rice_qty * scaleRatio : null,
     stock_qty: recipe.stock_qty ? recipe.stock_qty * scaleRatio : null,
-    variety_name: (recipe.variety as any)?.name || null,
+    variety_name: (recipe.variety as any)?.name || recipe.custom_variety || null,
     diameter_cm: recipe.recipe_vessels?.[0]?.diameter_cm || null,
     steps: sortedSteps,
   }
