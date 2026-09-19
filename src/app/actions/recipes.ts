@@ -75,11 +75,29 @@ export async function updateRecipeStatus(id: string, status: string, scheduledFo
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("Auth");
 
-  // Validate base_servings when publishing
+  // Validate integrity when publishing
   if (status === 'PUBLISHED') {
-    const { data: rec } = await supabase.from("recipes").select("base_servings").eq("id", id).maybeSingle();
-    if (!rec || !rec.base_servings || rec.base_servings <= 0) {
-      throw new Error("Debes indicar el número de comensales antes de publicar la receta.");
+    const { data: rec, error: recError } = await supabase
+      .from("recipes")
+      .select("name, base_servings, recipe_ingredients(display_text, normalized_quantity, unit_id), recipe_steps(instruction, duration_minutes, notes)")
+      .eq("id", id)
+      .eq("owner_id", user.id)
+      .maybeSingle();
+
+    if (recError || !rec) {
+      throw new Error("No se ha podido cargar la receta para verificar su integridad.");
+    }
+
+    const { validateRecipeForPublishing } = require("@/lib/recipe-validator");
+    const validation = validateRecipeForPublishing({
+      name: rec.name,
+      base_servings: rec.base_servings,
+      ingredients: rec.recipe_ingredients,
+      steps: rec.recipe_steps,
+    });
+
+    if (!validation.isValid) {
+      throw new Error("No se puede publicar la receta: " + validation.errorList.join(" "));
     }
   }
 
@@ -119,9 +137,19 @@ export async function updateRecipeFull(id: string, data: any) {
     if (baseData[key] === '') baseData[key] = null;
   }
 
-  // Validate base_servings when publishing
-  if (baseData.status === 'PUBLISHED' && (!baseData.base_servings || Number(baseData.base_servings) <= 0)) {
-    throw new Error("Debes indicar el número de comensales antes de publicar la receta.");
+  // Validate integrity when publishing or when keeping an already published recipe in PUBLISHED status
+  if (baseData.status === 'PUBLISHED') {
+    const { validateRecipeForPublishing } = require("@/lib/recipe-validator");
+    const validation = validateRecipeForPublishing({
+      name: baseData.name,
+      base_servings: baseData.base_servings,
+      ingredients: ingredients,
+      steps: steps,
+    });
+
+    if (!validation.isValid) {
+      throw new Error("No se puede guardar como publicada: " + validation.errorList.join(" "));
+    }
   }
   
   const { data: updatedRecipe, error: recipeError } = await supabase

@@ -17,6 +17,7 @@ export function OwnerRecipeActions({ recipeId, status, scheduledFor, primaryMedi
   const [scheduleDate, setScheduleDate] = useState("")
   const [menuOpen, setMenuOpen] = useState(false)
   const [insightsOpen, setInsightsOpen] = useState(false)
+  const [publishError, setPublishError] = useState<string | null>(null)
   const menuRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -31,8 +32,11 @@ export function OwnerRecipeActions({ recipeId, status, scheduledFor, primaryMedi
 
   const handlePublishNow = async () => {
     setIsLoading(true)
+    setPublishError(null)
     try {
       await updateRecipeStatus(recipeId, 'PUBLISHED', null)
+    } catch (err: any) {
+      setPublishError(err?.message || "Error al publicar la receta.")
     } finally {
       setIsLoading(false)
     }
@@ -41,10 +45,13 @@ export function OwnerRecipeActions({ recipeId, status, scheduledFor, primaryMedi
   const handleSchedule = async () => {
     if (!scheduleDate) return
     setIsLoading(true)
+    setPublishError(null)
     try {
       const iso = new Date(scheduleDate).toISOString()
       await updateRecipeStatus(recipeId, 'PUBLISHED', iso)
       setShowSchedule(false)
+    } catch (err: any) {
+      setPublishError(err?.message || "Error al programar la receta.")
     } finally {
       setIsLoading(false)
     }
@@ -52,9 +59,12 @@ export function OwnerRecipeActions({ recipeId, status, scheduledFor, primaryMedi
 
   const handleRevertDraft = async () => {
     setIsLoading(true)
+    setPublishError(null)
     setMenuOpen(false)
     try {
       await updateRecipeStatus(recipeId, 'DRAFT', null)
+    } catch (err: any) {
+      setPublishError(err?.message || "Error al pasar a borrador.")
     } finally {
       setIsLoading(false)
     }
@@ -127,6 +137,13 @@ export function OwnerRecipeActions({ recipeId, status, scheduledFor, primaryMedi
           )}
         </div>
       </div>
+
+      {publishError && (
+        <div className="mb-4 p-3 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-sm font-medium flex items-center justify-between">
+          <span>{publishError}</span>
+          <button onClick={() => setPublishError(null)} className="text-xs underline ml-2">Cerrar</button>
+        </div>
+      )}
 
       {!showSchedule ? (
         <div className="flex flex-wrap gap-2 items-center">

@@ -12,19 +12,27 @@ import { calculateNutrition } from "@/lib/nutrition"
 import { EscandalloSection } from "@/components/domain/EscandalloSection"
 
 import { AddToCartButton } from "@/components/domain/AddToCartButton"
-import { Save, Plus, Trash2, GripVertical, ChevronDown, ChevronUp, Check, Clock, EyeOff, Calendar } from "lucide-react"
+import { Save, Plus, Trash2, GripVertical, ChevronDown, ChevronUp, Check, Clock, EyeOff, Calendar, AlertCircle } from "lucide-react"
 import { updateRecipeFull } from "@/app/actions/recipes"
 import { extractRealRiceGrams, calculateLayer, getRecommendedDiameter, LayerType } from "@/lib/paella-calculator"
 import { cn, formatUnitSymbol } from "@/lib/utils"
 import { RecipeMediaManager, MediaItem } from "./RecipeMediaManager"
 import { StepMediaManager, StepMediaItem } from "./StepMediaManager"
 import { uploadMedia } from "@/services/media/client"
+import { validateRecipeForPublishing } from "@/lib/recipe-validator"
 
 
-function CollapsibleSection({ title, defaultOpen = false, children, rightAction }: { title: React.ReactNode, defaultOpen?: boolean, children: React.ReactNode, rightAction?: React.ReactNode }) {
+function CollapsibleSection({ id, title, defaultOpen = false, forceOpen, children, rightAction }: { id?: string, title: React.ReactNode, defaultOpen?: boolean, forceOpen?: boolean, children: React.ReactNode, rightAction?: React.ReactNode }) {
   const [isOpen, setIsOpen] = React.useState(defaultOpen)
+
+  React.useEffect(() => {
+    if (forceOpen) {
+      setIsOpen(true)
+    }
+  }, [forceOpen])
+
   return (
-    <div className="bg-card border border-border rounded-2xl shadow-sm overflow-hidden mb-8">
+    <div id={id} className="bg-card border border-border rounded-2xl shadow-sm overflow-hidden mb-8 scroll-mt-24">
       <div className="flex justify-between items-center w-full p-4 md:p-6 hover:bg-muted/30 transition-colors bg-card cursor-pointer" onClick={() => setIsOpen(!isOpen)}>
         <h2 className="font-bold text-lg text-charcoal flex-1">{title}</h2>
         <div className="flex items-center gap-4">
@@ -46,6 +54,8 @@ export default function EditRecipeForm({ recipe, catalogs }: { recipe: any, cata
   console.log("RECIPE MOUNT MEDIA:", recipe.recipe_media);
   const [isSaving, setIsSaving] = useState(false)
   const [targetLayer, setTargetLayer] = useState<LayerType>('Fina')
+  const [validationErrors, setValidationErrors] = useState<string[]>([])
+  const [openSections, setOpenSections] = useState<{ basic?: boolean, technical?: boolean, ingredients?: boolean, steps?: boolean }>({})
   
   const initialScheduledFor = recipe.scheduled_for ? new Date(recipe.scheduled_for).toISOString().slice(0,16) : ""
   const [scheduleDate, setScheduleDate] = useState(initialScheduledFor)
@@ -111,39 +121,81 @@ export default function EditRecipeForm({ recipe, catalogs }: { recipe: any, cata
     }
   }
 
+  const scrollToErrorField = (field: 'name' | 'base_servings' | 'ingredients' | 'steps') => {
+    if (field === 'name') {
+      setOpenSections(prev => ({ ...prev, basic: true }))
+      setTimeout(() => {
+        const el = document.getElementById('field-recipe-name')
+        el?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        el?.focus()
+      }, 100)
+    } else if (field === 'base_servings') {
+      setOpenSections(prev => ({ ...prev, technical: true }))
+      setTimeout(() => {
+        const el = document.getElementById('field-base-servings')
+        el?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        el?.focus()
+      }, 100)
+    } else if (field === 'ingredients') {
+      setOpenSections(prev => ({ ...prev, ingredients: true }))
+      setTimeout(() => {
+        const el = document.getElementById('section-ingredients')
+        el?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      }, 100)
+    } else if (field === 'steps') {
+      setOpenSections(prev => ({ ...prev, steps: true }))
+      setTimeout(() => {
+        const el = document.getElementById('section-steps')
+        el?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      }, 100)
+    }
+  }
+
   const submitWithAction = async (action: 'DRAFT' | 'PUBLISH' | 'SCHEDULE' | 'UPDATE') => {
     let finalStatus = recipe.status
     let finalScheduledFor = recipe.scheduled_for || null
 
-    if (action === 'PUBLISH' || action === 'SCHEDULE') {
-      const currentServings = getValues('base_servings')
-      if (!currentServings || Number(currentServings) <= 0) {
-        return alert("Por favor, indica el número de comensales antes de publicar la receta.")
-      }
-    }
-
     if (action === 'DRAFT') {
       finalStatus = 'DRAFT'
       finalScheduledFor = null
+      setValidationErrors([])
     } else if (action === 'PUBLISH') {
       finalStatus = 'PUBLISHED'
       finalScheduledFor = null
     } else if (action === 'SCHEDULE') {
-      if (!scheduleDate) return alert("Por favor, selecciona una fecha y hora para programar.")
+      if (!scheduleDate) {
+        setValidationErrors(["Por favor, selecciona una fecha y hora para programar la publicación."])
+        window.scrollTo({ top: 0, behavior: 'smooth' })
+        return
+      }
       finalStatus = 'PUBLISHED'
       finalScheduledFor = new Date(scheduleDate).toISOString()
     } else if (action === 'UPDATE') {
-      // Keep existing status and scheduled_for
       finalStatus = recipe.status
       finalScheduledFor = recipe.scheduled_for
-      if (finalStatus === 'PUBLISHED') {
-        const currentServings = getValues('base_servings')
-        if (!currentServings || Number(currentServings) <= 0) {
-          return alert("Una receta publicada debe tener indicado el número de comensales.")
+    }
+
+    // Client-side integrity check if destination or current status is PUBLISHED
+    if (finalStatus === 'PUBLISHED') {
+      const currentValues = getValues()
+      const validation = validateRecipeForPublishing({
+        name: currentValues.name,
+        base_servings: currentValues.base_servings,
+        ingredients: currentValues.ingredients,
+        steps: currentValues.steps
+      })
+
+      if (!validation.isValid) {
+        setValidationErrors(validation.errorList)
+        window.scrollTo({ top: 0, behavior: 'smooth' })
+        if (validation.issues.length > 0) {
+          scrollToErrorField(validation.issues[0].field)
         }
+        return
       }
     }
 
+    setValidationErrors([])
     setValue('status', finalStatus)
     setValue('scheduled_for', finalScheduledFor)
 
@@ -184,8 +236,6 @@ export default function EditRecipeForm({ recipe, catalogs }: { recipe: any, cata
           }
         }
 
-
-      
         // Strip out File objects to avoid Next.js payload limits
         const cleanData = { ...data };
         if (cleanData.steps) {
@@ -196,14 +246,13 @@ export default function EditRecipeForm({ recipe, catalogs }: { recipe: any, cata
           });
         }
         await updateRecipeFull(recipe.id, cleanData)
-
-      
     } catch (err: any) {
       if (err?.message?.includes('NEXT_REDIRECT') || err?.digest?.includes('NEXT_REDIRECT')) {
         throw err;
       }
       console.error(err)
-      alert("Error: " + (err.message || JSON.stringify(err)))
+      setValidationErrors([err.message || "Error guardando la receta."])
+      window.scrollTo({ top: 0, behavior: 'smooth' })
       setIsSaving(false)
     }
   }
@@ -271,11 +320,26 @@ export default function EditRecipeForm({ recipe, catalogs }: { recipe: any, cata
   
   return (
   <form onSubmit={(e) => e.preventDefault()} className="space-y-8 pb-32">
+      {/* Banner de Errores de Validación */}
+      {validationErrors.length > 0 && (
+        <div id="validation-error-banner" className="bg-destructive/10 border border-destructive/30 text-destructive p-5 rounded-2xl shadow-sm">
+          <div className="flex items-center gap-2 mb-2 font-bold text-base">
+            <AlertCircle className="w-5 h-5 shrink-0" />
+            <span>Para publicar la receta y que pueda cocinarse, completa lo siguiente:</span>
+          </div>
+          <ul className="list-disc list-inside space-y-1 text-sm pl-1">
+            {validationErrors.map((err, i) => (
+              <li key={i}>{err}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       <div className="space-y-8">
         {/* Basic Info */}
-        <CollapsibleSection title="Información Básica" defaultOpen={true}>
+        <CollapsibleSection id="section-basic" title="Información Básica" defaultOpen={true} forceOpen={openSections.basic}>
           <div className="space-y-2 mb-6">
-            <Label>Foto de Portada (Obligatoria)</Label>
+            <Label>Foto de Portada (Opcional)</Label>
             <RecipeMediaManager 
                 initialMedia={recipe.recipe_media || recipe.media || []}
                 onChange={setMediaItems}
@@ -284,8 +348,8 @@ export default function EditRecipeForm({ recipe, catalogs }: { recipe: any, cata
 
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label>Nombre</Label>
-              <Input {...register("name", { required: true })} />
+              <Label htmlFor="field-recipe-name">Nombre</Label>
+              <Input id="field-recipe-name" {...register("name", { required: true })} />
             </div>
             
             <div className="space-y-2">
@@ -314,7 +378,7 @@ export default function EditRecipeForm({ recipe, catalogs }: { recipe: any, cata
         </CollapsibleSection>
 
         {/* Technical Details */}
-        <CollapsibleSection title="Detalles Técnicos">
+        <CollapsibleSection id="section-technical" title="Detalles Técnicos" forceOpen={openSections.technical}>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
             <div className="space-y-2">
@@ -352,8 +416,8 @@ export default function EditRecipeForm({ recipe, catalogs }: { recipe: any, cata
 
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4 pt-4 border-t border-border/50 mt-4">
             <div className="space-y-2">
-              <Label>Comensales</Label>
-              <Input type="number" placeholder="Pendiente de definir" {...register("base_servings")} />
+              <Label htmlFor="field-base-servings">Comensales</Label>
+              <Input id="field-base-servings" type="number" placeholder="Pendiente de definir" {...register("base_servings")} />
             </div>
             <div className="space-y-2">
               <Label>Cocción (min)</Label>
@@ -451,7 +515,7 @@ export default function EditRecipeForm({ recipe, catalogs }: { recipe: any, cata
         </CollapsibleSection>
 
         {/* Ingredients */}
-        <CollapsibleSection title="Ingredientes" rightAction={
+        <CollapsibleSection id="section-ingredients" title="Ingredientes" forceOpen={openSections.ingredients} rightAction={
             <div className="flex items-center gap-1">
               <AddToCartButton recipeId={recipe.id} isAuthenticated={true} layout="icon" />
               <Button type="button" variant="outline" size="sm" onClick={() => appendIng({ display_text: "", normalized_quantity: "", unit_id: "", is_scalable: true })}>
@@ -502,7 +566,7 @@ export default function EditRecipeForm({ recipe, catalogs }: { recipe: any, cata
         <EscandalloSection recipeId={recipe.id} initialIngredients={ingFields} catalogs={catalogs} baseServings={Number(watch("base_servings") || 2)} setValue={setValue} />
 
           {/* Steps */}
-        <CollapsibleSection title="Pasos de Elaboración" rightAction={<Button type="button" variant="outline" size="sm" onClick={() => appendStep({ instruction: "", duration_minutes: "", notes: "" })}>
+        <CollapsibleSection id="section-steps" title="Pasos de Elaboración" forceOpen={openSections.steps} rightAction={<Button type="button" variant="outline" size="sm" onClick={() => appendStep({ instruction: "", duration_minutes: "", notes: "" })}>
                <Plus className="w-4 h-4 mr-1" /> Añadir
              </Button>}>
           <div className="space-y-4">
@@ -602,17 +666,58 @@ export default function EditRecipeForm({ recipe, catalogs }: { recipe: any, cata
       </div>
 
       <div className="fixed bottom-0 left-0 right-0 p-4 bg-background/90 backdrop-blur-md border-t border-border z-50">
-        <div className="max-w-3xl mx-auto flex justify-end">
-          <Button 
-            type="button" 
-            variant="default"
-            className="w-full md:w-auto h-12 rounded-xl font-bold px-8" 
-            onClick={() => submitWithAction('UPDATE')}
-            disabled={isSaving}
-          >
-            <Save className="w-5 h-5 mr-2" />
-            {isSaving ? "Guardando..." : "Guardar receta"}
-          </Button>
+        <div className="max-w-3xl mx-auto flex flex-col-reverse sm:flex-row items-center justify-between gap-3">
+          {/* Left: Revert to draft if currently published */}
+          <div>
+            {recipe.status === 'PUBLISHED' ? (
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full sm:w-auto h-11 rounded-xl text-muted-foreground hover:text-destructive border-border hover:border-destructive/30"
+                onClick={() => submitWithAction('DRAFT')}
+                disabled={isSaving}
+              >
+                Pasar a Borrador
+              </Button>
+            ) : (
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full sm:w-auto h-11 rounded-xl text-muted-foreground border-border"
+                onClick={() => submitWithAction('DRAFT')}
+                disabled={isSaving}
+              >
+                Guardar Borrador
+              </Button>
+            )}
+          </div>
+
+          {/* Right: Primary save/publish action */}
+          <div className="flex items-center gap-3 w-full sm:w-auto">
+            {recipe.status === 'PUBLISHED' ? (
+              <Button 
+                type="button" 
+                variant="default"
+                className="w-full sm:w-auto h-11 rounded-xl font-bold px-8 bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm" 
+                onClick={() => submitWithAction('UPDATE')}
+                disabled={isSaving}
+              >
+                <Save className="w-5 h-5 mr-2" />
+                {isSaving ? "Guardando..." : "Guardar cambios"}
+              </Button>
+            ) : (
+              <Button 
+                type="button" 
+                variant="default"
+                className="w-full sm:w-auto h-11 rounded-xl font-bold px-8 bg-[#E69A21] hover:bg-[#E69A21]/90 text-white shadow-sm" 
+                onClick={() => submitWithAction('PUBLISH')}
+                disabled={isSaving}
+              >
+                <Save className="w-5 h-5 mr-2" />
+                {isSaving ? "Publicando..." : "Publicar receta"}
+              </Button>
+            )}
+          </div>
         </div>
       </div>
     </form>
