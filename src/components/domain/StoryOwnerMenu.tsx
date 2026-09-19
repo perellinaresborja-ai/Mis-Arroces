@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { BarChart2, Link as LinkIcon, Star, Trash2, Check } from "lucide-react"
+import { BarChart2, Link as LinkIcon, Star, Trash2, Check, Share2 } from "lucide-react"
 import { deleteStory } from "@/app/actions/stories"
 import { ConfirmModal } from "@/components/ui/ConfirmModal"
 
@@ -11,9 +11,10 @@ interface StoryOwnerMenuProps {
   onDeleted: () => void;
   onOpenInsights: () => void;
   onOpenHighlight: () => void;
+  onOpenShare?: () => void;
 }
 
-export function StoryOwnerMenu({ storyId, onClose, onDeleted, onOpenInsights, onOpenHighlight }: StoryOwnerMenuProps) {
+export function StoryOwnerMenu({ storyId, onClose, onDeleted, onOpenInsights, onOpenHighlight, onOpenShare }: StoryOwnerMenuProps) {
   const [isDeleting, setIsDeleting] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -69,6 +70,13 @@ export function StoryOwnerMenu({ storyId, onClose, onDeleted, onOpenInsights, on
           <Star className="w-5 h-5 text-amber-500 fill-amber-500/20" />
           <span>Añadir a destacadas</span>
         </button>
+
+        {onOpenShare && (
+          <button onClick={() => { onClose(); onOpenShare(); }} className="flex items-center gap-3 p-3 hover:bg-muted rounded-2xl font-medium transition-colors text-sm">
+            <Share2 className="w-5 h-5 text-primary" />
+            <span>Compartir</span>
+          </button>
+        )}
         
         <button onClick={handleCopyLink} className="flex items-center gap-3 p-3 hover:bg-muted rounded-2xl font-medium transition-colors text-sm">
           <LinkIcon className="w-5 h-5" />

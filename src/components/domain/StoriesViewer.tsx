@@ -346,7 +346,14 @@ export function StoriesViewer({ groupedStories: _groupedStories, initialGroupInd
           
           {showShare && (
             <div className="absolute inset-0 z-[70] pointer-events-auto">
-              <ShareDMModal isOpen={showShare} onClose={() => { setShowShare(false); setIsPaused(false); }} entityType="STORY" entityId={currentStory.id} />
+              <ShareDMModal 
+                isOpen={showShare} 
+                onClose={() => { setShowShare(false); setIsPaused(false); }} 
+                entityType="STORY" 
+                entityId={currentStory.id} 
+                caption={currentStory?.caption}
+                authorName={currentGroup?.author?.display_name || currentGroup?.author?.username}
+              />
             </div>
           )}
 
@@ -434,6 +441,13 @@ export function StoriesViewer({ groupedStories: _groupedStories, initialGroupInd
                >
                  <BarChart2 className="w-4 h-4" />
                  Estadísticas
+               </button>
+               <button 
+                 onClick={(e) => { e.stopPropagation(); setShowShare(true); setIsPaused(true); }}
+                 className="flex items-center gap-2 px-4 py-2 bg-black/40 hover:bg-black/60 backdrop-blur-md rounded-full text-sm font-bold border border-white/20 transition-colors"
+               >
+                 <Share2 className="w-4 h-4" />
+                 Compartir
                </button>
             </div>
           )}
@@ -564,6 +578,7 @@ export function StoriesViewer({ groupedStories: _groupedStories, initialGroupInd
               onDeleted={onClose}
               onOpenInsights={() => { setInsightsOpen(true); }}
               onOpenHighlight={() => { setHighlightModalOpen(true); }}
+              onOpenShare={() => { setShowShare(true); }}
             />
           )}
           {highlightModalOpen && isMe && (

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { ProfileAvatar } from "@/components/domain/ProfileAvatar"
 import { StoriesViewer } from "./StoriesViewer"
@@ -14,6 +14,19 @@ import { User } from "lucide-react"
 export function StoriesBar({ groupedStories, currentUser }: { groupedStories: any[], currentUser: any }) {
   const [activeGroupIndex, setActiveGroupIndex] = useState<number | null>(null)
   const router = useRouter()
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && groupedStories && groupedStories.length > 0) {
+      const params = new URLSearchParams(window.location.search)
+      const storyId = params.get("story")
+      if (storyId) {
+        const foundIndex = groupedStories.findIndex(g => g.stories?.some((s: any) => s.id === storyId))
+        if (foundIndex !== -1) {
+          setActiveGroupIndex(foundIndex)
+        }
+      }
+    }
+  }, [groupedStories])
 
   const handleAddClick = (e: React.MouseEvent) => {
     e.stopPropagation();
