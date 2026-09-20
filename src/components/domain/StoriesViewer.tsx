@@ -213,8 +213,8 @@ export function StoriesViewer({ groupedStories: _groupedStories, initialGroupInd
     let step = 0
 
     if (!isVideo) {
-      // Image: 5 seconds advance
-      const duration = 5000
+      // Image: dynamic duration based on music or 5 seconds default
+      const duration = currentStory.music_config?.duration_ms || 5000
       const interval = 50
       timer = setInterval(() => {
         step += (interval / duration) * 100

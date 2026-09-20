@@ -13,7 +13,7 @@ export interface MusicTrack {
   category: string
 }
 
-export function StoryMusicSelector({ onSelect, onClose, maxDurationMs }: { onSelect: (config: any) => void, onClose: () => void, maxDurationMs: number }) {
+export function StoryMusicSelector({ onSelect, onClose, maxDurationMs, isVideo = false }: { onSelect: (config: any) => void, onClose: () => void, maxDurationMs: number, isVideo?: boolean }) {
   const [tracks, setTracks] = useState<MusicTrack[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState("")
@@ -22,6 +22,7 @@ export function StoryMusicSelector({ onSelect, onClose, maxDurationMs }: { onSel
   // Fragment selector state
   const [startTimeMs, setStartTimeMs] = useState(0)
   const [volume, setVolume] = useState(1)
+  const [photoDurationMs, setPhotoDurationMs] = useState(5000)
   
   // Audio playback state
   const audioRef = useRef<HTMLAudioElement | null>(null)
@@ -75,6 +76,7 @@ export function StoryMusicSelector({ onSelect, onClose, maxDurationMs }: { onSel
   const handleSelectTrack = (track: MusicTrack) => {
     if (audioRef.current) {
       audioRef.current.pause()
+      audioRef.current = null
       setIsPlaying(false)
     }
     setSelectedTrack(track)
@@ -83,13 +85,14 @@ export function StoryMusicSelector({ onSelect, onClose, maxDurationMs }: { onSel
 
   const handleConfirm = () => {
     if (!selectedTrack) return
-    const actualDuration = Math.min(maxDurationMs, selectedTrack.duration_ms - startTimeMs)
+    const targetDuration = isVideo ? maxDurationMs : photoDurationMs;
+    const actualDuration = Math.min(targetDuration, selectedTrack.duration_ms - startTimeMs)
     onSelect({
       track_id: selectedTrack.id,
       start_time_ms: startTimeMs,
       duration_ms: actualDuration,
       music_volume: volume,
-      _trackMeta: selectedTrack // purely for UI to show title if needed, won't go to DB
+      _trackMeta: selectedTrack
     })
   }
 
@@ -212,6 +215,24 @@ export function StoryMusicSelector({ onSelect, onClose, maxDurationMs }: { onSel
                 className="w-full accent-white"
               />
             </div>
+
+            {!isVideo && (
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center gap-2 text-white/70 justify-between">
+                  <span className="text-sm">Duración de la historia</span>
+                  <span className="text-sm font-bold text-white">{photoDurationMs / 1000}s</span>
+                </div>
+                <input 
+                  type="range"
+                  min={5000}
+                  max={15000}
+                  step={1000}
+                  value={photoDurationMs}
+                  onChange={e => setPhotoDurationMs(parseInt(e.target.value))}
+                  className="w-full accent-white"
+                />
+              </div>
+            )}
 
             <button 
               onClick={handleConfirm}
