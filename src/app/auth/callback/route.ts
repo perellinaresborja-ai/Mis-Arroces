@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { generateAvailableUsername } from '@/lib/username'
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)
@@ -16,9 +17,10 @@ export async function GET(request: Request) {
       // Auto-create missing profile just in case
       const { data: profile } = await supabase.from("profiles").select("username").eq("id", session.user.id).single()
       if (!profile) {
+        const autoUsername = await generateAvailableUsername(supabase, "arrocero")
         await supabase.from("profiles").insert({
           id: session.user.id,
-          username: `arrocero${Math.floor(Math.random() * 1000000)}`,
+          username: autoUsername,
           display_name: 'Chef Arrocero',
           account_type: 'PERSONAL',
           privacy_level: 'PUBLIC'

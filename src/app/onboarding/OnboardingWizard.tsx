@@ -1,11 +1,11 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { completeOnboardingAction, updateOnboardingProfile } from "./actions"
-import { Camera, Check, UserPlus } from "lucide-react"
+import { completeOnboardingAction, updateOnboardingProfile, checkUsernameAvailabilityAction, getSuggestedUsernameAction } from "./actions"
+import { Camera, Check, UserPlus, Loader2, Sparkles } from "lucide-react"
 import { toggleFollow } from "@/app/actions/social"
 import { acceptActiveLegalDocuments } from "@/app/actions/legal"
 import Link from "next/link"
@@ -21,21 +21,75 @@ export function OnboardingWizard({ initialProfile, inviter, suggestions, inviteC
   // Step 1 State
   const [username, setUsername] = useState(initialProfile?.username || "")
   const [displayName, setDisplayName] = useState(initialProfile?.display_name || "")
+  const [checkingUsername, setCheckingUsername] = useState(false)
+  const [usernameStatus, setUsernameStatus] = useState<{ available?: boolean; message?: string } | null>(null)
+
+  // Real-time debounced check of username availability
+  useEffect(() => {
+    const cleanUser = (username || "").trim().toLowerCase().replace(/[^a-z0-9_.]/g, "")
+    if (!cleanUser) {
+      setUsernameStatus(null)
+      return
+    }
+
+    if (cleanUser.length < 3) {
+      setUsernameStatus({ available: false, message: "Mínimo 3 caracteres" })
+      return
+    }
+
+    setCheckingUsername(true)
+    const timer = setTimeout(async () => {
+      try {
+        const res = await checkUsernameAvailabilityAction(cleanUser)
+        if (res.available) {
+          setUsernameStatus({ available: true, message: "Nombre de usuario disponible" })
+        } else {
+          setUsernameStatus({ available: false, message: res.error || "Este nombre de usuario ya está en uso" })
+        }
+      } catch {
+        setUsernameStatus(null)
+      } finally {
+        setCheckingUsername(false)
+      }
+    }, 400)
+
+    return () => clearTimeout(timer)
+  }, [username])
+
+  const handleSuggestUsername = async () => {
+    try {
+      setCheckingUsername(true)
+      const res = await getSuggestedUsernameAction()
+      if (res.suggestion) {
+        setUsername(res.suggestion)
+      }
+    } catch {
+      // ignore
+    } finally {
+      setCheckingUsername(false)
+    }
+  }
 
   const handleProfileSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
-    if (!username.trim()) {
+    const cleanUser = (username || "").trim().toLowerCase().replace(/[^a-z0-9_.]/g, "")
+    if (!cleanUser) {
       setError("El nombre de usuario es obligatorio")
+      return
+    }
+    if (cleanUser.length < 3) {
+      setError("El nombre de usuario debe tener al menos 3 caracteres")
       return
     }
     
     setLoading(true)
-    const res = await updateOnboardingProfile({ username, displayName })
+    const res = await updateOnboardingProfile({ username: cleanUser, displayName })
     setLoading(false)
     
     if (res?.error) {
       setError(res.error)
+      setUsernameStatus({ available: false, message: res.error })
     } else {
       setStep(2)
     }
@@ -92,14 +146,52 @@ export function OnboardingWizard({ initialProfile, inviter, suggestions, inviteC
 
           <div className="space-y-4">
             <div>
-              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1 block">Usuario</label>
-              <Input 
-                value={username} 
-                onChange={e => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_.]/g, ''))} 
-                placeholder="usuario123"
-                className="rounded-xl h-12"
-              />
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground block">Usuario</label>
+                <button
+                  type="button"
+                  onClick={handleSuggestUsername}
+                  disabled={checkingUsername || loading}
+                  className="text-xs font-semibold text-primary hover:underline flex items-center gap-1 transition-colors"
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  Sugerir otro
+                </button>
+              </div>
+              <div className="relative flex items-center">
+                <span className="h-12 flex items-center justify-center px-3 bg-muted border border-r-0 border-input rounded-l-xl text-muted-foreground font-medium text-sm">
+                  @
+                </span>
+                <Input 
+                  value={username} 
+                  onChange={e => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_.]/g, ''))} 
+                  placeholder="usuario123"
+                  className={`rounded-l-none rounded-r-xl h-12 pr-10 font-medium ${
+                    usernameStatus?.available === false
+                      ? "border-destructive focus-visible:ring-destructive"
+                      : usernameStatus?.available === true
+                      ? "border-green-600 focus-visible:ring-green-600"
+                      : ""
+                  }`}
+                />
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                  {checkingUsername ? (
+                    <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+                  ) : usernameStatus?.available === true ? (
+                    <Check className="w-4 h-4 text-green-600" />
+                  ) : null}
+                </div>
+              </div>
+
+              {usernameStatus?.message && (
+                <p className={`text-xs mt-1.5 font-medium ${
+                  usernameStatus.available === true ? "text-green-600" : "text-destructive"
+                }`}>
+                  {usernameStatus.message}
+                </p>
+              )}
             </div>
+
             <div>
               <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1 block">Nombre (opcional)</label>
               <Input 

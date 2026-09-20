@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
+import { normalizeUsername, validateUsernameFormat, isUsernameAvailable } from "@/lib/username"
 
 export async function getMyHeaderData() {
   const supabase = await createClient()
@@ -38,12 +39,7 @@ export async function updateProfile(formData: FormData) {
   // Need to check current profile first to see if username changed
   const { data: currentProfile } = await supabase.from("profiles").select("username, last_username_update").eq("id", user.id).single()
 
-  const cleanUsername = username.toLowerCase().trim()
-  
-  const reservedNames = ['admin', 'administrator', 'misarroces', 'support', 'soporte', 'official', 'moderator', 'moderador', 'system']
-  if (reservedNames.includes(cleanUsername) && currentProfile?.username !== cleanUsername) {
-    throw new Error(`Este nombre de usuario no está disponible.`)
-  }
+  const cleanUsername = normalizeUsername(username)
 
   let updateData: any = {
     display_name: display_name ? display_name.trim() : null,
@@ -57,14 +53,23 @@ export async function updateProfile(formData: FormData) {
     updateData.avatar_media_id = mediaAssetId
   }
   
-  // if explicitly 'REMOVE', we set to null. If valid id, set it. Otherwise ignore.
   if (coverMediaId === 'REMOVE') {
     updateData.cover_media_id = null
   } else if (coverMediaId) {
     updateData.cover_media_id = coverMediaId
   }
-
+  
   if (currentProfile?.username !== cleanUsername) {
+    const validation = validateUsernameFormat(cleanUsername)
+    if (!validation.valid) {
+      throw new Error(validation.error || "Nombre de usuario inválido.")
+    }
+
+    const available = await isUsernameAvailable(supabase, cleanUsername, user.id)
+    if (!available) {
+      throw new Error("Este nombre de usuario ya está en uso")
+    }
+
     // Check 30 days cooldown
     if (currentProfile?.last_username_update) {
       const lastUpdate = new Date(currentProfile.last_username_update)
@@ -85,7 +90,7 @@ export async function updateProfile(formData: FormData) {
 
   if (error) {
     if (error.code === '23505') {
-      throw new Error(`@${cleanUsername} ya está ocupado.`)
+      throw new Error("Este nombre de usuario ya está en uso")
     }
     throw new Error(error.message)
   }

@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
 import { sendWelcomeEmail } from "@/lib/email"
+import { generateAvailableUsername } from "@/lib/username"
 
 export async function login(formData: FormData) {
   const supabase = await createClient()
@@ -33,10 +34,11 @@ export async function login(formData: FormData) {
       .single()
 
     if (!profile) {
-      // Auto-create missing profile
+      // Auto-create missing profile with guaranteed unique username
+      const autoUsername = await generateAvailableUsername(supabase, "arrocero")
       await supabase.from("profiles").insert({
         id: user.id,
-        username: `arrocero${Math.floor(Math.random() * 1000000)}`,
+        username: autoUsername,
         display_name: 'Chef Arrocero',
         account_type: 'PERSONAL',
         privacy_level: 'PUBLIC'
@@ -74,11 +76,9 @@ export async function signup(formData: FormData) {
   }
 
   if (data.user) {
-    // Generate an automatic username
-    const autoUsername = `arrocero${Math.floor(Math.random() * 1000000)}`
+    // Generate a guaranteed unique automatic username
+    const autoUsername = await generateAvailableUsername(supabase, "arrocero")
     
-    // Attempt to insert the profile. We ignore the error here because if it fails due to UNIQUE constraint, 
-    // it just means another random collision, but the user is already authenticated.
     await supabase.from("profiles").insert({
       id: data.user.id,
       username: autoUsername,
