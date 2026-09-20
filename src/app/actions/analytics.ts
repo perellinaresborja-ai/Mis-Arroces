@@ -13,14 +13,20 @@ export async function trackEvent(
 
     // 1. Visitor ID logic
     const cookieStore = await cookies()
-    let visitorId = cookieStore.get('misarroces_visitor_id')?.value
-    if (!visitorId) {
-      visitorId = uuidv4()
-      cookieStore.set('misarroces_visitor_id', visitorId, { 
-        maxAge: 60 * 60 * 24 * 365, // 1 year
-        httpOnly: true,
-        sameSite: 'lax'
-      })
+    const consent = cookieStore.get('cookie_consent')?.value
+    let visitorId = undefined
+
+    // Only use persistent visitor ID if they consented to analytics
+    if (consent === 'granted') {
+      visitorId = cookieStore.get('misarroces_visitor_id')?.value
+      if (!visitorId) {
+        visitorId = uuidv4()
+        cookieStore.set('misarroces_visitor_id', visitorId, { 
+          maxAge: 60 * 60 * 24 * 365, // 1 year
+          httpOnly: true,
+          sameSite: 'lax'
+        })
+      }
     }
 
     // 2. Delegate to Secure RPC

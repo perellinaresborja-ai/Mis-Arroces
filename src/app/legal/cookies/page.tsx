@@ -1,4 +1,5 @@
 import Link from "next/link"
+import { CookiePreferencesButton } from "@/components/domain/CookiePreferencesButton"
 
 export default function CookiesPage() {
   return (
@@ -21,42 +22,35 @@ export default function CookiesPage() {
 
         <h2 className="text-2xl font-bold text-foreground mt-8 mb-4">2. Cookies que utilizamos en MisArroces</h2>
         <p className="mb-4">
-          En la actualidad, nuestra Plataforma está diseñada bajo el principio de minimización y respeto a tu privacidad. <strong>Únicamente utilizamos tecnologías técnicas estrictamente necesarias</strong> para que la aplicación funcione y tecnologías analíticas de rendimiento técnico (first-party o exentas) que no recaban datos de identificación personal.
-        </p>
-        <p className="mb-4">
-          Por este motivo, de acuerdo a la Ley de Servicios de la Sociedad de la Información y de Comercio Electrónico (LSSI) y a las directrices de la Agencia Española de Protección de Datos (AEPD), nuestra Plataforma <strong>no requiere mostrar un banner de consentimiento previo</strong>, al estar exentas las cookies que utilizamos.
+          Utilizamos tecnologías propias y de terceros, que podemos clasificar según su finalidad en:
         </p>
 
-        <h3 className="text-xl font-semibold text-foreground mt-6 mb-3">Cookies y almacenamiento estrictamente necesario</h3>
+        <h3 className="text-xl font-semibold text-foreground mt-6 mb-3">Cookies y almacenamiento estrictamente necesario (Exentas)</h3>
         <p className="mb-4">
-          Utilizamos cookies propias y almacenamiento local (`localStorage` / `sessionStorage`) proporcionado por nuestra infraestructura (Supabase) con la única finalidad de:
+          Estas son imprescindibles para que la plataforma funcione. Si las desactivas manualmente en tu navegador, no podrás iniciar sesión ni usar las funcionalidades de tu cuenta en MisArroces. Su instalación no requiere consentimiento previo.
         </p>
         <ul className="list-disc pl-6 mb-4 space-y-2">
-          <li>Autenticarte de forma segura cuando inicias sesión (mantener el token de acceso cifrado).</li>
-          <li>Identificar peticiones seguras desde tu cuenta hacia nuestros servidores para prevenir falsificaciones (seguridad).</li>
-          <li>Recordar preferencias puramente técnicas de la interfaz (como el modo claro/oscuro).</li>
+          <li><strong>Autenticación y seguridad:</strong> Almacenamiento local para mantener el token de acceso seguro (Supabase).</li>
+          <li><strong>Preferencias técnicas:</strong> Recordar el modo claro/oscuro o si has aceptado/rechazado el banner de cookies.</li>
+          <li><strong>Rendimiento (Speed Insights):</strong> Mide métricas técnicas de velocidad de carga (Web Vitals) de forma anónima, sin cookies intrusivas ni datos personales.</li>
         </ul>
-        <p className="mb-4">
-          Estas tecnologías son imprescindibles. Si las desactivas manualmente en tu navegador, no podrás iniciar sesión ni usar las funcionalidades de tu cuenta en MisArroces.
-        </p>
 
-        <h3 className="text-xl font-semibold text-foreground mt-6 mb-3">Tecnologías de rendimiento (Vercel Speed Insights)</h3>
+        <h3 className="text-xl font-semibold text-foreground mt-6 mb-3">Cookies Analíticas (Requieren consentimiento)</h3>
         <p className="mb-4">
-          Utilizamos la infraestructura de alojamiento de Vercel y su módulo de rendimiento "Speed Insights". Esta herramienta mide métricas técnicas de velocidad de carga (Web Vitals) para ayudarnos a que la plataforma sea rápida. No utiliza cookies intrusivas, no rastrea tu navegación por otras webs, no recoge datos personales y anonimiza las IPs, cumpliendo con los estándares de exención técnica.
-        </p>
-
-        <h2 className="text-2xl font-bold text-foreground mt-8 mb-4">3. ¿Qué cookies NO utilizamos actualmente?</h2>
-        <p className="mb-4">
-          Para tu tranquilidad, actualmente MisArroces <strong>no utiliza</strong>:
+          Sólo las instalamos y utilizamos si nos has dado tu <strong>consentimiento explícito</strong> al pulsar "Aceptar" en nuestro banner.
         </p>
         <ul className="list-disc pl-6 mb-4 space-y-2">
-          <li>Cookies de analítica avanzada o seguimiento comercial (como Google Analytics 4, Meta Pixel, etc.).</li>
-          <li>Cookies publicitarias o de remarketing.</li>
-          <li>Tecnologías que compartan datos de navegación con terceros para elaborar perfiles.</li>
+          <li><strong>Google Analytics 4 (Google Ireland Limited):</strong> Nos ayuda a entender cómo navegas por la plataforma, de dónde proceden las visitas (adquisición) y qué recetas son más populares. Emplean transferencias internacionales a servidores de Google y tienen una duración de almacenamiento predeterminada configurable (normalmente 2 a 14 meses).</li>
+          <li><strong>Cookie interna (misarroces_visitor_id):</strong> Cookie técnica propia de duración de 1 año (max-age). Aunque es propia, la utilizamos para personalizar algoritmos internos (Feed y Discover) y analizar el comportamiento incluso sin inicio de sesión, por lo que hemos decidido someterla a tu consentimiento analítico.</li>
         </ul>
+
+        <h2 className="text-2xl font-bold text-foreground mt-8 mb-4">3. Gestión y revocación de cookies</h2>
         <p className="mb-4">
-          Si en el futuro decidimos incorporar herramientas de analítica general (ej. GA4) o de publicidad, actualizaremos previamente esta política y habilitaremos el correspondiente panel (banner) para que puedas otorgar o denegar tu consentimiento explícito antes de su instalación, de acuerdo con la normativa vigente.
+          Puedes cambiar tu decisión en cualquier momento desde el siguiente enlace:
         </p>
+        <div className="my-6">
+          <CookiePreferencesButton />
+        </div>
 
         <h2 className="text-2xl font-bold text-foreground mt-8 mb-4">4. Actualización y contacto</h2>
         <p className="mb-4">

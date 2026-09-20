@@ -26,13 +26,13 @@ export async function POST() {
     const { data: recipes } = await supabase.from('recipes').select('*').eq('owner_id', user.id)
     const { data: sessions } = await supabase.from('cooking_sessions').select('*').eq('user_id', user.id)
     const { data: posts } = await supabase.from('social_posts').select('*').eq('author_id', user.id)
-    const { data: comments } = await supabase.from('comments').select('*').eq('author_id', user.id)
-    const { data: stories } = await supabase.from('stories').select('*').eq('author_id', user.id)
+    const { data: comments } = await (supabase as any).from('comments').select('*').eq('author_id', user.id)
+    const { data: stories } = await supabase.from('stories').select('*').eq('owner_id', user.id)
     
     // 4. Guardados e Interacciones de contenido
     const { data: bookmarks } = await supabase.from('bookmarks').select('*').eq('user_id', user.id)
     const { data: shopping_lists } = await supabase.from('shopping_lists').select('*').eq('user_id', user.id)
-    const { data: reactions } = await supabase.from('reactions').select('*').eq('user_id', user.id)
+    const { data: reactions } = await (supabase as any).from('reactions').select('*').eq('user_id', user.id)
 
     // 5. Mensajes Directos (DMs) - Solo enviados
     // Para proteger la privacidad de terceros, exportamos SÓLO los mensajes que el propio usuario ha redactado y enviado.

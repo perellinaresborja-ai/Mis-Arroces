@@ -1,14 +1,24 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Eye, EyeOff } from "lucide-react"
 import Link from "next/link"
 import { login, signup } from "./actions"
 import { useFormStatus } from "react-dom"
 
-export function LoginForm({ error, message }: { error?: string, message?: string }) {
-  const [mode, setMode] = useState<"login" | "signup">("login")
+export function LoginForm({ initialMode = "login", error, message }: { initialMode?: "login" | "signup", error?: string, message?: string }) {
+  const [mode, setMode] = useState<"login" | "signup">(initialMode)
   const [showPassword, setShowPassword] = useState(false)
+  const [acqData, setAcqData] = useState("")
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const data = sessionStorage.getItem("acq_data")
+      if (data) {
+        setAcqData(data)
+      }
+    }
+  }, [])
 
   return (
     <div className="w-full max-w-sm mx-auto flex flex-col justify-center">
@@ -39,6 +49,7 @@ export function LoginForm({ error, message }: { error?: string, message?: string
       </div>
 
       <form className="space-y-4 relative z-10" noValidate>
+        <input type="hidden" name="acquisition_data" value={acqData} />
         {error && (
           <div className="p-3 text-sm text-destructive bg-destructive/10 rounded-xl text-center font-medium border border-destructive/20 space-y-1">
             <p>{error}</p>

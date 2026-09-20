@@ -62,6 +62,10 @@ export const viewport: Viewport = {
 
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import { UserSessionProvider } from "@/components/providers/UserSessionProvider";
+import { CookieConsentBanner } from "@/components/domain/CookieConsentBanner";
+import { AcquisitionProvider } from "@/components/providers/AcquisitionProvider";
+import { GA4Loader } from "@/components/domain/GA4Loader";
+import { Suspense } from "react";
 
 export default async function RootLayout({
   children,
@@ -93,7 +97,12 @@ export default async function RootLayout({
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
           <UserSessionProvider initialAvatarUrl={avatarUrl}>
             <AuthPromptProvider>
+            <Suspense fallback={null}>
+              <GA4Loader />
+              <AcquisitionProvider />
+            </Suspense>
             <LegalConsentGate pendingLegal={pendingLegal} />
+            <CookieConsentBanner />
             {/* Desktop Header */}
             <DesktopNav />
             {/* Mobile Header */}

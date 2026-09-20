@@ -49,7 +49,7 @@ export async function login(formData: FormData) {
   }
 
   revalidatePath("/", "layout")
-  redirect("/")
+  redirect("/?login=success")
 }
 
 export async function signup(formData: FormData) {
@@ -106,6 +106,26 @@ export async function signup(formData: FormData) {
       console.error('Failed to accept legal documents:', rpcError)
     }
 
+    // Process acquisition data if present
+    const acqDataRaw = formData.get("acquisition_data") as string
+    if (acqDataRaw) {
+      try {
+        const acqData = JSON.parse(acqDataRaw)
+        await (supabase as any).from("user_acquisition").insert({
+          user_id: data.user.id,
+          utm_source: acqData.utm_source,
+          utm_medium: acqData.utm_medium,
+          utm_campaign: acqData.utm_campaign,
+          utm_content: acqData.utm_content,
+          utm_term: acqData.utm_term,
+          referrer: acqData.referrer,
+          landing_path: acqData.landing_path
+        })
+      } catch (e) {
+        console.error("Error inserting acquisition data", e)
+      }
+    }
+
     // Send welcome email (non-blocking)
     sendWelcomeEmail(data.user.email!).catch(err =>
       console.error('Welcome email failed:', err)
@@ -114,9 +134,9 @@ export async function signup(formData: FormData) {
 
   revalidatePath("/", "layout")
   if (data.session) {
-    redirect("/")
+    redirect("/?signup=success")
   } else {
-    redirect("/login?message=Cuenta creada. Revisa tu correo para confirmar tu cuenta.")
+    redirect("/login?message=Cuenta creada. Revisa tu correo para confirmar tu cuenta.&signup=success")
   }
 }
 

@@ -47,6 +47,9 @@ export default function PrivacyPage() {
         <p className="mb-4">
           Tratamos eventos internos de uso (ej. cuándo ves una historia), reportes de moderación, bloqueos de usuarios y listas de palabras silenciadas. Para ello nos amparamos en la <strong>ejecución de contrato y nuestro interés legítimo</strong> en prevenir abusos, resolver incidencias técnicas y asegurar que la red es un entorno seguro.
         </p>
+        <p className="mb-4">
+          Adicionalmente, <strong>si nos otorgas tu consentimiento explícito</strong> (base jurídica: consentimiento), recopilamos datos de uso y atribución de registro mediante Google Analytics 4 (Google Ireland Limited). Estos datos se procesan de forma seudonimizada para comprender el comportamiento general y mejorar nuestra plataforma, y pueden implicar transferencias internacionales de datos a los servidores de Google bajo las garantías adecuadas. Puedes retirar tu consentimiento en cualquier momento desde las preferencias de cookies.
+        </p>
 
         <h3 className="text-xl font-semibold text-foreground mt-6 mb-3">D. Comunicaciones</h3>
         <p className="mb-4">

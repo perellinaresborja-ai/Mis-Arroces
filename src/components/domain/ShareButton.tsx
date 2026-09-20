@@ -6,6 +6,7 @@ import { Send, Share2, Copy, X } from "lucide-react"
 import { useShare } from "@/lib/platform"
 import { Button } from "@/components/ui/button"
 import { createClient } from "@/lib/supabase/client"
+import { sendGAEvent } from "@/lib/analytics/ga4"
 
 export function ShareButton({ title, text, path }: { title: string, text: string, path: string }) {
   const [isOpen, setIsOpen] = useState(false)
@@ -33,6 +34,7 @@ export function ShareButton({ title, text, path }: { title: string, text: string
   const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(url)}&color=000000&bgcolor=ffffff`
 
   const handleNativeShare = () => {
+    sendGAEvent("share", { method: "native", content_type: recipeId ? "recipe" : "link", item_id: url })
     share(title, text, url)
   }
 
@@ -40,6 +42,7 @@ export function ShareButton({ title, text, path }: { title: string, text: string
     if (typeof navigator !== "undefined") {
       navigator.clipboard.writeText(url)
       setCopied(true)
+      sendGAEvent("share", { method: "copy", content_type: recipeId ? "recipe" : "link", item_id: url })
       setTimeout(() => setCopied(false), 2000)
     }
   }
