@@ -118,6 +118,7 @@ export function ProfileAvatar({
           initialGroupIndex={0} 
           onClose={() => setIsViewerOpen(false)} 
           currentUser={currentUser}
+          currentUserId={currentUser?.id}
         />
       )}
     </>

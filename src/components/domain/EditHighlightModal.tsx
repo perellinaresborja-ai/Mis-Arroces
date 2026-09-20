@@ -110,8 +110,8 @@ export function EditHighlightModal({
 
   return (
     <div className="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-4">
-      <div className="bg-card border border-border text-foreground w-full max-w-sm rounded-3xl p-4 flex flex-col max-h-[85vh] shadow-2xl animate-in zoom-in-95 duration-200">
-        <h2 className="font-bold text-lg mb-3">Editar Destacada</h2>
+      <div className="bg-card border border-border text-foreground w-full max-w-sm sm:max-w-md rounded-3xl p-5 flex flex-col h-[85vh] max-h-[640px] shadow-2xl animate-in zoom-in-95 duration-200">
+        <h2 className="font-bold text-lg mb-3 font-serif">Editar Destacada</h2>
         
         <input 
           type="text" 
@@ -146,7 +146,7 @@ export function EditHighlightModal({
 
         {/* Tab 1: Selection & Cover */}
         {activeTab === 'select' && (
-          <div className="overflow-y-auto flex-1 grid grid-cols-3 gap-1.5 mb-3 pr-0.5">
+          <div className="overflow-y-auto flex-1 grid grid-cols-2 gap-3 mb-3 pr-0.5">
             {archivedStories.map(s => {
               const isSelected = selectedIds.includes(s.id);
               const path = getMediaStoragePath(s);
@@ -156,40 +156,41 @@ export function EditHighlightModal({
               return (
                 <div 
                   key={s.id} 
-                  className={`aspect-[9/16] bg-muted relative rounded-xl overflow-hidden cursor-pointer transition-all ${
-                    isSelected ? 'ring-2 ring-primary ring-inset' : 'opacity-70 hover:opacity-100'
+                  className={`aspect-[9/16] min-h-[170px] bg-muted relative rounded-2xl overflow-hidden cursor-pointer select-none transition-all duration-150 border-2 ${
+                    isSelected ? 'border-primary ring-2 ring-primary/40 shadow-md scale-[0.98]' : 'border-border/60 opacity-80 hover:opacity-100 hover:border-border'
                   }`}
                   onClick={() => toggle(s.id)}
                 >
                   {url ? (
-                    <img src={url} alt="Story" className="w-full h-full object-cover" />
+                    <img src={url} alt="Story" className="w-full h-full object-cover pointer-events-none" />
                   ) : (
-                    <div className="w-full h-full bg-zinc-900 flex flex-col items-center justify-center text-center p-2">
+                    <div className="w-full h-full bg-zinc-900 flex flex-col items-center justify-center text-center p-3">
                       {s.overlays?.find((o: any) => o.type === 'TEXT')?.payload?.text ? (
-                        <span className="text-[10px] font-bold text-white line-clamp-3">
+                        <span className="text-xs font-bold text-white line-clamp-3">
                           {s.overlays.find((o: any) => o.type === 'TEXT').payload.text}
                         </span>
                       ) : s.recipe?.name ? (
-                        <span className="text-[9px] font-semibold text-white/90 line-clamp-2">
+                        <span className="text-xs font-semibold text-white/90 line-clamp-2">
                           {s.recipe.name}
                         </span>
                       ) : (
-                        <span className="text-[9px] text-zinc-400">Historia</span>
+                        <span className="text-xs text-zinc-400">Historia</span>
                       )}
                     </div>
                   )}
                   
                   {isSelected && (
-                    <div className="absolute top-1 left-1 w-5 h-5 bg-primary rounded-full text-primary-foreground flex items-center justify-center font-bold text-[10px] shadow-sm">
-                      <Check className="w-3 h-3" />
+                    <div className="absolute top-2 left-2 w-6 h-6 bg-primary rounded-full text-primary-foreground flex items-center justify-center font-bold text-xs shadow-md">
+                      <Check className="w-3.5 h-3.5" />
                     </div>
                   )}
                   
                   {isSelected && url && (
                     <button 
+                      type="button"
                       onClick={(e) => { e.stopPropagation(); setCoverId(s.id); }}
-                      className={`absolute bottom-1 left-1 right-1 text-[9px] py-0.5 px-1 font-bold rounded text-center transition-colors shadow-sm ${
-                        isCover ? 'bg-primary text-primary-foreground' : 'bg-black/60 text-white hover:bg-black/80'
+                      className={`absolute bottom-2 left-2 right-2 text-[10px] py-1 px-2 font-bold rounded-xl text-center transition-colors shadow-md ${
+                        isCover ? 'bg-primary text-primary-foreground' : 'bg-black/75 text-white hover:bg-black/90'
                       }`}
                     >
                       {isCover ? 'Portada' : 'Hacer portada'}
