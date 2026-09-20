@@ -50,10 +50,13 @@ export function EditHighlightModal({
     setSelectedIds(newIds);
   }
 
+  const isValid = selectedIds.length > 0;
+
   const save = async () => {
-    if (!name.trim() || selectedIds.length === 0) return
+    if (!isValid) return
     setLoading(true)
     try {
+      const finalTitle = name.trim() || highlight.name || "Destacada";
       // 1. Resolve cover URL
       let coverUrl: string | undefined = undefined;
       if (coverId && selectedIds.includes(coverId)) {
@@ -67,7 +70,7 @@ export function EditHighlightModal({
       }
 
       // 2. Update highlight metadata
-      const updateData: { name: string; cover_url?: string } = { name: name.trim() };
+      const updateData: { name: string; cover_url?: string } = { name: finalTitle };
       if (coverUrl) updateData.cover_url = coverUrl;
       const { error: updateError } = await supabase.from('story_highlights').update(updateData).eq('id', highlight.id);
       if (updateError) throw updateError;
@@ -146,7 +149,7 @@ export function EditHighlightModal({
 
         {/* Tab 1: Selection & Cover */}
         {activeTab === 'select' && (
-          <div className="overflow-y-auto flex-1 grid grid-cols-2 gap-3 mb-3 pr-0.5">
+          <div className="overflow-y-auto flex-1 grid grid-cols-3 gap-2.5 mb-3 pr-0.5">
             {archivedStories.map(s => {
               const isSelected = selectedIds.includes(s.id);
               const path = getMediaStoragePath(s);
@@ -156,7 +159,7 @@ export function EditHighlightModal({
               return (
                 <div 
                   key={s.id} 
-                  className={`aspect-[9/16] min-h-[170px] bg-muted relative rounded-2xl overflow-hidden cursor-pointer select-none transition-all duration-150 border-2 ${
+                  className={`aspect-[3/4] bg-muted relative rounded-2xl overflow-hidden cursor-pointer select-none transition-all duration-150 border-2 ${
                     isSelected ? 'border-primary ring-2 ring-primary/40 shadow-md scale-[0.98]' : 'border-border/60 opacity-80 hover:opacity-100 hover:border-border'
                   }`}
                   onClick={() => toggle(s.id)}
@@ -164,36 +167,36 @@ export function EditHighlightModal({
                   {url ? (
                     <img src={url} alt="Story" className="w-full h-full object-cover pointer-events-none" />
                   ) : (
-                    <div className="w-full h-full bg-zinc-900 flex flex-col items-center justify-center text-center p-3">
+                    <div className="w-full h-full bg-zinc-900 flex flex-col items-center justify-center text-center p-2">
                       {s.overlays?.find((o: any) => o.type === 'TEXT')?.payload?.text ? (
-                        <span className="text-xs font-bold text-white line-clamp-3">
+                        <span className="text-[11px] font-bold text-white line-clamp-3">
                           {s.overlays.find((o: any) => o.type === 'TEXT').payload.text}
                         </span>
                       ) : s.recipe?.name ? (
-                        <span className="text-xs font-semibold text-white/90 line-clamp-2">
+                        <span className="text-[11px] font-semibold text-white/90 line-clamp-2">
                           {s.recipe.name}
                         </span>
                       ) : (
-                        <span className="text-xs text-zinc-400">Historia</span>
+                        <span className="text-[11px] text-zinc-400">Historia</span>
                       )}
                     </div>
                   )}
                   
                   {isSelected && (
-                    <div className="absolute top-2 left-2 w-6 h-6 bg-primary rounded-full text-primary-foreground flex items-center justify-center font-bold text-xs shadow-md">
-                      <Check className="w-3.5 h-3.5" />
+                    <div className="absolute top-1.5 left-1.5 w-5 h-5 bg-primary rounded-full text-primary-foreground flex items-center justify-center font-bold text-[10px] shadow-md z-10">
+                      <Check className="w-3 h-3" />
                     </div>
                   )}
                   
-                  {isSelected && url && (
+                  {isSelected && (
                     <button 
                       type="button"
                       onClick={(e) => { e.stopPropagation(); setCoverId(s.id); }}
-                      className={`absolute bottom-2 left-2 right-2 text-[10px] py-1 px-2 font-bold rounded-xl text-center transition-colors shadow-md ${
-                        isCover ? 'bg-primary text-primary-foreground' : 'bg-black/75 text-white hover:bg-black/90'
+                      className={`absolute bottom-1.5 inset-x-1.5 text-[9px] py-0.5 px-1 font-bold rounded-lg text-center transition-colors shadow-md z-10 ${
+                        isCover ? 'bg-primary text-primary-foreground' : 'bg-black/75 text-white/90 hover:bg-black/90'
                       }`}
                     >
-                      {isCover ? 'Portada' : 'Hacer portada'}
+                      {isCover ? '★ Portada' : 'Portada'}
                     </button>
                   )}
                 </div>
@@ -277,7 +280,7 @@ export function EditHighlightModal({
             </button>
             <button 
               onClick={save} 
-              disabled={loading || !name.trim() || selectedIds.length === 0} 
+              disabled={loading || !isValid} 
               className="px-4 py-2 rounded-xl bg-primary text-primary-foreground font-bold text-xs disabled:opacity-50 hover:bg-primary/90 transition-colors"
             >
               {loading ? "Guardando..." : "Guardar"}

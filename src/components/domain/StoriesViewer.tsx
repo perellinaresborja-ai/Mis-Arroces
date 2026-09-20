@@ -6,6 +6,7 @@ import { ShareDMModal } from "./ShareDMModal"
 import { AddToHighlightModal } from "./AddToHighlightModal"
 
 import { useState, useEffect, useRef } from "react"
+import { createPortal } from "react-dom"
 import { formatRelativeTime } from "@/lib/utils"
 import { X, Trash2, MoreHorizontal, Copy, Share2, MessageCircle, Flag, BarChart2, BarChart2 as BarChartIcon, Send, User, Plus, Star } from "lucide-react"
 import { MediaImage } from "@/components/domain/MediaImage"
@@ -53,6 +54,11 @@ export function StoriesViewer({ groupedStories: _groupedStories, initialGroupInd
   const [showReport, setShowReport] = useState(false)
   const [replyText, setReplyText] = useState("")
   const [isSendingReply, setIsSendingReply] = useState(false)
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
   
   const handleReplySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -273,8 +279,10 @@ export function StoriesViewer({ groupedStories: _groupedStories, initialGroupInd
     setIsPaused(false)
   }
 
-  return (
-    <div className="fixed inset-0 z-[100] bg-black text-white flex items-center justify-center overscroll-none touch-none">
+  if (!mounted || typeof document === 'undefined') return null;
+
+  return createPortal(
+    <div className="fixed inset-0 z-[9999] bg-black text-white flex items-center justify-center overscroll-none touch-none">
       <div className="relative w-full h-full max-w-lg md:h-[90vh] md:rounded-3xl md:overflow-hidden bg-zinc-900 shadow-2xl flex flex-col">
         
         {/* Progress Bars */}
@@ -624,7 +632,8 @@ export function StoriesViewer({ groupedStories: _groupedStories, initialGroupInd
         }}
       />
 
-    </div>
+    </div>,
+    document.body
   )
 }
 

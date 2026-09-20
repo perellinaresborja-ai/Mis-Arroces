@@ -11,7 +11,7 @@ export function MobileHeader() {
   const { user } = useUserSession()
   const isAuthenticated = !!user
 
-  if (pathname === "/login" || pathname === "/forgot-password" || pathname.includes("/edit") || pathname.includes("/create")) return null;
+  if (pathname === "/login" || pathname === "/forgot-password" || pathname.startsWith("/messages") || pathname.includes("/edit") || pathname.includes("/create")) return null;
 
   return (
     <div className="md:hidden sticky top-0 z-40 flex h-16 items-center justify-between px-4 py-0 bg-background/95 backdrop-blur border-b border-border">

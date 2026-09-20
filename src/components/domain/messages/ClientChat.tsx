@@ -52,10 +52,10 @@ export function ClientChat({ initialMessages, userId, conversationId, myStatus, 
   }, [messages])
 
   return (
-    <div className="flex flex-col flex-1 min-h-0 h-full relative">
+    <div className="flex flex-col flex-1 min-h-0 h-full relative overflow-hidden">
       <div 
         ref={scrollContainerRef}
-        className="flex-1 overflow-y-auto overscroll-contain p-4 pb-32 md:pb-20 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+        className="flex-1 overflow-y-auto overscroll-contain p-4 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
       >
         {messages.map((msg: Record<string, unknown>) => (
           <MessageBubble 
@@ -69,7 +69,7 @@ export function ClientChat({ initialMessages, userId, conversationId, myStatus, 
         <div ref={messagesEndRef} />
       </div>
 
-      <div className="fixed bottom-16 left-0 right-0 md:absolute md:bottom-0 md:left-0 md:right-0 w-full bg-card border-t border-border p-0 z-20">
+      <div className="shrink-0 w-full bg-card border-t border-border z-10 pb-safe">
         <MessageInput conversationId={conversationId} receiverId={otherUserId} disabled={false} replyingTo={replyingTo} onCancelReply={() => setReplyingTo(null)} />
       </div>
     </div>

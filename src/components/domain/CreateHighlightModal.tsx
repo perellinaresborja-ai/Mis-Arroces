@@ -66,13 +66,13 @@ export function CreateHighlightModal({
     })
   }
 
-  const isValid = name.trim().length > 0 && selectedIds.length > 0;
+  const isValid = selectedIds.length > 0;
 
   const save = async () => {
     if (!isValid || loading) return;
     setLoading(true);
     try {
-      const finalTitle = name.trim();
+      const finalTitle = name.trim() || "Destacada";
       const effectiveCoverId = coverId && selectedIds.includes(coverId) ? coverId : selectedIds[0];
       const coverStory = uniqueStories.find(s => s.id === effectiveCoverId);
       const path = coverStory ? getMediaStoragePath(coverStory) : null;
@@ -96,11 +96,11 @@ export function CreateHighlightModal({
           
           <div>
             <label className="block text-xs font-semibold mb-1 text-foreground">
-              Título <span className="text-primary">*</span>
+              Título <span className="text-muted-foreground font-normal">(opcional)</span>
             </label>
             <input 
               type="text" 
-              placeholder="Nombre de la destacada (ej. Paellas, Viajes...)" 
+              placeholder="Destacada (o escribe: Paellas, Arroces...)" 
               className="border border-border rounded-xl p-3 bg-background w-full text-foreground outline-none focus:border-primary text-sm transition-colors"
               value={name}
               onChange={e => setName(e.target.value)}
@@ -126,7 +126,7 @@ export function CreateHighlightModal({
             <p className="text-sm font-semibold text-muted-foreground">No tienes historias en tu archivo para añadir.</p>
           </div>
         ) : (
-          <div className="overflow-y-auto flex-1 min-h-0 grid grid-cols-2 gap-3 p-1 mb-3">
+          <div className="overflow-y-auto flex-1 min-h-0 grid grid-cols-3 gap-2.5 p-1 mb-3">
             {uniqueStories.map(s => {
               const isSelected = selectedIds.includes(s.id);
               const path = getMediaStoragePath(s);
@@ -138,7 +138,7 @@ export function CreateHighlightModal({
               return (
                 <div 
                   key={s.id} 
-                  className={`w-full aspect-[9/16] min-h-[170px] relative rounded-2xl overflow-hidden cursor-pointer select-none transition-all duration-150 border-2 ${
+                  className={`w-full aspect-[3/4] relative rounded-2xl overflow-hidden cursor-pointer select-none transition-all duration-150 border-2 ${
                     isSelected 
                       ? 'border-primary ring-2 ring-primary/40 shadow-md scale-[0.98]' 
                       : 'border-border/60 opacity-80 hover:opacity-100 hover:border-border'
@@ -149,17 +149,17 @@ export function CreateHighlightModal({
                   {url ? (
                     <img src={url} alt="Story" className="w-full h-full object-cover pointer-events-none" />
                   ) : (
-                    <div className="w-full h-full flex flex-col items-center justify-center text-center p-3">
+                    <div className="w-full h-full flex flex-col items-center justify-center text-center p-2">
                       {textOverlay?.payload?.text ? (
-                        <span className="text-xs font-bold text-white line-clamp-4 break-words">
+                        <span className="text-[11px] font-bold text-white line-clamp-3 break-words">
                           {textOverlay.payload.text}
                         </span>
                       ) : s.recipe?.name ? (
-                        <span className="text-xs font-semibold text-white/90 line-clamp-3">
+                        <span className="text-[11px] font-semibold text-white/90 line-clamp-2">
                           {s.recipe.name}
                         </span>
                       ) : (
-                        <span className="text-xs text-zinc-400">
+                        <span className="text-[11px] text-zinc-400">
                           Historia
                         </span>
                       )}
@@ -168,7 +168,7 @@ export function CreateHighlightModal({
                   
                   {/* Selection Badge with Order number */}
                   {isSelected && (
-                    <div className="absolute top-2 left-2 w-6 h-6 bg-primary text-primary-foreground rounded-full flex items-center justify-center font-bold text-xs shadow-md">
+                    <div className="absolute top-1.5 left-1.5 w-5 h-5 bg-primary text-primary-foreground rounded-full flex items-center justify-center font-bold text-[10px] shadow-md z-10">
                       {selectedIds.indexOf(s.id) + 1}
                     </div>
                   )}
@@ -178,11 +178,11 @@ export function CreateHighlightModal({
                     <button 
                       type="button"
                       onClick={(e) => { e.stopPropagation(); setCoverId(s.id); }}
-                      className={`absolute bottom-2 left-2 right-2 text-[10px] py-1 px-2 font-bold rounded-xl text-center transition-colors shadow-md ${
-                        isCover ? 'bg-primary text-primary-foreground' : 'bg-black/75 text-white hover:bg-black/90'
+                      className={`absolute bottom-1.5 inset-x-1.5 text-[9px] py-0.5 px-1 font-bold rounded-lg text-center transition-colors shadow-md z-10 ${
+                        isCover ? 'bg-primary text-primary-foreground' : 'bg-black/75 text-white/90 hover:bg-black/90'
                       }`}
                     >
-                      {isCover ? 'Portada' : 'Hacer portada'}
+                      {isCover ? '★ Portada' : 'Portada'}
                     </button>
                   )}
                 </div>
@@ -195,13 +195,7 @@ export function CreateHighlightModal({
         {!isValid && (
           <div className="shrink-0 flex items-center gap-1.5 text-[11px] text-muted-foreground pb-2 px-1">
             <Info className="w-3.5 h-3.5 shrink-0 text-amber-500" />
-            <span>
-              {!name.trim() && selectedIds.length === 0
-                ? "Introduce un título y selecciona al menos una historia."
-                : !name.trim()
-                ? "Introduce un título para la destacada."
-                : "Selecciona al menos una historia para tu destacada."}
-            </span>
+            <span>Selecciona al menos una historia para tu destacada.</span>
           </div>
         )}
 
