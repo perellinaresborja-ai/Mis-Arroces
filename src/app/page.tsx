@@ -27,8 +27,8 @@ export default async function Home() {
     currentUserProfile = profile;
 
     if (!profile?.onboarding_completed) {
-      // Check if it's a legacy user (has custom username or display name != Chef Arrocero)
-      const isNewUser = profile?.username?.startsWith("arrocero") && profile?.display_name === "Chef Arrocero";
+      // Check if it's a new user who hasn't completed onboarding
+      const isNewUser = profile?.username?.startsWith("arrocero") && (profile?.display_name === "Chef Arrocero" || profile?.display_name === profile?.username);
       if (!isNewUser) {
         // Auto-complete onboarding for existing legacy users
         await supabase.from("profiles").update({ onboarding_completed: true }).eq("id", user.id);

@@ -1,13 +1,14 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { MediaUploader, SelectedMedia } from "@/components/domain/MediaUploader"
 import { uploadMedia } from "@/services/media/client"
 import { updateProfile } from "@/app/actions/profile"
+import { checkDisplayNameAvailabilityAction } from "@/app/onboarding/actions"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Save } from "lucide-react"
+import { Save, Loader2, Check } from "lucide-react"
 
 export function EditProfileForm({ initialProfile }: { initialProfile: any }) {
   const [selectedMedia, setSelectedMedia] = useState<SelectedMedia[]>([])
@@ -16,6 +17,42 @@ export function EditProfileForm({ initialProfile }: { initialProfile: any }) {
 
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
+
+  // Real-time displayName check
+  const [displayName, setDisplayName] = useState(initialProfile.display_name || "")
+  const [checkingDisplayName, setCheckingDisplayName] = useState(false)
+  const [displayNameStatus, setDisplayNameStatus] = useState<{ available?: boolean; message?: string } | null>(null)
+
+  useEffect(() => {
+    const trimmed = (displayName || "").trim()
+    if (!trimmed || trimmed === (initialProfile.display_name || "").trim()) {
+      setDisplayNameStatus(null)
+      return
+    }
+
+    if (trimmed.length < 2) {
+      setDisplayNameStatus({ available: false, message: "Mínimo 2 caracteres" })
+      return
+    }
+
+    setCheckingDisplayName(true)
+    const timer = setTimeout(async () => {
+      try {
+        const res = await checkDisplayNameAvailabilityAction(trimmed)
+        if (res.available) {
+          setDisplayNameStatus({ available: true, message: "Nombre disponible" })
+        } else {
+          setDisplayNameStatus({ available: false, message: res.error || "Este nombre ya está en uso." })
+        }
+      } catch {
+        setDisplayNameStatus(null)
+      } finally {
+        setCheckingDisplayName(false)
+      }
+    }, 400)
+
+    return () => clearTimeout(timer)
+  }, [displayName, initialProfile.display_name])
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -134,13 +171,36 @@ export function EditProfileForm({ initialProfile }: { initialProfile: any }) {
       <div className="space-y-4 pt-4  border-t border-border">
         <div className="space-y-2">
           <Label htmlFor="display_name">Nombre</Label>
-          <Input 
-            id="display_name" 
-            name="display_name" 
-            defaultValue={initialProfile.display_name} 
-            placeholder="Ej. Pere"
-            className="h-12"
-          />
+          <div className="relative flex items-center">
+            <Input 
+              id="display_name" 
+              name="display_name" 
+              value={displayName} 
+              onChange={e => setDisplayName(e.target.value)} 
+              placeholder="Ej. Pere"
+              className={`h-12 pr-10 ${
+                displayNameStatus?.available === false
+                  ? "border-destructive focus-visible:ring-destructive"
+                  : displayNameStatus?.available === true
+                  ? "border-green-600 focus-visible:ring-green-600"
+                  : ""
+              }`}
+            />
+            <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+              {checkingDisplayName ? (
+                <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+              ) : displayNameStatus?.available === true ? (
+                <Check className="w-4 h-4 text-green-600" />
+              ) : null}
+            </div>
+          </div>
+          {displayNameStatus?.message && (
+            <p className={`text-xs mt-1.5 font-medium ${
+              displayNameStatus.available === true ? "text-green-600" : "text-destructive"
+            }`}>
+              {displayNameStatus.message}
+            </p>
+          )}
         </div>
 
         <div className="space-y-2">

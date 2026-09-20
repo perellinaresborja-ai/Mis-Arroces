@@ -21,7 +21,7 @@ export async function GET(request: Request) {
         await supabase.from("profiles").insert({
           id: session.user.id,
           username: autoUsername,
-          display_name: 'Chef Arrocero',
+          display_name: autoUsername,
           account_type: 'PERSONAL',
           privacy_level: 'PUBLIC'
         })

@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 import { normalizeUsername, validateUsernameFormat, isUsernameAvailable } from "@/lib/username"
+import { validateDisplayNameFormat, isDisplayNameAvailable } from "@/lib/identity"
 
 export async function getMyHeaderData() {
   const supabase = await createClient()
@@ -41,8 +42,21 @@ export async function updateProfile(formData: FormData) {
 
   const cleanUsername = normalizeUsername(username)
 
+  const cleanDisplayName = display_name ? display_name.trim() : null
+  if (cleanDisplayName) {
+    const formatCheck = validateDisplayNameFormat(cleanDisplayName)
+    if (!formatCheck.valid) {
+      throw new Error(formatCheck.error || "Nombre no válido.")
+    }
+
+    const availableDisplay = await isDisplayNameAvailable(supabase, cleanDisplayName, user.id)
+    if (!availableDisplay) {
+      throw new Error("Este nombre ya está en uso.")
+    }
+  }
+
   let updateData: any = {
-    display_name: display_name ? display_name.trim() : null,
+    display_name: cleanDisplayName,
     bio,
     location,
     website,
@@ -90,6 +104,9 @@ export async function updateProfile(formData: FormData) {
 
   if (error) {
     if (error.code === '23505') {
+      if (error.message?.includes("display_name") || error.details?.includes("display_name")) {
+        throw new Error("Este nombre ya está en uso.")
+      }
       throw new Error("Este nombre de usuario ya está en uso")
     }
     throw new Error(error.message)

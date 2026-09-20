@@ -4,7 +4,13 @@ import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { completeOnboardingAction, updateOnboardingProfile, checkUsernameAvailabilityAction, getSuggestedUsernameAction } from "./actions"
+import {
+  completeOnboardingAction,
+  updateOnboardingProfile,
+  checkUsernameAvailabilityAction,
+  checkDisplayNameAvailabilityAction,
+  getSuggestedUsernameAction
+} from "./actions"
 import { Camera, Check, UserPlus, Loader2, Sparkles } from "lucide-react"
 import { toggleFollow } from "@/app/actions/social"
 import { acceptActiveLegalDocuments } from "@/app/actions/legal"
@@ -23,6 +29,8 @@ export function OnboardingWizard({ initialProfile, inviter, suggestions, inviteC
   const [displayName, setDisplayName] = useState(initialProfile?.display_name || "")
   const [checkingUsername, setCheckingUsername] = useState(false)
   const [usernameStatus, setUsernameStatus] = useState<{ available?: boolean; message?: string } | null>(null)
+  const [checkingDisplayName, setCheckingDisplayName] = useState(false)
+  const [displayNameStatus, setDisplayNameStatus] = useState<{ available?: boolean; message?: string } | null>(null)
 
   // Real-time debounced check of username availability
   useEffect(() => {
@@ -56,6 +64,38 @@ export function OnboardingWizard({ initialProfile, inviter, suggestions, inviteC
     return () => clearTimeout(timer)
   }, [username])
 
+  // Real-time debounced check of displayName availability
+  useEffect(() => {
+    const cleanDisplay = (displayName || "").trim()
+    if (!cleanDisplay) {
+      setDisplayNameStatus(null)
+      return
+    }
+
+    if (cleanDisplay.length < 2) {
+      setDisplayNameStatus({ available: false, message: "Mínimo 2 caracteres" })
+      return
+    }
+
+    setCheckingDisplayName(true)
+    const timer = setTimeout(async () => {
+      try {
+        const res = await checkDisplayNameAvailabilityAction(cleanDisplay)
+        if (res.available) {
+          setDisplayNameStatus({ available: true, message: "Nombre disponible" })
+        } else {
+          setDisplayNameStatus({ available: false, message: res.error || "Este nombre ya está en uso." })
+        }
+      } catch {
+        setDisplayNameStatus(null)
+      } finally {
+        setCheckingDisplayName(false)
+      }
+    }, 400)
+
+    return () => clearTimeout(timer)
+  }, [displayName])
+
   const handleSuggestUsername = async () => {
     try {
       setCheckingUsername(true)
@@ -82,6 +122,11 @@ export function OnboardingWizard({ initialProfile, inviter, suggestions, inviteC
       setError("El nombre de usuario debe tener al menos 3 caracteres")
       return
     }
+
+    if (displayNameStatus?.available === false) {
+      setError(displayNameStatus.message || "Este nombre ya está en uso.")
+      return
+    }
     
     setLoading(true)
     const res = await updateOnboardingProfile({ username: cleanUser, displayName })
@@ -89,7 +134,11 @@ export function OnboardingWizard({ initialProfile, inviter, suggestions, inviteC
     
     if (res?.error) {
       setError(res.error)
-      setUsernameStatus({ available: false, message: res.error })
+      if (res.error.includes("nombre de usuario")) {
+        setUsernameStatus({ available: false, message: res.error })
+      } else {
+        setDisplayNameStatus({ available: false, message: res.error })
+      }
     } else {
       setStep(2)
     }
@@ -194,12 +243,35 @@ export function OnboardingWizard({ initialProfile, inviter, suggestions, inviteC
 
             <div>
               <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1 block">Nombre (opcional)</label>
-              <Input 
-                value={displayName} 
-                onChange={e => setDisplayName(e.target.value)} 
-                placeholder="Ej. Paco Arroces"
-                className="rounded-xl h-12"
-              />
+              <div className="relative flex items-center">
+                <Input 
+                  value={displayName} 
+                  onChange={e => setDisplayName(e.target.value)} 
+                  placeholder="Ej. Paco Arroces"
+                  className={`rounded-xl h-12 pr-10 ${
+                    displayNameStatus?.available === false
+                      ? "border-destructive focus-visible:ring-destructive"
+                      : displayNameStatus?.available === true
+                      ? "border-green-600 focus-visible:ring-green-600"
+                      : ""
+                  }`}
+                />
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                  {checkingDisplayName ? (
+                    <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+                  ) : displayNameStatus?.available === true ? (
+                    <Check className="w-4 h-4 text-green-600" />
+                  ) : null}
+                </div>
+              </div>
+
+              {displayNameStatus?.message && (
+                <p className={`text-xs mt-1.5 font-medium ${
+                  displayNameStatus.available === true ? "text-green-600" : "text-destructive"
+                }`}>
+                  {displayNameStatus.message}
+                </p>
+              )}
             </div>
             <p className="text-xs text-muted-foreground text-center">Podrás añadir tu foto de perfil más adelante desde la configuración.</p>
           </div>

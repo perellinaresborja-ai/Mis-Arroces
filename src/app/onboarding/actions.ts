@@ -8,6 +8,11 @@ import {
   isUsernameAvailable,
   generateAvailableUsername,
 } from "@/lib/username"
+import {
+  normalizeDisplayName,
+  validateDisplayNameFormat,
+  isDisplayNameAvailable,
+} from "@/lib/identity"
 
 export async function checkUsernameAvailabilityAction(username: string) {
   const supabase = await createClient()
@@ -23,6 +28,29 @@ export async function checkUsernameAvailabilityAction(username: string) {
   const available = await isUsernameAvailable(supabase, clean, user.id)
   if (!available) {
     return { available: false, error: "Este nombre de usuario ya está en uso" }
+  }
+
+  return { available: true }
+}
+
+export async function checkDisplayNameAvailabilityAction(displayName: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { available: false, error: "No autorizado" }
+
+  const trimmed = (displayName || "").trim()
+  if (!trimmed) {
+    return { available: true } // optional in onboarding, defaults to username if empty
+  }
+
+  const validation = validateDisplayNameFormat(trimmed)
+  if (!validation.valid) {
+    return { available: false, error: validation.error }
+  }
+
+  const available = await isDisplayNameAvailable(supabase, trimmed, user.id)
+  if (!available) {
+    return { available: false, error: "Este nombre ya está en uso." }
   }
 
   return { available: true }
@@ -46,24 +74,39 @@ export async function updateOnboardingProfile({ username, displayName }: { usern
   }
 
   // Check if username is taken by someone else (case-insensitive)
-  const available = await isUsernameAvailable(supabase, cleanUsername, user.id)
-  if (!available) {
+  const availableUser = await isUsernameAvailable(supabase, cleanUsername, user.id)
+  if (!availableUser) {
     return { error: "Este nombre de usuario ya está en uso" }
   }
 
   const cleanDisplayName = (displayName || "").trim()
+  const effectiveDisplayName = cleanDisplayName || cleanUsername
+
+  // Check if display name is taken by someone else (normalized)
+  const formatValidation = validateDisplayNameFormat(effectiveDisplayName)
+  if (!formatValidation.valid) {
+    return { error: formatValidation.error }
+  }
+
+  const availableDisplay = await isDisplayNameAvailable(supabase, effectiveDisplayName, user.id)
+  if (!availableDisplay) {
+    return { error: "Este nombre ya está en uso." }
+  }
 
   const { error } = await supabase
     .from("profiles")
     .update({ 
       username: cleanUsername,
-      display_name: cleanDisplayName || null
+      display_name: effectiveDisplayName
     })
     .eq("id", user.id)
 
   if (error) {
     console.error("Error updating profile in onboarding:", error)
     if (error.code === "23505") {
+      if (error.message?.includes("display_name") || error.details?.includes("display_name")) {
+        return { error: "Este nombre ya está en uso." }
+      }
       return { error: "Este nombre de usuario ya está en uso" }
     }
     return { error: "Error al actualizar perfil" }

@@ -36,12 +36,12 @@ export async function login(formData: FormData) {
       .single()
 
     if (!profile) {
-      // Auto-create missing profile with guaranteed unique username
+      // Auto-create missing profile with guaranteed unique username & provisional display_name
       const autoUsername = await generateAvailableUsername(supabase, "arrocero")
       await supabase.from("profiles").insert({
         id: user.id,
         username: autoUsername,
-        display_name: 'Chef Arrocero',
+        display_name: autoUsername,
         account_type: 'PERSONAL',
         privacy_level: 'PUBLIC'
       })
@@ -79,13 +79,13 @@ export async function signup(formData: FormData) {
   }
 
   if (data.user) {
-    // Generate a guaranteed unique automatic username
+    // Generate a guaranteed unique automatic username & provisional display_name
     const autoUsername = await generateAvailableUsername(supabase, "arrocero")
     
     await supabase.from("profiles").insert({
       id: data.user.id,
       username: autoUsername,
-      display_name: 'Chef Arrocero',
+      display_name: autoUsername,
       account_type: 'PERSONAL',
       privacy_level: 'PUBLIC'
     })
