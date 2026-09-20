@@ -395,7 +395,21 @@ export default async function RecipeDetailPage({
               
               <div className="w-full mt-8 md:mt-0 flex justify-center">
                 <div className="w-full sm:w-2/3 md:w-3/4">
-                  <StartCookButton recipeId={recipe.id} />
+                  {(() => {
+                    const { isRecipeCookable } = require("@/lib/recipe-validator");
+                    const cookCheck = isRecipeCookable({
+                      steps: recipe.steps,
+                      ingredients: recipe.ingredients,
+                    });
+                    return (
+                      <StartCookButton 
+                        recipeId={recipe.id} 
+                        isCookable={cookCheck.cookable}
+                        cookableReason={cookCheck.reason}
+                        isOwner={isOwner}
+                      />
+                    );
+                  })()}
                 </div>
               </div>
           </div>

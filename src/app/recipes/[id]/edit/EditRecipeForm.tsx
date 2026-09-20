@@ -327,7 +327,7 @@ export default function EditRecipeForm({ recipe, catalogs }: { recipe: any, cata
         <div id="validation-error-banner" className="bg-destructive/10 border border-destructive/30 text-destructive p-5 rounded-2xl shadow-sm">
           <div className="flex items-center gap-2 mb-2 font-bold text-base">
             <AlertCircle className="w-5 h-5 shrink-0" />
-            <span>Para publicar la receta y que pueda cocinarse, completa lo siguiente:</span>
+            <span>Para publicar la receta, debe estar completa y poder elaborarse de principio a fin:</span>
           </div>
           <ul className="list-disc list-inside space-y-1 text-sm pl-1">
             {validationErrors.map((err, i) => (
