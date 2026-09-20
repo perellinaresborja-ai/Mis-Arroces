@@ -57,9 +57,14 @@ export async function signup(formData: FormData) {
   const email = normalizeEmail(formData.get("email") as string || "")
   const password = (formData.get("password") as string || "")
   const legalAccepted = formData.get("legal_accepted") === "on"
+  const ageConfirmed = formData.get("age_18_confirmed") === "on"
 
   if (!legalAccepted) {
-    redirect(`/login?error=${encodeURIComponent("Debes aceptar los Términos de servicio y confirmar que has leído la Política de privacidad para crear tu cuenta.")}`)
+    redirect(`/login?error=${encodeURIComponent("Debes aceptar los Términos de servicio y confirmar que has leído la Política de privacidad.")}`)
+  }
+
+  if (!ageConfirmed) {
+    redirect(`/login?error=${encodeURIComponent("Debes confirmar que eres mayor de 18 años para crear una cuenta.")}`)
   }
 
   if (!email || !password) {

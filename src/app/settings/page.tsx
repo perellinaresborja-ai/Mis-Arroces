@@ -6,6 +6,7 @@ import { PrivacyToggle } from "./components/PrivacyToggle"
 import { LogoutButton } from "./components/LogoutButton"
 import ThemeSelectorRow from "./components/ThemeSelectorRow"
 import DeleteAccountRow from "./components/DeleteAccountRow"
+import DownloadDataRow from "./components/DownloadDataRow"
 
 export default async function SettingsPage() {
   const supabase = await createClient()
@@ -149,6 +150,8 @@ export default async function SettingsPage() {
                 <ChevronRight className="w-4 h-4 text-muted-foreground" />
               </Link>
               <div className="h-px bg-border ml-12"></div>
+              <DownloadDataRow />
+              <div className="h-px bg-border ml-12"></div>
               <DeleteAccountRow userId={user.id} />
             </div>
           </section>
@@ -157,10 +160,20 @@ export default async function SettingsPage() {
           <section className="space-y-3">
             <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider pl-4">Ayuda e Información</h3>
             <div className="bg-card rounded-3xl border border-border overflow-hidden shadow-sm">
-              <a href="mailto:hola@misarroces.es" className="flex items-center justify-between p-4 hover:bg-muted/50 transition">
-                <div className="flex items-center gap-3"><Info className="w-5 h-5 text-muted-foreground" /> <span className="font-medium">Contacto / Reportar problema</span></div>
+              <a href="mailto:info@misarroces.es" className="flex items-center justify-between p-4 hover:bg-muted/50 transition">
+                <div className="flex items-center gap-3"><Info className="w-5 h-5 text-muted-foreground" /> <span className="font-medium">Contacto / Ayuda</span></div>
                 <ChevronRight className="w-4 h-4 text-muted-foreground" />
               </a>
+              <div className="h-px bg-border ml-12"></div>
+              <Link href="/legal/guidelines" className="flex items-center justify-between p-4 hover:bg-muted/50 transition">
+                <div className="flex items-center gap-3"><Shield className="w-5 h-5 text-muted-foreground" /> <span className="font-medium">Normas de la comunidad</span></div>
+                <ChevronRight className="w-4 h-4 text-muted-foreground" />
+              </Link>
+              <div className="h-px bg-border ml-12"></div>
+              <Link href="/legal/aviso-legal" className="flex items-center justify-between p-4 hover:bg-muted/50 transition">
+                <div className="flex items-center gap-3"><Shield className="w-5 h-5 text-muted-foreground" /> <span className="font-medium">Aviso legal</span></div>
+                <ChevronRight className="w-4 h-4 text-muted-foreground" />
+              </Link>
               <div className="h-px bg-border ml-12"></div>
               <Link href="/legal/privacy" className="flex items-center justify-between p-4 hover:bg-muted/50 transition">
                 <div className="flex items-center gap-3"><Shield className="w-5 h-5 text-muted-foreground" /> <span className="font-medium">Política de privacidad</span></div>
@@ -169,6 +182,16 @@ export default async function SettingsPage() {
               <div className="h-px bg-border ml-12"></div>
               <Link href="/legal/terms" className="flex items-center justify-between p-4 hover:bg-muted/50 transition">
                 <div className="flex items-center gap-3"><Shield className="w-5 h-5 text-muted-foreground" /> <span className="font-medium">Términos de servicio</span></div>
+                <ChevronRight className="w-4 h-4 text-muted-foreground" />
+              </Link>
+              <div className="h-px bg-border ml-12"></div>
+              <Link href="/legal/cookies" className="flex items-center justify-between p-4 hover:bg-muted/50 transition">
+                <div className="flex items-center gap-3"><Shield className="w-5 h-5 text-muted-foreground" /> <span className="font-medium">Política de cookies</span></div>
+                <ChevronRight className="w-4 h-4 text-muted-foreground" />
+              </Link>
+              <div className="h-px bg-border ml-12"></div>
+              <Link href="/legal/reportar" className="flex items-center justify-between p-4 hover:bg-muted/50 transition text-destructive">
+                <div className="flex items-center gap-3"><Shield className="w-5 h-5 text-destructive" /> <span className="font-medium">Reportar contenido ilegal (DSA)</span></div>
                 <ChevronRight className="w-4 h-4 text-muted-foreground" />
               </Link>
             </div>

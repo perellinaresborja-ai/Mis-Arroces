@@ -33,15 +33,37 @@ export async function deleteUserAccount(formData: FormData) {
   try {
     const adminClient = getAdminClient()
 
-    // 2. Clear avatars from Storage before profile is deleted
-    // Find media_assets of type AVATAR or COVER owned by user and delete them
-    // (Actually, maybe we just delete the user's files from 'recipe_media', 'story_media', 'avatars'?)
-    // In misarroces, avatars are usually in 'avatars' or just in 'recipe_media' under the user's ID
+    // 2. Clear files from Storage before profile is deleted
     
-    // We will just let the user delete. For storage, deleting the user cascades to 'profiles'
-    // but files in storage remain. We should delete the user's folder in all buckets if we can,
-    // or keep them if recipes are kept.
-    // Let's just delete the user.
+    // 2a. Media Assets (recipes, stories, avatars, posts)
+    const { data: assets } = await adminClient.from('media_assets')
+      .select('storage_path')
+      .eq('owner_id', user.id)
+    
+    if (assets && assets.length > 0) {
+      const paths = assets.map(a => a.storage_path)
+      const buckets = ['recipe_media', 'story_media']
+      // We try deleting from both buckets as media_assets doesn't specify which
+      // Ignoring errors if file doesn't exist in one of them
+      for (const bucket of buckets) {
+        await adminClient.storage.from(bucket).remove(paths)
+      }
+    }
+
+    // 2b. Message Attachments
+    const { data: msgs } = await adminClient.from('messages')
+      .select('message_attachments(storage_path)')
+      .eq('sender_id', user.id)
+      
+    if (msgs && msgs.length > 0) {
+      const msgPaths = msgs.flatMap(m => m.message_attachments.map(a => a.storage_path))
+      if (msgPaths.length > 0) {
+        await adminClient.storage.from('message_media').remove(msgPaths)
+      }
+    }
+
+    // 3. Delete the user
+    // This triggers ON DELETE CASCADE in PostgreSQL for profiles, recipes, messages, etc.
     const { error: deleteError } = await adminClient.auth.admin.deleteUser(user.id)
     if (deleteError) {
       console.error('Error in deleteUser:', deleteError)

@@ -135,22 +135,42 @@ export function LoginForm({ error, message }: { error?: string, message?: string
         )}
         
         {mode === "signup" && (
-          <div className="flex items-start gap-3 pt-2 pb-2">
-            <div className="relative flex items-center justify-center shrink-0 mt-0.5">
-              <input 
-                type="checkbox" 
-                name="legal_accepted" 
-                id="legal_accepted"
-                required
-                className="peer appearance-none w-5 h-5 border-2 border-border/80 rounded checked:bg-primary checked:border-primary transition-colors cursor-pointer"
-              />
-              <svg className="absolute w-3 h-3 text-primary-foreground opacity-0 peer-checked:opacity-100 pointer-events-none transition-opacity" viewBox="0 0 14 10" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                <path d="M1 5L4.5 8.5L13 1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
+          <div className="space-y-4 pt-2 pb-2">
+            <div className="flex items-start gap-3">
+              <div className="relative flex items-center justify-center shrink-0 mt-0.5">
+                <input 
+                  type="checkbox" 
+                  name="legal_accepted" 
+                  id="legal_accepted"
+                  required
+                  className="peer appearance-none w-5 h-5 border-2 border-border/80 rounded checked:bg-primary checked:border-primary transition-colors cursor-pointer"
+                />
+                <svg className="absolute w-3 h-3 text-primary-foreground opacity-0 peer-checked:opacity-100 pointer-events-none transition-opacity" viewBox="0 0 14 10" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                  <path d="M1 5L4.5 8.5L13 1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </div>
+              <label htmlFor="legal_accepted" className="text-sm text-muted-foreground leading-snug cursor-pointer">
+                He leído y acepto los <Link href="/legal/terms" target="_blank" className="font-bold text-primary hover:underline">Términos de servicio</Link> y confirmo haber leído la <Link href="/legal/privacy" target="_blank" className="font-bold text-primary hover:underline">Política de privacidad</Link>.
+              </label>
             </div>
-            <label htmlFor="legal_accepted" className="text-sm text-muted-foreground leading-snug cursor-pointer">
-              He leído y acepto los <Link href="/legal/terms" target="_blank" className="font-bold text-primary hover:underline">Términos de servicio</Link> y confirmo haber leído la <Link href="/legal/privacy" target="_blank" className="font-bold text-primary hover:underline">Política de privacidad</Link>.
-            </label>
+
+            <div className="flex items-start gap-3">
+              <div className="relative flex items-center justify-center shrink-0 mt-0.5">
+                <input 
+                  type="checkbox" 
+                  name="age_18_confirmed" 
+                  id="age_18_confirmed"
+                  required
+                  className="peer appearance-none w-5 h-5 border-2 border-border/80 rounded checked:bg-primary checked:border-primary transition-colors cursor-pointer"
+                />
+                <svg className="absolute w-3 h-3 text-primary-foreground opacity-0 peer-checked:opacity-100 pointer-events-none transition-opacity" viewBox="0 0 14 10" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                  <path d="M1 5L4.5 8.5L13 1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </div>
+              <label htmlFor="age_18_confirmed" className="text-sm font-bold text-foreground leading-snug cursor-pointer">
+                Confirmo bajo mi responsabilidad que tengo 18 años o más.
+              </label>
+            </div>
           </div>
         )}
 

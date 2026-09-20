@@ -8,11 +8,12 @@ import Link from "next/link"
 
 export function GlobalLegalConsentModal() {
   const [accepted, setAccepted] = useState(false)
+  const [ageAccepted, setAgeAccepted] = useState(false)
   const [loading, setLoading] = useState(false)
   const [done, setDone] = useState(false)
 
   const handleSubmit = async () => {
-    if (!accepted) return
+    if (!accepted || !ageAccepted) return
     setLoading(true)
     try {
       await acceptActiveLegalDocuments()
@@ -31,7 +32,7 @@ export function GlobalLegalConsentModal() {
       <div className="w-full max-w-lg bg-card border border-border rounded-3xl p-8 shadow-2xl animate-in zoom-in-95 duration-300">
         <h2 className="text-2xl font-bold font-serif text-charcoal mb-4">Actualización Legal</h2>
         <p className="text-muted-foreground mb-6">
-          Para crear una cuenta en MisArroces, o continuar utilizando tu cuenta existente, debes aceptar nuestras Condiciones de uso y confirmar que has leído nuestra Política de privacidad.
+          Para crear una cuenta en MisArroces, o continuar utilizando tu cuenta existente, necesitamos que confirmes lo siguiente:
         </p>
 
         <div className="space-y-4 mb-8">
@@ -51,11 +52,28 @@ export function GlobalLegalConsentModal() {
               He leído y acepto las <Link href="/legal/terms" target="_blank" className="text-primary hover:underline" onClick={e => e.stopPropagation()}>Condiciones de uso</Link> y confirmo que he leído la <Link href="/legal/privacy" target="_blank" className="text-primary hover:underline" onClick={e => e.stopPropagation()}>Política de privacidad</Link>.
             </span>
           </label>
+
+          <label className="flex items-start gap-3 cursor-pointer group">
+            <div className="relative flex items-center justify-center mt-1">
+              <input 
+                type="checkbox"
+                className="peer sr-only"
+                checked={ageAccepted}
+                onChange={(e) => setAgeAccepted(e.target.checked)}
+              />
+              <div className="w-5 h-5 rounded border border-border bg-background peer-checked:bg-primary peer-checked:border-primary transition-colors flex items-center justify-center">
+                <Check className="w-3.5 h-3.5 text-white opacity-0 peer-checked:opacity-100 transition-opacity" />
+              </div>
+            </div>
+            <span className="text-sm font-medium leading-relaxed select-none text-foreground group-hover:text-foreground/80">
+              Confirmo bajo mi responsabilidad que tengo 18 años o más.
+            </span>
+          </label>
         </div>
 
         <Button 
           onClick={handleSubmit} 
-          disabled={!accepted || loading} 
+          disabled={!accepted || !ageAccepted || loading} 
           className="w-full font-bold rounded-xl bg-olive hover:bg-olive/90 text-white" 
           size="lg"
         >

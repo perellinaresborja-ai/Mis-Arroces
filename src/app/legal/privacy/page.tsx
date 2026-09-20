@@ -7,127 +7,89 @@ export default function PrivacyPage() {
         &larr; Volver a inicio
       </Link>
       
-      <h1 className="text-4xl font-bold font-serif mb-8 text-foreground">Política de Privacidad y Cookies</h1>
+      <h1 className="text-4xl font-black tracking-tight text-foreground mb-4">Política de Privacidad</h1>
       
-      <div className="prose prose-stone max-w-none text-muted-foreground">
-        <p className="lead text-lg mb-8">
-          En MisArroces, creemos firmemente que la privacidad es un derecho fundamental. Hemos redactado este documento con la máxima transparencia para explicarte cómo recopilamos, tratamos, almacenamos y protegemos tus datos, en pleno y estricto cumplimiento del <strong>Reglamento (UE) 2016/679 (Reglamento General de Protección de Datos o RGPD)</strong> y la <strong>Ley Orgánica 3/2018 de Protección de Datos Personales y garantía de los derechos digitales (LOPDGDD)</strong>.
+      <div className="prose prose-zinc dark:prose-invert max-w-none text-muted-foreground leading-relaxed">
+        <p className="text-lg font-medium text-foreground mb-8">
+          Esta Política detalla cómo Celler Naziha S.L. trata y protege tus datos personales al utilizar MisArroces, cumpliendo estrictamente con el Reglamento General de Protección de Datos (RGPD) y la LOPDGDD.
         </p>
 
-        <h2 className="text-2xl font-bold text-foreground mt-8 mb-4">1. Identidad del Responsable del Tratamiento</h2>
-        <p className="mb-4">
-          La entidad jurídica responsable del tratamiento de los datos personales recogidos en esta Plataforma es:<br/><br/>
-          <strong>Denominación Social:</strong> MisArroces Community (Datos pendientes de registro mercantil)<br/>
-          <strong>Domicilio:</strong> España<br/>
-          <strong>Correo de contacto DPO (Delegado de Protección de Datos):</strong> privacidad@misarroces.com
-        </p>
-
-        <h2 className="text-2xl font-bold text-foreground mt-8 mb-4">2. Categorías de Datos Personales que Recopilamos</h2>
-        <p className="mb-4">No recolectamos datos sensibles. Solo solicitamos la información estrictamente necesaria para garantizar el correcto funcionamiento del ecosistema social:</p>
+        <h2 className="text-2xl font-bold text-foreground mt-8 mb-4">1. Responsable del Tratamiento</h2>
         <ul className="list-disc pl-6 mb-4 space-y-2">
-          <li><strong>Datos de Registro y Autenticación:</strong> Tu dirección de correo electrónico, contraseña (encriptada irreversiblemente con Argon2/Bcrypt) y Nombre de Usuario (handle).</li>
-          <li><strong>Datos Biográficos (Opcionales):</strong> Fotografía de perfil, imagen de cabecera, nombre a mostrar, biografía y enlaces públicos a tus otras redes. Al añadirlos, consientes explícitamente su visualización pública.</li>
-          <li><strong>Datos Generados (UGC - User Generated Content):</strong> Cualquier receta, imagen, fotografía de sesión (Cooking), vídeo temporal (Story) o mensaje directo (DM) que emitas en la plataforma.</li>
-          <li><strong>Datos Transaccionales e Interacciones:</strong> Guardados en colecciones (Bookmarks), "Me gusta" (Likes), perfiles que sigues, comentarios y métricas de visualización (qué historias has visto).</li>
-          <li><strong>Datos Técnicos de Conexión:</strong> Tu dirección IP, tipo y versión del navegador, identificadores de dispositivo, información del sistema operativo, cookies técnicas de sesión y datos de uso de la app.</li>
+          <li><strong>Identidad:</strong> Celler Naziha S.L.</li>
+          <li><strong>NIF:</strong> B54936604</li>
+          <li><strong>Domicilio Postal:</strong> Calle Benimantell, 10, 03530 La Nucía, Alicante, España.</li>
+          <li><strong>Contacto Privacidad:</strong> <a href="mailto:info@misarroces.es" className="text-primary hover:underline">info@misarroces.es</a></li>
         </ul>
 
-        <h2 className="text-2xl font-bold text-foreground mt-8 mb-4">3. Finalidades y Bases Legitimadoras del Tratamiento</h2>
-        <p className="mb-4">Tratamos tus datos bajo las siguientes bases legales de licitud estipuladas en el Art. 6 del RGPD:</p>
+        <h2 className="text-2xl font-bold text-foreground mt-8 mb-4">2. ¿Qué datos tratamos, para qué y con qué base jurídica?</h2>
+        <p className="mb-4">
+          La base principal que nos permite tratar tus datos es la <strong>ejecución del contrato</strong> que suscribes con nosotros al aceptar nuestros Términos de Servicio. Tratar los datos descritos a continuación es imprescindible para prestar el servicio técnico y social que ofrece la Plataforma. 
+        </p>
         
-        <div className="overflow-x-auto my-6">
-          <table className="w-full text-sm text-left border-collapse border border-border rounded-lg overflow-hidden">
-            <thead className="bg-muted text-foreground">
-              <tr>
-                <th className="p-3 border border-border">Finalidad del Tratamiento</th>
-                <th className="p-3 border border-border">Datos Implicados</th>
-                <th className="p-3 border border-border">Base Legal (Licitud)</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td className="p-3 border border-border">Crear tu cuenta, autenticar tus accesos y proporcionar el servicio base de red social (publicación e interacción).</td>
-                <td className="p-3 border border-border">Registro, Biográficos, UGC, Transaccionales.</td>
-                <td className="p-3 border border-border"><strong>Ejecución de un contrato</strong> (Aceptación de Términos de Uso).</td>
-              </tr>
-              <tr>
-                <td className="p-3 border border-border">Garantizar la seguridad, prevenir fraudes, bots, spam y caídas técnicas.</td>
-                <td className="p-3 border border-border">Técnicos de Conexión (IP), Transaccionales.</td>
-                <td className="p-3 border border-border"><strong>Interés legítimo</strong> de la plataforma.</td>
-              </tr>
-              <tr>
-                <td className="p-3 border border-border">Analítica interna de la app y algoritmos de recomendación en el Feed (Discover).</td>
-                <td className="p-3 border border-border">Transaccionales, Técnicos de uso.</td>
-                <td className="p-3 border border-border"><strong>Consentimiento explícito</strong> o Interés Legítimo en función del caso.</td>
-              </tr>
-              <tr>
-                <td className="p-3 border border-border">Atender solicitudes de cuerpos y fuerzas de seguridad del Estado.</td>
-                <td className="p-3 border border-border">Cualquiera de los anteriores que sean requeridos.</td>
-                <td className="p-3 border border-border"><strong>Obligación Legal</strong>.</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        <h2 className="text-2xl font-bold text-foreground mt-8 mb-4">4. Destinatarios y Subencargados del Tratamiento</h2>
+        <h3 className="text-xl font-semibold text-foreground mt-6 mb-3">A. Datos de tu Cuenta y Perfil</h3>
         <p className="mb-4">
-          MisArroces no vende ni comercializa tu información. Para poder prestar el servicio de manera eficiente y escalable, compartimos acceso de forma encriptada con los siguientes proveedores clave (Encargados de Tratamiento):
+          Para registrarte solicitamos obligatoriamente tu correo electrónico y una contraseña segura, generando un identificador único (UID). Posteriormente puedes configurar tu nombre de usuario, foto de perfil (avatar) y una breve biografía. Estos datos son necesarios para <strong>proporcionar el servicio (Ejecución de contrato)</strong>. 
         </p>
-        <ul className="list-disc pl-6 mb-4 space-y-2">
-          <li><strong>Supabase, Inc. (AWS):</strong> Proveedor principal de la infraestructura backend, base de datos PostgreSQL, autenticación y almacenamiento de objetos en la nube (Storage).</li>
-          <li><strong>Vercel, Inc.:</strong> Plataforma de alojamiento del Frontend y edge-computing (enrutamiento de datos).</li>
-        </ul>
         <p className="mb-4">
-          Transferencias Internacionales: Dado que algunos de nuestros proveedores pueden operar desde Estados Unidos, nos aseguramos de que dichas transferencias se realicen amparadas bajo el <em>Data Privacy Framework (DPF)</em> o mediante la formalización de Cláusulas Contractuales Tipo (SCC) aprobadas por la Comisión Europea.
+          El requisito de ser mayor de 18 años se recoge sin almacenar tu fecha de nacimiento completa (por el principio de minimización), guardando únicamente una confirmación electrónica y su marca de tiempo (timestamp) para cumplir nuestras <strong>obligaciones legales</strong>.
         </p>
 
-        <h2 className="text-2xl font-bold text-foreground mt-8 mb-4">5. Retención de Datos y Ciclo de Vida</h2>
+        <h3 className="text-xl font-semibold text-foreground mt-6 mb-3">B. Contenido Generado, Interacciones y Mensajes</h3>
         <p className="mb-4">
-          Conservaremos tus datos personales únicamente durante el tiempo estrictamente necesario para cumplir con los fines mencionados:
+          Recopilamos las recetas, elaboraciones, fotografías, vídeos, comentarios, "me gusta", tus listas de compra, y a quién sigues/quién te sigue. Esto es el núcleo de MisArroces y se basa en la <strong>ejecución de contrato</strong>. 
         </p>
-        <ul className="list-disc pl-6 mb-4 space-y-2">
-          <li><strong>Datos de cuenta y perfil:</strong> Mientras tu cuenta permanezca activa.</li>
-          <li><strong>Historias efímeras (Stories):</strong> Se marcan como caducadas pasadas las 24 horas y los archivos multimedia son limpiados físicamente del Storage mediante tareas programadas.</li>
-          <li><strong>Baja del Usuario:</strong> Si decides eliminar tu cuenta, se procederá al bloqueo de tus datos (haciéndolos inaccesibles al público). Solamente se retendrán durante el plazo legal de prescripción de responsabilidades (por lo general, un máximo de 5 años bajo normativas civiles y penales). Transcurrido ese tiempo, se borrarán definitivamente de la BDD primaria y de los backups en cascada.</li>
-        </ul>
-
-        <h2 className="text-2xl font-bold text-foreground mt-8 mb-4">6. Tus Derechos (ARSOL y Portabilidad)</h2>
         <p className="mb-4">
-          Como usuario, la legislación europea te otorga un control total sobre tu información. Puedes ejercer gratuitamente los siguientes derechos escribiendo a nuestro correo de privacidad o usando las herramientas integradas en tu Perfil:
-        </p>
-        <ul className="list-disc pl-6 mb-4 space-y-2">
-          <li><strong>Derecho de Acceso:</strong> Conocer qué datos personales estamos tratando y solicitar una copia.</li>
-          <li><strong>Derecho de Rectificación:</strong> Corregir información inexacta o incompleta.</li>
-          <li><strong>Derecho de Supresión (Olvido):</strong> Eliminar tu cuenta y todo tu historial permanentemente (salvo retenciones legales imperativas).</li>
-          <li><strong>Derecho de Limitación y Oposición:</strong> Bloquear usos concretos de tus datos (ej. procesamiento estadístico o perfilado).</li>
-          <li><strong>Derecho a la Portabilidad:</strong> Recibir tus recetas y datos en un formato informático estructurado (JSON, CSV).</li>
-        </ul>
-        <p className="mb-4">
-          Si consideras que no hemos tratado tu solicitud adecuadamente, tienes derecho a presentar una reclamación ante la autoridad de control pertinente, en el caso de España, la Agencia Española de Protección de Datos (AEPD).
+          <strong>Mensajería Privada (DMs):</strong> MisArroces facilita mensajes directos entre usuarios. Al no ser un servicio de mensajería cifrado de extremo a extremo, los mensajes y adjuntos multimedia se almacenan de forma segura en nuestras bases de datos bajo estrictos controles de acceso (RLS), pero permanecen en texto plano técnico para poder operar la entrega, notificaciones y reportes de moderación.
         </p>
 
-        <h2 className="text-2xl font-bold text-foreground mt-8 mb-4">7. Política de Cookies Simplificada</h2>
+        <h3 className="text-xl font-semibold text-foreground mt-6 mb-3">C. Datos de Moderación, Seguridad y Analítica</h3>
         <p className="mb-4">
-          MisArroces emplea un número muy reducido de Cookies (archivos de texto guardados en tu navegador). Solo utilizamos:
+          Tratamos eventos internos de uso (ej. cuándo ves una historia), reportes de moderación, bloqueos de usuarios y listas de palabras silenciadas. Para ello nos amparamos en la <strong>ejecución de contrato y nuestro interés legítimo</strong> en prevenir abusos, resolver incidencias técnicas y asegurar que la red es un entorno seguro.
         </p>
-        <ul className="list-disc pl-6 mb-4 space-y-2">
-          <li><strong>Cookies Estrictamente Necesarias (Técnicas):</strong> Tokens de autenticación JWT (Json Web Tokens) para mantener tu sesión activa y asegurar las peticiones al servidor. No requieren consentimiento expreso por ser vitales para el servicio.</li>
-          <li>Actualmente <strong>NO</strong> utilizamos cookies de publicidad comportamental de terceros, píxeles de rastreo invasivos ni sistemas de retargeting publicitario.</li>
-        </ul>
 
-        <h2 className="text-2xl font-bold text-foreground mt-8 mb-4">8. Medidas de Seguridad Aplicadas</h2>
+        <h3 className="text-xl font-semibold text-foreground mt-6 mb-3">D. Comunicaciones</h3>
         <p className="mb-4">
-          Hemos implementado robustas barreras arquitectónicas (Security-by-Design):
+          Utilizamos tu email para enviar correos de seguridad, recuperación de contraseña y avisos de servicio esenciales (ejecución de contrato). MisArroces NO utiliza tus datos para enviarte marketing de terceros ni para suscribirte forzosamente a newsletters publicitarias.
+        </p>
+
+        <h2 className="text-2xl font-bold text-foreground mt-8 mb-4">3. ¿Con quién compartimos tus datos? (Proveedores)</h2>
+        <p className="mb-4">
+          Para poder prestar el servicio de forma estable, nos apoyamos en infraestructuras tecnológicas punteras que actúan como nuestros Encargados de Tratamiento:
         </p>
         <ul className="list-disc pl-6 mb-4 space-y-2">
-          <li>Uso exclusivo de protocolos cifrados HTTPS (TLS 1.3).</li>
-          <li>Row Level Security (RLS) en la base de datos, garantizando que un usuario no puede leer bases de datos privadas ni mensajes directos de otro.</li>
-          <li>Almacenamiento seguro y segregado (Storage Buckets con controles estrictos MIME/Size).</li>
+          <li><strong>Supabase:</strong> Alojamiento de las bases de datos (PostgreSQL), la autenticación segura y el almacenamiento físico (Storage) de todos tus archivos multimedia.</li>
+          <li><strong>Vercel:</strong> Despliegue de la aplicación web y uso de "Speed Insights" (análisis técnico del rendimiento que mide la velocidad de carga de forma anónima, sin usar cookies intrusivas ni trazar usuarios).</li>
+          <li><strong>Resend:</strong> Plataforma para enviar correos electrónicos transaccionales del sistema.</li>
         </ul>
+        <p className="mb-4">
+          No vendemos ni comercializamos tus datos a terceros. Cualquier transferencia internacional originada por el uso de estos proveedores (ej. servidores en EE.UU.) está amparada bajo marcos de adecuación o cláusulas contractuales tipo según la normativa europea.
+        </p>
+
+        <h2 className="text-2xl font-bold text-foreground mt-8 mb-4">4. Retención de los datos y Eliminación de Cuenta</h2>
+        <p className="mb-4">
+          Tus datos se conservarán mientras tu cuenta permanezca activa. Cuando decidas ejercer tu derecho de supresión eliminando tu cuenta a través de los Ajustes, nuestro sistema destruirá automáticamente tu perfil, publicaciones, recetas y fotos físicas almacenadas en el Storage, así como los mensajes que tú hayas enviado en chats privados.
+        </p>
+        <p className="mb-4">
+          Algunos datos limitados pueden conservarse anonimizados (como las estadísticas de tráfico general sin vinculación a tu identidad), o bloqueados el tiempo estrictamente necesario si existe una obligación legal de retención frente a autoridades (ej. registros de conexión).
+        </p>
+
+        <h2 className="text-2xl font-bold text-foreground mt-8 mb-4">5. Tus Derechos</h2>
+        <p className="mb-4">
+          La legislación te reconoce el derecho a acceder, rectificar, suprimir, limitar, u oponerte al tratamiento de tus datos, así como a la portabilidad de los mismos.
+        </p>
+        <ul className="list-disc pl-6 mb-4 space-y-2">
+          <li><strong>Acceso y Portabilidad:</strong> Puedes descargar un archivo con tu información directamente desde la sección "Descargar mis datos" en los Ajustes de Seguridad.</li>
+          <li><strong>Supresión:</strong> Puedes eliminar todos tus datos irreversiblemente mediante el botón "Eliminar cuenta".</li>
+          <li>Para cualquier duda o el ejercicio formal de otros derechos, contacta en <a href="mailto:info@misarroces.es" className="text-primary hover:underline">info@misarroces.es</a>, adjuntando prueba de identidad.</li>
+        </ul>
+        <p className="mb-4">
+          Si consideras que no hemos tratado tus datos adecuadamente, tienes derecho a presentar una reclamación ante la Agencia Española de Protección de Datos (AEPD).
+        </p>
 
         <p className="text-sm mt-12 pt-8 border-t border-border">
           Versión: 2.0<br/>
-          Última actualización: Agosto de 2026
+          Última actualización: Septiembre de 2026
         </p>
       </div>
     </div>
