@@ -3,6 +3,29 @@ import React, { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Search, MapPin, ChefHat, User as UserIcon, Apple, Sparkles } from 'lucide-react'
 
+/**
+ * Normalizes and cleans corrupted characters from legacy imported ingredient names (e.g., 'Arroz S??nia' -> 'Arroz Sénia')
+ */
+export function cleanIngredientName(name: string | null | undefined): string {
+  if (!name) return ''
+  return name
+    .replace(/s\?\?nia/gi, 'Sénia')
+    .replace(/bah\?\?a/gi, 'Bahía')
+    .replace(/jazm\?\?n/gi, 'Jazmín')
+    .replace(/gamb\?\?n/gi, 'Gambón')
+    .replace(/n\?\?cora/gi, 'Nécora')
+    .replace(/mejill\?\?n/gi, 'Mejillón')
+    .replace(/cl\?\?china/gi, 'Clóchina')
+    .replace(/at\?\?n/gi, 'Atún')
+    .replace(/ib\?\?rico/gi, 'Ibérico')
+    .replace(/garrof\?\?/gi, 'Garrofó')
+    .replace(/azafr\?\?n/gi, 'Azafrán')
+    .replace(/piment\?\?n/gi, 'Pimentón')
+    .replace(/\?\?ora/gi, 'Ñora')
+    .replace(/\?\?/g, '')
+    .trim()
+}
+
 // Common Search Picker
 export function GenericSearchPicker({ 
   title, 
@@ -10,14 +33,16 @@ export function GenericSearchPicker({
   placeholder, 
   onSelect,
   fetchResults,
-  allowCustom = false
+  allowCustom = false,
+  customLabel
 }: { 
   title: string, 
   icon: React.ElementType, 
   placeholder: string, 
   onSelect: (item: { id: string, title: string, subtitle?: string, avatarUrl?: string | null, iconUrl?: string | null }) => void,
   fetchResults: (q: string) => Promise<Array<{ id: string, title: string, subtitle?: string, avatarUrl?: string | null, iconUrl?: string | null }>>,
-  allowCustom?: boolean
+  allowCustom?: boolean,
+  customLabel?: string
 }) {
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<Array<{ id: string, title: string, subtitle?: string, avatarUrl?: string | null, iconUrl?: string | null }>>([])
@@ -56,6 +81,10 @@ export function GenericSearchPicker({
     });
   };
 
+  const hasExactMatch = results.some(
+    r => r.title.trim().toLowerCase() === query.trim().toLowerCase()
+  );
+
   return (
     <div className="flex flex-col w-full h-full bg-card p-3 animate-in slide-in-from-bottom duration-200">
       <form onSubmit={handleCustomSubmit} className="relative mb-3">
@@ -66,12 +95,12 @@ export function GenericSearchPicker({
           value={query} 
           onChange={e => setQuery(e.target.value)} 
           placeholder={placeholder} 
-          className="w-full h-10 pl-9 pr-20 rounded-xl border border-border bg-muted/50 focus:bg-background outline-none text-sm text-foreground"
+          className="w-full h-10 pl-9 pr-20 rounded-xl border border-border bg-muted/50 focus:bg-background outline-none text-sm text-foreground placeholder:text-muted-foreground/70"
         />
         {allowCustom && query.trim().length > 0 && (
           <button 
             type="submit" 
-            className="absolute right-1.5 top-1/2 -translate-y-1/2 px-2.5 py-1 text-xs font-bold bg-primary text-primary-foreground rounded-lg shadow-sm"
+            className="absolute right-1.5 top-1/2 -translate-y-1/2 px-3 py-1.5 text-xs font-bold bg-primary text-primary-foreground rounded-lg shadow-sm hover:bg-primary/90 transition-all flex items-center gap-1"
           >
             Usar
           </button>
@@ -79,23 +108,30 @@ export function GenericSearchPicker({
       </form>
       <div className="flex-1 overflow-y-auto flex flex-col gap-1 pb-4">
         {loading && <p className="text-center text-xs text-muted-foreground py-4">Buscando...</p>}
-        {!loading && results.length === 0 && query.trim().length > 0 && !allowCustom && (
-          <p className="text-center text-xs text-muted-foreground py-4">No se encontraron resultados.</p>
-        )}
-        {!loading && results.length === 0 && query.trim().length > 0 && allowCustom && (
+        
+        {/* Always offer custom text sticker when user types, unless it matches existing perfectly */}
+        {allowCustom && query.trim().length > 0 && !hasExactMatch && (
           <button 
+            type="button"
             onClick={() => handleCustomSubmit()} 
-            className="flex items-center gap-3 p-3 rounded-xl bg-muted/60 hover:bg-muted text-left transition-colors"
+            className="flex items-center gap-3 p-3 rounded-2xl bg-primary/10 hover:bg-primary/15 border border-primary/25 text-left transition-all mb-1 shadow-sm"
           >
-            <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center">
-              <Icon className="w-4 h-4 text-primary" />
+            <div className="w-9 h-9 rounded-full bg-primary flex items-center justify-center text-primary-foreground shrink-0 shadow-sm">
+              <Icon className="w-4 h-4" />
             </div>
             <div className="flex flex-col flex-1 overflow-hidden">
-              <span className="font-semibold text-sm">Usar &quot;{query.trim()}&quot;</span>
-              <span className="text-xs text-muted-foreground">Crear sticker con este texto</span>
+              <span className="font-bold text-sm text-foreground">Usar &quot;{query.trim()}&quot;</span>
+              <span className="text-xs text-muted-foreground">
+                {customLabel || "Crear sticker personalizado con este texto"}
+              </span>
             </div>
           </button>
         )}
+
+        {!loading && results.length === 0 && query.trim().length > 0 && !allowCustom && (
+          <p className="text-center text-xs text-muted-foreground py-4">No se encontraron resultados.</p>
+        )}
+
         {!loading && results.map(item => (
           <button 
             key={item.id} 
@@ -268,11 +304,14 @@ export function RecipePicker({ onSelect }: { onSelect: (r: { id: string, title: 
 export function IngredientPicker({ onSelect }: { onSelect: (i: { id: string, title: string }) => void }) {
   const supabase = createClient()
   return <GenericSearchPicker 
-    title="Ingrediente" icon={Apple} placeholder="Buscar o escribir ingrediente..."
+    title="Ingrediente" 
+    icon={Apple} 
+    placeholder="Buscar o escribir cualquier ingrediente..."
     allowCustom={true}
+    customLabel="Crear sticker con este ingrediente"
     onSelect={onSelect}
     fetchResults={async (q) => {
-      let queryBuilder = supabase.from('ingredients').select('id, canonical_name').limit(15)
+      let queryBuilder = supabase.from('ingredients').select('id, canonical_name').limit(20)
       if (q) {
         queryBuilder = queryBuilder.ilike('canonical_name', `%${q}%`)
       }
@@ -280,7 +319,7 @@ export function IngredientPicker({ onSelect }: { onSelect: (i: { id: string, tit
       if (error) console.error("IngredientPicker error:", error)
       return (data || []).map(i => ({
         id: i.id,
-        title: i.canonical_name
+        title: cleanIngredientName(i.canonical_name)
       }))
     }}
   />
