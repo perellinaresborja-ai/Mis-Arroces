@@ -14,10 +14,30 @@ export async function createStory(data: {
   recipeId?: string
   sessionId?: string
   postId?: string
+  musicConfig?: any
 }) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error("Unauthorized")
+
+  // Validate music config if present
+  let validMusicConfig = null;
+  if (data.musicConfig) {
+    const { validateMusicConfig } = await import("@/types/stories");
+    if (!validateMusicConfig(data.musicConfig)) {
+      throw new Error("Invalid music configuration");
+    }
+    // Check if track exists and is active
+    const { data: track } = await (supabase as any).from('story_music_tracks').select('id, duration_ms, active').eq('id', data.musicConfig.track_id).single();
+    if (!track || !track.active) {
+      throw new Error("Invalid or inactive music track");
+    }
+    // Check boundaries
+    if (data.musicConfig.start_time_ms + data.musicConfig.duration_ms > track.duration_ms) {
+      throw new Error("Music fragment exceeds track duration");
+    }
+    validMusicConfig = data.musicConfig;
+  }
 
   const { data: story, error } = await supabase.from("stories").insert({
     owner_id: user.id,
@@ -27,8 +47,9 @@ export async function createStory(data: {
     visibility: "PUBLIC",
     media_transform: data.mediaTransform || null,
     overlays: data.overlays || [],
-    background: data.background || null
-  }).select().single()
+    background: data.background || null,
+    music_config: validMusicConfig
+  } as any).select().single()
 
   if (error || !story) {
     console.error("Error creating story:", error)
@@ -819,4 +840,23 @@ export async function deleteHighlight(highlightId: string) {
   return true;
 }
 
+
+
+export async function getMusicCatalog() {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+
+  const { data, error } = await (supabase as any)
+    .from('story_music_tracks')
+    .select('*')
+    .eq('active', true)
+    .order('created_at', { ascending: false })
+
+  if (error) {
+    console.error('Error fetching music catalog:', error)
+    return []
+  }
+  return data || []
+}
 

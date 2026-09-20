@@ -440,6 +440,7 @@ export function StoriesViewer({ groupedStories: _groupedStories, initialGroupInd
             transform={currentStory.media_transform}
             background={currentStory.background}
             overlays={currentStory.overlays || []}
+            musicConfig={currentStory.music_config}
             isVideo={!!isVideo}
             videoRef={videoRef}
             onTimeUpdate={handleTimeUpdate}

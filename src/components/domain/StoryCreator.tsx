@@ -9,7 +9,8 @@ import { globalStoryDraftUrl, globalStoryDraftType, globalStoryDraftFile, clearG
 import { SharedStoryRenderer, renderOverlayContent } from './SharedStoryRenderer';
 import { DraggableOverlay } from './stories/DraggableOverlay';
 import { MentionPicker, RecipePicker, IngredientPicker, LocationPicker, StickerPicker, LinkPicker, QuestionPicker, PollPicker, cleanIngredientName } from './stories/StickerPickers';
-import { Camera, User, ChefHat, MapPin, AlignLeft, AlignCenter, AlignRight, Apple, Image as ImageIcon, Trash2, Paintbrush, Sparkles, Link as LinkIcon, HelpCircle, BarChart2 } from 'lucide-react';
+import { Camera, User, ChefHat, MapPin, AlignLeft, AlignCenter, AlignRight, Apple, Image as ImageIcon, Trash2, Paintbrush, Sparkles, Link as LinkIcon, HelpCircle, BarChart2, Music } from 'lucide-react';
+import { StoryMusicSelector } from './StoryMusicSelector';
 
 const TEXT_COLORS = ['#ffffff', '#000000', '#ef4444', '#f97316', '#eab308', '#22c55e', '#3b82f6', '#a855f7', '#ec4899'];
 const TEXT_FONTS = ['sans-serif', 'serif', 'monospace', 'Impact'];
@@ -58,7 +59,10 @@ export function StoryCreator({
   }, []);
   
   
-  const [mode, setMode] = useState<'EDIT'|'DRAW'|'TEXT'|'STICKER'>('EDIT');
+  const [mode, setMode] = useState<'EDIT'|'DRAW'|'TEXT'|'STICKER'|'MUSIC'>('EDIT');
+  const [musicConfig, setMusicConfig] = useState<any>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -307,7 +311,8 @@ export function StoryCreator({
         recipeId: initialRecipe?.id,
         sessionId: initialSession?.id,
         postId: initialPost?.id,
-        overlays
+        overlays,
+        musicConfig
       });
       clearGlobalStoryDraft();
       window.location.href = '/';
@@ -368,8 +373,10 @@ export function StoryCreator({
           <SharedStoryRenderer 
             mediaUrl={draftMediaUrl} 
             isVideo={draftMediaType === 'VIDEO'}
+            videoRef={videoRef}
             background={background}
             overlays={[]} 
+            musicConfig={musicConfig}
             mode="EDITOR"
           />
           {!draftMediaUrl && overlays.length === 0 && mode === 'EDIT' && (
@@ -526,15 +533,21 @@ export function StoryCreator({
                   <Sparkles size={22} className="text-primary"/>
                   <span className="text-[11px] font-bold">Stickers</span>
                 </button>
+                <button onClick={() => setMode('MUSIC')} className="flex flex-col items-center justify-center gap-1.5 p-3 bg-muted hover:bg-muted/80 rounded-2xl transition-colors text-foreground relative">
+                  <Music size={22} className={musicConfig ? "text-green-500" : "text-primary"}/>
+                  <span className="text-[11px] font-bold">Música</span>
+                  {musicConfig && <div className="absolute top-2 right-2 w-2 h-2 bg-green-500 rounded-full border border-zinc-900"></div>}
+                </button>
               </div>
             
             <div className="mt-auto space-y-4">
               <select value={privacy} onChange={e => setPrivacy(e.target.value as 'PUBLIC'|'FOLLOWERS')} className="w-full bg-muted text-foreground font-medium rounded-2xl p-4 border border-border outline-none focus:border-primary">
-                <option value="PUBLIC">🌍 Público</option>
-                <option value="FOLLOWERS">👥 Seguidores</option>
+                <option value="PUBLIC">Público</option>
+                <option value="FOLLOWERS">Solo Seguidores</option>
               </select>
-              <button onClick={handlePublish} disabled={isPublishing} className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold p-4 rounded-2xl transition-colors shadow-sm">
-                {isPublishing ? 'Publicando...' : 'Compartir Historia'}
+              
+              <button onClick={handlePublish} disabled={isPublishing} className="w-full font-bold text-lg bg-primary hover:bg-primary/90 text-primary-foreground py-4 rounded-full transition-transform active:scale-[0.98] disabled:opacity-50">
+                {isPublishing ? "Publicando..." : "Publicar Story"}
               </button>
             </div>
           </div>
@@ -649,6 +662,17 @@ export function StoryCreator({
         )}
 
       </div>
+
+      {mode === 'MUSIC' && (
+        <StoryMusicSelector 
+          maxDurationMs={draftMediaType === 'VIDEO' ? ((videoRef.current?.duration || 5) * 1000) : 5000}
+          onSelect={(config) => {
+            setMusicConfig(config);
+            setMode('EDIT');
+          }}
+          onClose={() => setMode('EDIT')}
+        />
+      )}
     </div>
   );
 }

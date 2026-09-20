@@ -60,6 +60,7 @@ interface SharedStoryRendererProps {
   transform?: StoryTransform | null;
   background?: StoryBackground | null;
   overlays: StoryOverlay[];
+  musicConfig?: any;
   mode: 'EDITOR' | 'PREVIEW' | 'VIEWER';
   onOverlayClick?: (overlay: StoryOverlay) => void;
   selectedOverlayId?: string | null;
@@ -73,12 +74,70 @@ export function SharedStoryRenderer({
   transform,
   background,
   overlays,
+  musicConfig,
   mode,
   onOverlayClick,
   selectedOverlayId
 , isVideo, videoRef, onTimeUpdate, onEnded, isPaused, onPauseRequest, onResumeRequest}: SharedStoryRendererProps) {
   const [pollResults, setPollResults] = React.useState<Record<string, PollResultData>>({});
   const [isVoting, setIsVoting] = React.useState<Record<string, boolean>>({});
+
+  const [musicTrackUrl, setMusicTrackUrl] = React.useState<string | null>(null);
+  const audioRef = React.useRef<HTMLAudioElement | null>(null);
+
+  useEffect(() => {
+    if (musicConfig?.track_id) {
+      import("@/lib/supabase/client").then(({ createClient }) => {
+        const supabase = createClient();
+        (supabase as any).from('story_music_tracks').select('audio_url').eq('id', musicConfig.track_id).single().then(({ data }: any) => {
+          if (data?.audio_url) {
+            setMusicTrackUrl(data.audio_url);
+          }
+        });
+      });
+    }
+  }, [musicConfig?.track_id]);
+
+  useEffect(() => {
+    if (audioRef.current && musicConfig) {
+      if (isPaused) {
+        audioRef.current.pause();
+      } else {
+        const p = audioRef.current.play();
+        if (p !== undefined) {
+          p.catch(e => {
+            console.log("Audio autoplay blocked or failed:", e);
+          });
+        }
+      }
+    }
+  }, [isPaused, musicConfig, musicTrackUrl]);
+
+  useEffect(() => {
+    if (audioRef.current && musicConfig) {
+      audioRef.current.volume = musicConfig.music_volume ?? 1;
+      // Start time initialization
+      if (Math.abs(audioRef.current.currentTime - (musicConfig.start_time_ms / 1000)) > 1) {
+        audioRef.current.currentTime = musicConfig.start_time_ms / 1000;
+      }
+    }
+  }, [musicTrackUrl, musicConfig]);
+
+  useEffect(() => {
+    if (videoRef && videoRef.current && musicConfig?.original_audio_volume !== undefined) {
+      videoRef.current.volume = musicConfig.original_audio_volume;
+    }
+  }, [videoRef, musicConfig]);
+
+  // Clean up audio on unmount or track change
+  useEffect(() => {
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+      }
+    }
+  }, []);
+
   const [questionReplies, setQuestionReplies] = React.useState<Record<string, string>>({});
   const [isSendingQ, setIsSendingQ] = React.useState<Record<string, boolean>>({});
   const [sentQ, setSentQ] = React.useState<Record<string, boolean>>({});
@@ -150,6 +209,17 @@ export function SharedStoryRenderer({
 
   return (
     <div style={containerStyle}>
+      {/* Hidden Audio element */}
+      {musicTrackUrl && (
+        <audio 
+          ref={audioRef} 
+          src={musicTrackUrl} 
+          preload="metadata" 
+          loop={false}
+          className="hidden" 
+        />
+      )}
+      
       {/* Background Layer */}
 
       
