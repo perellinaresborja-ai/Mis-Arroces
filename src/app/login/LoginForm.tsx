@@ -156,20 +156,6 @@ export function LoginForm({ error, message }: { error?: string, message?: string
 
         <SubmitButton mode={mode} />
 
-        {mode === "signup" && (
-          <div className="pt-2 text-center">
-            <p className="text-sm text-muted-foreground">
-              ¿Ya tienes cuenta?{" "}
-              <button
-                type="button"
-                onClick={() => setMode("login")}
-                className="font-bold text-primary hover:underline"
-              >
-                Inicia sesión aquí
-              </button>
-            </p>
-          </div>
-        )}
       </form>
     </div>
   )
