@@ -1,9 +1,9 @@
-import { NextRequest, NextResponse } from 'next/server'
+import type { NextRequest } from 'next/server'
+import { NextResponse } from 'next/server'
 import { Resend } from 'resend'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
-// Addresses that must NEVER receive an autoresponse (anti-loop)
 const BLOCKED_SENDERS = [
   'noreply', 'no-reply', 'mailer-daemon', 'postmaster',
   'bounce', 'auto-reply', 'info@misarroces.es',
@@ -14,8 +14,12 @@ function shouldIgnore(from: string): boolean {
   return BLOCKED_SENDERS.some((b) => lower.includes(b))
 }
 
-function buildEmailHtml(senderName: string): string {
-  const name = senderName || 'gracias por escribirnos'
+function extractEmail(from: string): string {
+  const match = from.match(/<([^>]+)>/)
+  return match ? match[1] : from.trim()
+}
+
+function buildEmailHtml(): string {
   return `
 <!DOCTYPE html>
 <html lang="es">
@@ -63,58 +67,71 @@ function buildEmailHtml(senderName: string): string {
 `
 }
 
-function extractEmail(from: string): string {
-  // Handle "Name <email@domain.com>" format
-  const match = from.match(/<([^>]+)>/)
-  return match ? match[1] : from.trim()
-}
-
-function extractName(from: string): string {
-  // Handle "Name <email@domain.com>" format
-  const match = from.match(/^([^<]+)</)
-  return match ? match[1].trim() : ''
-}
-
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json()
+    // Read raw body for Svix signature verification
+    const payload = await req.text()
+    const id = req.headers.get('svix-id')
+    const timestamp = req.headers.get('svix-timestamp')
+    const signature = req.headers.get('svix-signature')
 
-    // Resend inbound webhook payload
-    const from: string = body?.data?.from ?? body?.from ?? ''
-    const subject: string = body?.data?.subject ?? body?.subject ?? ''
-
-    if (!from) {
-      return NextResponse.json({ error: 'No sender' }, { status: 400 })
+    if (!id || !timestamp || !signature) {
+      return new NextResponse('Missing headers', { status: 400 })
     }
 
-    // Anti-loop: ignore automated senders
-    if (shouldIgnore(from)) {
+    // Verify the webhook signature
+    const result = resend.webhooks.verify({
+      payload,
+      headers: { id, timestamp, signature },
+      webhookSecret: process.env.RESEND_WEBHOOK_SECRET!,
+    })
+
+    // Only process inbound emails
+    if (result.type !== 'email.received') {
       return NextResponse.json({ ok: true, skipped: true })
     }
 
-    // Also skip if Auto-Submitted header is present
-    const autoSubmitted = body?.data?.headers?.['auto-submitted'] ?? body?.headers?.['auto-submitted'] ?? ''
+    // Fetch the actual email content
+    const { data: email, error: emailError } = await resend.emails.receiving.get(result.data.email_id)
+    if (emailError || !email) {
+      console.error('Failed to fetch received email:', emailError)
+      return NextResponse.json({ error: 'Could not fetch email' }, { status: 500 })
+    }
+
+    const from: string = email.from ?? ''
+    const replyTo = extractEmail(from)
+
+    // Anti-loop protection
+    if (!replyTo || shouldIgnore(from)) {
+      return NextResponse.json({ ok: true, skipped: true })
+    }
+
+    // Check Auto-Submitted header
+    const autoSubmitted = (email.headers as Record<string, string> | undefined)?.['auto-submitted'] ?? ''
     if (autoSubmitted && autoSubmitted !== 'no') {
       return NextResponse.json({ ok: true, skipped: true })
     }
 
-    const replyTo = extractEmail(from)
-    const senderName = extractName(from)
-
-    await resend.emails.send({
+    // Send HTML autoresponse
+    const { error: sendError } = await resend.emails.send({
       from: 'misarroces <info@misarroces.es>',
       to: replyTo,
       subject: 'Hemos recibido tu mensaje — misarroces',
-      html: buildEmailHtml(senderName),
+      html: buildEmailHtml(),
       headers: {
         'Auto-Submitted': 'auto-replied',
         'X-Auto-Response-Suppress': 'OOF, AutoReply',
       },
     })
 
+    if (sendError) {
+      console.error('Failed to send autoresponse:', sendError)
+      return NextResponse.json({ error: 'Send failed' }, { status: 500 })
+    }
+
     return NextResponse.json({ ok: true })
   } catch (err) {
-    console.error('Inbound email webhook error:', err)
-    return NextResponse.json({ error: 'Internal error' }, { status: 500 })
+    console.error('Inbound webhook error:', err)
+    return new NextResponse(`Error: ${err}`, { status: 500 })
   }
 }
