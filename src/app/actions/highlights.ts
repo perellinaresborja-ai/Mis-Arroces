@@ -166,3 +166,50 @@ export async function updateHighlightsOrder(orderedHighlightIds: string[]) {
   revalidatePath('/me');
   return true;
 }
+
+export async function editStoryHighlight(highlightId: string, name: string, storyIds: string[], coverUrl?: string) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Unauthorized");
+
+  // Verify ownership
+  const { data: h, error: hError } = await supabase
+    .from('story_highlights')
+    .select('id, user_id')
+    .eq('id', highlightId)
+    .single();
+  if (hError || !h || h.user_id !== user.id) {
+    throw new Error("Unauthorized: highlight not found or not owned");
+  }
+
+  // 1. Update highlight name and cover_url
+  const updateData: { name: string; cover_url?: string } = { name };
+  if (coverUrl) updateData.cover_url = coverUrl;
+  const { error: updateError } = await supabase
+    .from('story_highlights')
+    .update(updateData)
+    .eq('id', highlightId);
+  if (updateError) throw updateError;
+
+  // 2. Re-link highlight_stories safely preserving explicit manual order
+  // NOTE: deleting from highlight_stories ONLY removes join records; original stories and media are never touched
+  await supabase
+    .from('highlight_stories')
+    .delete()
+    .eq('highlight_id', highlightId);
+
+  if (storyIds.length > 0) {
+    const newRelations = storyIds.map((storyId, idx) => ({
+      highlight_id: highlightId,
+      story_id: storyId,
+      display_order: idx
+    }));
+    const { error: insertError } = await supabase
+      .from('highlight_stories')
+      .insert(newRelations);
+    if (insertError) throw insertError;
+  }
+
+  revalidatePath('/me');
+  return true;
+}
