@@ -155,7 +155,6 @@ export default function EditRecipeForm({ recipe, catalogs }: { recipe: any, cata
   }
 
   const submitWithAction = async (action: 'DRAFT' | 'PUBLISH' | 'SCHEDULE' | 'UPDATE') => {
-    console.log("[INSTRUMENTATION] >>> submitWithAction called with action:", action);
     let finalStatus = recipe.status
     let finalScheduledFor = recipe.scheduled_for || null
 
@@ -184,25 +183,14 @@ export default function EditRecipeForm({ recipe, catalogs }: { recipe: any, cata
     // Client-side integrity check if destination or current status is PUBLISHED
     if (finalStatus === 'PUBLISHED') {
       const currentValues = getValues()
-      console.log("[INSTRUMENTATION] getValues('ingredients') REAL:", JSON.stringify(currentValues.ingredients?.map((i: any) => ({
-        display_text: i.display_text,
-        normalized_quantity: i.normalized_quantity,
-        unit_id: i.unit_id
-      })), null, 2));
-
-      const payload = {
+      const validation = validateRecipeForPublishing({
         name: currentValues.name,
         base_servings: currentValues.base_servings,
         ingredients: currentValues.ingredients,
         steps: currentValues.steps
-      };
-      console.log("[INSTRUMENTATION] Payload EXACTO enviado a validateRecipeForPublishing:", JSON.stringify(payload, null, 2));
-
-      const validation = validateRecipeForPublishing(payload)
-      console.log("[INSTRUMENTATION] Resultado de validateRecipeForPublishing:", JSON.stringify(validation, null, 2));
+      })
 
       if (!validation.isValid) {
-        console.log("[INSTRUMENTATION] Validation failed! Setting errors:", validation.errorList);
         setValidationErrors(validation.errorList)
         window.scrollTo({ top: 0, behavior: 'smooth' })
         if (validation.issues.length > 0) {
@@ -212,7 +200,6 @@ export default function EditRecipeForm({ recipe, catalogs }: { recipe: any, cata
       }
     }
 
-    console.log("[INSTRUMENTATION] Validation passed (or not required). Clearing errors and proceeding to onSubmit.");
     setValidationErrors([])
     setValue('status', finalStatus)
     setValue('scheduled_for', finalScheduledFor)
@@ -591,20 +578,20 @@ export default function EditRecipeForm({ recipe, catalogs }: { recipe: any, cata
                 <div className="flex-1 space-y-2">
                   <div className="grid grid-cols-12 gap-2">
                     <div className="col-span-4 md:col-span-3">
-                      <Input type="number" step="0.01" placeholder="Cant." {...register(`ingredients.${idx}.normalized_quantity`)} />
+                      <Input type="number" step="0.01" placeholder="Cant." {...register(`ingredients.${idx}.normalized_quantity`)} defaultValue={field.normalized_quantity ?? ""} />
                     </div>
                     <div className="col-span-8 md:col-span-3">
-                      <select {...register(`ingredients.${idx}.unit_id`)} className="w-full h-10 px-2 rounded-md border border-input bg-background text-sm">
+                      <select {...register(`ingredients.${idx}.unit_id`)} defaultValue={field.unit_id ?? ""} className="w-full h-10 px-2 rounded-md border border-input bg-background text-sm">
                         <option value="">Unidad (opc)</option>
                         {catalogs.units.map((u: any) => <option key={u.id} value={u.id}>{formatUnitSymbol(u.name)}</option>)}
                       </select>
                     </div>
                     <div className="col-span-12 md:col-span-6">
-                      <Input placeholder="" {...register(`ingredients.${idx}.display_text`, { required: true })} />
+                      <Input placeholder="" {...register(`ingredients.${idx}.display_text`, { required: true })} defaultValue={field.display_text ?? ""} />
                     </div>
                   </div>
                   <div className="flex items-center gap-2 mt-1">
-                    <input type="checkbox" id={`scale-${idx}`} {...register(`ingredients.${idx}.is_scalable`)} className="rounded border-input text-primary focus:ring-primary" />
+                    <input type="checkbox" id={`scale-${idx}`} {...register(`ingredients.${idx}.is_scalable`)} defaultChecked={field.is_scalable ?? false} className="rounded border-input text-primary focus:ring-primary" />
                     <label htmlFor={`scale-${idx}`} className="text-xs text-muted-foreground cursor-pointer">Escala con el nº de comensales</label>
                   </div>
                 </div>
@@ -650,14 +637,15 @@ export default function EditRecipeForm({ recipe, catalogs }: { recipe: any, cata
                     <span className="absolute -top-2.5 left-3 bg-muted px-1.5 text-[10px] font-bold text-muted-foreground uppercase tracking-wider rounded">Paso {idx + 1}</span>
                     <textarea 
                       {...register(`steps.${idx}.instruction`, { required: true })}
+                      defaultValue={field.instruction ?? ""}
                       className="flex min-h-[90px] w-full rounded-2xl border border-border bg-background px-4 py-3 text-sm ring-offset-background placeholder:text-muted-foreground/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 resize-y"
                       placeholder="Ej. Sofreír la carne a fuego medio hasta que esté dorada." 
                     />
                   </div>
                   
                   <div className="flex flex-col sm:flex-row gap-3">
-                    <Input type="number" placeholder="Tiempo (min)" {...register(`steps.${idx}.duration_minutes`)} className="sm:w-1/3 rounded-xl bg-background" />
-                    <Input placeholder="Notas (ej. Fuego fuerte)" {...register(`steps.${idx}.notes`)} className="sm:w-2/3 rounded-xl bg-background" />
+                    <Input type="number" placeholder="Tiempo (min)" {...register(`steps.${idx}.duration_minutes`)} defaultValue={field.duration_minutes ?? ""} className="sm:w-1/3 rounded-xl bg-background" />
+                    <Input placeholder="Notas (ej. Fuego fuerte)" {...register(`steps.${idx}.notes`)} defaultValue={field.notes ?? ""} className="sm:w-2/3 rounded-xl bg-background" />
                   </div>
                 </div>
 
