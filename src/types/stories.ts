@@ -1,4 +1,4 @@
-﻿export type OverlayType = 'TEXT' | 'MENTION' | 'LOCATION' | 'RECIPE' | 'GIF' | 'DRAWING' | 'POLL' | 'SLIDER' | 'QUESTION' | 'SESSION' | 'PROFILE' | 'INGREDIENT' | 'POST';
+export type OverlayType = 'TEXT' | 'MENTION' | 'LOCATION' | 'RECIPE' | 'GIF' | 'DRAWING' | 'POLL' | 'SLIDER' | 'QUESTION' | 'SESSION' | 'PROFILE' | 'INGREDIENT' | 'POST' | 'LINK';
 
 export interface StoryTransform {
   scale: number;
@@ -145,7 +145,15 @@ export interface QuestionOverlay extends BaseOverlay {
   };
 }
 
-export type StoryOverlay = TextOverlay | DrawingOverlay | MentionOverlay | LocationOverlay | RecipeOverlay | SessionOverlay | ProfileOverlay | IngredientOverlay | GifOverlay | PollOverlay | SliderOverlay | QuestionOverlay | PostOverlay;
+export interface LinkOverlay extends BaseOverlay {
+  type: 'LINK';
+  payload: {
+    url: string;
+    title?: string;
+  };
+}
+
+export type StoryOverlay = TextOverlay | DrawingOverlay | MentionOverlay | LocationOverlay | RecipeOverlay | SessionOverlay | ProfileOverlay | IngredientOverlay | GifOverlay | PollOverlay | SliderOverlay | QuestionOverlay | PostOverlay | LinkOverlay;
 
 export function validateOverlay(overlay: any): boolean {
   if (!overlay || typeof overlay !== 'object') return false;
@@ -171,6 +179,8 @@ export function validateOverlay(overlay: any): boolean {
       return typeof overlay.payload?.ingredientId === 'string' && typeof overlay.payload?.name === 'string';
     case 'GIF':
       return typeof overlay.payload?.url === 'string' && overlay.payload.url.startsWith('https://');
+    case 'LINK':
+      return typeof overlay.payload?.url === 'string' && (overlay.payload.url.startsWith('https://') || overlay.payload.url.startsWith('http://'));
     case 'POLL':
       return typeof overlay.payload?.question === 'string' && typeof overlay.payload?.optionA === 'string' && typeof overlay.payload?.optionB === 'string';
     case 'SLIDER':

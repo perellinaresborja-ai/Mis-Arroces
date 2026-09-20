@@ -25,7 +25,9 @@ interface SliderResultData {
 
 export interface RenderContext {
   pollResults?: Record<string, PollResultData>;
+  setPollResults?: React.Dispatch<React.SetStateAction<Record<string, PollResultData>>>;
   isVoting?: Record<string, boolean>;
+  setIsVoting?: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
   handleVote?: (pollId: string, option: string) => Promise<void>;
   questionReplies?: Record<string, string>;
   setQuestionReplies?: React.Dispatch<React.SetStateAction<Record<string, string>>>;
@@ -182,7 +184,7 @@ export function SharedStoryRenderer({
             top: (overlay.y * 100 + '%'),
             transform: ('translate(-50%, -50%) scale(' + overlay.scale + ') rotate(' + overlay.rotation + 'deg)'),
             zIndex: overlay.zIndex + 10,
-            pointerEvents: (mode === 'EDITOR' || ['POLL', 'QUESTION', 'SLIDER', 'MENTION', 'LOCATION', 'RECIPE', 'INGREDIENT', 'SESSION', 'PROFILE', 'TEXT'].includes(overlay.type)) ? 'auto' : 'none',
+            pointerEvents: (mode === 'EDITOR' || ['POLL', 'QUESTION', 'SLIDER', 'MENTION', 'LOCATION', 'RECIPE', 'INGREDIENT', 'SESSION', 'PROFILE', 'TEXT', 'LINK'].includes(overlay.type)) ? 'auto' : 'none',
             cursor: mode === 'EDITOR' ? 'grab' : 'default',
             boxShadow: isSelected ? '0 0 0 2px #3b82f6' : 'none', // highlight if selected
           }
@@ -192,7 +194,7 @@ export function SharedStoryRenderer({
               key={overlay.id} 
               style={overlayStyle}
               onClick={(e) => {
-                if (['POLL', 'QUESTION', 'SLIDER', 'MENTION', 'LOCATION', 'RECIPE', 'INGREDIENT', 'SESSION', 'PROFILE', 'TEXT'].includes(overlay.type)) {
+                if (['POLL', 'QUESTION', 'SLIDER', 'MENTION', 'LOCATION', 'RECIPE', 'INGREDIENT', 'SESSION', 'PROFILE', 'TEXT', 'LINK'].includes(overlay.type)) {
                   e.stopPropagation();
                 }
                 if (mode === 'EDITOR' && onOverlayClick) {
@@ -207,7 +209,21 @@ export function SharedStoryRenderer({
                 }
               }}
             >
-              {renderOverlayContent(overlay, mode, { storyId, questionReplies, setQuestionReplies, isSendingQ, setIsSendingQ, sentQ, setSentQ, onPauseRequest, onResumeRequest })}
+              {renderOverlayContent(overlay, mode, { 
+                storyId, 
+                pollResults,
+                isVoting,
+                setIsVoting,
+                setPollResults,
+                questionReplies, 
+                setQuestionReplies, 
+                isSendingQ, 
+                setIsSendingQ, 
+                sentQ, 
+                setSentQ, 
+                onPauseRequest, 
+                onResumeRequest 
+              })}
             </div>
           )
         })}
@@ -235,6 +251,10 @@ export function renderOverlayContent(overlay: StoryOverlay, mode: string, ctx?: 
     const setSentQ = safeCtx.setSentQ || (() => {});
     const onPauseRequest = safeCtx.onPauseRequest || (() => {});
     const onResumeRequest = safeCtx.onResumeRequest || (() => {});
+    const pollResults = safeCtx.pollResults || {};
+    const setPollResults = safeCtx.setPollResults || (() => {});
+    const isVoting = safeCtx.isVoting || {};
+    const setIsVoting = safeCtx.setIsVoting || (() => {});
     const sliderResults = safeCtx.sliderResults || {};
     const setSliderResults = safeCtx.setSliderResults || (() => {});
     const sliderValues = safeCtx.sliderValues || {};
@@ -428,24 +448,124 @@ export function renderOverlayContent(overlay: StoryOverlay, mode: string, ctx?: 
     }
     case 'POLL': {
       const p = overlay.payload;
+      const pollId = p.pollId || overlay.id;
+      const res = pollResults?.[pollId];
+      const hasVoted = Boolean(res?.myVote || res?.userVoted);
+      const isVotingNow = isVoting?.[pollId];
+
       const handlePollVote = async (opt: 'A'|'B') => {
-        if (mode === 'VIEWER') {
+        if (mode === 'VIEWER' && storyId && !hasVoted && !isVotingNow) {
+          if (setIsVoting) setIsVoting((prev: Record<string, boolean>) => ({ ...prev, [pollId]: true }));
           try {
-            const { votePoll } = await import('@/app/actions/stories');
-            await votePoll("mock", overlay.id, opt);
-            alert('Voto registrado');
-          } catch (e) {
-            console.error(e)
+            const { votePoll, getPollResults } = await import('@/app/actions/stories');
+            await votePoll(storyId, pollId, opt);
+            const freshResults = await getPollResults(pollId);
+            if (setPollResults) {
+              setPollResults((prev: Record<string, PollResultData>) => ({ ...prev, [pollId]: freshResults }));
+            }
+          } catch (e: unknown) {
+            console.error(e);
+            alert((e as Error).message || 'Error al votar en la encuesta');
+          } finally {
+            if (setIsVoting) setIsVoting((prev: Record<string, boolean>) => ({ ...prev, [pollId]: false }));
           }
         }
       };
+
+      const percentA = res?.percentA ?? (res?.total && res.total > 0 ? Math.round(((res.countA || 0) / res.total) * 100) : 50);
+      const percentB = res?.percentB ?? (res?.total && res.total > 0 ? Math.round(((res.countB || 0) / res.total) * 100) : 50);
+
       return (
-        <div className="bg-background/95 backdrop-blur-md rounded-2xl overflow-hidden shadow-2xl border border-border/50 min-w-[200px] pointer-events-auto">
-          <div className="p-3 text-center font-bold text-foreground border-b border-border/50">{p.question}</div>
-          <div className="flex divide-x divide-border/50">
-            <button onClick={() => handlePollVote('A')} className="flex-1 p-3 text-center font-bold hover:bg-muted text-primary transition-colors cursor-pointer">{p.optionA}</button>
-            <button onClick={() => handlePollVote('B')} className="flex-1 p-3 text-center font-bold hover:bg-muted text-primary transition-colors cursor-pointer">{p.optionB}</button>
+        <div className="bg-card/95 backdrop-blur-md rounded-2xl overflow-hidden shadow-2xl border border-border min-w-[220px] max-w-[280px] pointer-events-auto">
+          <div className="p-3.5 text-center font-bold text-foreground border-b border-border text-sm leading-snug">
+            {p.question}
           </div>
+          {hasVoted ? (
+            <div className="flex flex-col p-3 gap-2 text-xs font-semibold">
+              <div className="relative overflow-hidden rounded-xl bg-muted h-9 flex items-center justify-between px-3 border border-border">
+                <div 
+                  className="absolute inset-0 bg-primary/20 transition-all duration-500" 
+                  style={{ width: `${percentA}%` }} 
+                />
+                <span className="relative z-10 font-bold truncate max-w-[70%]">{p.optionA}</span>
+                <span className="relative z-10 font-mono font-bold text-primary">{percentA}%</span>
+              </div>
+              <div className="relative overflow-hidden rounded-xl bg-muted h-9 flex items-center justify-between px-3 border border-border">
+                <div 
+                  className="absolute inset-0 bg-primary/20 transition-all duration-500" 
+                  style={{ width: `${percentB}%` }} 
+                />
+                <span className="relative z-10 font-bold truncate max-w-[70%]">{p.optionB}</span>
+                <span className="relative z-10 font-mono font-bold text-primary">{percentB}%</span>
+              </div>
+              <div className="text-center text-[10px] text-muted-foreground mt-0.5">
+                {res?.total || 0} {(res?.total === 1) ? 'voto' : 'votos'}
+              </div>
+            </div>
+          ) : (
+            <div className="flex divide-x divide-border">
+              <button 
+                type="button"
+                onClick={() => handlePollVote('A')} 
+                disabled={isVotingNow || mode !== 'VIEWER'}
+                className="flex-1 p-3 text-center font-bold hover:bg-muted text-primary transition-colors cursor-pointer text-sm truncate disabled:opacity-70"
+              >
+                {p.optionA}
+              </button>
+              <button 
+                type="button"
+                onClick={() => handlePollVote('B')} 
+                disabled={isVotingNow || mode !== 'VIEWER'}
+                className="flex-1 p-3 text-center font-bold hover:bg-muted text-primary transition-colors cursor-pointer text-sm truncate disabled:opacity-70"
+              >
+                {p.optionB}
+              </button>
+            </div>
+          )}
+        </div>
+      );
+    }
+    case 'LINK': {
+      const p = overlay.payload;
+      const rawUrl = p.url || '';
+      let displayDomain = '';
+      try {
+        const parsed = new URL(rawUrl.startsWith('http') ? rawUrl : `https://${rawUrl}`);
+        displayDomain = parsed.hostname.replace(/^www\./, '');
+      } catch {
+        displayDomain = 'Enlace';
+      }
+
+      const displayText = p.title?.trim() || displayDomain;
+
+      const handleClick = (e: React.MouseEvent) => {
+        if (mode === 'VIEWER') {
+          e.stopPropagation();
+          let targetUrl = rawUrl;
+          if (!/^https?:\/\//i.test(targetUrl)) {
+            targetUrl = `https://${targetUrl}`;
+          }
+          window.open(targetUrl, '_blank', 'noopener,noreferrer');
+        }
+      };
+
+      return (
+        <div 
+          onClick={handleClick} 
+          className="bg-card/95 backdrop-blur-md border border-border text-foreground px-4 py-2.5 rounded-2xl font-bold flex items-center gap-2 shadow-2xl cursor-pointer text-sm pointer-events-auto transition-transform hover:scale-105"
+        >
+          <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-primary shrink-0">
+            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+              <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+            </svg>
+          </div>
+          <span className="truncate max-w-[170px] text-foreground">{displayText}</span>
+          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-muted-foreground shrink-0">
+            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+            <polyline points="15 3 21 3 21 9"/>
+            <line x1="10" y1="14" x2="21" y2="3"/>
+          </svg>
         </div>
       );
     }

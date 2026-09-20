@@ -83,6 +83,25 @@ export async function createStory(data: {
       }
     }
 
+  // Handle POLL overlays insertion
+  if (data.overlays && Array.isArray(data.overlays)) {
+    for (const overlay of data.overlays) {
+      if (overlay.type === 'POLL' && overlay.payload?.question) {
+        const pollId = overlay.payload.pollId || overlay.id;
+        const { error: pollErr } = await supabase.from('story_polls').insert({
+          id: pollId,
+          story_id: story.id,
+          question: overlay.payload.question,
+          option_a: overlay.payload.optionA,
+          option_b: overlay.payload.optionB
+        });
+        if (pollErr) {
+          console.error("Failed to insert story_poll for story:", pollErr);
+        }
+      }
+    }
+  }
+
   // Handle MENTION notifications
   if (data.overlays && Array.isArray(data.overlays)) {
     const { createNotification } = await import("@/app/actions/notifications");
@@ -521,6 +540,8 @@ export async function submitQuestionReply(storyId: string, ownerId: string, ques
   const { data: story } = await supabase.from('stories').select('owner_id, expires_at, allow_replies').eq('id', storyId).single();
   if (!story) throw new Error("Story not found");
   
+  const recipientOwnerId = story.owner_id;
+
   if (new Date(story.expires_at) < new Date()) {
     throw new Error("Story expirada");
   }
@@ -529,11 +550,11 @@ export async function submitQuestionReply(storyId: string, ownerId: string, ques
     throw new Error("Las respuestas están desactivadas para esta historia");
   }
 
-  const { data: isBlocked } = await supabase.rpc('is_blocked', { uid1: user.id, uid2: story.owner_id });
+  const { data: isBlocked } = await supabase.rpc('is_blocked', { uid1: user.id, uid2: recipientOwnerId });
   if (isBlocked) throw new Error("Action denied");
 
   const { getOrCreateConversation, sendMessage } = await import('@/app/actions/messaging');
-  const conv = await getOrCreateConversation(story.owner_id);
+  const conv = await getOrCreateConversation(recipientOwnerId);
   
   await sendMessage({
     conversationId: conv,

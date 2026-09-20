@@ -8,8 +8,8 @@ import { createStory } from '@/app/actions/stories';
 import { globalStoryDraftUrl, globalStoryDraftType, globalStoryDraftFile, clearGlobalStoryDraft, setGlobalStoryDraft } from '@/lib/story-draft';
 import { SharedStoryRenderer, renderOverlayContent } from './SharedStoryRenderer';
 import { DraggableOverlay } from './stories/DraggableOverlay';
-import { MentionPicker, RecipePicker, IngredientPicker, LocationPicker, GenericSearchPicker, SessionPicker, ProfilePicker } from './stories/StickerPickers';
-import { Camera, User, ChefHat, MapPin, AlignLeft, AlignCenter, AlignRight, Apple, Image as ImageIcon, Trash2, Paintbrush, Sparkles } from 'lucide-react';
+import { MentionPicker, RecipePicker, IngredientPicker, LocationPicker, GifPicker, LinkPicker, QuestionPicker, PollPicker } from './stories/StickerPickers';
+import { Camera, User, ChefHat, MapPin, AlignLeft, AlignCenter, AlignRight, Apple, Image as ImageIcon, Trash2, Paintbrush, Sparkles, Link as LinkIcon, HelpCircle, BarChart2 } from 'lucide-react';
 
 const TEXT_COLORS = ['#ffffff', '#000000', '#ef4444', '#f97316', '#eab308', '#22c55e', '#3b82f6', '#a855f7', '#ec4899'];
 const TEXT_FONTS = ['sans-serif', 'serif', 'monospace', 'Impact'];
@@ -230,24 +230,38 @@ export function StoryCreator({
     setTextVal(''); setMode('EDIT');
   };
 
-  const handleStickerSelect = (type: string, data: { id: string, title: string, coverUrl?: string }) => {
+  const handleStickerSelect = (type: string, data: any) => {
     saveHistory();
     
-    
     let newOverlay: StoryOverlay | null = null;
-    const common = { id: type+'_'+Date.now(), x: 0.5, y: 0.5, scale: 1, rotation: 0, zIndex: overlays.length + 10 };
-    if (type === 'MENTION') newOverlay = { ...common, type: 'MENTION', payload: { username: data.title, userId: data.id } };
-    if (type === 'LOCATION') newOverlay = { ...common, type: 'LOCATION', payload: { name: data.title } };
-    if (type === 'RECIPE') newOverlay = { ...common, type: 'RECIPE', payload: { title: data.title, recipeId: data.id, displayStyle: 'compact', coverUrl: data.coverUrl } };
-    if (type === 'INGREDIENT') newOverlay = { ...common, type: 'INGREDIENT', payload: { name: data.title, ingredientId: data.id } };
-    if (type === 'SESSION') newOverlay = { ...common, type: 'SESSION', payload: { authorName: data.title, sessionId: data.id } };
-    if (type === 'PROFILE') newOverlay = { ...common, type: 'PROFILE', payload: { username: data.title, userId: data.id } };
+    const common = { id: type.toLowerCase() + '_' + Date.now(), x: 0.5, y: 0.5, scale: 1, rotation: 0, zIndex: overlays.length + 10 };
+    
+    if (type === 'MENTION') {
+      newOverlay = { ...common, type: 'MENTION', payload: { username: data.title, userId: data.id } };
+    } else if (type === 'LOCATION') {
+      newOverlay = { ...common, type: 'LOCATION', payload: { name: data.title } };
+    } else if (type === 'RECIPE') {
+      newOverlay = { ...common, type: 'RECIPE', payload: { title: data.title, recipeId: data.id, displayStyle: 'compact', coverUrl: data.coverUrl } };
+    } else if (type === 'INGREDIENT') {
+      newOverlay = { ...common, type: 'INGREDIENT', payload: { name: data.title, ingredientId: data.id } };
+    } else if (type === 'GIF') {
+      newOverlay = { ...common, type: 'GIF', payload: { gifId: data.id, url: data.url, aspectRatio: data.aspectRatio || 1 } };
+    } else if (type === 'LINK') {
+      newOverlay = { ...common, type: 'LINK', payload: { url: data.url, title: data.title } };
+    } else if (type === 'QUESTION') {
+      newOverlay = { ...common, type: 'QUESTION', payload: { question: data.title } };
+    } else if (type === 'POLL') {
+      newOverlay = { ...common, type: 'POLL', payload: { question: data.title, optionA: data.optionA, optionB: data.optionB, pollId: common.id } };
+    } else if (type === 'SESSION') {
+      newOverlay = { ...common, type: 'SESSION', payload: { authorName: data.title, sessionId: data.id } };
+    } else if (type === 'PROFILE') {
+      newOverlay = { ...common, type: 'PROFILE', payload: { username: data.title, userId: data.id } };
+    }
     
     if (newOverlay) {
       setOverlays([...overlays, newOverlay]);
     }
     setActiveStickerType(null);
-
     setMode('EDIT');
   };
 
@@ -585,15 +599,17 @@ export function StoryCreator({
 
         {/* Sticker Tray Mode */}
         {mode === 'STICKER' && (
-          <div className="flex flex-col h-[340px] md:h-full relative bg-card">
+          <div className="flex flex-col h-[380px] md:h-full relative bg-card">
             {!activeStickerType ? (
-              <div className="p-4 grid grid-cols-2 gap-2 overflow-y-auto">
-                <button onClick={() => setActiveStickerType('MENTION')} className="bg-muted hover:bg-muted/80 text-foreground p-4 rounded-2xl flex items-center justify-center gap-2 transition-colors font-medium"><User size={18} className="text-primary"/> Mención</button>
-                <button onClick={() => setActiveStickerType('LOCATION')} className="bg-muted hover:bg-muted/80 text-foreground p-4 rounded-2xl flex items-center justify-center gap-2 transition-colors font-medium"><MapPin size={18} className="text-primary"/> Ubicación</button>
-                <button onClick={() => setActiveStickerType('RECIPE')} className="bg-muted hover:bg-muted/80 text-foreground p-4 rounded-2xl flex items-center justify-center gap-2 transition-colors font-medium"><ChefHat size={18} className="text-primary"/> Receta</button>
-                <button onClick={() => setActiveStickerType('INGREDIENT')} className="bg-muted hover:bg-muted/80 text-foreground p-4 rounded-2xl flex items-center justify-center gap-2 transition-colors font-medium"><Apple size={18} className="text-primary"/> Ingrediente</button>
-                <button onClick={() => setActiveStickerType('SESSION')} className="bg-muted hover:bg-muted/80 text-foreground p-4 rounded-2xl flex items-center justify-center gap-2 transition-colors font-medium"><ChefHat size={18} className="text-primary"/> Sesión</button>
-                <button onClick={() => setActiveStickerType('PROFILE')} className="bg-muted hover:bg-muted/80 text-foreground p-4 rounded-2xl flex items-center justify-center gap-2 transition-colors font-medium"><User size={18} className="text-primary"/> Perfil</button>
+              <div className="p-4 grid grid-cols-2 gap-2.5 overflow-y-auto">
+                <button onClick={() => setActiveStickerType('MENTION')} className="bg-muted hover:bg-muted/80 text-foreground p-4 rounded-2xl flex items-center justify-center gap-2 transition-colors font-medium border border-border"><User size={18} className="text-primary"/> Mención</button>
+                <button onClick={() => setActiveStickerType('LOCATION')} className="bg-muted hover:bg-muted/80 text-foreground p-4 rounded-2xl flex items-center justify-center gap-2 transition-colors font-medium border border-border"><MapPin size={18} className="text-primary"/> Ubicación</button>
+                <button onClick={() => setActiveStickerType('RECIPE')} className="bg-muted hover:bg-muted/80 text-foreground p-4 rounded-2xl flex items-center justify-center gap-2 transition-colors font-medium border border-border"><ChefHat size={18} className="text-primary"/> Receta</button>
+                <button onClick={() => setActiveStickerType('INGREDIENT')} className="bg-muted hover:bg-muted/80 text-foreground p-4 rounded-2xl flex items-center justify-center gap-2 transition-colors font-medium border border-border"><Apple size={18} className="text-primary"/> Ingrediente</button>
+                <button onClick={() => setActiveStickerType('GIF')} className="bg-muted hover:bg-muted/80 text-foreground p-4 rounded-2xl flex items-center justify-center gap-2 transition-colors font-medium border border-border"><Sparkles size={18} className="text-primary"/> GIF</button>
+                <button onClick={() => setActiveStickerType('LINK')} className="bg-muted hover:bg-muted/80 text-foreground p-4 rounded-2xl flex items-center justify-center gap-2 transition-colors font-medium border border-border"><LinkIcon size={18} className="text-primary"/> Enlace</button>
+                <button onClick={() => setActiveStickerType('QUESTION')} className="bg-muted hover:bg-muted/80 text-foreground p-4 rounded-2xl flex items-center justify-center gap-2 transition-colors font-medium border border-border"><HelpCircle size={18} className="text-primary"/> Pregunta</button>
+                <button onClick={() => setActiveStickerType('POLL')} className="bg-muted hover:bg-muted/80 text-foreground p-4 rounded-2xl flex items-center justify-center gap-2 transition-colors font-medium border border-border"><BarChart2 size={18} className="text-primary"/> Votación</button>
               </div>
             ) : (
               <div className="absolute inset-0 z-10 bg-card flex flex-col">
@@ -604,18 +620,22 @@ export function StoryCreator({
                     {activeStickerType === 'LOCATION' && 'Ubicación'}
                     {activeStickerType === 'RECIPE' && 'Receta'}
                     {activeStickerType === 'INGREDIENT' && 'Ingrediente'}
-                    {activeStickerType === 'SESSION' && 'Sesión'}
-                    {activeStickerType === 'PROFILE' && 'Perfil'}
+                    {activeStickerType === 'GIF' && 'GIF'}
+                    {activeStickerType === 'LINK' && 'Enlace'}
+                    {activeStickerType === 'QUESTION' && 'Pregunta'}
+                    {activeStickerType === 'POLL' && 'Votación'}
                   </span>
                   <div className="w-10" />
                 </div>
                 <div className="flex-1 overflow-hidden relative">
                   {activeStickerType === 'MENTION' && <MentionPicker onSelect={(u) => handleStickerSelect('MENTION', u)} />}
+                  {activeStickerType === 'LOCATION' && <LocationPicker onSelect={(l) => handleStickerSelect('LOCATION', l)} />}
                   {activeStickerType === 'RECIPE' && <RecipePicker onSelect={(r) => handleStickerSelect('RECIPE', r)} />}
                   {activeStickerType === 'INGREDIENT' && <IngredientPicker onSelect={(i) => handleStickerSelect('INGREDIENT', i)} />}
-                  {activeStickerType === 'LOCATION' && <LocationPicker onSelect={(l) => handleStickerSelect('LOCATION', l)} />}
-                  {activeStickerType === 'SESSION' && <SessionPicker onSelect={(s) => handleStickerSelect('SESSION', s)} />}
-                  {activeStickerType === 'PROFILE' && <ProfilePicker onSelect={(p) => handleStickerSelect('PROFILE', p)} />}
+                  {activeStickerType === 'GIF' && <GifPicker onSelect={(g) => handleStickerSelect('GIF', g)} />}
+                  {activeStickerType === 'LINK' && <LinkPicker onSelect={(lk) => handleStickerSelect('LINK', lk)} />}
+                  {activeStickerType === 'QUESTION' && <QuestionPicker onSelect={(q) => handleStickerSelect('QUESTION', q)} />}
+                  {activeStickerType === 'POLL' && <PollPicker onSelect={(p) => handleStickerSelect('POLL', p)} />}
                 </div>
               </div>
             )}
