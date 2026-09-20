@@ -222,6 +222,19 @@ export function StoryMusicSelector({ onSelect, onClose, maxDurationMs, isVideo =
                   className="w-full bg-white/10 border border-white/20 rounded-xl py-2 pl-9 pr-4 text-white focus:outline-none focus:border-white/40"
                 />
               </div>
+
+              {/* Chips Categorías simples */}
+              <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+                {['Todas', 'Cooking', 'Chill', 'Mediterráneo', 'Fiesta', 'Elegante', 'Otros'].map(cat => (
+                  <button 
+                    key={cat}
+                    onClick={() => setSearch(cat === 'Todas' ? '' : cat)}
+                    className={`px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap border transition-colors ${search.toLowerCase() === cat.toLowerCase() || (cat === 'Todas' && !search) ? 'bg-orange-500 border-orange-500 text-white' : 'border-white/20 text-white/70 hover:text-white hover:bg-white/10'}`}
+                  >
+                    {cat}
+                  </button>
+                ))}
+              </div>
               
               {loading ? (
                 <div className="text-center text-white/50 py-8">Cargando catálogo...</div>
@@ -230,11 +243,11 @@ export function StoryMusicSelector({ onSelect, onClose, maxDurationMs, isVideo =
               ) : (
                 <div className="flex flex-col gap-2">
                   {filteredTracks.map(track => (
-                    <div key={track.id} className="flex items-center justify-between p-3 rounded-xl hover:bg-white/5 cursor-pointer group" onClick={() => handleSelectTrack(track)}>
+                    <div key={track.id} className="flex items-center justify-between p-3 rounded-xl hover:bg-white/5 cursor-pointer group transition-colors" onClick={() => handleSelectTrack(track)}>
                       <div className="flex items-center gap-3">
                         <button 
                           onClick={(e) => handlePlayPause(track, e)}
-                          className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors"
+                          className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors flex-shrink-0"
                         >
                           {playingId === track.id && isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5 ml-0.5" />}
                         </button>
@@ -242,6 +255,9 @@ export function StoryMusicSelector({ onSelect, onClose, maxDurationMs, isVideo =
                           <div className="text-white font-medium line-clamp-1">{track.title}</div>
                           <div className="text-white/60 text-sm line-clamp-1">{track.artist}</div>
                         </div>
+                      </div>
+                      <div className="text-white/40 text-sm">
+                        {formatTime(track.duration_ms)}
                       </div>
                     </div>
                   ))}

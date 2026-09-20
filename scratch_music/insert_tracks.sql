@@ -1,0 +1,15 @@
+-- INSERT ALL TRACKS
+INSERT INTO public.story_music_tracks (title, artist, audio_url, duration_ms, category, source_license, source_url) VALUES
+('Morgan Cooking', 'Alex', 'https://zvesoygqssyyojqyswwm.supabase.co/storage/v1/object/public/music_assets/alex-morgan-cooking-545497.mp3', 40992, 'Cooking', 'Pixabay Free', 'https://pixabay.com/music/'),
+('Morgan Kitchen Cooking Show Music', 'Alex', 'https://zvesoygqssyyojqyswwm.supabase.co/storage/v1/object/public/music_assets/alex-morgan-kitchen-cooking-show-music-583291.mp3', 203424, 'Cooking', 'Pixabay Free', 'https://pixabay.com/music/'),
+('Cooking Kitchen Music', 'Andriih', 'https://zvesoygqssyyojqyswwm.supabase.co/storage/v1/object/public/music_assets/andriih-cooking-kitchen-music-571616.mp3', 136673, 'Cooking', 'Pixabay Free', 'https://pixabay.com/music/'),
+('Happy Cooking Food Music', 'Bombinsound', 'https://zvesoygqssyyojqyswwm.supabase.co/storage/v1/object/public/music_assets/bombinsound-happy-cooking-food-music-602870.mp3', 82077, 'Cooking', 'Pixabay Free', 'https://pixabay.com/music/'),
+('Happy Cooking Version 1 Food Music', 'Bombinsound', 'https://zvesoygqssyyojqyswwm.supabase.co/storage/v1/object/public/music_assets/bombinsound-happy-cooking-version-1-food-music-602868.mp3', 72281, 'Cooking', 'Pixabay Free', 'https://pixabay.com/music/'),
+('Happy Cooking Version 5 Food Music', 'Bombinsound', 'https://zvesoygqssyyojqyswwm.supabase.co/storage/v1/object/public/music_assets/bombinsound-happy-cooking-version-5-food-music-602865.mp3', 42893, 'Cooking', 'Pixabay Free', 'https://pixabay.com/music/'),
+('Cooking Cooking Food Music', 'Gr0za', 'https://zvesoygqssyyojqyswwm.supabase.co/storage/v1/object/public/music_assets/gr0za-cooking-cooking-food-music-591738.mp3', 133128, 'Cooking', 'Pixabay Free', 'https://pixabay.com/music/'),
+('Cooking Cooking Kitchen Music', 'Gr0za', 'https://zvesoygqssyyojqyswwm.supabase.co/storage/v1/object/public/music_assets/gr0za-cooking-cooking-kitchen-music-569742.mp3', 122040, 'Cooking', 'Pixabay Free', 'https://pixabay.com/music/'),
+('Cooking Kitchen Music', 'Gr0za', 'https://zvesoygqssyyojqyswwm.supabase.co/storage/v1/object/public/music_assets/gr0za-cooking-kitchen-music-591732.mp3', 129024, 'Cooking', 'Pixabay Free', 'https://pixabay.com/music/'),
+('Food Cooking Music', 'Gr0za', 'https://zvesoygqssyyojqyswwm.supabase.co/storage/v1/object/public/music_assets/gr0za-food-cooking-music-577803.mp3', 128616, 'Cooking', 'Pixabay Free', 'https://pixabay.com/music/'),
+('Cooking', 'Nastelbom', 'https://zvesoygqssyyojqyswwm.supabase.co/storage/v1/object/public/music_assets/nastelbom-cooking-444713.mp3', 106136, 'Cooking', 'Pixabay Free', 'https://pixabay.com/music/'),
+('Cooking Cooking Music', 'Tatamusic', 'https://zvesoygqssyyojqyswwm.supabase.co/storage/v1/object/public/music_assets/tatamusic-cooking-cooking-music-583188.mp3', 91246, 'Cooking', 'Pixabay Free', 'https://pixabay.com/music/'),
+('Cooking', 'The_mountain', 'https://zvesoygqssyyojqyswwm.supabase.co/storage/v1/object/public/music_assets/the_mountain-cooking-483306.mp3', 95321, 'Cooking', 'Pixabay Free', 'https://pixabay.com/music/');
