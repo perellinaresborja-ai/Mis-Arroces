@@ -108,8 +108,9 @@ export function LoginForm({ error, message }: { error?: string, message?: string
                 onClick={() => setShowPassword(!showPassword)}
                 className="absolute right-3 top-1/2 -translate-y-1/2 p-2 text-muted-foreground hover:text-charcoal transition-colors"
                 tabIndex={-1}
+                aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
               >
-                {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                {showPassword ? <EyeOff className="w-5 h-5" aria-hidden="true" /> : <Eye className="w-5 h-5" aria-hidden="true" />}
               </button>
             </div>
           </div>
@@ -120,7 +121,7 @@ export function LoginForm({ error, message }: { error?: string, message?: string
             <label className="flex items-center gap-2 cursor-pointer group">
               <div className="relative flex items-center justify-center">
                 <input type="checkbox" name="remember" className="peer appearance-none w-5 h-5 border-2 border-border/80 rounded checked:bg-primary checked:border-primary transition-colors cursor-pointer" defaultChecked />
-                <svg className="absolute w-3 h-3 text-primary-foreground opacity-0 peer-checked:opacity-100 pointer-events-none transition-opacity" viewBox="0 0 14 10" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <svg className="absolute w-3 h-3 text-primary-foreground opacity-0 peer-checked:opacity-100 pointer-events-none transition-opacity" viewBox="0 0 14 10" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
                   <path d="M1 5L4.5 8.5L13 1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
               </div>
@@ -143,7 +144,7 @@ export function LoginForm({ error, message }: { error?: string, message?: string
                 required
                 className="peer appearance-none w-5 h-5 border-2 border-border/80 rounded checked:bg-primary checked:border-primary transition-colors cursor-pointer"
               />
-              <svg className="absolute w-3 h-3 text-primary-foreground opacity-0 peer-checked:opacity-100 pointer-events-none transition-opacity" viewBox="0 0 14 10" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <svg className="absolute w-3 h-3 text-primary-foreground opacity-0 peer-checked:opacity-100 pointer-events-none transition-opacity" viewBox="0 0 14 10" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
                 <path d="M1 5L4.5 8.5L13 1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             </div>
@@ -155,19 +156,8 @@ export function LoginForm({ error, message }: { error?: string, message?: string
 
         <SubmitButton mode={mode} />
 
-        <div className="pt-2 text-center">
-          {mode === "login" ? (
-            <p className="text-sm text-muted-foreground">
-              ¿No tienes cuenta?{" "}
-              <button
-                type="button"
-                onClick={() => setMode("signup")}
-                className="font-bold text-primary hover:underline"
-              >
-                Crear cuenta nueva
-              </button>
-            </p>
-          ) : (
+        {mode === "signup" && (
+          <div className="pt-2 text-center">
             <p className="text-sm text-muted-foreground">
               ¿Ya tienes cuenta?{" "}
               <button
@@ -178,8 +168,8 @@ export function LoginForm({ error, message }: { error?: string, message?: string
                 Inicia sesión aquí
               </button>
             </p>
-          )}
-        </div>
+          </div>
+        )}
       </form>
     </div>
   )
