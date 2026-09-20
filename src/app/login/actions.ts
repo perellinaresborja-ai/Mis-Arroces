@@ -5,10 +5,11 @@ import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
 import { sendWelcomeEmail } from "@/lib/email"
 import { generateAvailableUsername } from "@/lib/username"
+import { normalizeEmail, getFriendlyAuthErrorMessage } from "@/lib/auth-messages"
 
 export async function login(formData: FormData) {
   const supabase = await createClient()
-  const email = (formData.get("email") as string || "").trim()
+  const email = normalizeEmail(formData.get("email") as string || "")
   const password = (formData.get("password") as string || "")
 
   if (!email || !password) {
@@ -21,7 +22,8 @@ export async function login(formData: FormData) {
   })
 
   if (error) {
-    redirect(`/login?error=${encodeURIComponent(error.message)}`)
+    const userMessage = getFriendlyAuthErrorMessage(error, "login")
+    redirect(`/login?error=${encodeURIComponent(userMessage)}`)
   }
 
   // After login, check if user has a profile
@@ -52,7 +54,7 @@ export async function login(formData: FormData) {
 
 export async function signup(formData: FormData) {
   const supabase = await createClient()
-  const email = (formData.get("email") as string || "").trim()
+  const email = normalizeEmail(formData.get("email") as string || "")
   const password = (formData.get("password") as string || "")
 
   if (!email || !password) {
@@ -72,7 +74,8 @@ export async function signup(formData: FormData) {
   })
 
   if (error) {
-    redirect(`/login?error=${encodeURIComponent(error.message)}`)
+    const userMessage = getFriendlyAuthErrorMessage(error, "signup")
+    redirect(`/login?error=${encodeURIComponent(userMessage)}`)
   }
 
   if (data.user) {

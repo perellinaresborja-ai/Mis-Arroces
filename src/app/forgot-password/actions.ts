@@ -3,9 +3,10 @@
 import { createClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
 import { headers } from "next/headers"
+import { normalizeEmail } from "@/lib/auth-messages"
 
 export async function requestPasswordReset(formData: FormData) {
-  const email = formData.get("email") as string
+  const email = normalizeEmail(formData.get("email") as string || "")
   const supabase = await createClient()
 
   const headersList = await headers()
