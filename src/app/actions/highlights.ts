@@ -16,7 +16,7 @@ export async function getProfileHighlights(userId: string) {
         display_order,
         stories (
           *,
-          author:profiles!stories_owner_id_fkey(*),
+          author:profiles!stories_owner_id_fkey(id, username, display_name, avatar:media_assets!fk_profiles_avatar(storage_path)),
           story_media(media_id, media:media_assets(storage_path)),
           recipe:recipes(id, name, recipe_media(media:media_assets(storage_path))),
           session:cooking_sessions(id, session_media(media:media_assets(storage_path)))
@@ -97,7 +97,7 @@ export async function getHighlightStories(highlightId: string) {
       story_id,
       stories(
         *,
-        author:profiles!stories_owner_id_fkey(*),
+        author:profiles!stories_owner_id_fkey(id, username, display_name, avatar:media_assets!fk_profiles_avatar(storage_path)),
         story_media(media_id, media:media_assets(storage_path)),
         recipe:recipes(id, name, recipe_media(media:media_assets(storage_path))),
         session:cooking_sessions(id, session_media(media:media_assets(storage_path)))
