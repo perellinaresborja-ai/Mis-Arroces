@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
+import { sendWelcomeEmail } from "@/lib/email"
 
 export async function login(formData: FormData) {
   const supabase = await createClient()
@@ -73,6 +74,11 @@ export async function signup(formData: FormData) {
       account_type: 'PERSONAL',
       privacy_level: 'PUBLIC'
     })
+
+    // Send welcome email (non-blocking)
+    sendWelcomeEmail(data.user.email!).catch(err =>
+      console.error('Welcome email failed:', err)
+    )
   }
 
   revalidatePath("/", "layout")

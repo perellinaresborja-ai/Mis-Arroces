@@ -1,28 +1,18 @@
-import nodemailer from 'nodemailer'
+import { Resend } from 'resend'
 
-const transporter = nodemailer.createTransport({
-  host: 'smtp.hostinger.com',
-  port: 465,
-  secure: true,
-  auth: {
-    user: 'info@misarroces.es',
-    pass: process.env.SMTP_PASSWORD,
-  },
-})
+const resend = new Resend(process.env.RESEND_API_KEY)
 
 function buildEmailHtml({
   title,
   body,
   ctaText,
   ctaUrl,
-  footer,
 }: {
   title: string
   body: string
   ctaText?: string
   ctaUrl?: string
-  footer?: string
-}) {
+}): string {
   return `
 <!DOCTYPE html>
 <html lang="es">
@@ -61,7 +51,7 @@ function buildEmailHtml({
           Vamos al grano.
         </p>
         <p style="color:#A1A1AA;font-size:11px;margin:0;">
-          ${footer ?? '© 2026 misarroces · <a href="https://www.misarroces.es" style="color:#EA580C;text-decoration:none;">misarroces.es</a>'}
+          © 2026 misarroces · <a href="https://www.misarroces.es" style="color:#EA580C;text-decoration:none;">misarroces.es</a>
         </p>
       </div>
 
@@ -72,52 +62,16 @@ function buildEmailHtml({
 `
 }
 
-export async function sendContactAutoReply({
-  to,
-  name,
-}: {
-  to: string
-  name: string
-}) {
-  const html = buildEmailHtml({
-    title: '¡Hemos recibido tu mensaje!',
-    body: `Muchas gracias por escribirnos, <strong>${name}</strong>. Nuestro equipo revisará tu consulta y te responderá a la mayor brevedad posible.`,
-    ctaText: 'Descubrir misarroces',
-    ctaUrl: 'https://www.misarroces.es',
-  })
-
-  await transporter.sendMail({
-    from: '"misarroces" <info@misarroces.es>',
+export async function sendWelcomeEmail(to: string) {
+  await resend.emails.send({
+    from: 'misarroces <info@misarroces.es>',
     to,
-    subject: 'Hemos recibido tu mensaje — misarroces',
-    html,
-  })
-}
-
-export async function sendContactNotification({
-  name,
-  email,
-  message,
-}: {
-  name: string
-  email: string
-  message: string
-}) {
-  await transporter.sendMail({
-    from: '"misarroces web" <info@misarroces.es>',
-    to: 'info@misarroces.es',
-    replyTo: email,
-    subject: `Nuevo mensaje de contacto — ${name}`,
+    subject: '¡Bienvenido a misarroces!',
     html: buildEmailHtml({
-      title: `Nuevo mensaje de ${name}`,
-      body: `
-        <p style="margin:0 0 8px 0;"><strong>De:</strong> ${name}</p>
-        <p style="margin:0 0 8px 0;"><strong>Email:</strong> ${email}</p>
-        <p style="margin:0 0 8px 0;"><strong>Mensaje:</strong></p>
-        <div style="background:#F7F5F0;border-radius:12px;padding:16px;text-align:left;font-size:14px;line-height:22px;">
-          ${message.replace(/\n/g, '<br>')}
-        </div>
-      `,
+      title: '¡Bienvenido a misarroces!',
+      body: 'Ya eres parte de la comunidad. Empieza a guardar y compartir tus mejores recetas de arroz.',
+      ctaText: 'Explorar misarroces',
+      ctaUrl: 'https://www.misarroces.es',
     }),
   })
 }
