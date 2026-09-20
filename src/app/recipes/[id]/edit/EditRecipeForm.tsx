@@ -569,7 +569,7 @@ export default function EditRecipeForm({ recipe, catalogs }: { recipe: any, cata
         </CollapsibleSection>
 
         {/* Ingredients */}
-        <CollapsibleSection id="section-ingredients" title="Ingredientes" forceOpen={openSections.ingredients} rightAction={
+        <CollapsibleSection id="section-ingredients" title="Ingredientes (v3)" forceOpen={openSections.ingredients} rightAction={
             <div className="flex items-center gap-1">
               <AddToCartButton recipeId={recipe.id} isAuthenticated={true} layout="icon" />
               <Button type="button" variant="outline" size="sm" onClick={() => {

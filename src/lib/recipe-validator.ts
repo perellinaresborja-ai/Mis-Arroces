@@ -183,7 +183,7 @@ export function validateRecipeForPublishing(recipe: RecipeValidationData): Recip
     // Si no hay ningún ingrediente, también falta el arroz
     issues.push({
       field: 'ingredients',
-      message: 'Añade arroz a los ingredientes.'
+      message: 'Añade arroz a los ingredientes (v3).'
     });
   } else {
     let hasValidIngredient = false;
@@ -194,7 +194,7 @@ export function validateRecipeForPublishing(recipe: RecipeValidationData): Recip
     if (!hasRiceIngredient(rawIngredients)) {
       issues.push({
         field: 'ingredients',
-        message: 'Añade arroz a los ingredientes.'
+        message: 'Añade arroz a los ingredientes (v3).'
       });
     }
 
