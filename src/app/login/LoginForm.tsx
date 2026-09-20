@@ -11,7 +11,7 @@ export function LoginForm({ error, message }: { error?: string, message?: string
 
   return (
     <div className="w-full max-w-sm mx-auto flex flex-col justify-center">
-      <form className="space-y-4 relative z-10">
+      <form className="space-y-4 relative z-10" noValidate>
         {error && (
           <div className="p-3 text-sm text-destructive bg-destructive/10 rounded-lg text-center font-medium">
             {error}
@@ -83,6 +83,7 @@ export function LoginForm({ error, message }: { error?: string, message?: string
 
           <div className="pt-2">
             <button 
+              type="submit"
               formAction={login}
               className="w-full h-12 bg-charcoal hover:bg-black text-white rounded-xl font-bold text-base transition-colors shadow-md"
             >
@@ -98,6 +99,7 @@ export function LoginForm({ error, message }: { error?: string, message?: string
         
         <div className="flex flex-col gap-3">
           <button 
+            type="submit"
             formAction={signup}
             className="w-full h-12 bg-transparent border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground rounded-xl font-bold text-base transition-colors"
           >
