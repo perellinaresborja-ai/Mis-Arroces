@@ -128,8 +128,8 @@ export function EditHighlightModal({
   }
 
   return (
-    <div className="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-4">
-      <div className="bg-card border border-border text-foreground w-full max-w-sm sm:max-w-md rounded-3xl p-5 flex flex-col h-[85vh] max-h-[640px] shadow-2xl animate-in zoom-in-95 duration-200">
+    <div className="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-3 sm:p-4">
+      <div className="bg-card border border-border text-foreground w-full max-w-sm sm:max-w-md rounded-3xl p-4 sm:p-5 flex flex-col h-[85vh] max-h-[640px] shadow-2xl animate-in zoom-in-95 duration-200">
         <div className="shrink-0 mb-3">
           <h2 className="font-bold text-lg text-foreground mb-3 font-serif">Editar Destacada</h2>
           
@@ -180,7 +180,7 @@ export function EditHighlightModal({
               <p className="text-sm font-semibold text-muted-foreground">No tienes historias en tu archivo para añadir.</p>
             </div>
           ) : (
-            <div className="overflow-y-auto flex-1 min-h-0 grid grid-cols-3 gap-2.5 p-1 mb-3">
+            <div className="overflow-y-auto flex-1 min-h-0 grid grid-cols-3 gap-2.5 p-1 mb-3 content-start auto-rows-max">
               {uniqueStories.map(s => {
                 const isSelected = selectedIds.includes(s.id);
                 const path = getMediaStoragePath(s);
@@ -232,7 +232,7 @@ export function EditHighlightModal({
                       <button 
                         type="button"
                         onClick={(e) => { e.stopPropagation(); setCoverId(s.id); }}
-                        className={`absolute bottom-1.5 inset-x-1.5 text-[9px] py-0.5 px-1 font-bold rounded-lg text-center transition-colors shadow-md z-10 ${
+                        className={`absolute bottom-1.5 inset-x-1.5 text-[9px] py-0.5 px-1 font-bold rounded-lg text-center transition-colors shadow-md z-10 whitespace-nowrap truncate ${
                           isCover ? 'bg-primary text-primary-foreground' : 'bg-black/75 text-white/90 hover:bg-black/90'
                         }`}
                       >

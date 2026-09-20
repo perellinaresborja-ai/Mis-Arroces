@@ -92,7 +92,7 @@ export function SharedStoryRenderer({
           for (const ov of overlays || []) {
             if (ov.type === 'POLL') {
               const pollId = ov.payload.pollId || ov.id;
-              results[pollId] = await getPollResults(pollId);
+              results[pollId] = await getPollResults(pollId, storyId);
             }
           }
           setPollResults(results);
@@ -481,23 +481,22 @@ export function renderOverlayContent(overlay: StoryOverlay, mode: string, ctx?: 
           }
 
           try {
-            await votePoll(storyId, pollId, opt);
-            const freshResults = await getPollResults(pollId);
+            const voteRes = await votePoll(storyId, pollId, opt);
+            const effectivePollId = (voteRes && typeof voteRes === 'object' && 'pollId' in voteRes && voteRes.pollId) ? (voteRes.pollId as string) : pollId;
+            const freshResults = await getPollResults(effectivePollId, storyId);
             if (setPollResults) {
               setPollResults((prev: Record<string, PollResultData>) => ({ ...prev, [pollId]: freshResults }));
             }
           } catch (e: unknown) {
             console.error('Error voting on poll:', e);
-            // Revert or refresh on error
             try {
-              const freshResults = await getPollResults(pollId);
+              const freshResults = await getPollResults(pollId, storyId);
               if (setPollResults) {
                 setPollResults((prev: Record<string, PollResultData>) => ({ ...prev, [pollId]: freshResults }));
               }
             } catch {
               // Ignore
             }
-            alert((e as Error).message || 'Error al votar en la encuesta');
           } finally {
             if (setIsVoting) setIsVoting((prev: Record<string, boolean>) => ({ ...prev, [pollId]: false }));
           }

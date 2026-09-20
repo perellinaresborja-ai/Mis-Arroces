@@ -1,6 +1,7 @@
 "use server"
 
 import { createClient } from "@/lib/supabase/server"
+import { createClient as createAdminClient } from "@supabase/supabase-js"
 import { revalidatePath } from "next/cache"
 
 export async function getProfileHighlights(userId: string) {
@@ -30,6 +31,50 @@ export async function getProfileHighlights(userId: string) {
     console.error("Error fetching highlights:", error);
     return [];
   }
+
+  // Generate signed URLs for highlight stories media using SERVICE_ROLE
+  // Ensures older stories (even expired from active feed) always have guaranteed media access
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (serviceKey && data) {
+    const adminSupabase = createAdminClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://zvesoygqssyyojqyswwm.supabase.co',
+      serviceKey
+    );
+    for (const h of data) {
+      for (const hs of (h.highlight_stories || [])) {
+        const story = hs.stories;
+        if (!story) continue;
+        if (story.story_media && story.story_media.length > 0) {
+          const path = story.story_media[0].media?.storage_path;
+          if (path) {
+            const { data: signed } = await adminSupabase.storage.from('recipe_media').createSignedUrl(path, 3600);
+            if (signed) {
+              (story.story_media[0].media as any).signed_url = signed.signedUrl;
+            }
+          }
+        }
+        if (story.recipe?.recipe_media && story.recipe.recipe_media.length > 0) {
+          const rPath = story.recipe.recipe_media[0].media?.storage_path;
+          if (rPath) {
+            const { data: signed } = await adminSupabase.storage.from('recipe_media').createSignedUrl(rPath, 3600);
+            if (signed) {
+              (story.recipe.recipe_media[0].media as any).signed_url = signed.signedUrl;
+            }
+          }
+        }
+        if (story.session?.session_media && story.session.session_media.length > 0) {
+          const sPath = story.session.session_media[0].media?.storage_path;
+          if (sPath) {
+            const { data: signed } = await adminSupabase.storage.from('recipe_media').createSignedUrl(sPath, 3600);
+            if (signed) {
+              (story.session.session_media[0].media as any).signed_url = signed.signedUrl;
+            }
+          }
+        }
+      }
+    }
+  }
+
   return data.map(h => {
     const sortedHS = (h.highlight_stories || []).sort((a: any, b: any) => a.display_order - b.display_order);
     return {
@@ -66,7 +111,46 @@ export async function getHighlightStories(highlightId: string) {
     return [];
   }
   
-  return data.map(hs => hs.stories).filter(Boolean);
+  const stories = data.map(hs => hs.stories).filter(Boolean);
+
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (serviceKey && stories.length > 0) {
+    const adminSupabase = createAdminClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://zvesoygqssyyojqyswwm.supabase.co',
+      serviceKey
+    );
+    for (const story of stories) {
+      if (story.story_media && story.story_media.length > 0) {
+        const path = story.story_media[0].media?.storage_path;
+        if (path) {
+          const { data: signed } = await adminSupabase.storage.from('recipe_media').createSignedUrl(path, 3600);
+          if (signed) {
+            (story.story_media[0].media as any).signed_url = signed.signedUrl;
+          }
+        }
+      }
+      if (story.recipe?.recipe_media && story.recipe.recipe_media.length > 0) {
+        const rPath = story.recipe.recipe_media[0].media?.storage_path;
+        if (rPath) {
+          const { data: signed } = await adminSupabase.storage.from('recipe_media').createSignedUrl(rPath, 3600);
+          if (signed) {
+            (story.recipe.recipe_media[0].media as any).signed_url = signed.signedUrl;
+          }
+        }
+      }
+      if (story.session?.session_media && story.session.session_media.length > 0) {
+        const sPath = story.session.session_media[0].media?.storage_path;
+        if (sPath) {
+          const { data: signed } = await adminSupabase.storage.from('recipe_media').createSignedUrl(sPath, 3600);
+          if (signed) {
+            (story.session.session_media[0].media as any).signed_url = signed.signedUrl;
+          }
+        }
+      }
+    }
+  }
+
+  return stories;
 }
 
 export async function addStoryToHighlight(highlightId: string, storyId: string) {
@@ -225,6 +309,6 @@ export async function editStoryHighlight(highlightId: string, name: string, stor
     if (insertError) throw insertError;
   }
 
-  revalidatePath('/me');
+  revalidatePath('/', 'layout');
   return true;
 }

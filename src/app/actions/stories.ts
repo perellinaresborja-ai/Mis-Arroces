@@ -85,9 +85,15 @@ export async function createStory(data: {
 
   // Handle POLL overlays insertion
   if (data.overlays && Array.isArray(data.overlays)) {
+    const isUuid = (str?: string) => !!str && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
     for (const overlay of data.overlays) {
       if (overlay.type === 'POLL' && overlay.payload?.question) {
-        const pollId = overlay.payload.pollId || overlay.id;
+        let pollId = overlay.payload.pollId || overlay.id;
+        if (!isUuid(pollId)) {
+          const crypto = await import("crypto");
+          pollId = crypto.randomUUID();
+          overlay.payload.pollId = pollId;
+        }
         const { error: pollErr } = await supabase.from('story_polls').insert({
           id: pollId,
           story_id: story.id,
@@ -459,61 +465,115 @@ export async function voteStoryPoll(pollId: string, option: 'A' | 'B') {
 
 
 export async function votePoll(storyId: string, pollId: string, option: 'A'|'B') {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error("Unauthorized")
+  try {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { success: false, error: "Unauthorized" }
 
-  // Check blocks
-  const { data: story } = await supabase.from('stories').select('owner_id, expires_at').eq('id', storyId).single();
-  if (!story) throw new Error("Story not found");
-  
-  if (new Date(story.expires_at) < new Date()) {
-    throw new Error("Story expired");
+    // Check story existence and block status
+    const { data: story } = await supabase.from('stories').select('owner_id, overlays').eq('id', storyId).single();
+    if (!story) return { success: false, error: "Story not found" };
+
+    const { data: isBlocked } = await supabase.rpc('is_blocked', { uid1: user.id, uid2: story.owner_id });
+    if (isBlocked) return { success: false, error: "Action denied" };
+
+    const isUuid = (str?: string) => !!str && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
+    let targetPollId = pollId;
+
+    // Resolve valid UUID for story_polls
+    if (!isUuid(targetPollId)) {
+      const { data: existingPoll } = await supabase.from('story_polls').select('id').eq('story_id', storyId).maybeSingle();
+      if (existingPoll?.id) {
+        targetPollId = existingPoll.id;
+      } else {
+        const pollOverlay = (story.overlays as any[])?.find((o: any) => o.type === 'POLL');
+        const crypto = await import("crypto");
+        targetPollId = crypto.randomUUID();
+        await supabase.from('story_polls').insert({
+          id: targetPollId,
+          story_id: storyId,
+          question: pollOverlay?.payload?.question || "Encuesta",
+          option_a: pollOverlay?.payload?.optionA || "Opción A",
+          option_b: pollOverlay?.payload?.optionB || "Opción B"
+        });
+      }
+    }
+
+    const { error } = await supabase.from('story_poll_votes').insert({
+      poll_id: targetPollId,
+      user_id: user.id,
+      selected_option: option
+    });
+
+    if (error) {
+      if (error.code === '23505') {
+        return { success: true, alreadyVoted: true, pollId: targetPollId };
+      }
+      console.error("Error inserting vote:", error);
+      return { success: false, error: error.message };
+    }
+    
+    return { success: true, pollId: targetPollId };
+  } catch (err: any) {
+    console.error("votePoll error:", err);
+    return { success: false, error: err?.message || "Error al votar" };
   }
-
-  const { data: isBlocked } = await supabase.rpc('is_blocked', { uid1: user.id, uid2: story.owner_id });
-  if (isBlocked) throw new Error("Action denied");
-
-  const { error } = await supabase.from('story_poll_votes').insert({
-    poll_id: pollId,
-    user_id: user.id,
-    selected_option: option
-  });
-
-  if (error) {
-    if (error.code === '23505') throw new Error("Ya has votado en esta encuesta");
-    throw error;
-  }
-  
-  return true;
 }
 
-export async function getPollResults(pollId: string) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  
-  const { data: votes, error } = await supabase.from('story_poll_votes').select('selected_option, user_id').eq('poll_id', pollId);
-  if (error) throw error;
-  
-  let countA = 0;
-  let countB = 0;
-  let myVote = null;
-  
-  votes.forEach(v => {
-    if (v.selected_option === 'A') countA++;
-    if (v.selected_option === 'B') countB++;
-    if (user && v.user_id === user.id) myVote = v.selected_option;
-  });
-  
-  const total = countA + countB;
-  return {
-    countA,
-    countB,
-    total,
-    percentA: total > 0 ? Math.round((countA / total) * 100) : 0,
-    percentB: total > 0 ? Math.round((countB / total) * 100) : 0,
-    myVote
-  };
+export async function getPollResults(pollId: string, storyId?: string) {
+  try {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+
+    const isUuid = (str?: string) => !!str && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
+    let targetPollId = pollId;
+
+    if (!isUuid(targetPollId) && storyId) {
+      const { data: existingPoll } = await supabase.from('story_polls').select('id').eq('story_id', storyId).maybeSingle();
+      if (existingPoll?.id) targetPollId = existingPoll.id;
+    }
+
+    if (!isUuid(targetPollId)) {
+      return { countA: 0, countB: 0, total: 0, percentA: 50, percentB: 50, myVote: null };
+    }
+
+    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    let queryClient = supabase;
+    if (serviceKey) {
+      queryClient = createAdminClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://zvesoygqssyyojqyswwm.supabase.co',
+        serviceKey
+      );
+    }
+    
+    const { data: votes, error } = await queryClient.from('story_poll_votes').select('selected_option, user_id').eq('poll_id', targetPollId);
+    if (error) {
+      return { countA: 0, countB: 0, total: 0, percentA: 50, percentB: 50, myVote: null };
+    }
+    
+    let countA = 0;
+    let countB = 0;
+    let myVote = null;
+    
+    (votes || []).forEach(v => {
+      if (v.selected_option === 'A') countA++;
+      if (v.selected_option === 'B') countB++;
+      if (user && v.user_id === user.id) myVote = v.selected_option;
+    });
+    
+    const total = countA + countB;
+    return {
+      countA,
+      countB,
+      total,
+      percentA: total > 0 ? Math.round((countA / total) * 100) : 50,
+      percentB: total > 0 ? Math.round((countB / total) * 100) : 50,
+      myVote
+    };
+  } catch (e) {
+    console.error("getPollResults error:", e);
+    return { countA: 0, countB: 0, total: 0, percentA: 50, percentB: 50, myVote: null };
+  }
 }
 
 export async function publishPoll(storyId: string, pollId: string, question: string, optionA: string, optionB: string) {

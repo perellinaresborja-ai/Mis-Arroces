@@ -251,7 +251,8 @@ export function StoryCreator({
     } else if (type === 'QUESTION') {
       newOverlay = { ...common, type: 'QUESTION', payload: { question: data.title } };
     } else if (type === 'POLL') {
-      newOverlay = { ...common, type: 'POLL', payload: { question: data.title, optionA: data.optionA, optionB: data.optionB, pollId: common.id } };
+      const pollUuid = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : undefined;
+      newOverlay = { ...common, type: 'POLL', payload: { question: data.title, optionA: data.optionA, optionB: data.optionB, pollId: pollUuid || common.id } };
     } else if (type === 'SESSION') {
       newOverlay = { ...common, type: 'SESSION', payload: { authorName: data.title, sessionId: data.id } };
     } else if (type === 'PROFILE') {
