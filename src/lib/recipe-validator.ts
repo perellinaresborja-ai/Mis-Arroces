@@ -82,6 +82,20 @@ export function isNonQuantifiableIngredient(text: string): boolean {
 }
 
 /**
+ * Checks whether the ingredients list contains rice.
+ * Principle: Mis Arroces recipes MUST contain rice to be published.
+ * Matches words like "arroz", "arroz bomba", "arroz senia", "arroz albufera", "arroz redondo", "arroz basmati", etc.
+ * Avoids false substrings via word boundary regex.
+ */
+export function hasRiceIngredient(ingredients: Array<{ display_text?: string | null }> | null | undefined): boolean {
+  if (!ingredients || ingredients.length === 0) return false;
+  return ingredients.some(ing => {
+    const text = (ing.display_text || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    return /\barroz(es)?\b/.test(text);
+  });
+}
+
+/**
  * Checks whether a recipe has the minimum structural information required to be cooked in Modo Cocina.
  * Specifically:
  * - At least one valid step with non-empty instruction.
@@ -116,7 +130,7 @@ export function isRecipeCookable(recipe: RecipeValidationData): { cookable: bool
  * Checks:
  * 1. Title is required and not default ("Nueva receta").
  * 2. base_servings > 0.
- * 3. Ingredients list: non-empty, no empty names, every quantifiable ingredient has quantity > 0.
+ * 3. Ingredients list: non-empty, contains rice, no empty names, every quantifiable ingredient has quantity > 0.
  * 4. Steps list: non-empty, no empty steps, at least one step with instruction.
  */
 export function validateRecipeForPublishing(recipe: RecipeValidationData): RecipeValidationResult {
@@ -150,6 +164,7 @@ export function validateRecipeForPublishing(recipe: RecipeValidationData): Recip
 
   // 3. Ingredientes:
   // - Debe incluir al menos un ingrediente.
+  // - Debe contener obligatoriamente arroz entre los ingredientes.
   // - No puede haber ingredientes con nombre vacío.
   // - Si un ingrediente NO tiene expresión de cantidad ("al gusto", "pizca", etc.), debe tener una cantidad numérica > 0.
   const rawIngredients = recipe.ingredients || [];
@@ -158,10 +173,23 @@ export function validateRecipeForPublishing(recipe: RecipeValidationData): Recip
       field: 'ingredients',
       message: 'Añade todos los ingredientes necesarios, con sus cantidades cuando corresponda.'
     });
+    // Si no hay ningún ingrediente, también falta el arroz
+    issues.push({
+      field: 'ingredients',
+      message: 'Añade arroz a los ingredientes.'
+    });
   } else {
     let hasValidIngredient = false;
     let hasEmptyNameIngredient = false;
     const missingQtyNames: string[] = [];
+
+    // Verificación obligatoria de presencia de arroz
+    if (!hasRiceIngredient(rawIngredients)) {
+      issues.push({
+        field: 'ingredients',
+        message: 'Añade arroz a los ingredientes.'
+      });
+    }
 
     rawIngredients.forEach((ing) => {
       const displayText = (ing.display_text || '').trim();

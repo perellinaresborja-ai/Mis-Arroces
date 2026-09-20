@@ -56,6 +56,7 @@ export default function EditRecipeForm({ recipe, catalogs }: { recipe: any, cata
   const [isSaving, setIsSaving] = useState(false)
   const [targetLayer, setTargetLayer] = useState<LayerType>('Fina')
   const [validationErrors, setValidationErrors] = useState<string[]>([])
+  const [technicalError, setTechnicalError] = useState<string | null>(null)
   const [openSections, setOpenSections] = useState<{ basic?: boolean, technical?: boolean, ingredients?: boolean, steps?: boolean }>({})
   
   const initialScheduledFor = recipe.scheduled_for ? new Date(recipe.scheduled_for).toISOString().slice(0,16) : ""
@@ -157,6 +158,8 @@ export default function EditRecipeForm({ recipe, catalogs }: { recipe: any, cata
     let finalStatus = recipe.status
     let finalScheduledFor = recipe.scheduled_for || null
 
+    setTechnicalError(null)
+
     if (action === 'DRAFT') {
       finalStatus = 'DRAFT'
       finalScheduledFor = null
@@ -206,6 +209,7 @@ export default function EditRecipeForm({ recipe, catalogs }: { recipe: any, cata
 
   const onSubmit = async (data: any) => {
     setIsSaving(true)
+    setTechnicalError(null)
     try {
       
         console.log("Submitting mediaItems:", mediaItems);
@@ -252,8 +256,19 @@ export default function EditRecipeForm({ recipe, catalogs }: { recipe: any, cata
       if (err?.message?.includes('NEXT_REDIRECT') || err?.digest?.includes('NEXT_REDIRECT')) {
         throw err;
       }
-      console.error(err)
-      setValidationErrors([err.message || "Error guardando la receta."])
+      console.error("Error al guardar receta:", err)
+      
+      const errMsg = err?.message || ""
+      const isDomainValidationError = errMsg.startsWith("No se puede guardar como publicada:") || errMsg.startsWith("No se puede publicar la receta:")
+      
+      if (isDomainValidationError) {
+        const cleanMsg = errMsg.replace(/^No se puede (guardar como publicada|publicar la receta):\s*/, '').trim()
+        setValidationErrors(cleanMsg ? [cleanMsg] : ["La receta no cumple los requisitos para ser publicada."])
+      } else {
+        // Technical error: keep validation errors list intact, display technical error in separate banner
+        setTechnicalError("Ha ocurrido un error inesperado al guardar la receta. Por favor, inténtalo de nuevo.")
+      }
+
       window.scrollTo({ top: 0, behavior: 'smooth' })
       setIsSaving(false)
     }
@@ -322,7 +337,7 @@ export default function EditRecipeForm({ recipe, catalogs }: { recipe: any, cata
   
   return (
   <form onSubmit={(e) => e.preventDefault()} className="space-y-8 pb-32">
-      {/* Banner de Errores de Validación */}
+      {/* Banner de Errores de Validación de Dominio */}
       {validationErrors.length > 0 && (
         <div id="validation-error-banner" className="bg-destructive/10 border border-destructive/30 text-destructive p-5 rounded-2xl shadow-sm">
           <div className="flex items-center gap-2 mb-2 font-bold text-base">
@@ -334,6 +349,25 @@ export default function EditRecipeForm({ recipe, catalogs }: { recipe: any, cata
               <li key={i}>{err}</li>
             ))}
           </ul>
+        </div>
+      )}
+
+      {/* Banner de Errores Técnicos / Red (Separado de las reglas de dominio) */}
+      {technicalError && (
+        <div id="technical-error-banner" className="bg-destructive/10 border border-destructive/30 text-destructive p-4 rounded-2xl shadow-sm flex items-center justify-between">
+          <div className="flex items-center gap-2 text-sm font-medium">
+            <AlertCircle className="w-5 h-5 shrink-0" />
+            <span>{technicalError}</span>
+          </div>
+          <Button 
+            type="button" 
+            variant="ghost" 
+            size="sm" 
+            className="text-xs text-destructive hover:bg-destructive/10"
+            onClick={() => setTechnicalError(null)}
+          >
+            Cerrar
+          </Button>
         </div>
       )}
 

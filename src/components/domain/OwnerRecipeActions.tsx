@@ -36,7 +36,12 @@ export function OwnerRecipeActions({ recipeId, status, scheduledFor, primaryMedi
     try {
       await updateRecipeStatus(recipeId, 'PUBLISHED', null)
     } catch (err: any) {
-      setPublishError(err?.message || "Error al publicar la receta.")
+      const msg = err?.message || ""
+      if (msg.startsWith("No se puede publicar la receta:")) {
+        setPublishError(msg.replace(/^No se puede publicar la receta:\s*/, '').trim() || "La receta no cumple los requisitos para ser publicada.")
+      } else {
+        setPublishError("Ha ocurrido un error al intentar publicar la receta. Por favor, inténtalo de nuevo.")
+      }
     } finally {
       setIsLoading(false)
     }
@@ -51,7 +56,12 @@ export function OwnerRecipeActions({ recipeId, status, scheduledFor, primaryMedi
       await updateRecipeStatus(recipeId, 'PUBLISHED', iso)
       setShowSchedule(false)
     } catch (err: any) {
-      setPublishError(err?.message || "Error al programar la receta.")
+      const msg = err?.message || ""
+      if (msg.startsWith("No se puede publicar la receta:")) {
+        setPublishError(msg.replace(/^No se puede publicar la receta:\s*/, '').trim() || "La receta no cumple los requisitos para ser programada.")
+      } else {
+        setPublishError("Ha ocurrido un error al intentar programar la receta. Por favor, inténtalo de nuevo.")
+      }
     } finally {
       setIsLoading(false)
     }
