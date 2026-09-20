@@ -43,10 +43,10 @@ export default async function ConversationPage({ params }: { params: { conversat
     const messages = await fetchMessages(conversationId)
 
     return (
-      <div className="flex flex-col h-full w-full bg-background overflow-hidden relative">
-        <div className="flex items-center gap-3 p-4 border-b border-border bg-card shrink-0 z-10">
+      <div className="flex flex-col h-full w-full bg-background overflow-hidden relative overscroll-none select-none">
+        <div className="flex items-center gap-3 p-4 pt-safe border-b border-border bg-card shrink-0 z-10 select-none">
           <div><BackButton /></div>
-          <Link href={`/@${otherMember?.user?.username}`} className="flex items-center gap-3 hover:opacity-80 transition-opacity">
+          <Link href={`/@${otherMember?.user?.username}`} className="flex items-center gap-3 hover:opacity-80 transition-opacity min-w-0">
             {otherMember?.user?.avatar?.storage_path ? (
               <img src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/recipe_media/${otherMember.user.avatar.storage_path}`} className="w-10 h-10 rounded-full object-cover shrink-0" alt="" />
             ) : (
@@ -54,9 +54,9 @@ export default async function ConversationPage({ params }: { params: { conversat
                 {otherMember?.user?.username?.[0]?.toUpperCase()}
               </div>
             )}
-            <div>
-              <h2 className="font-bold leading-none">{otherMember?.user?.display_name || otherMember?.user?.username}</h2>
-              <p className="text-xs text-muted-foreground mt-1">@{otherMember?.user?.username}</p>
+            <div className="min-w-0">
+              <h2 className="font-bold leading-none truncate">{otherMember?.user?.display_name || otherMember?.user?.username}</h2>
+              <p className="text-xs text-muted-foreground mt-1 truncate">@{otherMember?.user?.username}</p>
             </div>
           </Link>
         </div>

@@ -243,13 +243,31 @@ export function StoriesViewer({ groupedStories: _groupedStories, initialGroupInd
 
   // Body scroll lock while viewer is open
   useEffect(() => {
-    const originalOverflow = document.body.style.overflow;
-    const originalTouchAction = document.body.style.touchAction;
+    const scrollY = window.scrollY || window.pageYOffset || 0;
+    const originalStyles = {
+      overflow: document.body.style.overflow,
+      position: document.body.style.position,
+      top: document.body.style.top,
+      width: document.body.style.width,
+      height: document.body.style.height,
+      touchAction: document.body.style.touchAction,
+    };
+
     document.body.style.overflow = "hidden";
+    document.body.style.position = "fixed";
+    document.body.style.top = `-${scrollY}px`;
+    document.body.style.width = "100%";
+    document.body.style.height = "100%";
     document.body.style.touchAction = "none";
+
     return () => {
-      document.body.style.overflow = originalOverflow;
-      document.body.style.touchAction = originalTouchAction;
+      document.body.style.overflow = originalStyles.overflow;
+      document.body.style.position = originalStyles.position;
+      document.body.style.top = originalStyles.top;
+      document.body.style.width = originalStyles.width;
+      document.body.style.height = originalStyles.height;
+      document.body.style.touchAction = originalStyles.touchAction;
+      window.scrollTo(0, scrollY);
     };
   }, []);
 
@@ -301,7 +319,7 @@ export function StoriesViewer({ groupedStories: _groupedStories, initialGroupInd
         </div>
 
         {/* Header */}
-        <div className="absolute top-4 left-0 w-full z-50 flex items-center justify-between px-4 pt-safe mt-2">
+        <div className="absolute top-0 left-0 w-full z-50 flex items-center justify-between px-4 pt-safe mt-3">
           <div className="flex items-center gap-3 flex-1 min-w-0">
             <div className="w-10 h-10 rounded-full bg-muted overflow-hidden flex items-center justify-center shrink-0">
               {currentGroup.author?.avatar?.storage_path ? (

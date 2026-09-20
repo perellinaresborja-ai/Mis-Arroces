@@ -32,6 +32,17 @@ export function MessagesLayoutClient({ convs, children }: { convs: Record<string
   }, []);
 
   useEffect(() => {
+    const originalOverflow = document.body.style.overflow;
+    const originalOverscroll = document.body.style.overscrollBehavior;
+    document.body.style.overflow = "hidden";
+    document.body.style.overscrollBehavior = "none";
+    return () => {
+      document.body.style.overflow = originalOverflow;
+      document.body.style.overscrollBehavior = originalOverscroll;
+    };
+  }, []);
+
+  useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
         setMenuOpenId(null)
@@ -81,7 +92,7 @@ export function MessagesLayoutClient({ convs, children }: { convs: Record<string
   }
 
   return (
-    <div className="fixed inset-0 md:top-[64px] flex w-full max-w-2xl mx-auto md:border-x border-border/50 overflow-hidden bg-background z-40">
+    <div className="fixed inset-0 h-[100dvh] md:h-auto md:top-[64px] flex w-full max-w-2xl mx-auto md:border-x border-border/50 overflow-hidden bg-background z-40 overscroll-none select-none">
       {/* LEFT SIDEBAR (Inbox) */}
       <div className={`${isRoot ? 'flex' : 'hidden'} flex-col w-full shrink-0 h-full`}>
         <div className="p-4 border-b border-border sticky top-0 bg-background/95 z-10">
