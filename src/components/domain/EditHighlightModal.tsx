@@ -97,7 +97,7 @@ export function EditHighlightModal({
       const effectiveCoverId = coverId && selectedIds.includes(coverId) ? coverId : selectedIds[0];
       const coverStory = uniqueStories.find(s => s.id === effectiveCoverId);
       const path = coverStory ? getMediaStoragePath(coverStory) : null;
-      if (path) coverUrl = getMediaUrl(path) || undefined;
+      if (path && coverStory) coverUrl = getMediaUrl(coverStory, path) || undefined;
 
       // 2. Persist cleanly via server action with revalidation
       const { editStoryHighlight } = await import("@/app/actions/highlights");
@@ -186,7 +186,7 @@ export function EditHighlightModal({
               {uniqueStories.map(s => {
                 const isSelected = selectedIds.includes(s.id);
                 const path = getMediaStoragePath(s);
-                const url = getMediaUrl(path);
+                const url = getMediaUrl(s, path);
                 const isCover = coverId ? coverId === s.id : (selectedIds[0] === s.id && !coverId);
                 const textOverlay = s.overlays?.find((o: any) => o.type === 'TEXT');
                 const bgValue = s.background?.type === 'color' ? s.background.value : undefined;
@@ -254,7 +254,7 @@ export function EditHighlightModal({
             {selectedIds.map((id, index) => {
               const story = uniqueStories.find(s => s.id === id);
               const path = story ? getMediaStoragePath(story) : null;
-              const url = getMediaUrl(path);
+              const url = story ? getMediaUrl(story, path) : null;
               const isCover = coverId ? coverId === id : (selectedIds[0] === id && !coverId);
 
               return (
