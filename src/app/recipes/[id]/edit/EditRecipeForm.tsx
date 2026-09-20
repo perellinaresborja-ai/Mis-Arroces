@@ -155,6 +155,7 @@ export default function EditRecipeForm({ recipe, catalogs }: { recipe: any, cata
   }
 
   const submitWithAction = async (action: 'DRAFT' | 'PUBLISH' | 'SCHEDULE' | 'UPDATE') => {
+    console.log("[INSTRUMENTATION] >>> submitWithAction called with action:", action);
     let finalStatus = recipe.status
     let finalScheduledFor = recipe.scheduled_for || null
 
@@ -183,14 +184,25 @@ export default function EditRecipeForm({ recipe, catalogs }: { recipe: any, cata
     // Client-side integrity check if destination or current status is PUBLISHED
     if (finalStatus === 'PUBLISHED') {
       const currentValues = getValues()
-      const validation = validateRecipeForPublishing({
+      console.log("[INSTRUMENTATION] getValues('ingredients') REAL:", JSON.stringify(currentValues.ingredients?.map((i: any) => ({
+        display_text: i.display_text,
+        normalized_quantity: i.normalized_quantity,
+        unit_id: i.unit_id
+      })), null, 2));
+
+      const payload = {
         name: currentValues.name,
         base_servings: currentValues.base_servings,
         ingredients: currentValues.ingredients,
         steps: currentValues.steps
-      })
+      };
+      console.log("[INSTRUMENTATION] Payload EXACTO enviado a validateRecipeForPublishing:", JSON.stringify(payload, null, 2));
+
+      const validation = validateRecipeForPublishing(payload)
+      console.log("[INSTRUMENTATION] Resultado de validateRecipeForPublishing:", JSON.stringify(validation, null, 2));
 
       if (!validation.isValid) {
+        console.log("[INSTRUMENTATION] Validation failed! Setting errors:", validation.errorList);
         setValidationErrors(validation.errorList)
         window.scrollTo({ top: 0, behavior: 'smooth' })
         if (validation.issues.length > 0) {
@@ -200,6 +212,7 @@ export default function EditRecipeForm({ recipe, catalogs }: { recipe: any, cata
       }
     }
 
+    console.log("[INSTRUMENTATION] Validation passed (or not required). Clearing errors and proceeding to onSubmit.");
     setValidationErrors([])
     setValue('status', finalStatus)
     setValue('scheduled_for', finalScheduledFor)
@@ -208,6 +221,7 @@ export default function EditRecipeForm({ recipe, catalogs }: { recipe: any, cata
   }
 
   const onSubmit = async (data: any) => {
+    console.log("[INSTRUMENTATION] >>> onSubmit called.");
     setIsSaving(true)
     setTechnicalError(null)
     try {
