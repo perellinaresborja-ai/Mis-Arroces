@@ -54,6 +54,7 @@ export function StoriesViewer({ groupedStories: _groupedStories, initialGroupInd
   const [showReport, setShowReport] = useState(false)
   const [replyText, setReplyText] = useState("")
   const [isSendingReply, setIsSendingReply] = useState(false)
+  const [replySent, setReplySent] = useState(false)
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
@@ -69,13 +70,14 @@ export function StoriesViewer({ groupedStories: _groupedStories, initialGroupInd
       await sendMessage({
         conversationId: convId,
         type: 'STORY',
-        body: replyText,
+        body: replyText.trim(),
         entityId: currentStory.id
       });
-      console.log("Mensaje enviado");
       setReplyText("");
+      setReplySent(true);
+      setTimeout(() => setReplySent(false), 2000);
     } catch (err) {
-      console.error("No se pudo enviar el mensaje");
+      console.error("No se pudo enviar el mensaje:", err);
     } finally {
       setIsSendingReply(false);
     }
@@ -469,7 +471,24 @@ export function StoriesViewer({ groupedStories: _groupedStories, initialGroupInd
           
           {!isMe && (
             <div className="flex items-center gap-3 w-full max-w-lg mx-auto">
-              <form onSubmit={handleReplySubmit} className="flex-1 relative flex items-center"><input type="text" placeholder="Responder..." value={replyText} onChange={e => setReplyText(e.target.value)} onFocus={() => setIsPaused(true)} onBlur={() => setIsPaused(false)} className="w-full h-11 bg-black/40 border border-white/20 rounded-full pl-4 pr-12 text-white placeholder-white/50 backdrop-blur-md outline-none focus:border-white/50 transition-colors" />{replyText.trim() && (<button type="submit" disabled={isSendingReply} className="absolute right-1.5 w-8 h-8 flex items-center justify-center text-white bg-primary rounded-full hover:scale-105 transition-all disabled:opacity-50"><Send className="w-4 h-4 ml-[-2px]" /></button>)}</form>
+              <form onSubmit={handleReplySubmit} className="flex-1 relative flex items-center">
+                <input 
+                  type="text" 
+                  placeholder={replySent ? "¡Respuesta enviada!" : "Responder..."} 
+                  value={replyText} 
+                  onChange={e => setReplyText(e.target.value)} 
+                  onFocus={() => setIsPaused(true)} 
+                  onBlur={() => setIsPaused(false)} 
+                  className={`w-full h-11 bg-black/40 border rounded-full pl-4 pr-12 text-white backdrop-blur-md outline-none transition-colors ${
+                    replySent ? "border-green-500 placeholder-green-400 font-medium" : "border-white/20 placeholder-white/50 focus:border-white/50"
+                  }`} 
+                />
+                {replyText.trim() && (
+                  <button type="submit" disabled={isSendingReply} className="absolute right-1.5 w-8 h-8 flex items-center justify-center text-white bg-primary rounded-full hover:scale-105 transition-all disabled:opacity-50">
+                    <Send className="w-4 h-4 ml-[-2px]" />
+                  </button>
+                )}
+              </form>
               <div className="flex gap-2 text-2xl shrink-0">
                 {['🥘', '😂', '🔥', '👏', '😮'].map(emoji => (
                     <button key={emoji} onClick={(e) => { e.stopPropagation(); handleReaction(emoji); }} className="hover:scale-125 transition-transform drop-shadow-lg flex items-center justify-center w-8 h-8">

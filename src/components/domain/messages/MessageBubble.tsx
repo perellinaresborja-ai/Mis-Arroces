@@ -243,7 +243,7 @@ export function MessageBubble({ message, isOwn, onReply, currentUserId }: { mess
                   <div className="flex items-center gap-2 mb-2">
                     <div className="w-1 bg-primary h-4 rounded-full"></div>
                     <p className="font-semibold text-xs opacity-70 uppercase tracking-wide">
-                      {mType === 'STORY' ? 'Historia Compartida' : `${mType} Compartido`}
+                      {mType === 'STORY' ? (mContent ? 'Respuesta a historia' : 'Historia Compartida') : `${mType} Compartido`}
                     </p>
                   </div>
                   
@@ -269,7 +269,7 @@ export function MessageBubble({ message, isOwn, onReply, currentUserId }: { mess
             </div>
           )}
 
-          {mType === 'TEXT' && (
+          {(mType === 'TEXT' || ((mType === 'RECIPE' || mType === 'SESSION' || mType === 'STORY') && mContent)) && (
             <p className="text-sm whitespace-pre-wrap break-words">{mContent}</p>
           )}
           
