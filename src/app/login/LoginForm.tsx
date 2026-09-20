@@ -81,31 +81,7 @@ export function LoginForm({ error, message }: { error?: string, message?: string
           </Link>
         </div>
 
-          <div className="pt-2">
-            <button 
-              type="submit"
-              formAction={login}
-              className="w-full h-12 bg-charcoal hover:bg-black text-white rounded-xl font-bold text-base transition-colors shadow-md"
-            >
-              VAMOS AL GRANO
-            </button>
-          </div>
-
-        <div className="relative py-2 flex items-center">
-          <div className="flex-grow border-t border-border/80"></div>
-          <span className="shrink-0 px-4 text-sm text-muted-foreground bg-sand">o</span>
-          <div className="flex-grow border-t border-border/80"></div>
-        </div>
-        
-        <div className="flex flex-col gap-3">
-          <button 
-            type="submit"
-            formAction={signup}
-            className="w-full h-12 bg-transparent border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground rounded-xl font-bold text-base transition-colors"
-          >
-            CREAR CUENTA NUEVA
-          </button>
-        </div>
+        <SubmitButtons />
       </form>
     </div>
   )
@@ -121,6 +97,7 @@ function SubmitButtons() {
     <>
       <div className="pt-2">
         <button 
+          type="submit"
           formAction={login}
           disabled={pending}
           className="w-full h-12 bg-charcoal hover:bg-black disabled:bg-charcoal/50 disabled:cursor-not-allowed text-white rounded-xl font-bold text-base transition-colors shadow-md"
@@ -137,6 +114,7 @@ function SubmitButtons() {
       
       <div className="flex flex-col gap-3">
         <button 
+          type="submit"
           formAction={signup}
           disabled={pending}
           className="w-full h-12 bg-transparent border-2 border-primary disabled:border-primary/50 disabled:text-primary/50 disabled:cursor-not-allowed text-primary hover:bg-primary hover:text-primary-foreground rounded-xl font-bold text-base transition-colors"
