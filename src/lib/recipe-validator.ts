@@ -84,14 +84,21 @@ export function isNonQuantifiableIngredient(text: string): boolean {
 /**
  * Checks whether the ingredients list contains rice.
  * Principle: Mis Arroces recipes MUST contain rice to be published.
- * Matches words like "arroz", "arroz bomba", "arroz senia", "arroz albufera", "arroz redondo", "arroz basmati", etc.
- * Avoids false substrings via word boundary regex.
+ * Matches:
+ * - "arroz", "arroces"
+ * - Standard rice varieties (e.g. "bomba", "albufera", "senia", "sénia", "sendra", "bahía", "marisma",
+ *   "carnaroli", "arborio", "dinamita", "balilla", "sollana", "basmati", "jazmín", "redondo")
+ * Avoids false positives (e.g., "zarzuela", "sarro", "sal", "pimienta", "azafrán") via word boundary regex.
  */
 export function hasRiceIngredient(ingredients: Array<{ display_text?: string | null }> | null | undefined): boolean {
   if (!ingredients || ingredients.length === 0) return false;
+  
+  // Normalized diacritic-free patterns with word boundaries
+  const ricePattern = /\b(arroz(es)?|bomba|senia|sendra|albufera|bahia|marisma|carnaroli|arborio|dinamita|balilla|sollana|basmati|jazmin|redondo)\b/i;
+
   return ingredients.some(ing => {
     const text = (ing.display_text || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-    return /\barroz(es)?\b/.test(text);
+    return ricePattern.test(text);
   });
 }
 
