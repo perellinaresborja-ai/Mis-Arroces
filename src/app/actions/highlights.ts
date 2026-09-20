@@ -13,7 +13,13 @@ export async function getProfileHighlights(userId: string) {
       highlight_stories (
         story_id,
         display_order,
-        stories (*, author:profiles!stories_owner_id_fkey(*), story_media(media_id, media:media_assets(storage_path)))
+        stories (
+          *,
+          author:profiles!stories_owner_id_fkey(*),
+          story_media(media_id, media:media_assets(storage_path)),
+          recipe:recipes(id, name, recipe_media(media:media_assets(storage_path))),
+          session:cooking_sessions(id, session_media(media:media_assets(storage_path)))
+        )
       )
     `)
     .eq('user_id', userId)
@@ -42,7 +48,16 @@ export async function getHighlightStories(highlightId: string) {
   
   const { data, error } = await supabase
     .from('highlight_stories')
-    .select('story_id, stories(*, author:profiles!stories_owner_id_fkey(*), story_media(media_id, media:media_assets(storage_path)))')
+    .select(`
+      story_id,
+      stories(
+        *,
+        author:profiles!stories_owner_id_fkey(*),
+        story_media(media_id, media:media_assets(storage_path)),
+        recipe:recipes(id, name, recipe_media(media:media_assets(storage_path))),
+        session:cooking_sessions(id, session_media(media:media_assets(storage_path)))
+      )
+    `)
     .eq('highlight_id', highlightId)
     .order('display_order', { ascending: true });
     

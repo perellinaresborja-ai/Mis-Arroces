@@ -4,6 +4,7 @@ import React from 'react';
 import { CSSProperties, useEffect, Dispatch, SetStateAction } from "react"
 import { StoryOverlay, StoryTransform, StoryBackground, PollOverlay, QuestionOverlay, SliderOverlay, RecipeOverlay, SessionOverlay, MentionOverlay, ProfileOverlay, LocationOverlay, IngredientOverlay, GifOverlay, TextOverlay } from "@/types/stories"
 import { MapPin, Utensils, ChefHat } from "lucide-react"
+import { votePoll, getPollResults, submitQuestionReply, upsertSliderValue, getSliderResults } from "@/app/actions/stories"
 
 interface PollResultData {
   countA?: number;
@@ -87,7 +88,6 @@ export function SharedStoryRenderer({
     if (mode === 'VIEWER' && storyId) {
       const fetchPolls = async () => {
         try {
-          const { getPollResults } = await import('@/app/actions/stories');
           const results: Record<string, PollResultData> = {};
           for (const ov of overlays || []) {
             if (ov.type === 'POLL') {
@@ -458,15 +458,45 @@ export function renderOverlayContent(overlay: StoryOverlay, mode: string, ctx?: 
       const handlePollVote = async (opt: 'A'|'B') => {
         if (mode === 'VIEWER' && storyId && !hasVoted && !isVotingNow) {
           if (setIsVoting) setIsVoting((prev: Record<string, boolean>) => ({ ...prev, [pollId]: true }));
+          
+          // Optimistic update
+          const curA = res?.countA || 0;
+          const curB = res?.countB || 0;
+          const newA = opt === 'A' ? curA + 1 : curA;
+          const newB = opt === 'B' ? curB + 1 : curB;
+          const newTot = newA + newB;
+          if (setPollResults) {
+            setPollResults((prev: Record<string, PollResultData>) => ({
+              ...prev,
+              [pollId]: {
+                countA: newA,
+                countB: newB,
+                total: newTot,
+                percentA: newTot > 0 ? Math.round((newA / newTot) * 100) : 50,
+                percentB: newTot > 0 ? Math.round((newB / newTot) * 100) : 50,
+                myVote: opt,
+                userVoted: opt
+              }
+            }));
+          }
+
           try {
-            const { votePoll, getPollResults } = await import('@/app/actions/stories');
             await votePoll(storyId, pollId, opt);
             const freshResults = await getPollResults(pollId);
             if (setPollResults) {
               setPollResults((prev: Record<string, PollResultData>) => ({ ...prev, [pollId]: freshResults }));
             }
           } catch (e: unknown) {
-            console.error(e);
+            console.error('Error voting on poll:', e);
+            // Revert or refresh on error
+            try {
+              const freshResults = await getPollResults(pollId);
+              if (setPollResults) {
+                setPollResults((prev: Record<string, PollResultData>) => ({ ...prev, [pollId]: freshResults }));
+              }
+            } catch {
+              // Ignore
+            }
             alert((e as Error).message || 'Error al votar en la encuesta');
           } finally {
             if (setIsVoting) setIsVoting((prev: Record<string, boolean>) => ({ ...prev, [pollId]: false }));
@@ -478,8 +508,11 @@ export function renderOverlayContent(overlay: StoryOverlay, mode: string, ctx?: 
       const percentB = res?.percentB ?? (res?.total && res.total > 0 ? Math.round(((res.countB || 0) / res.total) * 100) : 50);
 
       return (
-        <div className="bg-card/95 backdrop-blur-md rounded-2xl overflow-hidden shadow-2xl border border-border min-w-[220px] max-w-[280px] pointer-events-auto">
-          <div className="p-3.5 text-center font-bold text-foreground border-b border-border text-sm leading-snug">
+        <div 
+          onClick={(e) => e.stopPropagation()}
+          className="bg-card/95 backdrop-blur-md rounded-2xl overflow-hidden shadow-2xl border border-border min-w-[220px] max-w-[280px] pointer-events-auto"
+        >
+          <div className="p-3.5 text-center font-bold text-foreground border-b border-border text-sm leading-snug select-none">
             {p.question}
           </div>
           {hasVoted ? (
@@ -508,7 +541,10 @@ export function renderOverlayContent(overlay: StoryOverlay, mode: string, ctx?: 
             <div className="flex divide-x divide-border">
               <button 
                 type="button"
-                onClick={() => handlePollVote('A')} 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handlePollVote('A');
+                }} 
                 disabled={isVotingNow || mode !== 'VIEWER'}
                 className="flex-1 p-3 text-center font-bold hover:bg-muted text-primary transition-colors cursor-pointer text-sm truncate disabled:opacity-70"
               >
@@ -516,7 +552,10 @@ export function renderOverlayContent(overlay: StoryOverlay, mode: string, ctx?: 
               </button>
               <button 
                 type="button"
-                onClick={() => handlePollVote('B')} 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handlePollVote('B');
+                }} 
                 disabled={isVotingNow || mode !== 'VIEWER'}
                 className="flex-1 p-3 text-center font-bold hover:bg-muted text-primary transition-colors cursor-pointer text-sm truncate disabled:opacity-70"
               >
@@ -581,12 +620,6 @@ export function renderOverlayContent(overlay: StoryOverlay, mode: string, ctx?: 
           if (!val) return;
           setIsSendingQ((prev: Record<string, any>) => ({...prev, [qId]: true}));
           try {
-            const { submitQuestionReply } = await import('@/app/actions/stories');
-            // We need the ownerId. We don't have it directly from storyId unless passed or fetched.
-            // Oh wait, story is not passed. We can fetch it or we need ownerId passed!
-            // Let's import createClient and fetch it, or rely on submitQuestionReply fetching it inside!
-            // Wait, submitQuestionReply signature: (storyId, ownerId, question, answer). Let's pass a dummy for ownerId and let the backend find it, or modify the backend to find it.
-            // Actually, submitQuestionReply can just fetch the owner_id from storyId!
             await submitQuestionReply(storyId, 'DUMMY_OWNER', p.question, val);
             setSentQ((prev: Record<string, any>) => ({...prev, [qId]: true}));
           } catch (e: unknown) {
@@ -644,7 +677,6 @@ export function renderOverlayContent(overlay: StoryOverlay, mode: string, ctx?: 
         if (mode === 'VIEWER' && storyId) {
           const val = Number((e.target as HTMLInputElement).value);
           try {
-            const { upsertSliderValue, getSliderResults } = await import('@/app/actions/stories');
             await upsertSliderValue(storyId, sId, val);
             const newRes = await getSliderResults(sId);
             setSliderResults((prev: Record<string, any>) => ({...prev, [sId]: newRes}));

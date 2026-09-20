@@ -285,8 +285,9 @@ export function StoriesViewer({ groupedStories: _groupedStories, initialGroupInd
   if (!currentStory) return null
 
   const fallbackRecipeMediaObj = currentStory.recipe?.recipe_media?.[0]?.media;
+  const fallbackSessionMediaObj = currentStory.session?.session_media?.[0]?.media;
   const rawStoryMedia = currentStory.story_media?.[0];
-  const mediaObj = rawStoryMedia?.media || fallbackRecipeMediaObj;
+  const mediaObj = rawStoryMedia?.media || fallbackRecipeMediaObj || fallbackSessionMediaObj;
   const mediaPath = mediaObj?.storage_path || rawStoryMedia?.storage_path;
   const isVideo = mediaPath?.match(/\.(mp4|webm|ogg)$/i);
   const fullUrl = mediaObj?.signed_url || (mediaPath ? (mediaPath.startsWith('http') ? mediaPath : `${"https://zvesoygqssyyojqyswwm.supabase.co"}/storage/v1/object/public/recipe_media/${mediaPath}`) : "");
