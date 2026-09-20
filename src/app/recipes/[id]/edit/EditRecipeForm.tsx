@@ -86,11 +86,17 @@ export default function EditRecipeForm({ recipe, catalogs }: { recipe: any, cata
       vessel_diameter_cm: initialVessel.diameter_cm || "",
       vessel_notes: initialVessel.notes || "",
       tags: (recipe.recipe_tags || recipe.tags)?.map((t: any) => t.tag_id) || [],
-      steps: (recipe.recipe_steps || recipe.steps)?.sort((a: any, b: any) => a.step_number - b.step_number).map((s: any) => ({
-          ...s, db_id: s.id,
-          mediaItem: s.media_id && s.media ? { type: 'existing', id: s.media_id, url: `${"https://zvesoygqssyyojqyswwm.supabase.co"}/storage/v1/object/public/recipe_media/${s.media.storage_path}` } : null
-        })) || [],
-      ingredients: (recipe.recipe_ingredients || recipe.ingredients)?.sort((a: any, b: any) => a.display_order - b.display_order).map((ing: any) => ({ ...ing, db_id: ing.id })) || []
+      steps: (recipe.recipe_steps || recipe.steps)?.sort((a: any, b: any) => a.step_number - b.step_number).map((s: any) => {
+          const { id, ...rest } = s;
+          return {
+            ...rest, db_id: id,
+            mediaItem: s.media_id && s.media ? { type: 'existing', id: s.media_id, url: `${"https://zvesoygqssyyojqyswwm.supabase.co"}/storage/v1/object/public/recipe_media/${s.media.storage_path}` } : null
+          }
+        }) || [],
+      ingredients: (recipe.recipe_ingredients || recipe.ingredients)?.sort((a: any, b: any) => a.display_order - b.display_order).map((ing: any) => {
+        const { id, ...rest } = ing;
+        return { ...rest, db_id: id }
+      }) || []
     }
   })
 
@@ -183,6 +189,10 @@ export default function EditRecipeForm({ recipe, catalogs }: { recipe: any, cata
     // Client-side integrity check if destination or current status is PUBLISHED
     if (finalStatus === 'PUBLISHED') {
       const currentValues = getValues()
+      console.log("[INGREDIENT-TRACE] E) JUSTO antes de Guardar (PUBLISHED)");
+      console.log("- ingFields (watch):", watch("ingredients")?.map((i:any) => i?.display_text));
+      console.log("- getValues(ingredients):", currentValues.ingredients);
+      
       const validation = validateRecipeForPublishing({
         name: currentValues.name,
         base_servings: currentValues.base_servings,
@@ -562,7 +572,15 @@ export default function EditRecipeForm({ recipe, catalogs }: { recipe: any, cata
         <CollapsibleSection id="section-ingredients" title="Ingredientes" forceOpen={openSections.ingredients} rightAction={
             <div className="flex items-center gap-1">
               <AddToCartButton recipeId={recipe.id} isAuthenticated={true} layout="icon" />
-              <Button type="button" variant="outline" size="sm" onClick={() => appendIng({ display_text: "", normalized_quantity: "", unit_id: "", is_scalable: true })}>
+              <Button type="button" variant="outline" size="sm" onClick={() => {
+                console.log("[INGREDIENT-TRACE] A) + Añadir pulsado");
+                appendIng({ display_text: "", normalized_quantity: "", unit_id: "", is_scalable: true });
+                setTimeout(() => {
+                  console.log("[INGREDIENT-TRACE] A) Después de + Añadir (setTimeout):");
+                  console.log("- ingFields length previo:", ingFields.length);
+                  console.log("- getValues(ingredients):", getValues("ingredients"));
+                }, 50);
+              }}>
                 <Plus className="w-4 h-4 mr-1" /> Añadir
               </Button>
             </div>
@@ -578,7 +596,19 @@ export default function EditRecipeForm({ recipe, catalogs }: { recipe: any, cata
                 <div className="flex-1 space-y-2">
                   <div className="grid grid-cols-12 gap-2">
                     <div className="col-span-4 md:col-span-3">
-                      <Input type="number" step="0.01" placeholder="Cant." {...register(`ingredients.${idx}.normalized_quantity`)} defaultValue={field.normalized_quantity ?? ""} />
+                      {(() => {
+                        const { onChange: rOnChange, onBlur: rOnBlur, name: rName, ref: rRef } = register(`ingredients.${idx}.normalized_quantity`);
+                        return (
+                          <Input type="number" step="0.01" placeholder="Cant." name={rName} ref={rRef} onBlur={rOnBlur} defaultValue={field.normalized_quantity ?? ""} onChange={(e) => {
+                            console.log("[INGREDIENT-TRACE] D) Cambia normalized_quantity", idx);
+                            rOnChange(e);
+                            setTimeout(() => {
+                              console.log("- getValues(ingredients.idx):", getValues(`ingredients.${idx}`));
+                              console.log("- getValues(ingredients) len:", getValues("ingredients")?.length);
+                            }, 50);
+                          }} />
+                        );
+                      })()}
                     </div>
                     <div className="col-span-8 md:col-span-3">
                       <select {...register(`ingredients.${idx}.unit_id`)} defaultValue={field.unit_id ?? ""} className="w-full h-10 px-2 rounded-md border border-input bg-background text-sm">
@@ -587,7 +617,20 @@ export default function EditRecipeForm({ recipe, catalogs }: { recipe: any, cata
                       </select>
                     </div>
                     <div className="col-span-12 md:col-span-6">
-                      <Input placeholder="" {...register(`ingredients.${idx}.display_text`, { required: true })} defaultValue={field.display_text ?? ""} />
+                      {(() => {
+                        const { onChange: rOnChange, onBlur: rOnBlur, name: rName, ref: rRef } = register(`ingredients.${idx}.display_text`, { required: true });
+                        return (
+                          <Input placeholder="" name={rName} ref={rRef} onBlur={rOnBlur} defaultValue={field.display_text ?? ""} onChange={(e) => {
+                            console.log("[INGREDIENT-TRACE] B) Cambia display_text", idx);
+                            console.log("- valor:", e.target.value, "nombre field:", rName);
+                            rOnChange(e);
+                            setTimeout(() => {
+                              console.log("- getValues(ingredients.idx):", getValues(`ingredients.${idx}`));
+                              console.log("- getValues(ingredients) length:", getValues("ingredients")?.length);
+                            }, 50);
+                          }} />
+                        );
+                      })()}
                     </div>
                   </div>
                   <div className="flex items-center gap-2 mt-1">
