@@ -56,6 +56,11 @@ export async function signup(formData: FormData) {
   const supabase = await createClient()
   const email = normalizeEmail(formData.get("email") as string || "")
   const password = (formData.get("password") as string || "")
+  const legalAccepted = formData.get("legal_accepted") === "on"
+
+  if (!legalAccepted) {
+    redirect(`/login?error=${encodeURIComponent("Debes aceptar los Términos de servicio y confirmar que has leído la Política de privacidad para crear tu cuenta.")}`)
+  }
 
   if (!email || !password) {
     redirect(`/login?error=${encodeURIComponent("Por favor, introduce un correo y una contraseña para crear tu cuenta.")}`)
@@ -89,6 +94,21 @@ export async function signup(formData: FormData) {
       account_type: 'PERSONAL',
       privacy_level: 'PUBLIC'
     })
+
+    // Register legal acceptances
+    const { data: activeDocs } = await supabase
+      .from("legal_documents" as any)
+      .select("id")
+      .eq("is_active", true)
+
+    if (activeDocs && activeDocs.length > 0) {
+      const userId = data.user.id;
+      const acceptances = activeDocs.map((doc: any) => ({
+        user_id: userId,
+        document_id: doc.id
+      }))
+      await supabase.from("user_legal_acceptances" as any).insert(acceptances)
+    }
 
     // Send welcome email (non-blocking)
     sendWelcomeEmail(data.user.email!).catch(err =>
