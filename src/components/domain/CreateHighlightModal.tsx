@@ -66,14 +66,13 @@ export function CreateHighlightModal({
     })
   }
 
-  const effectiveName = name.trim() || (selectedIds.length > 0 ? "Destacadas" : "");
-  const isValid = selectedIds.length > 0;
+  const isValid = name.trim().length > 0 && selectedIds.length > 0;
 
   const save = async () => {
-    if (selectedIds.length === 0 || loading) return;
+    if (!isValid || loading) return;
     setLoading(true);
     try {
-      const finalTitle = name.trim() || "Destacadas";
+      const finalTitle = name.trim();
       const effectiveCoverId = coverId && selectedIds.includes(coverId) ? coverId : selectedIds[0];
       const coverStory = uniqueStories.find(s => s.id === effectiveCoverId);
       const path = coverStory ? getMediaStoragePath(coverStory) : null;
@@ -91,25 +90,26 @@ export function CreateHighlightModal({
 
   return (
     <div className="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-4">
-      <div className="bg-card border border-border text-foreground w-full max-w-md rounded-3xl p-5 flex flex-col h-[85vh] max-h-[640px] shadow-2xl animate-in zoom-in-95 duration-200">
+      <div className="bg-card border border-border text-foreground w-full max-w-sm sm:max-w-md rounded-3xl p-5 flex flex-col h-[85vh] max-h-[640px] shadow-2xl animate-in zoom-in-95 duration-200">
         <div className="shrink-0 mb-3">
-          <h2 className="font-bold text-lg text-foreground mb-3">Nueva Destacada</h2>
+          <h2 className="font-bold text-lg text-foreground mb-3 font-serif">Nueva Destacada</h2>
           
           <div>
             <label className="block text-xs font-semibold mb-1 text-foreground">
-              Título
+              Título <span className="text-primary">*</span>
             </label>
             <input 
               type="text" 
-              placeholder="Ej. Mis Mejores Paellas (o dejar en blanco)" 
+              placeholder="Nombre de la destacada (ej. Paellas, Viajes...)" 
               className="border border-border rounded-xl p-3 bg-background w-full text-foreground outline-none focus:border-primary text-sm transition-colors"
               value={name}
               onChange={e => setName(e.target.value)}
               maxLength={30}
+              autoFocus
             />
           </div>
 
-          <div className="flex items-center justify-between mt-2">
+          <div className="flex items-center justify-between mt-3">
             <p className="text-xs text-muted-foreground">
               Selecciona historias para tu destacada:
             </p>
@@ -126,7 +126,7 @@ export function CreateHighlightModal({
             <p className="text-sm font-semibold text-muted-foreground">No tienes historias en tu archivo para añadir.</p>
           </div>
         ) : (
-          <div className="overflow-y-auto flex-1 min-h-0 grid grid-cols-3 gap-2.5 p-1 mb-3">
+          <div className="overflow-y-auto flex-1 min-h-0 grid grid-cols-2 gap-3 p-1 mb-3">
             {uniqueStories.map(s => {
               const isSelected = selectedIds.includes(s.id);
               const path = getMediaStoragePath(s);
@@ -138,9 +138,9 @@ export function CreateHighlightModal({
               return (
                 <div 
                   key={s.id} 
-                  className={`aspect-[3/4] relative rounded-2xl overflow-hidden cursor-pointer select-none transition-all duration-150 border-2 ${
+                  className={`w-full aspect-[9/16] min-h-[170px] relative rounded-2xl overflow-hidden cursor-pointer select-none transition-all duration-150 border-2 ${
                     isSelected 
-                      ? 'border-primary ring-2 ring-primary/40 shadow-md' 
+                      ? 'border-primary ring-2 ring-primary/40 shadow-md scale-[0.98]' 
                       : 'border-border/60 opacity-80 hover:opacity-100 hover:border-border'
                   }`}
                   style={{ backgroundColor: bgValue || '#18181B' }}
@@ -149,17 +149,17 @@ export function CreateHighlightModal({
                   {url ? (
                     <img src={url} alt="Story" className="w-full h-full object-cover pointer-events-none" />
                   ) : (
-                    <div className="w-full h-full flex flex-col items-center justify-center text-center p-2">
+                    <div className="w-full h-full flex flex-col items-center justify-center text-center p-3">
                       {textOverlay?.payload?.text ? (
-                        <span className="text-[11px] font-bold text-white line-clamp-3 break-words">
+                        <span className="text-xs font-bold text-white line-clamp-4 break-words">
                           {textOverlay.payload.text}
                         </span>
                       ) : s.recipe?.name ? (
-                        <span className="text-[10px] font-semibold text-white/90 line-clamp-2">
+                        <span className="text-xs font-semibold text-white/90 line-clamp-3">
                           {s.recipe.name}
                         </span>
                       ) : (
-                        <span className="text-[10px] text-zinc-400">
+                        <span className="text-xs text-zinc-400">
                           Historia
                         </span>
                       )}
@@ -168,7 +168,7 @@ export function CreateHighlightModal({
                   
                   {/* Selection Badge with Order number */}
                   {isSelected && (
-                    <div className="absolute top-1.5 left-1.5 w-5 h-5 bg-primary text-primary-foreground rounded-full flex items-center justify-center font-bold text-[10px] shadow">
+                    <div className="absolute top-2 left-2 w-6 h-6 bg-primary text-primary-foreground rounded-full flex items-center justify-center font-bold text-xs shadow-md">
                       {selectedIds.indexOf(s.id) + 1}
                     </div>
                   )}
@@ -178,8 +178,8 @@ export function CreateHighlightModal({
                     <button 
                       type="button"
                       onClick={(e) => { e.stopPropagation(); setCoverId(s.id); }}
-                      className={`absolute bottom-1 left-1 right-1 text-[9px] py-1 px-1 font-bold rounded-lg text-center transition-colors shadow-sm ${
-                        isCover ? 'bg-primary text-primary-foreground' : 'bg-black/70 text-white hover:bg-black/90'
+                      className={`absolute bottom-2 left-2 right-2 text-[10px] py-1 px-2 font-bold rounded-xl text-center transition-colors shadow-md ${
+                        isCover ? 'bg-primary text-primary-foreground' : 'bg-black/75 text-white hover:bg-black/90'
                       }`}
                     >
                       {isCover ? 'Portada' : 'Hacer portada'}
@@ -195,7 +195,13 @@ export function CreateHighlightModal({
         {!isValid && (
           <div className="shrink-0 flex items-center gap-1.5 text-[11px] text-muted-foreground pb-2 px-1">
             <Info className="w-3.5 h-3.5 shrink-0 text-amber-500" />
-            <span>Selecciona al menos una historia para tu destacada.</span>
+            <span>
+              {!name.trim() && selectedIds.length === 0
+                ? "Introduce un título y selecciona al menos una historia."
+                : !name.trim()
+                ? "Introduce un título para la destacada."
+                : "Selecciona al menos una historia para tu destacada."}
+            </span>
           </div>
         )}
 

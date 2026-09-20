@@ -384,7 +384,10 @@ export function StoriesViewer({ groupedStories: _groupedStories, initialGroupInd
         <div 
           className="flex-1 relative w-full h-full overflow-hidden"
         >
-          <SharedStoryRenderer storyId={currentStory.id} mode="VIEWER"
+          <SharedStoryRenderer 
+            key={currentStory.id}
+            storyId={currentStory.id} 
+            mode="VIEWER"
             mediaUrl={fullUrl}
             transform={currentStory.media_transform}
             background={currentStory.background}
@@ -438,13 +441,6 @@ export function StoriesViewer({ groupedStories: _groupedStories, initialGroupInd
                >
                  <EyeIcon className="w-4 h-4" />
                  Visto por {currentStory.viewCount || viewers.length}
-               </button>
-               <button 
-                 onClick={(e) => { e.stopPropagation(); setInsightsOpen(true); setIsPaused(true); }}
-                 className="flex items-center gap-2 px-4 py-2 bg-black/40 hover:bg-black/60 backdrop-blur-md rounded-full text-sm font-bold border border-white/20 transition-colors"
-               >
-                 <BarChart2 className="w-4 h-4" />
-                 Estadísticas
                </button>
                <button 
                  onClick={(e) => { e.stopPropagation(); setShowShare(true); setIsPaused(true); }}

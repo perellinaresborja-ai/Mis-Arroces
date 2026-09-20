@@ -135,6 +135,7 @@ export function SharedStoryRenderer({
     objectFit: 'cover',
     transform: transform ? ('translate(' + (transform.translateX||0) + 'px, ' + (transform.translateY||0) + 'px) scale(' + (transform.scale||1) + ') rotate(' + (transform.rotation||0) + 'deg)') : 'none',
     filter: background?.type === 'blur' ? 'blur(10px) brightness(0.8)' : 'none',
+    transition: 'none',
   }
 
   const actualMediaStyle: CSSProperties = {
@@ -143,6 +144,7 @@ export function SharedStoryRenderer({
     height: '100%',
     objectFit: 'contain',
     transform: transform ? ('translate(' + (transform.translateX||0) + 'px, ' + (transform.translateY||0) + 'px) scale(' + (transform.scale||1) + ') rotate(' + (transform.rotation||0) + 'deg)') : 'none',
+    transition: 'none',
   }
 
   return (
