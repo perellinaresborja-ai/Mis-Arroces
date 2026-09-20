@@ -212,7 +212,15 @@ export function MessageInput({ conversationId, receiverId, disabled, replyingTo,
         <div className="bg-muted px-4 py-2 flex items-center justify-between border-b border-border text-sm">
           <div className="truncate opacity-70 flex-1">
             <span className="font-bold mr-2">Respondiendo a:</span>
-            {replyingTo.type === 'IMAGE' || replyingTo.type === 'VIDEO' ? 'Archivo adjunto' : replyingTo.type === 'AUDIO' ? 'Nota de voz' : replyingTo.body || replyingTo.content}
+            {replyingTo.type === 'IMAGE' 
+              ? 'Foto' 
+              : replyingTo.type === 'VIDEO' 
+              ? 'Vídeo' 
+              : replyingTo.type === 'AUDIO' 
+              ? 'Nota de voz' 
+              : replyingTo.type === 'DOCUMENT'
+              ? 'Archivo adjunto'
+              : replyingTo.body || replyingTo.content || 'Mensaje'}
           </div>
           <button type="button" onClick={onCancelReply} className="p-1 hover:bg-background rounded-full">
             <X className="w-4 h-4" />

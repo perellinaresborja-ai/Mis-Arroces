@@ -43,8 +43,8 @@ export default async function ConversationPage({ params }: { params: { conversat
     const messages = await fetchMessages(conversationId)
 
     return (
-      <div className="flex flex-col h-full w-full bg-background relative">
-        <div className="flex items-center gap-3 p-4 border-b border-border bg-card shrink-0 sticky top-0 z-10">
+      <div className="flex flex-col h-full w-full bg-background overflow-hidden relative">
+        <div className="flex items-center gap-3 p-4 border-b border-border bg-card shrink-0 z-10">
           <div><BackButton /></div>
           <Link href={`/@${otherMember?.user?.username}`} className="flex items-center gap-3 hover:opacity-80 transition-opacity">
             {otherMember?.user?.avatar?.storage_path ? (

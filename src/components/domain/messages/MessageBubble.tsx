@@ -194,7 +194,15 @@ export function MessageBubble({ message, isOwn, onReply, currentUserId }: { mess
             <div className="bg-background/20 rounded-xl p-2 mb-2 text-xs opacity-80 border-l-2 border-primary">
               <span className="font-bold block mb-1">Respuesta a:</span>
               <span className="truncate block">
-                {replyData.type === 'IMAGE' || replyData.type === 'VIDEO' ? 'Archivo adjunto' : replyData.body || replyData.content}
+                {replyData.type === 'IMAGE' 
+                  ? 'Foto' 
+                  : replyData.type === 'VIDEO' 
+                  ? 'Vídeo' 
+                  : replyData.type === 'AUDIO' 
+                  ? 'Nota de voz' 
+                  : replyData.type === 'DOCUMENT'
+                  ? 'Archivo adjunto'
+                  : replyData.body || replyData.content || 'Mensaje'}
               </span>
             </div>
           )}

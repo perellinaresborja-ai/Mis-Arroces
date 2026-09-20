@@ -43,13 +43,20 @@ export function ClientChat({ initialMessages, userId, conversationId, myStatus, 
     });
   }, [messages, conversationId]);
 
+  const scrollContainerRef = useRef<HTMLDivElement>(null)
+
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight
+    }
   }, [messages])
 
   return (
     <div className="flex flex-col flex-1 min-h-0 h-full relative">
-      <div className="flex-1 overflow-y-auto p-4 pb-32 md:pb-20 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+      <div 
+        ref={scrollContainerRef}
+        className="flex-1 overflow-y-auto overscroll-contain p-4 pb-32 md:pb-20 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+      >
         {messages.map((msg: Record<string, unknown>) => (
           <MessageBubble 
             key={msg.id as string} 
