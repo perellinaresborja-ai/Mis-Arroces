@@ -334,13 +334,20 @@ export function StoriesViewer({ groupedStories: _groupedStories, initialGroupInd
             </div>
           </div>
           
-                      <div className="flex gap-2 relative z-50 pointer-events-auto shrink-0 items-center">
-
-              <button onClick={handleMenuClick} className="p-2 hover:bg-black/20 rounded-full transition-colors backdrop-blur-sm">
-                <MoreHorizontal className="w-6 h-6 drop-shadow-md text-white" />
+            <div className="flex gap-2 relative z-50 pointer-events-auto shrink-0 items-center">
+              <button 
+                onClick={handleMenuClick} 
+                className="w-10 h-10 flex items-center justify-center bg-black/40 hover:bg-black/60 rounded-full transition-all backdrop-blur-md border border-white/10 shadow-sm"
+                aria-label="Más opciones"
+              >
+                <MoreHorizontal className="w-5 h-5 drop-shadow text-white" />
               </button>
-              <button onClick={(e) => { e.stopPropagation(); onClose(); }} className="p-2 hover:bg-black/20 rounded-full transition-colors backdrop-blur-sm">
-                <X className="w-6 h-6 drop-shadow-md text-white" />
+              <button 
+                onClick={(e) => { e.stopPropagation(); onClose(); }} 
+                className="w-10 h-10 flex items-center justify-center bg-black/40 hover:bg-black/60 rounded-full transition-all backdrop-blur-md border border-white/10 shadow-sm"
+                aria-label="Cerrar"
+              >
+                <X className="w-5 h-5 drop-shadow text-white" />
               </button>
             </div>
         </div>
