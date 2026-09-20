@@ -674,6 +674,44 @@ export async function getArchivedStories() {
     .order('created_at', { ascending: false });
     
   if (error) throw error;
+
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (serviceKey && data) {
+    const adminSupabase = createAdminClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://zvesoygqssyyojqyswwm.supabase.co',
+      serviceKey
+    );
+    for (const story of data) {
+      if (story.story_media && story.story_media.length > 0) {
+        const path = story.story_media[0].media?.storage_path;
+        if (path) {
+          const { data: signed } = await adminSupabase.storage.from('recipe_media').createSignedUrl(path, 3600);
+          if (signed) {
+            (story.story_media[0].media as any).signed_url = signed.signedUrl;
+          }
+        }
+      }
+      if (story.recipe?.recipe_media && story.recipe.recipe_media.length > 0) {
+        const rPath = story.recipe.recipe_media[0].media?.storage_path;
+        if (rPath) {
+          const { data: signed } = await adminSupabase.storage.from('recipe_media').createSignedUrl(rPath, 3600);
+          if (signed) {
+            (story.recipe.recipe_media[0].media as any).signed_url = signed.signedUrl;
+          }
+        }
+      }
+      if (story.session?.session_media && story.session.session_media.length > 0) {
+        const sPath = story.session.session_media[0].media?.storage_path;
+        if (sPath) {
+          const { data: signed } = await adminSupabase.storage.from('recipe_media').createSignedUrl(sPath, 3600);
+          if (signed) {
+            (story.session.session_media[0].media as any).signed_url = signed.signedUrl;
+          }
+        }
+      }
+    }
+  }
+
   return data;
 }
 

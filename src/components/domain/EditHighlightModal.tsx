@@ -54,7 +54,9 @@ export function EditHighlightModal({
     return null;
   }
 
-  const getMediaUrl = (storagePath?: string | null): string | null => {
+  const getMediaUrl = (s: any, storagePath?: string | null): string | null => {
+    const signed = s?.story_media?.[0]?.media?.signed_url || s?.recipe?.recipe_media?.[0]?.media?.signed_url || s?.session?.session_media?.[0]?.media?.signed_url;
+    if (signed) return signed;
     if (!storagePath) return null;
     if (storagePath.startsWith('http')) return storagePath;
     return `https://zvesoygqssyyojqyswwm.supabase.co/storage/v1/object/public/recipe_media/${storagePath}`;

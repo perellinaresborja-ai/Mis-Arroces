@@ -48,7 +48,9 @@ export function CreateHighlightModal({
     return null;
   }
 
-  const getMediaUrl = (storagePath?: string | null): string | null => {
+  const getMediaUrl = (s: any, storagePath?: string | null): string | null => {
+    const signed = s?.story_media?.[0]?.media?.signed_url || s?.recipe?.recipe_media?.[0]?.media?.signed_url || s?.session?.session_media?.[0]?.media?.signed_url;
+    if (signed) return signed;
     if (!storagePath) return null;
     if (storagePath.startsWith('http')) return storagePath;
     return `https://zvesoygqssyyojqyswwm.supabase.co/storage/v1/object/public/recipe_media/${storagePath}`;
@@ -76,7 +78,7 @@ export function CreateHighlightModal({
       const effectiveCoverId = coverId && selectedIds.includes(coverId) ? coverId : selectedIds[0];
       const coverStory = uniqueStories.find(s => s.id === effectiveCoverId);
       const path = coverStory ? getMediaStoragePath(coverStory) : null;
-      const coverUrl = path ? getMediaUrl(path) || undefined : undefined;
+      const coverUrl = path ? getMediaUrl(coverStory, path) || undefined : undefined;
 
       await createStoryHighlight(finalTitle, selectedIds, coverUrl);
       router.refresh();
@@ -89,8 +91,8 @@ export function CreateHighlightModal({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-4">
-      <div className="bg-card border border-border text-foreground w-full max-w-sm sm:max-w-md rounded-3xl p-5 flex flex-col h-[85vh] max-h-[640px] shadow-2xl animate-in zoom-in-95 duration-200">
+    <div className="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-3 sm:p-4">
+      <div className="bg-card border border-border text-foreground w-full max-w-sm sm:max-w-md rounded-3xl p-4 sm:p-5 flex flex-col h-[85vh] max-h-[640px] shadow-2xl animate-in zoom-in-95 duration-200">
         <div className="shrink-0 mb-3">
           <h2 className="font-bold text-lg text-foreground mb-3 font-serif">Nueva Destacada</h2>
           
@@ -126,11 +128,11 @@ export function CreateHighlightModal({
             <p className="text-sm font-semibold text-muted-foreground">No tienes historias en tu archivo para añadir.</p>
           </div>
         ) : (
-          <div className="overflow-y-auto flex-1 min-h-0 grid grid-cols-3 gap-2.5 p-1 mb-3">
+          <div className="overflow-y-auto flex-1 min-h-0 grid grid-cols-3 gap-2.5 p-1 mb-3 content-start auto-rows-max">
             {uniqueStories.map(s => {
               const isSelected = selectedIds.includes(s.id);
               const path = getMediaStoragePath(s);
-              const url = getMediaUrl(path);
+              const url = getMediaUrl(s, path);
               const isCover = coverId ? coverId === s.id : (selectedIds[0] === s.id && !coverId);
               const textOverlay = s.overlays?.find((o: any) => o.type === 'TEXT');
               const bgValue = s.background?.type === 'color' ? s.background.value : undefined;
@@ -178,7 +180,7 @@ export function CreateHighlightModal({
                     <button 
                       type="button"
                       onClick={(e) => { e.stopPropagation(); setCoverId(s.id); }}
-                      className={`absolute bottom-1.5 inset-x-1.5 text-[9px] py-0.5 px-1 font-bold rounded-lg text-center transition-colors shadow-md z-10 ${
+                      className={`absolute bottom-1.5 inset-x-1.5 text-[9px] py-0.5 px-1 font-bold rounded-lg text-center transition-colors shadow-md z-10 whitespace-nowrap truncate ${
                         isCover ? 'bg-primary text-primary-foreground' : 'bg-black/75 text-white/90 hover:bg-black/90'
                       }`}
                     >
