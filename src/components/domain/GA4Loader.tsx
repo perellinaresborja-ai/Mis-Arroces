@@ -23,13 +23,25 @@ export function GA4Loader() {
 
   useEffect(() => {
     if (granted && searchParams?.get("signup") === "success") {
-      if (typeof window !== "undefined" && (window as any).gtag) {
+      const isTracked = sessionStorage.getItem("signup_tracked")
+      if (!isTracked && typeof window !== "undefined" && (window as any).gtag) {
         (window as any).gtag("event", "sign_up", { method: "email" })
+        sessionStorage.setItem("signup_tracked", "true")
+        // Remove param from URL
+        const url = new URL(window.location.href)
+        url.searchParams.delete("signup")
+        window.history.replaceState({}, '', url.toString())
       }
     }
     if (granted && searchParams?.get("login") === "success") {
-      if (typeof window !== "undefined" && (window as any).gtag) {
+      const isTracked = sessionStorage.getItem("login_tracked")
+      if (!isTracked && typeof window !== "undefined" && (window as any).gtag) {
         (window as any).gtag("event", "login", { method: "email" })
+        sessionStorage.setItem("login_tracked", "true")
+        // Remove param from URL
+        const url = new URL(window.location.href)
+        url.searchParams.delete("login")
+        window.history.replaceState({}, '', url.toString())
       }
     }
   }, [granted, searchParams])
