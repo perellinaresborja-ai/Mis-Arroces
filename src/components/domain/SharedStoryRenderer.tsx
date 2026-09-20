@@ -684,7 +684,7 @@ export function renderOverlayContent(overlay: StoryOverlay, mode: string, ctx?: 
     }
     case 'GIF': {
       const p = overlay.payload;
-      return <img src={p.url} className="w-32 h-auto rounded-lg shadow-lg pointer-events-none" alt="gif" />;
+      return <img src={p.url} className="w-32 h-auto max-w-[200px] object-contain drop-shadow-md pointer-events-none select-none" alt="sticker" />;
     }
     default:
       return null;

@@ -66,137 +66,142 @@ export function CreateHighlightModal({
     })
   }
 
+  const effectiveName = name.trim() || (selectedIds.length > 0 ? "Destacadas" : "");
+  const isValid = selectedIds.length > 0;
+
   const save = async () => {
-    if (!name.trim() || selectedIds.length === 0 || loading) return
-    setLoading(true)
+    if (selectedIds.length === 0 || loading) return;
+    setLoading(true);
     try {
+      const finalTitle = name.trim() || "Destacadas";
       const effectiveCoverId = coverId && selectedIds.includes(coverId) ? coverId : selectedIds[0];
       const coverStory = uniqueStories.find(s => s.id === effectiveCoverId);
       const path = coverStory ? getMediaStoragePath(coverStory) : null;
       const coverUrl = path ? getMediaUrl(path) || undefined : undefined;
 
-      await createStoryHighlight(name.trim(), selectedIds, coverUrl)
-      router.refresh()
-      onClose()
+      await createStoryHighlight(finalTitle, selectedIds, coverUrl);
+      router.refresh();
+      onClose();
     } catch (e) {
-      console.error("Error creating highlight:", e)
+      console.error("Error creating highlight:", e);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
-
-  const isValid = name.trim().length > 0 && selectedIds.length > 0;
+  };
 
   return (
     <div className="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-4">
-      <div className="bg-card border border-border text-foreground w-full max-w-sm rounded-3xl p-5 flex flex-col max-h-[85vh] shadow-2xl animate-in zoom-in-95 duration-200">
-        <h2 className="font-bold text-lg mb-3">Nueva Destacada</h2>
-        
-        <div>
-          <label className="block text-xs font-semibold mb-1 text-foreground">
-            Título
-          </label>
-          <input 
-            type="text" 
-            placeholder="Ej. Mis Mejores Paellas..." 
-            className="border border-border rounded-xl p-3 mb-3 bg-background w-full text-foreground outline-none focus:border-primary text-sm transition-colors"
-            value={name}
-            onChange={e => setName(e.target.value)}
-            maxLength={30}
-          />
+      <div className="bg-card border border-border text-foreground w-full max-w-md rounded-3xl p-5 flex flex-col h-[85vh] max-h-[640px] shadow-2xl animate-in zoom-in-95 duration-200">
+        <div className="shrink-0 mb-3">
+          <h2 className="font-bold text-lg text-foreground mb-3">Nueva Destacada</h2>
+          
+          <div>
+            <label className="block text-xs font-semibold mb-1 text-foreground">
+              Título
+            </label>
+            <input 
+              type="text" 
+              placeholder="Ej. Mis Mejores Paellas (o dejar en blanco)" 
+              className="border border-border rounded-xl p-3 bg-background w-full text-foreground outline-none focus:border-primary text-sm transition-colors"
+              value={name}
+              onChange={e => setName(e.target.value)}
+              maxLength={30}
+            />
+          </div>
+
+          <div className="flex items-center justify-between mt-2">
+            <p className="text-xs text-muted-foreground">
+              Selecciona historias para tu destacada:
+            </p>
+            {selectedIds.length > 0 && (
+              <span className="text-[11px] font-bold text-primary bg-primary/10 px-2.5 py-0.5 rounded-full">
+                {selectedIds.length} seleccionada{selectedIds.length > 1 ? 's' : ''}
+              </span>
+            )}
+          </div>
         </div>
 
-        <div className="flex items-center justify-between mb-2">
-          <p className="text-xs text-muted-foreground">
-            Selecciona historias para tu destacada:
-          </p>
-          {selectedIds.length > 0 && (
-            <span className="text-[11px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full">
-              {selectedIds.length} seleccionada{selectedIds.length > 1 ? 's' : ''}
-            </span>
-          )}
-        </div>
+        {uniqueStories.length === 0 ? (
+          <div className="flex-1 flex flex-col items-center justify-center text-center p-4">
+            <p className="text-sm font-semibold text-muted-foreground">No tienes historias en tu archivo para añadir.</p>
+          </div>
+        ) : (
+          <div className="overflow-y-auto flex-1 min-h-0 grid grid-cols-3 gap-2.5 p-1 mb-3">
+            {uniqueStories.map(s => {
+              const isSelected = selectedIds.includes(s.id);
+              const path = getMediaStoragePath(s);
+              const url = getMediaUrl(path);
+              const isCover = coverId ? coverId === s.id : (selectedIds[0] === s.id && !coverId);
+              const textOverlay = s.overlays?.find((o: any) => o.type === 'TEXT');
+              const bgValue = s.background?.type === 'color' ? s.background.value : undefined;
 
-        <div className="overflow-y-auto flex-1 grid grid-cols-3 gap-2 mb-3 pr-0.5">
-          {uniqueStories.map(s => {
-            const isSelected = selectedIds.includes(s.id);
-            const path = getMediaStoragePath(s);
-            const url = getMediaUrl(path);
-            const isCover = coverId ? coverId === s.id : (selectedIds[0] === s.id && !coverId);
-            const textOverlay = s.overlays?.find((o: any) => o.type === 'TEXT');
-            const bgValue = s.background?.type === 'color' ? s.background.value : undefined;
-
-            return (
-              <div 
-                key={s.id} 
-                className={`aspect-[9/16] relative rounded-2xl overflow-hidden cursor-pointer select-none transition-all duration-150 border-2 ${
-                  isSelected 
-                    ? 'border-primary ring-2 ring-primary/40 shadow-md scale-[0.98]' 
-                    : 'border-transparent opacity-80 hover:opacity-100 hover:border-border'
-                }`}
-                style={{ backgroundColor: bgValue || '#18181B' }}
-                onClick={() => toggle(s.id)}
-              >
-                {url ? (
-                  <img src={url} alt="Story" className="w-full h-full object-cover pointer-events-none" />
-                ) : (
-                  <div className="w-full h-full flex flex-col items-center justify-center text-center p-2">
-                    {textOverlay?.payload?.text ? (
-                      <span className="text-[11px] font-bold text-white line-clamp-3 break-words">
-                        {textOverlay.payload.text}
-                      </span>
-                    ) : s.recipe?.name ? (
-                      <span className="text-[10px] font-semibold text-white/90 line-clamp-2">
-                        {s.recipe.name}
-                      </span>
-                    ) : (
-                      <span className="text-[10px] text-zinc-400">
-                        Historia
-                      </span>
-                    )}
-                  </div>
-                )}
-                
-                {/* Selection Badge with Order number */}
-                {isSelected && (
-                  <div className="absolute top-1.5 left-1.5 w-5 h-5 bg-primary text-primary-foreground rounded-full flex items-center justify-center font-bold text-[10px] shadow">
-                    {selectedIds.indexOf(s.id) + 1}
-                  </div>
-                )}
-                
-                {/* Cover selection badge */}
-                {isSelected && (
-                  <button 
-                    type="button"
-                    onClick={(e) => { e.stopPropagation(); setCoverId(s.id); }}
-                    className={`absolute bottom-1.5 left-1 right-1 text-[9px] py-1 px-1 font-bold rounded-lg text-center transition-colors shadow-sm ${
-                      isCover ? 'bg-primary text-primary-foreground' : 'bg-black/70 text-white hover:bg-black/90'
-                    }`}
-                  >
-                    {isCover ? 'Portada' : 'Hacer portada'}
-                  </button>
-                )}
-              </div>
-            )
-          })}
-        </div>
-
-        {/* Validation hint when button is disabled */}
-        {!isValid && (
-          <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground pb-2 px-1">
-            <Info className="w-3.5 h-3.5 shrink-0 text-amber-500" />
-            <span>
-              {!name.trim() && selectedIds.length === 0 
-                ? "Escribe un título y selecciona al menos una historia." 
-                : !name.trim() 
-                ? "Introduce un título para continuar." 
-                : "Selecciona al menos una historia."}
-            </span>
+              return (
+                <div 
+                  key={s.id} 
+                  className={`aspect-[3/4] relative rounded-2xl overflow-hidden cursor-pointer select-none transition-all duration-150 border-2 ${
+                    isSelected 
+                      ? 'border-primary ring-2 ring-primary/40 shadow-md' 
+                      : 'border-border/60 opacity-80 hover:opacity-100 hover:border-border'
+                  }`}
+                  style={{ backgroundColor: bgValue || '#18181B' }}
+                  onClick={() => toggle(s.id)}
+                >
+                  {url ? (
+                    <img src={url} alt="Story" className="w-full h-full object-cover pointer-events-none" />
+                  ) : (
+                    <div className="w-full h-full flex flex-col items-center justify-center text-center p-2">
+                      {textOverlay?.payload?.text ? (
+                        <span className="text-[11px] font-bold text-white line-clamp-3 break-words">
+                          {textOverlay.payload.text}
+                        </span>
+                      ) : s.recipe?.name ? (
+                        <span className="text-[10px] font-semibold text-white/90 line-clamp-2">
+                          {s.recipe.name}
+                        </span>
+                      ) : (
+                        <span className="text-[10px] text-zinc-400">
+                          Historia
+                        </span>
+                      )}
+                    </div>
+                  )}
+                  
+                  {/* Selection Badge with Order number */}
+                  {isSelected && (
+                    <div className="absolute top-1.5 left-1.5 w-5 h-5 bg-primary text-primary-foreground rounded-full flex items-center justify-center font-bold text-[10px] shadow">
+                      {selectedIds.indexOf(s.id) + 1}
+                    </div>
+                  )}
+                  
+                  {/* Cover selection badge */}
+                  {isSelected && (
+                    <button 
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); setCoverId(s.id); }}
+                      className={`absolute bottom-1 left-1 right-1 text-[9px] py-1 px-1 font-bold rounded-lg text-center transition-colors shadow-sm ${
+                        isCover ? 'bg-primary text-primary-foreground' : 'bg-black/70 text-white hover:bg-black/90'
+                      }`}
+                    >
+                      {isCover ? 'Portada' : 'Hacer portada'}
+                    </button>
+                  )}
+                </div>
+              );
+            })}
           </div>
         )}
 
-        <div className="flex gap-2 justify-end pt-3 border-t border-border mt-auto">
+        {/* Validation hint when button is disabled */}
+        {!isValid && (
+          <div className="shrink-0 flex items-center gap-1.5 text-[11px] text-muted-foreground pb-2 px-1">
+            <Info className="w-3.5 h-3.5 shrink-0 text-amber-500" />
+            <span>Selecciona al menos una historia para tu destacada.</span>
+          </div>
+        )}
+
+        <div className="shrink-0 flex gap-2 justify-end pt-3 border-t border-border mt-auto">
           <button 
+            type="button"
             onClick={onClose} 
             disabled={loading}
             className="px-4 py-2.5 rounded-xl bg-muted text-foreground hover:bg-muted/80 font-bold text-xs transition-colors"
@@ -204,6 +209,7 @@ export function CreateHighlightModal({
             Cancelar
           </button>
           <button 
+            type="button"
             onClick={save} 
             disabled={loading || !isValid} 
             className="px-5 py-2.5 rounded-xl bg-primary text-primary-foreground font-bold text-xs disabled:opacity-50 disabled:cursor-not-allowed hover:bg-primary/90 transition-all shadow-sm"
@@ -213,5 +219,5 @@ export function CreateHighlightModal({
         </div>
       </div>
     </div>
-  )
+  );
 }

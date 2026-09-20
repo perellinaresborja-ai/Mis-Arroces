@@ -7,7 +7,7 @@ import { AddToHighlightModal } from "./AddToHighlightModal"
 
 import { useState, useEffect, useRef } from "react"
 import { formatRelativeTime } from "@/lib/utils"
-import { X, Trash2, MoreHorizontal, Copy, Share2, MessageCircle, Flag, BarChart2, BarChart2 as BarChartIcon, Send, User, Plus } from "lucide-react"
+import { X, Trash2, MoreHorizontal, Copy, Share2, MessageCircle, Flag, BarChart2, BarChart2 as BarChartIcon, Send, User, Plus, Star } from "lucide-react"
 import { MediaImage } from "@/components/domain/MediaImage"
 import { markStoryViewed, fetchStoryViewers, deleteStory, toggleStoryReaction } from "@/app/actions/stories"
 import Link from "next/link"
@@ -315,17 +315,14 @@ export function StoriesViewer({ groupedStories: _groupedStories, initialGroupInd
                 
                 {isMe ? (
                   <>
-                    <button onClick={(e) => { e.stopPropagation(); setShowViewers(true); closeMenu(); }} className="flex items-center gap-4 w-full p-4 hover:bg-white/5 transition-colors text-left border-b border-white/10">
-                      <BarChartIcon className="w-6 h-6" /> <span className="font-semibold">Ver estadísticas</span>
+                    <button onClick={(e) => { e.stopPropagation(); setInsightsOpen(true); closeMenu(); }} className="flex items-center gap-4 w-full p-4 hover:bg-white/5 transition-colors text-left border-b border-white/10">
+                      <BarChartIcon className="w-6 h-6 text-primary" /> <span className="font-semibold">Actividad y estadísticas</span>
                     </button>
-                    <button onClick={(e) => { e.stopPropagation(); setShowShare(true); closeMenu(); }} className="flex items-center gap-4 w-full p-4 hover:bg-white/5 transition-colors text-left border-b border-white/10">
-                      <Share2 className="w-6 h-6" /> <span className="font-semibold">Compartir</span>
-                    </button>
-                    <button onClick={handleCopyLink} className="flex items-center gap-4 w-full p-4 hover:bg-white/5 transition-colors text-left border-b border-white/10">
-                      <Copy className="w-6 h-6" /> <span className="font-semibold">{linkCopied ? "Enlace copiado" : "Copiar enlace"}</span>
+                    <button onClick={(e) => { e.stopPropagation(); setHighlightModalOpen(true); closeMenu(); }} className="flex items-center gap-4 w-full p-4 hover:bg-white/5 transition-colors text-left border-b border-white/10">
+                      <Star className="w-6 h-6 text-amber-500 fill-amber-500/20" /> <span className="font-semibold">Añadir a destacadas</span>
                     </button>
                     <button onClick={(e) => { handleDelete(e); closeMenu(); }} className="flex items-center gap-4 w-full p-4 hover:bg-red-500/20 text-red-500 transition-colors text-left border-b border-white/10">
-                      <Trash2 className="w-6 h-6" /> <span className="font-semibold">Eliminar Story</span>
+                      <Trash2 className="w-6 h-6" /> <span className="font-semibold">Eliminar historia</span>
                     </button>
                   </>
                 ) : (

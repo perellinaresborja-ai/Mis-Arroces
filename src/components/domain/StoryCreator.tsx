@@ -8,7 +8,7 @@ import { createStory } from '@/app/actions/stories';
 import { globalStoryDraftUrl, globalStoryDraftType, globalStoryDraftFile, clearGlobalStoryDraft, setGlobalStoryDraft } from '@/lib/story-draft';
 import { SharedStoryRenderer, renderOverlayContent } from './SharedStoryRenderer';
 import { DraggableOverlay } from './stories/DraggableOverlay';
-import { MentionPicker, RecipePicker, IngredientPicker, LocationPicker, GifPicker, LinkPicker, QuestionPicker, PollPicker } from './stories/StickerPickers';
+import { MentionPicker, RecipePicker, IngredientPicker, LocationPicker, StickerPicker, LinkPicker, QuestionPicker, PollPicker } from './stories/StickerPickers';
 import { Camera, User, ChefHat, MapPin, AlignLeft, AlignCenter, AlignRight, Apple, Image as ImageIcon, Trash2, Paintbrush, Sparkles, Link as LinkIcon, HelpCircle, BarChart2 } from 'lucide-react';
 
 const TEXT_COLORS = ['#ffffff', '#000000', '#ef4444', '#f97316', '#eab308', '#22c55e', '#3b82f6', '#a855f7', '#ec4899'];
@@ -267,13 +267,17 @@ export function StoryCreator({
 
   const uploadDraftIfNeeded = async () => {
     if (globalStoryDraftFile) {
-      const ext = globalStoryDraftFile.name.split('.').pop();
+      const ext = globalStoryDraftFile.name.split('.').pop() || 'jpg';
       const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${ext}`;
       const { data, error } = await supabase.storage.from('recipe_media').upload(`stories/${fileName}`, globalStoryDraftFile);
-      if (error) { console.error(error); return undefined; }
+      if (error) {
+        console.error("Storage upload error:", error);
+        throw new Error(`Error al subir el archivo multimedia: ${error.message}`);
+      }
       
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return undefined;
+      if (!user) throw new Error("No hay sesión activa para subir el contenido");
+
       const { data: assetData, error: dbError } = await supabase.from('media_assets').insert({
         storage_path: data.path,
         media_type: globalStoryDraftType === 'VIDEO' ? 'VIDEO' : 'IMAGE',
@@ -281,32 +285,34 @@ export function StoryCreator({
         owner_id: user.id
       }).select().single();
       
-      if (dbError) { console.error(dbError); return undefined; }
+      if (dbError) {
+        console.error("Media asset DB error:", dbError);
+        throw new Error(`Error al registrar el archivo multimedia: ${dbError.message}`);
+      }
       return assetData.id;
     }
     return undefined;
-  }
+  };
 
   const handlePublish = async () => {
+    if (isPublishing) return;
     setIsPublishing(true);
     try {
-      // In a real flow, we'd also upload media to storage and create the post
+      const uploadedMediaId = await uploadDraftIfNeeded();
       await createStory({
         mediaTransform,
         background,
-        mediaId: await uploadDraftIfNeeded() || undefined,
+        mediaId: uploadedMediaId,
         recipeId: initialRecipe?.id,
         sessionId: initialSession?.id,
         postId: initialPost?.id,
-        // privacy,
         overlays
       });
       clearGlobalStoryDraft();
-      router.push('/');
-    } catch (e) {
-      console.error(e);
-      alert("Error al publicar la historia.");
-    } finally {
+      window.location.href = '/';
+    } catch (e: any) {
+      console.error("Error al publicar historia:", e);
+      alert(e?.message || "Error al publicar la historia. Por favor, inténtalo de nuevo.");
       setIsPublishing(false);
     }
   };
@@ -606,7 +612,7 @@ export function StoryCreator({
                 <button onClick={() => setActiveStickerType('LOCATION')} className="bg-muted hover:bg-muted/80 text-foreground p-4 rounded-2xl flex items-center justify-center gap-2 transition-colors font-medium border border-border"><MapPin size={18} className="text-primary"/> Ubicación</button>
                 <button onClick={() => setActiveStickerType('RECIPE')} className="bg-muted hover:bg-muted/80 text-foreground p-4 rounded-2xl flex items-center justify-center gap-2 transition-colors font-medium border border-border"><ChefHat size={18} className="text-primary"/> Receta</button>
                 <button onClick={() => setActiveStickerType('INGREDIENT')} className="bg-muted hover:bg-muted/80 text-foreground p-4 rounded-2xl flex items-center justify-center gap-2 transition-colors font-medium border border-border"><Apple size={18} className="text-primary"/> Ingrediente</button>
-                <button onClick={() => setActiveStickerType('GIF')} className="bg-muted hover:bg-muted/80 text-foreground p-4 rounded-2xl flex items-center justify-center gap-2 transition-colors font-medium border border-border"><Sparkles size={18} className="text-primary"/> GIF</button>
+                <button onClick={() => setActiveStickerType('GIF')} className="bg-muted hover:bg-muted/80 text-foreground p-4 rounded-2xl flex items-center justify-center gap-2 transition-colors font-medium border border-border"><Sparkles size={18} className="text-primary"/> Stickers</button>
                 <button onClick={() => setActiveStickerType('LINK')} className="bg-muted hover:bg-muted/80 text-foreground p-4 rounded-2xl flex items-center justify-center gap-2 transition-colors font-medium border border-border"><LinkIcon size={18} className="text-primary"/> Enlace</button>
                 <button onClick={() => setActiveStickerType('QUESTION')} className="bg-muted hover:bg-muted/80 text-foreground p-4 rounded-2xl flex items-center justify-center gap-2 transition-colors font-medium border border-border"><HelpCircle size={18} className="text-primary"/> Pregunta</button>
                 <button onClick={() => setActiveStickerType('POLL')} className="bg-muted hover:bg-muted/80 text-foreground p-4 rounded-2xl flex items-center justify-center gap-2 transition-colors font-medium border border-border"><BarChart2 size={18} className="text-primary"/> Votación</button>
@@ -620,7 +626,7 @@ export function StoryCreator({
                     {activeStickerType === 'LOCATION' && 'Ubicación'}
                     {activeStickerType === 'RECIPE' && 'Receta'}
                     {activeStickerType === 'INGREDIENT' && 'Ingrediente'}
-                    {activeStickerType === 'GIF' && 'GIF'}
+                    {activeStickerType === 'GIF' && 'Stickers'}
                     {activeStickerType === 'LINK' && 'Enlace'}
                     {activeStickerType === 'QUESTION' && 'Pregunta'}
                     {activeStickerType === 'POLL' && 'Votación'}
@@ -632,7 +638,7 @@ export function StoryCreator({
                   {activeStickerType === 'LOCATION' && <LocationPicker onSelect={(l) => handleStickerSelect('LOCATION', l)} />}
                   {activeStickerType === 'RECIPE' && <RecipePicker onSelect={(r) => handleStickerSelect('RECIPE', r)} />}
                   {activeStickerType === 'INGREDIENT' && <IngredientPicker onSelect={(i) => handleStickerSelect('INGREDIENT', i)} />}
-                  {activeStickerType === 'GIF' && <GifPicker onSelect={(g) => handleStickerSelect('GIF', g)} />}
+                  {activeStickerType === 'GIF' && <StickerPicker onSelect={(g) => handleStickerSelect('GIF', g)} />}
                   {activeStickerType === 'LINK' && <LinkPicker onSelect={(lk) => handleStickerSelect('LINK', lk)} />}
                   {activeStickerType === 'QUESTION' && <QuestionPicker onSelect={(q) => handleStickerSelect('QUESTION', q)} />}
                   {activeStickerType === 'POLL' && <PollPicker onSelect={(p) => handleStickerSelect('POLL', p)} />}

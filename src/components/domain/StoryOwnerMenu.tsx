@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { BarChart2, Link as LinkIcon, Star, Trash2, Check, Share2 } from "lucide-react"
+import { BarChart2, Star, Trash2 } from "lucide-react"
 import { deleteStory } from "@/app/actions/stories"
 import { ConfirmModal } from "@/components/ui/ConfirmModal"
 
@@ -14,10 +14,9 @@ interface StoryOwnerMenuProps {
   onOpenShare?: () => void;
 }
 
-export function StoryOwnerMenu({ storyId, onClose, onDeleted, onOpenInsights, onOpenHighlight, onOpenShare }: StoryOwnerMenuProps) {
+export function StoryOwnerMenu({ storyId, onClose, onDeleted, onOpenInsights, onOpenHighlight }: StoryOwnerMenuProps) {
   const [isDeleting, setIsDeleting] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
-  const [copied, setCopied] = useState(false);
 
   const confirmDelete = async () => {
     setIsDeleting(true);
@@ -34,18 +33,6 @@ export function StoryOwnerMenu({ storyId, onClose, onDeleted, onOpenInsights, on
     setShowConfirm(true);
   };
 
-  const handleCopyLink = () => {
-    const url = typeof window !== 'undefined' ? `${window.location.origin}/?story=${storyId}` : '';
-    if (url && navigator.clipboard) {
-      navigator.clipboard.writeText(url);
-      setCopied(true);
-      setTimeout(() => {
-        setCopied(false);
-        onClose();
-      }, 1000);
-    }
-  };
-
   return (
     <div className="absolute inset-0 z-[60] flex items-end justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
       <div 
@@ -54,13 +41,6 @@ export function StoryOwnerMenu({ storyId, onClose, onDeleted, onOpenInsights, on
       >
         <div className="w-12 h-1.5 bg-muted rounded-full mx-auto mb-2" />
         
-        {copied && (
-          <div className="p-2.5 bg-primary/10 border border-primary/20 text-primary text-xs font-bold rounded-xl flex items-center gap-2 animate-in fade-in">
-            <Check className="w-4 h-4" />
-            <span>Enlace copiado al portapapeles</span>
-          </div>
-        )}
-
         <button onClick={() => { onClose(); onOpenInsights(); }} className="flex items-center gap-3 p-3 hover:bg-muted rounded-2xl font-medium transition-colors text-sm">
           <BarChart2 className="w-5 h-5 text-primary" />
           <span>Actividad y estadísticas</span>
@@ -69,18 +49,6 @@ export function StoryOwnerMenu({ storyId, onClose, onDeleted, onOpenInsights, on
         <button onClick={() => { onClose(); onOpenHighlight(); }} className="flex items-center gap-3 p-3 hover:bg-muted rounded-2xl font-medium transition-colors text-sm">
           <Star className="w-5 h-5 text-amber-500 fill-amber-500/20" />
           <span>Añadir a destacadas</span>
-        </button>
-
-        {onOpenShare && (
-          <button onClick={() => { onClose(); onOpenShare(); }} className="flex items-center gap-3 p-3 hover:bg-muted rounded-2xl font-medium transition-colors text-sm">
-            <Share2 className="w-5 h-5 text-primary" />
-            <span>Compartir</span>
-          </button>
-        )}
-        
-        <button onClick={handleCopyLink} className="flex items-center gap-3 p-3 hover:bg-muted rounded-2xl font-medium transition-colors text-sm">
-          <LinkIcon className="w-5 h-5" />
-          <span>{copied ? "¡Enlace copiado!" : "Copiar enlace"}</span>
         </button>
         
         <button onClick={handleDelete} disabled={isDeleting} className="flex items-center gap-3 p-3 hover:bg-red-500/10 text-red-500 rounded-2xl font-medium transition-colors mt-1 text-sm">

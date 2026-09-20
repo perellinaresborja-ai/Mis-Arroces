@@ -1,7 +1,7 @@
 "use client"
 import React, { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { Search, MapPin, ChefHat, User as UserIcon, Apple } from 'lucide-react'
+import { Search, MapPin, ChefHat, User as UserIcon, Apple, Sparkles } from 'lucide-react'
 
 // Common Search Picker
 export function GenericSearchPicker({ 
@@ -313,58 +313,42 @@ export function LocationPicker({ onSelect }: { onSelect: (loc: { id: string, tit
   />
 }
 
-// GIF Picker with GIPHY API or fallback
-export function GifPicker({ onSelect }: { onSelect: (gif: { id: string, title: string, url: string, aspectRatio: number }) => void }) {
+// Stickers Picker using GIPHY Stickers API (transparent illustrations/stickers)
+export function StickerPicker({ onSelect }: { onSelect: (sticker: { id: string, title: string, url: string, aspectRatio: number }) => void }) {
   const [query, setQuery] = useState('')
-  const [gifs, setGifs] = useState<Array<{ id: string, title: string, url: string, aspectRatio: number }>>([])
+  const [stickers, setStickers] = useState<Array<{ id: string, title: string, url: string, aspectRatio: number }>>([])
   const [loading, setLoading] = useState(false)
   const apiKey = process.env.NEXT_PUBLIC_GIPHY_API_KEY
 
-  const FALLBACK_GIFS = [
-    { id: 'rice-1', title: 'Paella cooking', url: 'https://media.giphy.com/media/l41JRsph73VokN6ik/giphy.gif', aspectRatio: 1 },
-    { id: 'rice-2', title: 'Delicious Rice', url: 'https://media.giphy.com/media/3o7TKSjRrfIPjeiVyM/giphy.gif', aspectRatio: 1 },
-    { id: 'rice-3', title: 'Chef cooking', url: 'https://media.giphy.com/media/demgpwJ6rs2DS/giphy.gif', aspectRatio: 1.3 },
-    { id: 'rice-4', title: 'Fire cooking', url: 'https://media.giphy.com/media/26FPy3QZLnLCyHIyY/giphy.gif', aspectRatio: 1 },
-    { id: 'rice-5', title: 'Yum food', url: 'https://media.giphy.com/media/12uXi1GXBibALC/giphy.gif', aspectRatio: 1.2 },
-    { id: 'rice-6', title: 'Bon Appetit', url: 'https://media.giphy.com/media/xT0xeJpnrWC4XWblEk/giphy.gif', aspectRatio: 1 }
-  ]
-
   useEffect(() => {
     let isCancelled = false
+
+    if (!apiKey) {
+      setStickers([])
+      setLoading(false)
+      return
+    }
+
     setLoading(true)
-
     const timer = setTimeout(async () => {
-      if (!apiKey) {
-        if (!isCancelled) {
-          if (query.trim()) {
-            setGifs(FALLBACK_GIFS.filter(g => g.title.toLowerCase().includes(query.toLowerCase())))
-          } else {
-            setGifs(FALLBACK_GIFS)
-          }
-          setLoading(false)
-        }
-        return
-      }
-
       try {
         const endpoint = query.trim()
-          ? `https://api.giphy.com/v1/gifs/search?api_key=${apiKey}&q=${encodeURIComponent(query)}&limit=18&rating=g`
-          : `https://api.giphy.com/v1/gifs/trending?api_key=${apiKey}&limit=18&rating=g`
+          ? `https://api.giphy.com/v1/stickers/search?api_key=${apiKey}&q=${encodeURIComponent(query)}&limit=24&rating=g`
+          : `https://api.giphy.com/v1/stickers/trending?api_key=${apiKey}&limit=24&rating=g`
         const res = await fetch(endpoint)
         const json = await res.json()
         if (!isCancelled && json.data) {
-          setGifs(json.data.map((item: any) => ({
+          setStickers(json.data.map((item: any) => ({
             id: item.id,
-            title: item.title || 'GIF',
-            url: item.images?.fixed_height?.url || item.images?.original?.url,
+            title: item.title || 'Sticker',
+            url: item.images?.fixed_height?.url || item.images?.downsized?.url || item.images?.original?.url,
             aspectRatio: (item.images?.fixed_height?.width && item.images?.fixed_height?.height)
               ? item.images.fixed_height.width / item.images.fixed_height.height
               : 1
           })))
         }
       } catch (err) {
-        console.error("Giphy fetch error:", err)
-        if (!isCancelled) setGifs(FALLBACK_GIFS)
+        console.error("Giphy stickers fetch error:", err)
       } finally {
         if (!isCancelled) setLoading(false)
       }
@@ -385,32 +369,45 @@ export function GifPicker({ onSelect }: { onSelect: (gif: { id: string, title: s
           type="text" 
           value={query} 
           onChange={e => setQuery(e.target.value)} 
-          placeholder="Buscar GIFs en GIPHY..." 
+          placeholder="Buscar stickers..." 
           className="w-full h-10 pl-9 pr-4 rounded-xl border border-border bg-muted/50 focus:bg-background outline-none text-sm text-foreground"
         />
       </div>
 
-      {!apiKey && (
-        <div className="mb-2 px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-[11px] text-amber-600 dark:text-amber-400">
-          Mostrando GIFs recomendados (añade NEXT_PUBLIC_GIPHY_API_KEY para catálogo completo).
+      {!apiKey ? (
+        <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
+          <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center mb-3">
+            <Sparkles className="w-6 h-6 text-amber-500" />
+          </div>
+          <p className="text-sm font-bold text-foreground">Falta configurar la credencial de GIPHY</p>
+          <p className="text-xs text-muted-foreground mt-1 max-w-xs">
+            Añade NEXT_PUBLIC_GIPHY_API_KEY a tus variables de entorno para activar el buscador de stickers.
+          </p>
+        </div>
+      ) : (
+        <div className="flex-1 overflow-y-auto grid grid-cols-3 gap-2.5 pb-4">
+          {loading && <p className="col-span-full text-center text-xs text-muted-foreground py-8">Buscando stickers...</p>}
+          {!loading && stickers.length === 0 && (
+            <p className="col-span-full text-center text-xs text-muted-foreground py-8">No se encontraron stickers.</p>
+          )}
+          {!loading && stickers.map(s => (
+            <button 
+              key={s.id}
+              type="button"
+              onClick={() => onSelect(s)}
+              className="rounded-xl p-2 flex items-center justify-center aspect-square bg-muted/20 hover:bg-muted/60 transition-all border border-border/50 hover:scale-105"
+            >
+              <img src={s.url} alt={s.title} className="w-full h-full object-contain pointer-events-none" />
+            </button>
+          ))}
         </div>
       )}
-
-      <div className="flex-1 overflow-y-auto grid grid-cols-2 sm:grid-cols-3 gap-2 pb-4">
-        {loading && <p className="col-span-full text-center text-xs text-muted-foreground py-6">Cargando GIFs...</p>}
-        {!loading && gifs.map(g => (
-          <button 
-            key={g.id}
-            onClick={() => onSelect(g)}
-            className="rounded-xl overflow-hidden bg-muted aspect-square relative hover:opacity-80 transition-opacity border border-border"
-          >
-            <img src={g.url} alt={g.title} className="w-full h-full object-cover" />
-          </button>
-        ))}
-      </div>
     </div>
   )
 }
+
+// Backward-compatible alias
+export const GifPicker = StickerPicker;
 
 // Link Picker (URL + optional display title)
 export function LinkPicker({ onSelect }: { onSelect: (link: { id: string, title: string, url: string }) => void }) {
