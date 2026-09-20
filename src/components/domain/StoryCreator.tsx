@@ -512,14 +512,7 @@ export function StoryCreator({
         
       {mode === 'EDIT' && (
           <div className="p-4 flex flex-col gap-4 h-full">
-              <div className={`grid gap-2 ${draftMediaUrl ? 'grid-cols-4' : 'grid-cols-3'}`}>
-                {draftMediaUrl && (
-                  <label className="flex flex-col items-center justify-center gap-1.5 p-3 bg-muted hover:bg-muted/80 rounded-2xl cursor-pointer transition-colors text-foreground">
-                    <input type="file" className="sr-only" accept="image/*,video/*" onChange={handleFileChange} />
-                    <ImageIcon size={22} className="text-primary"/>
-                    <span className="text-[11px] font-bold">Fondo</span>
-                  </label>
-                )}
+              <div className="grid grid-cols-3 gap-2">
                 <button onClick={() => setMode('TEXT')} className="flex flex-col items-center justify-center gap-1.5 p-3 bg-muted hover:bg-muted/80 rounded-2xl transition-colors text-foreground">
                   <AlignLeft size={22} className="text-primary"/>
                   <span className="text-[11px] font-bold">Texto</span>
