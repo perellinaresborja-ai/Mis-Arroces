@@ -235,6 +235,18 @@ export function StoriesViewer({ groupedStories: _groupedStories, initialGroupInd
     nextStory()
   }
 
+  // Body scroll lock while viewer is open
+  useEffect(() => {
+    const originalOverflow = document.body.style.overflow;
+    const originalTouchAction = document.body.style.touchAction;
+    document.body.style.overflow = "hidden";
+    document.body.style.touchAction = "none";
+    return () => {
+      document.body.style.overflow = originalOverflow;
+      document.body.style.touchAction = originalTouchAction;
+    };
+  }, []);
+
   // Global keybindings
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -244,7 +256,7 @@ export function StoriesViewer({ groupedStories: _groupedStories, initialGroupInd
     }
     window.addEventListener("keydown", handleKeyDown)
     return () => window.removeEventListener("keydown", handleKeyDown)
-  }, [groupIndex, storyIndex]) // Needs latest state inside closures, wait actually it's fine if we re-bind or use refs, but since effect re-runs it's ok
+  }, [groupIndex, storyIndex])
 
   if (!currentStory) return null
 
