@@ -8,7 +8,7 @@ import { createStory } from '@/app/actions/stories';
 import { globalStoryDraftUrl, globalStoryDraftType, globalStoryDraftFile, clearGlobalStoryDraft, setGlobalStoryDraft } from '@/lib/story-draft';
 import { SharedStoryRenderer, renderOverlayContent } from './SharedStoryRenderer';
 import { DraggableOverlay } from './stories/DraggableOverlay';
-import { MentionPicker, RecipePicker, IngredientPicker, LocationPicker, StickerPicker, LinkPicker, QuestionPicker, PollPicker } from './stories/StickerPickers';
+import { MentionPicker, RecipePicker, IngredientPicker, LocationPicker, StickerPicker, LinkPicker, QuestionPicker, PollPicker, cleanIngredientName } from './stories/StickerPickers';
 import { Camera, User, ChefHat, MapPin, AlignLeft, AlignCenter, AlignRight, Apple, Image as ImageIcon, Trash2, Paintbrush, Sparkles, Link as LinkIcon, HelpCircle, BarChart2 } from 'lucide-react';
 
 const TEXT_COLORS = ['#ffffff', '#000000', '#ef4444', '#f97316', '#eab308', '#22c55e', '#3b82f6', '#a855f7', '#ec4899'];
@@ -243,7 +243,7 @@ export function StoryCreator({
     } else if (type === 'RECIPE') {
       newOverlay = { ...common, type: 'RECIPE', payload: { title: data.title, recipeId: data.id, displayStyle: 'compact', coverUrl: data.coverUrl } };
     } else if (type === 'INGREDIENT') {
-      newOverlay = { ...common, type: 'INGREDIENT', payload: { name: data.title, ingredientId: data.id } };
+      newOverlay = { ...common, type: 'INGREDIENT', payload: { name: cleanIngredientName(data.title), ingredientId: data.id } };
     } else if (type === 'GIF') {
       newOverlay = { ...common, type: 'GIF', payload: { gifId: data.id, url: data.url, aspectRatio: data.aspectRatio || 1 } };
     } else if (type === 'LINK') {

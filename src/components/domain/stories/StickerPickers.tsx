@@ -13,15 +13,17 @@ export function cleanIngredientName(name: string | null | undefined): string {
     .replace(/bah\?\?a/gi, 'Bahía')
     .replace(/jazm\?\?n/gi, 'Jazmín')
     .replace(/gamb\?\?n/gi, 'Gambón')
-    .replace(/n\?\?cora/gi, 'Nécora')
+    .replace(/n\?\?cora(s)?/gi, (_m, p1) => p1 ? 'Nécoras' : 'Nécora')
     .replace(/mejill\?\?n/gi, 'Mejillón')
-    .replace(/cl\?\?china/gi, 'Clóchina')
+    .replace(/cl\?\?china(s)?/gi, (_m, p1) => p1 ? 'Clóchinas' : 'Clóchina')
     .replace(/at\?\?n/gi, 'Atún')
     .replace(/ib\?\?rico/gi, 'Ibérico')
     .replace(/garrof\?\?/gi, 'Garrofó')
     .replace(/azafr\?\?n/gi, 'Azafrán')
     .replace(/piment\?\?n/gi, 'Pimentón')
-    .replace(/\?\?ora/gi, 'Ñora')
+    .replace(/d\?\?nia/gi, 'Dénia')
+    .replace(/jud\?\?as/gi, 'Judías')
+    .replace(/\?\?ora(s)?/gi, (_m, p1) => p1 ? 'Ñoras' : 'Ñora')
     .replace(/\?\?/g, '')
     .trim()
 }
@@ -311,9 +313,10 @@ export function IngredientPicker({ onSelect }: { onSelect: (i: { id: string, tit
     customLabel="Crear sticker con este ingrediente"
     onSelect={onSelect}
     fetchResults={async (q) => {
-      let queryBuilder = supabase.from('ingredients').select('id, canonical_name').limit(20)
+      let queryBuilder = supabase.from('ingredients').select('id, canonical_name, normalized_name').limit(25)
       if (q) {
-        queryBuilder = queryBuilder.ilike('canonical_name', `%${q}%`)
+        const norm = q.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim()
+        queryBuilder = queryBuilder.or(`canonical_name.ilike.%${q}%,normalized_name.ilike.%${norm}%`)
       }
       const { data, error } = await queryBuilder
       if (error) console.error("IngredientPicker error:", error)

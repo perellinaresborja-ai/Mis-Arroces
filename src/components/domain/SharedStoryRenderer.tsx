@@ -5,6 +5,7 @@ import { CSSProperties, useEffect, Dispatch, SetStateAction } from "react"
 import { StoryOverlay, StoryTransform, StoryBackground, PollOverlay, QuestionOverlay, SliderOverlay, RecipeOverlay, SessionOverlay, MentionOverlay, ProfileOverlay, LocationOverlay, IngredientOverlay, GifOverlay, TextOverlay } from "@/types/stories"
 import { MapPin, Utensils, ChefHat } from "lucide-react"
 import { votePoll, getPollResults, submitQuestionReply, upsertSliderValue, getSliderResults } from "@/app/actions/stories"
+import { cleanIngredientName } from "./stories/StickerPickers"
 
 interface PollResultData {
   countA?: number;
@@ -356,7 +357,7 @@ export function renderOverlayContent(overlay: StoryOverlay, mode: string, ctx?: 
       return (
         <div className="bg-card text-foreground px-4 py-2 rounded-2xl font-bold shadow-2xl text-sm border border-border flex items-center gap-2 cursor-pointer">
           <span className="text-base">🥘</span>
-          <span>{p.name}</span>
+          <span>{cleanIngredientName(p.name)}</span>
         </div>
       );
     }
