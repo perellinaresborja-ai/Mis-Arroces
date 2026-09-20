@@ -33,23 +33,7 @@ export async function acceptActiveLegalDocuments() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error("No user found")
 
-  // Get active documents
-  const { data: activeDocs } = await supabase
-    .from("legal_documents" as any)
-    .select("id")
-    .eq("is_active", true)
-
-  if (!activeDocs || activeDocs.length === 0) return { success: true }
-
-  // Insert acceptances for all active documents
-  const acceptances = activeDocs.map((doc: any) => ({
-    user_id: user.id,
-    document_id: doc.id
-  }))
-
-  const { error } = await supabase
-    .from("user_legal_acceptances" as any)
-    .upsert(acceptances, { onConflict: "user_id, document_id" })
+  const { error } = await (supabase.rpc as any)('accept_current_legal_documents')
   
   if (error) {
     throw error

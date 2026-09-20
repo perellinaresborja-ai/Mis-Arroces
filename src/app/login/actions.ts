@@ -95,19 +95,10 @@ export async function signup(formData: FormData) {
       privacy_level: 'PUBLIC'
     })
 
-    // Register legal acceptances
-    const { data: activeDocs } = await supabase
-      .from("legal_documents" as any)
-      .select("id")
-      .eq("is_active", true)
-
-    if (activeDocs && activeDocs.length > 0) {
-      const userId = data.user.id;
-      const acceptances = activeDocs.map((doc: any) => ({
-        user_id: userId,
-        document_id: doc.id
-      }))
-      await supabase.from("user_legal_acceptances" as any).insert(acceptances)
+    // Register legal acceptances via secure RPC
+    const { error: rpcError } = await (supabase.rpc as any)('accept_current_legal_documents')
+    if (rpcError) {
+      console.error('Failed to accept legal documents:', rpcError)
     }
 
     // Send welcome email (non-blocking)
