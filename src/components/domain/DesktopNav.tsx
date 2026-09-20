@@ -112,29 +112,51 @@ export function DesktopNav() {
               <NotificationBell />
               
               {hasActiveStory ? (
-                <button
-                  type="button"
-                  onClick={() => setIsViewerOpen(true)}
-                  className="transition-transform hover:scale-105 focus:outline-none shrink-0"
-                  title="Ver tu historia"
-                  aria-label="Ver tu historia"
+                <div 
+                  className="relative w-10 h-10 shrink-0 flex items-center justify-center"
+                  style={{ width: '40px', height: '40px' }}
                 >
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-amber-500 via-orange-500 to-amber-400 p-[2px] shadow-sm shadow-orange-500/25 flex items-center justify-center">
-                    <div className="w-full h-full rounded-full bg-background p-[1.5px] flex items-center justify-center overflow-hidden">
-                      {displayAvatar ? (
-                        <div className="relative w-full h-full rounded-full overflow-hidden">
-                          <MediaImage src={displayAvatar} alt="Perfil" fallbackType="avatar" className="w-full h-full object-cover" fill={true} variant="avatar" />
-                        </div>
-                      ) : (
-                        <div className="w-full h-full rounded-full bg-muted flex items-center justify-center">
-                          <User className="h-4 w-4 text-muted-foreground" />
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </button>
+                  {/* Outer Ring Button: triggers Story */}
+                  <button
+                    type="button"
+                    onClick={() => setIsViewerOpen(true)}
+                    className="absolute inset-0 rounded-full bg-gradient-to-tr from-amber-500 via-orange-500 to-amber-400 p-[2.5px] shadow-sm shadow-orange-500/25 transition-transform hover:scale-105 active:scale-95 focus:outline-none z-10 cursor-pointer"
+                    title="Ver tu historia"
+                    aria-label="Ver mi historia"
+                  >
+                    {/* Ring background spacing gap */}
+                    <div className="w-full h-full rounded-full bg-background" />
+                  </button>
+
+                  {/* Inner Photo Link: triggers Profile navigation */}
+                  <Link
+                    href="/me"
+                    onClick={(e) => e.stopPropagation()}
+                    className={cn(
+                      "relative z-20 w-[31px] h-[31px] rounded-full overflow-hidden flex items-center justify-center transition-transform hover:scale-105 focus:outline-none cursor-pointer",
+                      (pathname === "/me" || pathname.startsWith("/me/")) ? "ring-1 ring-primary/60" : ""
+                    )}
+                    title="Ver mi perfil"
+                    aria-label="Ver mi perfil"
+                  >
+                    {displayAvatar ? (
+                      <div className="relative w-full h-full rounded-full overflow-hidden">
+                        <MediaImage src={displayAvatar} alt="Perfil" fallbackType="avatar" className="w-full h-full object-cover" fill={true} variant="avatar" />
+                      </div>
+                    ) : (
+                      <div className="w-full h-full rounded-full bg-muted flex items-center justify-center">
+                        <User className="h-4 w-4 text-muted-foreground" />
+                      </div>
+                    )}
+                  </Link>
+                </div>
               ) : (
-                <Link href="/me" className={cn("transition-colors hover:opacity-80 shrink-0", pathname === "/me" || pathname.startsWith("/me/") ? "opacity-100" : "opacity-80")}>
+                <Link 
+                  href="/me" 
+                  className={cn("transition-colors hover:opacity-80 shrink-0", pathname === "/me" || pathname.startsWith("/me/") ? "opacity-100" : "opacity-80")}
+                  title="Ver mi perfil"
+                  aria-label="Ver mi perfil"
+                >
                   {displayAvatar ? (
                     <div className={cn(
                       "relative w-9 h-9 rounded-full overflow-hidden border-2 flex items-center justify-center",
