@@ -263,10 +263,8 @@ export default function CreateRecipeOptions({ createManualAction }: { createManu
               className="w-full h-48 p-4 rounded-xl border border-border bg-card text-foreground resize-none focus:ring-2 focus:ring-orange-500 outline-none"
               placeholder="Puedes editar la transcripción aquí..."
               value={aiText + (interimText ? (aiText ? ' ' : '') + interimText : '')}
-              onChange={(e) => {
-                if (!isListening) setAiText(e.target.value)
-              }}
-              disabled={isLoading || isListening}
+              onChange={(e) => setAiText(e.target.value)}
+              disabled={isLoading}
             />
           </div>
           
