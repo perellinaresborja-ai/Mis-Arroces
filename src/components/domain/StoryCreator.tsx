@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { StoryTransform, StoryOverlay, StoryBackground, DrawingOverlay } from '@/types/stories';
 import { createClient } from '@/lib/supabase/client';
 import { createStory } from '@/app/actions/stories';
+import { optimizeStoryVideo } from '@/lib/video-optimizer';
 import { globalStoryDraftUrl, globalStoryDraftType, globalStoryDraftFile, clearGlobalStoryDraft, setGlobalStoryDraft } from '@/lib/story-draft';
 import { SharedStoryRenderer, renderOverlayContent } from './SharedStoryRenderer';
 import { DraggableOverlay } from './stories/DraggableOverlay';
@@ -35,6 +36,7 @@ export function StoryCreator({
   const [background, setBackground] = useState<StoryBackground>({ type: 'color', value: '#18181B' });
   const [draftMediaUrl, setDraftMediaUrl] = useState<string | undefined>(initialMedia?.url);
   const [draftMediaType, setDraftMediaType] = useState<'IMAGE'|'VIDEO'|undefined>(initialMedia?.type);
+  const [draftMediaSize, setDraftMediaSize] = useState<number | null>(null);
   const [mediaTransform, setMediaTransform] = useState({ translateX: 0, translateY: 0, scale: 1, rotation: 0 });
 
   useEffect(() => {
@@ -69,6 +71,7 @@ export function StoryCreator({
     setGlobalStoryDraft(file);
     const url = URL.createObjectURL(file);
     setDraftMediaUrl(url);
+    setDraftMediaSize(file.size);
     if (file.type.startsWith("video/")) {
       setDraftMediaType("VIDEO");
     } else {
@@ -80,6 +83,7 @@ export function StoryCreator({
   const [selectedOverlayId, setSelectedOverlayId] = useState<string | null>(null);
 
   const [isPublishing, setIsPublishing] = useState(false);
+  const [isOptimizing, setIsOptimizing] = useState(false);
 
   useEffect(() => {
     // prevent default pinch zoom on the whole page when editing story
@@ -272,9 +276,29 @@ export function StoryCreator({
 
   const uploadDraftIfNeeded = async () => {
     if (globalStoryDraftFile) {
-      const ext = globalStoryDraftFile.name.split('.').pop() || 'jpg';
+      let fileToUpload = globalStoryDraftFile;
+      
+      if (globalStoryDraftType === 'VIDEO') {
+        try {
+          setIsOptimizing(true);
+          // Only process videos that are over a certain size (e.g. 5MB) or just process all mobile videos.
+          // Since we want standard 15s max, we process all videos.
+          const optimizedBlob = await optimizeStoryVideo(globalStoryDraftFile);
+          fileToUpload = new File([optimizedBlob], globalStoryDraftFile.name.replace(/\.[^/.]+$/, "") + ".mp4", { type: optimizedBlob.type });
+          setIsOptimizing(false);
+        } catch (err: any) {
+          setIsOptimizing(false);
+          console.warn("No se pudo optimizar el vídeo localmente, subiendo original o abortando:", err);
+          // Fallback: If original is under 40MB, try to upload anyway.
+          if (globalStoryDraftFile.size > 40 * 1024 * 1024) {
+            throw new Error(`El vídeo pesa demasiado (${(globalStoryDraftFile.size / 1024 / 1024).toFixed(1)}MB) y el dispositivo no pudo optimizarlo. Intenta con un vídeo más corto.`);
+          }
+        }
+      }
+
+      const ext = fileToUpload.name.split('.').pop() || 'jpg';
       const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${ext}`;
-      const { data, error } = await supabase.storage.from('recipe_media').upload(`stories/${fileName}`, globalStoryDraftFile);
+      const { data, error } = await supabase.storage.from('recipe_media').upload(`stories/${fileName}`, fileToUpload);
       if (error) {
         console.error("Storage upload error:", error);
         throw new Error(`Error al subir el archivo multimedia: ${error.message}`);
@@ -286,7 +310,7 @@ export function StoryCreator({
       const { data: assetData, error: dbError } = await supabase.from('media_assets').insert({
         storage_path: data.path,
         media_type: globalStoryDraftType === 'VIDEO' ? 'VIDEO' : 'IMAGE',
-        mime_type: globalStoryDraftFile.type,
+        mime_type: fileToUpload.type,
         owner_id: user.id
       }).select().single();
       
@@ -300,7 +324,7 @@ export function StoryCreator({
   };
 
   const handlePublish = async () => {
-    if (isPublishing) return;
+    if (isPublishing || isOptimizing) return;
     setIsPublishing(true);
     try {
       const uploadedMediaId = await uploadDraftIfNeeded();
@@ -320,6 +344,7 @@ export function StoryCreator({
       console.error("Error al publicar historia:", e);
       alert(e?.message || "Error al publicar la historia. Por favor, inténtalo de nuevo.");
       setIsPublishing(false);
+      setIsOptimizing(false);
     }
   };
 
@@ -359,6 +384,13 @@ export function StoryCreator({
       <div className="flex-1 relative flex items-center justify-center overflow-hidden" onClick={() => setSelectedOverlayId(null)}>
         <div ref={containerRef} {...bindBackgroundGestures()} className="relative w-full max-w-[400px] touch-none h-full max-h-[85vh] md:max-h-full bg-zinc-900 border border-white/10 md:rounded-xl overflow-hidden" style={{ aspectRatio: '9/16' }}>
           
+          {/* Debug Info */}
+          {draftMediaSize && mode === 'EDIT' && (
+            <div className="absolute top-4 left-4 z-[90] bg-black/70 backdrop-blur-sm text-green-400 text-[10px] font-mono px-2 py-1 rounded-md border border-green-400/30">
+              {(draftMediaSize / (1024 * 1024)).toFixed(2)} MB
+            </div>
+          )}
+
           {/* Close Button Inside Card */}
           {mode === 'EDIT' && (
             <button 
@@ -548,10 +580,9 @@ export function StoryCreator({
                 <option value="PUBLIC">Público</option>
                 <option value="FOLLOWERS">Solo Seguidores</option>
               </select>
-              
-              <button onClick={handlePublish} disabled={isPublishing} className="w-full font-bold text-lg bg-primary hover:bg-primary/90 text-primary-foreground py-4 rounded-full transition-transform active:scale-[0.98] disabled:opacity-50">
-                {isPublishing ? "Publicando..." : "Publicar Story"}
-              </button>
+                            <button onClick={handlePublish} disabled={isPublishing || isOptimizing} className="w-full font-bold text-lg bg-primary hover:bg-primary/90 text-primary-foreground py-4 rounded-full transition-transform active:scale-[0.98] disabled:opacity-50">
+                  {isOptimizing ? "Optimizando vídeo..." : isPublishing ? "Publicando..." : "Publicar Story"}
+                </button>
             </div>
           </div>
         )}
