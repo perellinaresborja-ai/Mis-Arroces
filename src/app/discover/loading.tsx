@@ -1,19 +1,9 @@
-import { Skeleton } from "@/components/ui/skeleton"
-
 export default function Loading() {
   return (
-    <div className="w-full max-w-2xl mx-auto px-4 py-8 space-y-6">
-      <Skeleton className="w-full h-12 rounded-2xl" /> {/* Search bar */}
-      
-      <div className="space-y-4">
-        <Skeleton className="w-40 h-6 mb-4" />
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-          {[1, 2, 3, 4, 5, 6].map((i) => (
-            <div key={i} className="flex flex-col gap-2">
-              <Skeleton className="w-full aspect-[3/4] rounded-2xl" />
-            </div>
-          ))}
-        </div>
+    <div className="flex min-h-[50vh] w-full items-center justify-center">
+      <div className="flex flex-col items-center gap-4">
+        <div className="h-12 w-12 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
+        <p className="text-muted-foreground animate-pulse font-medium">Preparando el fuego...</p>
       </div>
     </div>
   )
