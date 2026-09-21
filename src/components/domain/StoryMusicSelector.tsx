@@ -142,10 +142,21 @@ export function StoryMusicSelector({ onSelect, onClose, maxDurationMs, isVideo =
     });
   }
 
-  const filteredTracks = tracks.filter(t => 
-    t.title.toLowerCase().includes(search.toLowerCase()) || 
-    t.artist.toLowerCase().includes(search.toLowerCase())
-  )
+  const filteredTracks = tracks.filter(t => {
+    if (!search) return true;
+    
+    // Si la búsqueda coincide exactamente con una de las categorías predefinidas, filtramos por categoría
+    const isCategorySearch = ['Cooking', 'Chill', 'Mediterráneo', 'Fiesta', 'Elegante', 'Otros'].some(
+      cat => cat.toLowerCase() === search.toLowerCase()
+    );
+
+    if (isCategorySearch) {
+      return t.category?.toLowerCase() === search.toLowerCase();
+    }
+
+    return t.title.toLowerCase().includes(search.toLowerCase()) || 
+           t.artist.toLowerCase().includes(search.toLowerCase());
+  })
 
   // Timeline dimensions
   // Scale dynamically so the chosen duration fits in a ~280px window (or smaller for very short clips)
@@ -216,84 +227,88 @@ export function StoryMusicSelector({ onSelect, onClose, maxDurationMs, isVideo =
   }
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-end justify-center sm:items-center p-4 pointer-events-auto bg-black/60 backdrop-blur-sm" onClick={onClose}>
-      
-      <div 
-        ref={containerRef}
-        className="w-full max-w-lg rounded-3xl overflow-hidden flex flex-col shadow-2xl transition-all duration-300 bg-card min-h-[60vh] max-h-[90vh]" 
-        onClick={e => e.stopPropagation()}
-      >
+      <div className="fixed inset-0 z-[60] flex items-end justify-center sm:items-center p-4 pointer-events-auto bg-black/60 backdrop-blur-sm" onClick={onClose}>
         
-        {!selectedTrack ? (
-          // CATALOG VIEW
-          <>
-            <div className="p-4 border-b border-border flex items-center justify-between">
-              <h3 className="text-lg font-bold text-foreground flex items-center gap-2">
-                <Music className="w-5 h-5 text-orange-500" /> Buscar música
-              </h3>
-              <button onClick={onClose} className="p-2 text-muted-foreground hover:text-foreground rounded-full hover:bg-muted transition-colors">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            
-            <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-5">
-              
-              <div className="relative shadow-sm rounded-2xl">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                <input 
-                  type="text"
-                  placeholder="Buscar música..."
-                  value={search}
-                  onChange={e => setSearch(e.target.value)}
-                  className="w-full bg-card border border-border rounded-2xl py-3 pl-12 pr-4 text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all shadow-sm"
-                />
-              </div>
-
-              <div className="flex gap-2.5 overflow-x-auto no-scrollbar pb-1">
-                {['Todas', 'Cooking', 'Chill', 'Mediterráneo', 'Fiesta', 'Elegante', 'Otros'].map(cat => (
-                  <button 
-                    key={cat}
-                    onClick={() => setSearch(cat === 'Todas' ? '' : cat)}
-                    className={`px-4 py-2 rounded-2xl text-sm font-semibold whitespace-nowrap border transition-all shadow-sm ${search.toLowerCase() === cat.toLowerCase() || (cat === 'Todas' && !search) ? 'bg-orange-500 border-orange-500 text-white' : 'bg-card border-border text-muted-foreground hover:text-foreground hover:border-foreground/30'}`}
-                  >
-                    {cat}
-                  </button>
-                ))}
+        <div 
+          ref={containerRef}
+          className="w-full max-w-lg rounded-3xl overflow-hidden flex flex-col shadow-2xl transition-all duration-300 bg-card h-[85vh] sm:h-[80vh]" 
+          onClick={e => e.stopPropagation()}
+        >
+          
+          {!selectedTrack ? (
+            // CATALOG VIEW
+            <div className="flex flex-col h-full">
+              {/* Header Fijo */}
+              <div className="p-4 border-b border-border flex items-center justify-between shrink-0">
+                <h3 className="text-lg font-bold text-foreground flex items-center gap-2">
+                  <Music className="w-5 h-5 text-orange-500" /> Buscar música
+                </h3>
+                <button onClick={onClose} className="p-2 text-muted-foreground hover:text-foreground rounded-full hover:bg-muted transition-colors">
+                  <X className="w-5 h-5" />
+                </button>
               </div>
               
-              {loading ? (
-                <div className="flex-1 flex flex-col items-center justify-center py-12 text-muted-foreground gap-4">
-                  <div className="w-8 h-8 border-4 border-orange-500/20 border-t-orange-500 rounded-full animate-spin" />
-                  <div className="font-medium text-sm">Cargando catálogo...</div>
+              {/* Buscador y Categorías (Fijos en la parte superior) */}
+              <div className="p-4 flex flex-col gap-4 shrink-0 bg-card z-10 shadow-sm">
+                <div className="relative rounded-2xl">
+                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                  <input 
+                    type="text"
+                    placeholder="Buscar música..."
+                    value={search}
+                    onChange={e => setSearch(e.target.value)}
+                    className="w-full bg-muted/30 border border-border rounded-2xl py-3 pl-12 pr-4 text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all shadow-sm"
+                  />
                 </div>
-              ) : filteredTracks.length === 0 ? (
-                <div className="text-center text-muted-foreground py-10 font-medium">No se encontraron pistas.</div>
-              ) : (
-                <div className="flex flex-col gap-3">
-                  {filteredTracks.map(track => (
-                    <div key={track.id} className="flex items-center justify-between p-3.5 rounded-2xl bg-card border border-border shadow-sm active:scale-[0.98] transition-all cursor-pointer" onClick={() => handleSelectTrack(track)}>
-                      <div className="flex items-center gap-4">
-                        <button 
-                          onClick={(e) => handlePlayPause(track, e)}
-                          className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 transition-colors shadow-sm border border-border/50 ${playingId === track.id && isPlaying ? 'bg-orange-500 text-white' : 'bg-orange-50 text-orange-600 hover:bg-orange-100'}`}
-                        >
-                          {playingId === track.id && isPlaying ? <Pause className="w-6 h-6" /> : <Play className="w-6 h-6 ml-1" />}
-                        </button>
-                        <div>
-                          <div className="text-foreground font-bold line-clamp-1">{track.title}</div>
-                          <div className="text-muted-foreground text-sm font-medium line-clamp-1">{track.artist}</div>
-                        </div>
-                      </div>
-                      <div className="text-muted-foreground text-sm font-bold px-2">
-                        {formatTime(track.duration_ms)}
-                      </div>
-                    </div>
+
+                <div className="flex gap-2.5 overflow-x-auto no-scrollbar pb-1">
+                  {['Todas', 'Cooking', 'Chill', 'Mediterráneo', 'Fiesta', 'Elegante', 'Otros'].map(cat => (
+                    <button 
+                      key={cat}
+                      onClick={() => setSearch(cat === 'Todas' ? '' : cat)}
+                      className={`px-4 py-2 rounded-2xl text-sm font-semibold whitespace-nowrap border transition-all shadow-sm ${search.toLowerCase() === cat.toLowerCase() || (cat === 'Todas' && !search) ? 'bg-orange-500 border-orange-500 text-white' : 'bg-card border-border text-muted-foreground hover:text-foreground hover:border-foreground/30'}`}
+                    >
+                      {cat}
+                    </button>
                   ))}
                 </div>
-              )}
+              </div>
+              
+              {/* Lista de Canciones Scrollable */}
+              <div className="flex-1 overflow-y-auto p-4 pt-0">
+                {loading ? (
+                  <div className="flex flex-col items-center justify-center py-12 text-muted-foreground gap-4 h-full">
+                    <div className="w-8 h-8 border-4 border-orange-500/20 border-t-orange-500 rounded-full animate-spin" />
+                    <div className="font-medium text-sm">Cargando catálogo...</div>
+                  </div>
+                ) : filteredTracks.length === 0 ? (
+                  <div className="text-center text-muted-foreground py-10 font-medium h-full flex items-center justify-center">No se encontraron pistas.</div>
+                ) : (
+                  <div className="flex flex-col gap-3 pb-8">
+                    {filteredTracks.map(track => (
+                      <div key={track.id} className="flex items-center justify-between p-3.5 rounded-2xl bg-card border border-border shadow-sm active:scale-[0.98] transition-all cursor-pointer" onClick={() => handleSelectTrack(track)}>
+                        <div className="flex items-center gap-4">
+                          <button 
+                            onClick={(e) => handlePlayPause(track, e)}
+                            className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 transition-colors shadow-sm border border-border/50 ${playingId === track.id && isPlaying ? 'bg-orange-500 text-white' : 'bg-orange-50 text-orange-600 hover:bg-orange-100'}`}
+                          >
+                            {playingId === track.id && isPlaying ? <Pause className="w-6 h-6" /> : <Play className="w-6 h-6 ml-1" />}
+                          </button>
+                          <div>
+                            <div className="text-foreground font-bold line-clamp-1">{track.title}</div>
+                            <div className="text-muted-foreground text-sm font-medium line-clamp-1">{track.artist}</div>
+                          </div>
+                        </div>
+                        <div className="text-muted-foreground text-sm font-bold px-2">
+                          {formatTime(track.duration_ms)}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
-          </>
-        ) : (
+          ) : (
           // FRAGMENT ADJUSTMENT VIEW
           <>
             <div className="p-4 border-b border-border flex items-center justify-between bg-card text-foreground">
