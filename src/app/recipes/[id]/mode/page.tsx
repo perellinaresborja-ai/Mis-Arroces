@@ -19,7 +19,7 @@ export default async function RecipeCookModePage({ params, searchParams }: { par
   const { data: recipe, error } = await supabase
     .from("recipes")
     .select(`
-      id, name, rice_qty, stock_qty, base_servings, rest_time, custom_variety,
+      id, name, rice_qty, stock_qty, base_servings, rest_time,
       variety:rice_varieties(name),
       recipe_vessels(diameter_cm),
       steps:recipe_steps(*, media:media_assets(storage_path)),
@@ -32,8 +32,16 @@ export default async function RecipeCookModePage({ params, searchParams }: { par
     .eq("id", resolvedParams.id)
     .single()
 
-  if (error || !recipe) {
-    notFound()
+  if (error) {
+    if (error.code === 'PGRST116') {
+      notFound();
+    }
+    console.error("Supabase Error in Cook Mode:", error);
+    throw new Error(`Error cargando receta para Modo Cocina: ${error.message}`);
+  }
+
+  if (!recipe) {
+    notFound();
   }
 
   const requestedServings = resolvedSearchParams.servings ? parseInt(resolvedSearchParams.servings, 10) : (recipe.base_servings || 1);
@@ -79,7 +87,7 @@ export default async function RecipeCookModePage({ params, searchParams }: { par
     scale_ratio: scaleRatio,
     rice_qty: recipe.rice_qty ? recipe.rice_qty * scaleRatio : null,
     stock_qty: recipe.stock_qty ? recipe.stock_qty * scaleRatio : null,
-    variety_name: (recipe.variety as any)?.name || recipe.custom_variety || null,
+    variety_name: (recipe.variety as any)?.name || null,
     diameter_cm: recipe.recipe_vessels?.[0]?.diameter_cm || null,
     steps: sortedSteps,
   }

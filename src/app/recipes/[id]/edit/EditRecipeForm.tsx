@@ -1,7 +1,7 @@
 // @ts-nocheck
 "use client"
 
-import React, { useState } from "react"
+import React, { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useForm, useFieldArray } from "react-hook-form"
 import { Button } from "@/components/ui/button"
@@ -21,6 +21,7 @@ import { StepMediaManager, StepMediaItem } from "./StepMediaManager"
 import { uploadMedia } from "@/services/media/client"
 import { validateRecipeForPublishing } from "@/lib/recipe-validator"
 import { RiceVarietySelect } from "@/components/domain/recipes/RiceVarietySelect"
+import { StockIngredientSelect } from "@/components/domain/recipes/StockIngredientSelect"
 
 
 function CollapsibleSection({ id, title, defaultOpen = false, forceOpen, children, rightAction }: { id?: string, title: React.ReactNode, defaultOpen?: boolean, forceOpen?: boolean, children: React.ReactNode, rightAction?: React.ReactNode }) {
@@ -74,11 +75,11 @@ export default function EditRecipeForm({ recipe, catalogs }: { recipe: any, cata
       scheduled_for: recipe.scheduled_for || "",
       style_id: recipe.style_id || "",
       variety_id: recipe.variety_id || "",
-      custom_variety: recipe.custom_variety || "",
       heat_source_id: recipe.heat_source_id || "",
       base_servings: recipe.base_servings || "",
       rice_qty: recipe.rice_qty || "",
       stock_qty: recipe.stock_qty || "",
+      stock_ingredient_id: recipe.stock_ingredient_id || "",
       cook_time: recipe.cook_time || "",
       rest_time: recipe.rest_time || "",
       difficulty: recipe.difficulty || "",
@@ -160,6 +161,62 @@ export default function EditRecipeForm({ recipe, catalogs }: { recipe: any, cata
     }
   }
 
+  const [autosaveStatus, setAutosaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle')
+
+  useEffect(() => {
+    if (recipe.status === 'PUBLISHED') return;
+    
+    let timeoutId: NodeJS.Timeout;
+    const subscription = watch((value) => {
+      setAutosaveStatus('saving');
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(async () => {
+        try {
+          const currentValues = getValues();
+          // Stripping down just enough to save it as draft
+          const cleanData = {
+            name: currentValues.name,
+            description: currentValues.description,
+            base_servings: currentValues.base_servings,
+            rice_qty: currentValues.rice_qty,
+            stock_qty: currentValues.stock_qty,
+            stock_ingredient_id: currentValues.stock_ingredient_id,
+            cook_time: currentValues.cook_time,
+            rest_time: currentValues.rest_time,
+            difficulty: currentValues.difficulty,
+            status: 'DRAFT',
+            scheduled_for: null,
+            ingredients: currentValues.ingredients,
+            steps: currentValues.steps.map((s: any) => {
+              const cleanStep = { ...s };
+              delete cleanStep.mediaItem;
+              return cleanStep;
+            }),
+            vessels: [{
+              vessel_type_id: currentValues.vessel_type_id,
+              diameter_cm: currentValues.vessel_diameter_cm,
+              notes: currentValues.vessel_notes
+            }],
+            media_ids: mediaItems.filter(m => m.type === 'existing').map(m => m.id),
+            tags: currentValues.tags,
+            variety_id: currentValues.variety_id,
+          };
+          await updateRecipeFull(recipe.id, cleanData, true);
+          setAutosaveStatus('saved');
+          setTimeout(() => setAutosaveStatus('idle'), 3000);
+        } catch (error) {
+          console.error("Autosave failed", error);
+          setAutosaveStatus('idle');
+        }
+      }, 1500);
+    });
+
+    return () => {
+      subscription.unsubscribe();
+      clearTimeout(timeoutId);
+    };
+  }, [watch, getValues, recipe.id, recipe.status, mediaItems]);
+
   const submitWithAction = async (action: 'DRAFT' | 'PUBLISH' | 'SCHEDULE' | 'UPDATE') => {
     let finalStatus = recipe.status
     let finalScheduledFor = recipe.scheduled_for || null
@@ -186,36 +243,41 @@ export default function EditRecipeForm({ recipe, catalogs }: { recipe: any, cata
       finalScheduledFor = recipe.scheduled_for
     }
 
-    // Client-side integrity check if destination or current status is PUBLISHED
-    if (finalStatus === 'PUBLISHED') {
-      const currentValues = getValues()
-      console.log("[INGREDIENT-TRACE] E) JUSTO antes de Guardar (PUBLISHED)");
-      console.log("- ingFields (watch):", watch("ingredients")?.map((i:any) => i?.display_text));
-      console.log("- getValues(ingredients):", currentValues.ingredients);
-      
-      const validation = validateRecipeForPublishing({
-        name: currentValues.name,
-        base_servings: currentValues.base_servings,
-        ingredients: currentValues.ingredients,
-        steps: currentValues.steps
-      })
+      // Client-side integrity check if destination or current status is PUBLISHED
+      if (finalStatus === 'PUBLISHED') {
+        const currentValues = getValues()
+        
+        const validation = validateRecipeForPublishing({
+          name: currentValues.name,
+          base_servings: currentValues.base_servings,
+          rice_qty: currentValues.rice_qty,
+          stock_qty: currentValues.stock_qty,
+          stock_ingredient_id: currentValues.stock_ingredient_id,
+          ingredients: currentValues.ingredients,
+          steps: currentValues.steps
+        })
 
-      if (!validation.isValid) {
-        setValidationErrors(validation.errorList)
-        window.scrollTo({ top: 0, behavior: 'smooth' })
-        if (validation.issues.length > 0) {
-          scrollToErrorField(validation.issues[0].field)
+        if (!validation.isValid) {
+          setValidationErrors(validation.errorList)
+          window.scrollTo({ top: 0, behavior: 'smooth' })
+          if (validation.issues.length > 0) {
+            scrollToErrorField(validation.issues[0].field)
+          }
+          // Downgrade to DRAFT so we save the progress and don't lose data
+          finalStatus = 'DRAFT'
+          finalScheduledFor = null
+        } else {
+          setValidationErrors([])
         }
-        return
+      } else {
+        setValidationErrors([])
       }
+
+      setValue('status', finalStatus)
+      setValue('scheduled_for', finalScheduledFor)
+
+      handleSubmit(onSubmit)()
     }
-
-    setValidationErrors([])
-    setValue('status', finalStatus)
-    setValue('scheduled_for', finalScheduledFor)
-
-    handleSubmit(onSubmit)()
-  }
 
   const onSubmit = async (data: any) => {
     console.log("[INSTRUMENTATION] >>> onSubmit called.");
@@ -253,17 +315,24 @@ export default function EditRecipeForm({ recipe, catalogs }: { recipe: any, cata
           }
         }
 
-        // Strip out File objects to avoid Next.js payload limits
-        const cleanData = { ...data };
-        if (cleanData.steps) {
-          cleanData.steps = cleanData.steps.map((s: any) => {
-            const cleanStep = { ...s };
-            delete cleanStep.mediaItem;
-            return cleanStep;
-          });
-        }
-        await updateRecipeFull(recipe.id, cleanData)
-    } catch (err: any) {
+          // Strip out File objects to avoid Next.js payload limits
+          const cleanData = { ...data };
+          if (cleanData.steps) {
+            cleanData.steps = cleanData.steps.map((s: any) => {
+              const cleanStep = { ...s };
+              delete cleanStep.mediaItem;
+              return cleanStep;
+            });
+          }
+          
+          // DRAFTs stay in the editor, PUBLISHED recipes redirect to their public page
+          const skipRedirect = cleanData.status === 'DRAFT';
+          await updateRecipeFull(recipe.id, cleanData, skipRedirect);
+          
+          if (skipRedirect) {
+            setIsSaving(false);
+          }
+      } catch (err: any) {
       if (err?.message?.includes('NEXT_REDIRECT') || err?.digest?.includes('NEXT_REDIRECT')) {
         throw err;
       }
@@ -290,11 +359,15 @@ export default function EditRecipeForm({ recipe, catalogs }: { recipe: any, cata
   const isCurrentlyPublished = recipe.status === 'PUBLISHED' && !isCurrentlyScheduled;
 
   
-  const watchedIngredients = watch('ingredients');
-  const watchedPortions = watch('portions');
+  const watchedIngredients = watch('ingredients') || [];
+  const watchedPortions = watch('base_servings');
+  const watchedRiceQty = watch('rice_qty');
+  const watchedStockQty = watch('stock_qty');
+  const watchedVarietyId = watch('variety_id');
+  const watchedStockId = watch('stock_ingredient_id');
   
   const computedRecipeIngredients = React.useMemo(() => {
-    return watchedIngredients.map((wi: any) => {
+    const list = watchedIngredients.map((wi: any) => {
       // attempt to match ingredient by canonical_ingredient_id or display_text
       let matchedIng = null;
       if (wi.canonical_ingredient_id) {
@@ -305,30 +378,18 @@ export default function EditRecipeForm({ recipe, catalogs }: { recipe: any, cata
         const query = normalize(wi.display_text);
         
         if (query) {
-          // 1. Exact match on normalized name
           matchedIng = catalogs?.ingredients?.find((i: any) => i.normalized_name === query);
-          
-          // 2. Exact match on aliases
           if (!matchedIng) {
             matchedIng = catalogs?.ingredients?.find((i: any) => 
               i.ingredient_aliases?.some((a: any) => a.normalized_alias === query)
             );
           }
-          
-          // 3. Very high confidence inclusion match (e.g. "aceite de oliva" inside "aceoite de oliva virgen extra") 
-          // Actually, let's keep it strict or allow simple includes if length > 4 to avoid false positives.
           if (!matchedIng && query.length > 4) {
             const candidates = catalogs?.ingredients?.filter((i: any) => 
               query.includes(i.normalized_name) || i.normalized_name.includes(query)
             ) || [];
-            
-            // Only assign if there is EXACTLY ONE very clear candidate to avoid ambiguity
-            if (candidates.length === 1) {
-              matchedIng = candidates[0];
-            }
+            if (candidates.length === 1) matchedIng = candidates[0];
           }
-          
-          // Ensure we update canonical_ingredient_id for saving!
           if (matchedIng) {
             wi.canonical_ingredient_id = matchedIng.id;
           }
@@ -340,7 +401,41 @@ export default function EditRecipeForm({ recipe, catalogs }: { recipe: any, cata
         ingredient_allergens: matchedIng?.ingredient_allergens
       };
     });
-  }, [watchedIngredients, catalogs]);
+
+    const gramsUnit = catalogs?.units?.find(u => u.name.toLowerCase() === 'gramos' || u.name.toLowerCase() === 'g');
+    const mlUnit = catalogs?.units?.find(u => u.name.toLowerCase() === 'mililitros' || u.name.toLowerCase() === 'ml');
+
+    if (watchedRiceQty && watchedVarietyId) {
+      const variety = catalogs?.rice_varieties?.find(v => v.id === watchedVarietyId);
+      if (variety && variety.ingredient_id) {
+        const canonical = catalogs?.ingredients?.find(i => i.id === variety.ingredient_id);
+        if (canonical) {
+          list.push({
+            id: 'virtual-rice',
+            normalized_quantity: watchedRiceQty,
+            unit_id: gramsUnit?.id,
+            ingredient: canonical,
+            ingredient_allergens: canonical.ingredient_allergens
+          });
+        }
+      }
+    }
+
+    if (watchedStockQty && watchedStockId) {
+      const canonical = catalogs?.ingredients?.find(i => i.id === watchedStockId);
+      if (canonical) {
+        list.push({
+          id: 'virtual-stock',
+          normalized_quantity: watchedStockQty,
+          unit_id: mlUnit?.id || gramsUnit?.id,
+          ingredient: canonical,
+          ingredient_allergens: canonical.ingredient_allergens
+        });
+      }
+    }
+
+    return list;
+  }, [watchedIngredients, catalogs, watchedRiceQty, watchedVarietyId, watchedStockQty, watchedStockId]);
 
   const nutritionResult = React.useMemo(() => {
     return calculateNutrition(computedRecipeIngredients as any, catalogs?.units as any, watchedPortions || 1);
@@ -396,7 +491,7 @@ export default function EditRecipeForm({ recipe, catalogs }: { recipe: any, cata
           <div className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="field-recipe-name">Nombre</Label>
-              <Input id="field-recipe-name" {...register("name", { required: true })} />
+              <Input id="field-recipe-name" {...register("name")} />
             </div>
             
             <div className="space-y-2">
@@ -424,54 +519,100 @@ export default function EditRecipeForm({ recipe, catalogs }: { recipe: any, cata
           </div>
         </CollapsibleSection>
 
-        {/* Technical Details */}
+        {/* Technical Details (Combined) */}
         <CollapsibleSection id="section-technical" title="Detalles Técnicos" forceOpen={openSections.technical}>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-            <div className="space-y-2">
-              <Label>Estilo</Label>
-              <select {...register("style_id")} className="w-full h-10 px-3 rounded-md border border-input bg-background">
-                <option value="">Selecciona...</option>
-                {catalogs.styles.map((s: any) => <option key={s.id} value={s.id}>{s.name}</option>)}
-              </select>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            
+            {/* IZQUIERDA: Arroz y Caldo */}
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label>Estilo</Label>
+                <select {...register("style_id")} className="w-full h-10 px-3 rounded-md border border-input bg-background">
+                  <option value="">Selecciona...</option>
+                  {catalogs.styles.map((s: any) => <option key={s.id} value={s.id}>{s.name}</option>)}
+                </select>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Variedad de arroz</Label>
+                  <RiceVarietySelect
+                    varietyId={watch("variety_id")}
+                    onChange={({ varietyId }) => setValue("variety_id", varietyId || "", { shouldDirty: true, shouldValidate: true })}
+                    initialVarieties={catalogs.varieties || []}
+                  />
+                  <input type="hidden" {...register("variety_id")} />
+                </div>
+                <div className="space-y-2">
+                  <Label className={validationErrors.find(e => e.includes("arroz")) ? "text-destructive" : ""}>Cantidad de arroz (g)</Label>
+                  <input type="number" step="any" {...register("rice_qty")} className="w-full h-10 px-3 rounded-md border border-input bg-background" placeholder="Ej. 400" />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Líquido principal</Label>
+                  <StockIngredientSelect
+                    ingredientId={watch("stock_ingredient_id")}
+                    onChange={({ ingredientId }) => setValue("stock_ingredient_id", ingredientId || "", { shouldDirty: true, shouldValidate: true })}
+                    initialIngredients={catalogs.ingredients || []}
+                  />
+                  <input type="hidden" {...register("stock_ingredient_id")} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Cantidad (ml)</Label>
+                  <input type="number" step="any" {...register("stock_qty")} className="w-full h-10 px-3 rounded-md border border-input bg-background" placeholder="Ej. 1600" />
+                </div>
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label>Variedad de Arroz</Label>
-              <RiceVarietySelect
-                varietyId={watch("variety_id")}
-                customVariety={watch("custom_variety")}
-                onChange={({ varietyId, customVariety }) => {
-                  setValue("variety_id", varietyId || "", { shouldDirty: true, shouldValidate: true })
-                  setValue("custom_variety", customVariety || "", { shouldDirty: true, shouldValidate: true })
-                }}
-                initialVarieties={catalogs.varieties || []}
-              />
-              <input type="hidden" {...register("variety_id")} />
-              <input type="hidden" {...register("custom_variety")} />
-            </div>
-            <div className="space-y-2">
-              <Label>Fuente de calor</Label>
-              <select {...register("heat_source_id")} className="w-full h-10 px-3 rounded-md border border-input bg-background">
-                <option value="">Selecciona...</option>
-                {catalogs.heats.map((h: any) => <option key={h.id} value={h.id}>{h.name}</option>)}
-              </select>
-            </div>
-            <div className="space-y-2">
-              <Label>Dificultad</Label>
-              <select {...register("difficulty")} className="w-full h-10 px-3 rounded-md border border-input bg-background">
-                <option value="">Selecciona...</option>
-                <option value="EASY">Fácil</option>
-                <option value="MEDIUM">Media</option>
-                <option value="HARD">Difícil</option>
-                <option value="EXPERT">Experto</option>
-              </select>
+
+            {/* DERECHA: Recipiente y Cocción */}
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Recipiente</Label>
+                  <select {...register("vessel_type_id")} className="w-full h-10 px-3 rounded-md border border-input bg-background">
+                    <option value="">Selecciona...</option>
+                    {catalogs.vessels.map((v: any) => <option key={v.id} value={v.id}>{v.name}</option>)}
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Diámetro (cm)</Label>
+                  <Input type="number" step="0.1" {...register("vessel_diameter_cm")} placeholder="Ej. 40" />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Material/Acabado (Opcional)</Label>
+                <Input {...register("vessel_notes")} placeholder="Ej. Acero pulido, Esmaltada..." />
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Fuente de calor</Label>
+                  <select {...register("heat_source_id")} className="w-full h-10 px-3 rounded-md border border-input bg-background">
+                    <option value="">Selecciona...</option>
+                    {catalogs.heats.map((h: any) => <option key={h.id} value={h.id}>{h.name}</option>)}
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Dificultad</Label>
+                  <select {...register("difficulty")} className="w-full h-10 px-3 rounded-md border border-input bg-background">
+                    <option value="">Selecciona...</option>
+                    <option value="EASY">Fácil</option>
+                    <option value="MEDIUM">Media</option>
+                    <option value="HARD">Difícil</option>
+                    <option value="EXPERT">Experto</option>
+                  </select>
+                </div>
+              </div>
             </div>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 pt-4 border-t border-border/50 mt-4">
+          <div className="grid grid-cols-3 gap-4 pt-4 border-t border-border/50 mt-4">
             <div className="space-y-2">
               <Label htmlFor="field-base-servings">Comensales</Label>
-              <Input id="field-base-servings" type="number" placeholder="Pendiente de definir" {...register("base_servings")} />
+              <Input id="field-base-servings" type="number" placeholder="Ej. 4" {...register("base_servings")} />
             </div>
             <div className="space-y-2">
               <Label>Cocción (min)</Label>
@@ -481,27 +622,6 @@ export default function EditRecipeForm({ recipe, catalogs }: { recipe: any, cata
               <Label>Reposo (min)</Label>
               <Input type="number" {...register("rest_time")} />
             </div>
-          </div>
-        </CollapsibleSection>
-
-        {/* Vessel Details */}
-        <CollapsibleSection title="Recipiente">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-            <div className="space-y-2">
-              <Label>Tipo de recipiente</Label>
-              <select {...register("vessel_type_id")} className="w-full h-10 px-3 rounded-md border border-input bg-background">
-                <option value="">Selecciona...</option>
-                {catalogs.vessels.map((v: any) => <option key={v.id} value={v.id}>{v.name}</option>)}
-              </select>
-            </div>
-            <div className="space-y-2">
-              <Label>Diámetro (cm)</Label>
-              <Input type="number" step="0.1" {...register("vessel_diameter_cm")} placeholder="Ej. 40" />
-            </div>
-          </div>
-          <div className="space-y-2 mt-4">
-            <Label>Notas del recipiente (opcional)</Label>
-            <Input {...register("vessel_notes")} placeholder="Ej. Paellera de acero pulido" />
           </div>
 
           {(() => {
@@ -569,7 +689,7 @@ export default function EditRecipeForm({ recipe, catalogs }: { recipe: any, cata
         </CollapsibleSection>
 
         {/* Ingredients */}
-        <CollapsibleSection id="section-ingredients" title="Ingredientes (v3)" forceOpen={openSections.ingredients} rightAction={
+        <CollapsibleSection id="section-ingredients" title="Ingredientes" forceOpen={openSections.ingredients} rightAction={
             <div className="flex items-center gap-1">
               <AddToCartButton recipeId={recipe.id} isAuthenticated={true} layout="icon" />
               <Button type="button" variant="outline" size="sm" onClick={() => {
@@ -618,7 +738,7 @@ export default function EditRecipeForm({ recipe, catalogs }: { recipe: any, cata
                     </div>
                     <div className="col-span-12 md:col-span-6">
                       {(() => {
-                        const { onChange: rOnChange, onBlur: rOnBlur, name: rName, ref: rRef } = register(`ingredients.${idx}.display_text`, { required: true });
+                        const { onChange: rOnChange, onBlur: rOnBlur, name: rName, ref: rRef } = register(`ingredients.${idx}.display_text`);
                         return (
                           <Input placeholder="" name={rName} ref={rRef} onBlur={rOnBlur} defaultValue={field.display_text ?? ""} onChange={(e) => {
                             console.log("[INGREDIENT-TRACE] B) Cambia display_text", idx);
@@ -679,7 +799,7 @@ export default function EditRecipeForm({ recipe, catalogs }: { recipe: any, cata
                   <div className="relative">
                     <span className="absolute -top-2.5 left-3 bg-muted px-1.5 text-[10px] font-bold text-muted-foreground uppercase tracking-wider rounded">Paso {idx + 1}</span>
                     <textarea 
-                      {...register(`steps.${idx}.instruction`, { required: true })}
+                      {...register(`steps.${idx}.instruction`)}
                       defaultValue={field.instruction ?? ""}
                       className="flex min-h-[90px] w-full rounded-2xl border border-border bg-background px-4 py-3 text-sm ring-offset-background placeholder:text-muted-foreground/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 resize-y"
                       placeholder="Ej. Sofreír la carne a fuego medio hasta que esté dorada." 
@@ -781,7 +901,18 @@ export default function EditRecipeForm({ recipe, catalogs }: { recipe: any, cata
           </div>
 
           {/* Right: Primary save/publish action */}
-          <div className="flex items-center gap-3 w-full sm:w-auto">
+          <div className="flex items-center justify-end gap-3 w-full sm:w-auto ml-auto">
+            {autosaveStatus === 'saving' && (
+              <span className="text-sm text-muted-foreground flex items-center mr-2 animate-pulse">
+                Guardando...
+              </span>
+            )}
+            {autosaveStatus === 'saved' && (
+              <span className="text-sm text-muted-foreground flex items-center mr-2">
+                <Check className="w-4 h-4 mr-1 text-green-500" />
+                Guardado
+              </span>
+            )}
             {recipe.status === 'PUBLISHED' ? (
               <Button 
                 type="button" 

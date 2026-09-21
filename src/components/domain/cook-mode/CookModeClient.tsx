@@ -649,7 +649,7 @@ export function CookModeClient({ recipe, userName, reset }: { recipe: CookModeRe
       {/* Header */}
       <header className="p-4 sm:p-6 flex items-center justify-between shrink-0 relative">
         {/* Voice Control Toggle Button */}
-        <div className="flex items-center gap-2 z-10">
+        <div className="flex items-center gap-2 z-10 w-24 sm:w-28">
           <button
             onClick={toggleVoice}
             disabled={!isVoiceSupported}
@@ -669,20 +669,28 @@ export function CookModeClient({ recipe, userName, reset }: { recipe: CookModeRe
               <>
                 <span className={`w-2 h-2 rounded-full ${voiceState === "processing" ? "bg-amber-400" : "bg-emerald-400 animate-ping"}`} />
                 <Mic className="w-3.5 h-3.5" />
-                <span>{voiceState === "processing" ? "Procesando..." : "Escuchando"}</span>
+                <span className="hidden sm:inline">{voiceState === "processing" ? "Procesando..." : "Escuchando"}</span>
               </>
             ) : (
               <>
                 <MicOff className="w-3.5 h-3.5" />
-                <span>Voz: OFF</span>
+                <span className="hidden sm:inline">Voz: OFF</span>
               </>
             )}
           </button>
         </div>
 
-        {/* Step indicator centered */}
-        <div className="text-center font-black text-white/40 uppercase tracking-widest text-xs sm:text-sm">
-          Paso {currentStepIndex + 1} de {recipe.steps.length}
+        {/* Step indicator centered AND Auto-Advance button */}
+        <div className="flex flex-col items-center gap-2 z-10 shrink-0">
+          <div className="text-center font-black text-white/40 uppercase tracking-widest text-xs sm:text-sm">
+            Paso {currentStepIndex + 1} de {recipe.steps.length}
+          </div>
+          <button 
+            onClick={toggleAutoAdvance} 
+            className={`text-[10px] sm:text-xs font-bold px-3 py-1 rounded-full flex items-center justify-center gap-1.5 transition-colors ${autoAdvance ? 'bg-primary/20 text-primary border border-primary/30' : 'bg-white/10 text-white/60 border border-white/5 hover:bg-white/20'}`}
+          >
+            {autoAdvance ? '✅ Avance Automático' : '⚪ Avance Automático'}
+          </button>
         </div>
 
         {/* Spacer to balance the top bar layout */}
@@ -754,13 +762,6 @@ export function CookModeClient({ recipe, userName, reset }: { recipe: CookModeRe
                   </button>
                 )}
               </div>
-              
-              <button 
-                onClick={toggleAutoAdvance} 
-                className={`w-full py-2.5 mt-1 text-sm font-bold rounded-xl flex items-center justify-center gap-2 transition-colors ${autoAdvance ? 'bg-primary/20 text-primary border border-primary/30' : 'bg-black/20 text-white/60 border border-white/5 hover:bg-black/40'}`}
-              >
-                {autoAdvance ? '✅ Avance automático activado' : '⚪ Avance automático desactivado'}
-              </button>
             </div>
           )}
 

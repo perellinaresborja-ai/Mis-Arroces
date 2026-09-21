@@ -5,31 +5,29 @@ import Link from "next/link";
 import { formatUnitSymbol } from "@/lib/utils";
 import { Users, Droplet, Scaling, Info, Circle } from "lucide-react";
 import { 
-  extractRealRiceGrams, 
-  extractRealBrothGrams, 
   calculateLayer, 
   calculateRealBrothRatio,
   LayerType
 } from "@/lib/paella-calculator";
 import { AddToCartButton } from "@/components/domain/AddToCartButton";
 import { useRecipeState } from "@/components/domain/RecipeStateProvider";
+import { getUnifiedIngredients } from "@/lib/recipe-ingredients-derived";
 
 export function InteractiveRecipeView({ 
   recipe, 
   isAuthenticated,
   children
 }: { 
-  recipe: any, 
-  isAuthenticated: boolean,
-  children?: React.ReactNode
+  recipe: any;
+  isAuthenticated: boolean;
+  children?: React.ReactNode;
 }) {
   const { servings, setServings } = useRecipeState();
   const scaleRatio = servings / (recipe.base_servings || 1);
   const vessel = recipe.recipe_vessels?.[0];
   
-  // Base values from recipe
-  const baseRiceGrams = extractRealRiceGrams(recipe.ingredients);
-  const baseBrothGrams = extractRealBrothGrams(recipe.ingredients);
+  // Base values from recipe (SSOT + Fallback)
+  const { finalRiceQty: baseRiceGrams, finalStockQty: baseBrothGrams, unifiedList } = getUnifiedIngredients(recipe);
 
   // Scaled values
   const currentRiceGrams = baseRiceGrams ? baseRiceGrams * scaleRatio : null;
@@ -41,11 +39,11 @@ export function InteractiveRecipeView({
 
   const layerColors: Record<LayerType, string> = {
     'Fina': 'text-green-600',
-    'Media': 'text-blue-600',
+    'Media': 'text-amber-600',
     'Abundante': 'text-orange-600'
   };
 
-  const ingredients = [...(recipe.ingredients || [])].sort((a: any, b: any) => a.display_order - b.display_order);
+  const ingredients = unifiedList.sort((a: any, b: any) => (a.display_order || 0) - (b.display_order || 0));
   const safeNumber = (num: number | null) => (num !== null && isFinite(num) && !isNaN(num)) ? Math.round(num).toString() : "0";
 
   return (

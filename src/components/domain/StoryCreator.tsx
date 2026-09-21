@@ -30,13 +30,7 @@ export function StoryCreator({
 }) {
   const router = useRouter();
 
-  const safeBack = () => {
-    if ((window.history.state && window.history.state.idx > 0) || (document.referrer && new URL(document.referrer).host === window.location.host)) {
-      safeBack();
-    } else {
-      router.push('/');
-    }
-  };
+
   const supabase = createClient();
   const containerRef = useRef<HTMLDivElement>(null);
   const [overlays, setOverlays] = useState<StoryOverlay[]>([]);
@@ -114,6 +108,7 @@ export function StoryCreator({
 
   const [isPublishing, setIsPublishing] = useState(false);
   const [isOptimizing, setIsOptimizing] = useState(false);
+  const [isExiting, setIsExiting] = useState(false);
 
   useEffect(() => {
     // prevent default pinch zoom on the whole page when editing story
@@ -380,6 +375,10 @@ export function StoryCreator({
     }
   };
 
+  if (isExiting) {
+    return <div className="fixed inset-0 bg-black z-[9999]" />;
+  }
+
   return (
     <div className="fixed inset-0 bg-black z-50 flex flex-col md:flex-row touch-none">
       
@@ -392,13 +391,17 @@ export function StoryCreator({
               <p className="text-muted-foreground text-sm">Si sales ahora, perderás todos los cambios que hayas hecho.</p>
             </div>
             <div className="flex flex-col gap-2.5 mt-2">
-              <button 
-                onClick={() => {
-                  clearGlobalStoryDraft();
-                  safeBack();
-                }}
-                className="w-full py-3 bg-destructive hover:bg-destructive/90 text-destructive-foreground font-bold rounded-2xl transition-colors"
-              >
+                <button 
+                  onClick={() => {
+                    clearGlobalStoryDraft();
+                    setShowDiscardDialog(false);
+                    setIsExiting(true);
+                    React.startTransition(() => {
+                      router.replace('/');
+                    });
+                  }}
+                  className="w-full py-3 bg-destructive hover:bg-destructive/90 text-destructive-foreground font-bold rounded-2xl transition-colors"
+                >
                 Descartar cambios
               </button>
               <button 
@@ -737,6 +740,8 @@ export function StoryCreator({
         <StoryMusicSelector
           isVideo={draftMediaType === 'VIDEO' && videoHasAudio}
           maxDurationMs={draftMediaType === 'VIDEO' ? ((videoRef.current?.duration || 5) * 1000) : 5000}
+          initialConfig={musicConfig}
+          videoRef={videoRef}
           onSelect={(config) => {
             setMusicConfig(config);
             setMode('EDIT');
@@ -747,6 +752,3 @@ export function StoryCreator({
     </div>
   );
 }
-
-
-

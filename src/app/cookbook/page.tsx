@@ -18,12 +18,18 @@ export default async function CookbookPage(props: { searchParams?: Promise<{ tab
   let sessions: any[] = []
 
   if (tab === "mine") {
-    const { data } = await supabase.from("recipes").select("*, recipe_media!recipe_media_recipe_id_fkey(display_order, media:media_assets(storage_path)), variety:rice_varieties(name), style:rice_styles(name), likes:recipe_likes(user_id), comments:recipe_comments(id)").eq("owner_id", user.id).order("created_at", { ascending: false })
+    const { data } = await supabase.from("recipes").select("*, recipe_ingredients(id), recipe_steps(id), recipe_media!recipe_media_recipe_id_fkey(display_order, media:media_assets(storage_path)), variety:rice_varieties(name), style:rice_styles(name), likes:recipe_likes(user_id), comments:recipe_comments(id)").eq("owner_id", user.id).order("created_at", { ascending: false })
     
     const rawData = data || []
     recipes = rawData.filter((r: any) => {
-      const isEmptyDraft = r.status === 'DRAFT' && r.name === 'Nueva Receta' && (!r.recipe_media || r.recipe_media.length === 0)
-      return !isEmptyDraft
+      const hasBaseData = r.description || r.base_servings || r.rice_qty || r.stock_qty || r.stock_ingredient_id || r.cook_time || r.rest_time || r.difficulty || r.style_id || r.variety_id || r.heat_source_id;
+      const isCompletelyEmptyDraft = r.status === 'DRAFT' && 
+                                      r.name === 'Nueva Receta' && 
+                                      !hasBaseData &&
+                                      (!r.recipe_media || r.recipe_media.length === 0) &&
+                                      (!r.recipe_ingredients || r.recipe_ingredients.length === 0) &&
+                                      (!r.recipe_steps || r.recipe_steps.length === 0);
+      return !isCompletelyEmptyDraft;
     })
 
   } else if (tab === "saved") {

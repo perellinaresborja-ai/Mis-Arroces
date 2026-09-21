@@ -32,9 +32,9 @@ export function CookbookRecipeCard({ recipe, tab }: { recipe: any, tab: string }
     try {
       await deleteRecipe(recipe.id)
       router.refresh()
-    } catch (err) {
+    } catch (err: any) {
       console.error(err)
-      alert("Error al eliminar la receta. Es posible que tenga dependencias (comentarios/historias) que lo impidan.")
+      alert(err.message || "Error desconocido al eliminar la receta.")
       setIsDeleting(false)
     }
   }

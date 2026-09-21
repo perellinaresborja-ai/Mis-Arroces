@@ -1942,6 +1942,7 @@ export type Database = {
           slug: string
           status: Database["public"]["Enums"]["recipe_status_enum"]
           stock_qty: number | null
+            stock_ingredient_id: string | null
           style_id: string | null
           updated_at: string
           variety_id: string | null
@@ -1970,10 +1971,11 @@ export type Database = {
           slug: string
           status?: Database["public"]["Enums"]["recipe_status_enum"]
           stock_qty?: number | null
+            stock_ingredient_id?: string | null
           style_id?: string | null
           updated_at?: string
           variety_id?: string | null
-          custom_variety?: string | null
+          
           visibility?: Database["public"]["Enums"]["visibility_level_enum"]
         }
         Update: {
@@ -1998,10 +2000,11 @@ export type Database = {
           slug?: string
           status?: Database["public"]["Enums"]["recipe_status_enum"]
           stock_qty?: number | null
+            stock_ingredient_id?: string | null
           style_id?: string | null
           updated_at?: string
           variety_id?: string | null
-          custom_variety?: string | null
+          
           visibility?: Database["public"]["Enums"]["visibility_level_enum"]
         }
         Relationships: [
@@ -2100,21 +2103,24 @@ export type Database = {
         Relationships: []
       }
       rice_varieties: {
-        Row: {
-          created_at: string
-          id: string
-          name: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          name: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          name?: string
-        }
+          Row: {
+            created_at: string
+            id: string
+            name: string
+            ingredient_id: string | null
+          }
+          Insert: {
+            created_at?: string
+            id?: string
+            name: string
+            ingredient_id?: string | null
+          }
+          Update: {
+            created_at?: string
+            id?: string
+            name?: string
+            ingredient_id?: string | null
+          }
         Relationships: []
       }
       saves: {
@@ -3347,6 +3353,7 @@ export type Database = {
           slug: string | null
           status: Database["public"]["Enums"]["recipe_status_enum"] | null
           stock_qty: number | null
+            stock_ingredient_id: string | null
           style_id: string | null
           updated_at: string | null
           variety_id: string | null

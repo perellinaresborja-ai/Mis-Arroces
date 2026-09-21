@@ -30,8 +30,13 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
     .eq("id", resolvedParams.id)
     .single();
   
-  if (!recipe || recipe.deleted_at || recipe.status !== "PUBLISHED" || recipe.visibility !== "PUBLIC") {
-    notFound();
+  if (!recipe || recipe.deleted_at) {
+    return { title: "Receta no encontrada" }
+  }
+
+  // If not public, don't generate rich SEO metadata, but don't 404 either so the owner can still see it
+  if (recipe.status !== "PUBLISHED" || recipe.visibility !== "PUBLIC") {
+    return { title: recipe.name || "Receta Privada" }
   }
 
   const primaryMedia = (recipe.media?.[0] as any)?.media_assets?.storage_path;
@@ -94,7 +99,8 @@ export default async function RecipeDetailPage({
       *,
       author:profiles!recipes_owner_id_fkey(id, username, display_name),
       style:rice_styles(name),
-      variety:rice_varieties(name),
+      variety:rice_varieties(name, ingredient_id, ingredient:ingredients(*)),
+      stock_ingredient:ingredients(*),
       heat:heat_sources(name),
         recipe_vessels(*),
       media:recipe_media!recipe_media_recipe_id_fkey(media_assets(id, storage_path, is_deleted)),
@@ -196,52 +202,14 @@ export default async function RecipeDetailPage({
   // Fetch all units for nutrition calculation
   const { data: unitsData } = await supabase.from("units").select("*");
 
-  // Inject Rice and Broth if they are only in the Ficha Técnica
-  const ingredientsForNutrition = [...(recipe.ingredients || [])];
-  
-  const hasRice = ingredientsForNutrition.some(ing => 
-    ing.canonical?.normalized_name?.toLowerCase().includes('arroz') || 
-    ing.ingredient?.normalized_name?.toLowerCase().includes('arroz') ||
-    ing.display_text?.toLowerCase().includes('arroz')
-  );
-
-  const hasStock = ingredientsForNutrition.some(ing => {
-    const text = (ing.canonical?.normalized_name || ing.ingredient?.normalized_name || ing.display_text || '').toLowerCase();
-    return text.includes('caldo') || text.includes('agua') || text.includes('fumet') || text.includes('fondo');
-  });
-
-  if ((!hasRice && recipe.rice_qty) || (!hasStock && recipe.stock_qty)) {
-    const queries = [];
-    if (!hasRice && recipe.rice_qty) queries.push({ type: 'arroz', qty: recipe.rice_qty });
-    if (!hasStock && recipe.stock_qty) queries.push({ type: 'caldo', qty: recipe.stock_qty });
-    
-    for (const q of queries) {
-      const varietyLabel = recipe.variety?.name || recipe.custom_variety;
-      const searchName = (q.type === 'arroz' && varietyLabel) ? `arroz ${varietyLabel.toLowerCase()}` : q.type;
-      let { data: defaultIng } = await supabase.from('ingredients')
-        .select('*')
-        .ilike('normalized_name', `%${searchName}%`)
-        .eq('nutrition_complete', true)
-        .limit(1)
-        .maybeSingle();
-
-      if (!defaultIng && q.type === 'arroz') {
-         const fallback = await supabase.from('ingredients').select('*').ilike('normalized_name', '%arroz%').eq('nutrition_complete', true).limit(1).maybeSingle();
-         defaultIng = fallback.data;
-      }
-        
-      if (defaultIng) {
-        const gramUnit = unitsData?.find(u => u.name.toLowerCase() === 'g' || u.name.toLowerCase() === 'ml');
-        ingredientsForNutrition.push({
-          normalized_quantity: q.qty,
-          unit_id: gramUnit?.id,
-          display_text: q.type === 'arroz' ? 'Arroz (Ficha)' : 'Caldo (Ficha)',
-          ingredient: defaultIng,
-          unit: gramUnit
-        });
-      }
-    }
-  }
+  // Use unified ingredients for nutrition (SSOT + Fallback + Deduplication)
+  const { getUnifiedIngredients } = require('@/lib/recipe-ingredients-derived');
+  const { unifiedList } = getUnifiedIngredients(recipe);
+  const ingredientsForNutrition = unifiedList.map((i: any) => ({
+    ...i,
+    // ensure virtual items map their canonical info correctly for the nutrition calculator
+    ingredient: i.is_virtual ? i.canonical : i.ingredient
+  }));
 
   const nutrition = calculateNutrition(ingredientsForNutrition, unitsData || [], recipe.base_servings || 1);
 

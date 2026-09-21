@@ -44,43 +44,25 @@ export async function addRecipeToShoppingList(recipeId: string, targetServings?:
 
   if (!listId) throw new Error("Failed to get shopping list")
 
-    // 2. Fetch recipe ingredients
+  // 2. Fetch recipe ingredients
   const { data: recipe } = await supabase
     .from("recipes")
-    .select("base_servings, rice_qty, stock_qty, variety:rice_varieties(name), recipe_ingredients(*, unit:units(id, name))")
+    .select("base_servings, rice_qty, stock_qty, stock_ingredient_id, variety:rice_varieties(name, ingredient_id, ingredient:ingredients(*)), stock_ingredient:ingredients(*), recipe_ingredients(*, canonical:ingredients(normalized_name, id), ingredient:ingredients(normalized_name, id), unit:units(id, name))")
     .eq("id", recipeId)
     .single()
 
   if (!recipe) return
 
-    // Synthetic ingredients for Rice and Stock
-  
   const ratio = (targetServings && recipe.base_servings) ? targetServings / recipe.base_servings : 1;
   
-  const ingredientsToAdd: any[] = recipe.recipe_ingredients ? [...recipe.recipe_ingredients] : []
+  const { getUnifiedIngredients } = require("@/lib/recipe-ingredients-derived");
+  const { unifiedList } = getUnifiedIngredients({
+    ...recipe,
+    ingredients: recipe.recipe_ingredients
+  });
   
-  if (recipe.rice_qty) {
-    const riceName = recipe.variety && (recipe.variety as any).name ? `Arroz (${(recipe.variety as any).name})` : 'Arroz';
-    ingredientsToAdd.push({
-      display_text: riceName,
-      normalized_quantity: recipe.rice_qty,
-      unit: { name: "g" },
-      unit_id: null // We will resolve this below
-    })
-  } else {
-    ingredientsToAdd.push({ display_text: "Arroz", normalized_quantity: null, unit: null, unit_id: null })
-  }
-  
-  if (recipe.stock_qty) {
-    ingredientsToAdd.push({
-      display_text: "Caldo",
-      normalized_quantity: recipe.stock_qty,
-      unit: { name: "ml" },
-      unit_id: null
-    })
-  } else {
-    ingredientsToAdd.push({ display_text: "Caldo", normalized_quantity: null, unit: null, unit_id: null })
-  }
+  // Clone to avoid mutating derived objects
+  const ingredientsToAdd = unifiedList.map((ing: any) => ({ ...ing }));
 
   // 3. Get existing items to merge
   const { data: currentItems } = await supabase

@@ -9,6 +9,12 @@ import { useEffect, useCallback, useRef } from 'react';
  */
 export function useModalHistory(isOpen: boolean, onClose: () => void, modalId: string) {
   const isPopping = useRef(false);
+  const onCloseRef = useRef(onClose);
+
+  // Keep ref updated without triggering re-renders
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
 
   useEffect(() => {
     if (isOpen) {
@@ -17,29 +23,35 @@ export function useModalHistory(isOpen: boolean, onClose: () => void, modalId: s
 
       const handlePopState = (e: PopStateEvent) => {
         isPopping.current = true;
-        onClose();
+        onCloseRef.current();
       };
 
       window.addEventListener('popstate', handlePopState);
       return () => {
         window.removeEventListener('popstate', handlePopState);
-        // Si se desmonta por cualquier razÃ³n distinta a un popstate (ej. el padre cambia condicionalmente),
-        // y todavÃ­a estamos en el estado del modal, debemos limpiar la historia para no dejar un estado "fantasma".
-        if (!isPopping.current && window.history.state?.modal === modalId) {
-          window.history.back();
-        }
       };
     }
-  }, [isOpen, onClose, modalId]);
+  }, [isOpen, modalId]);
 
   const closeModal = useCallback(() => {
-    // Si cerramos manualmente mediante un botÃ³n en pantalla
-    if (window.history.state?.modal === modalId) {
-      window.history.back(); // Esto dispararÃ¡ popstate y llamarÃ¡ a onClose
-    } else {
-      onClose();
-    }
-  }, [modalId, onClose]);
+    // 1. Forzamos el cierre de React inmediatamente para asegurar que la UI reaccione.
+    onCloseRef.current();
+
+    // 2. Limpiamos el historial de forma segura y diferida (300ms) para que Next.js
+    // no bloquee el hilo principal con su reconciliación de rutas antes de que 
+    // React desmonte visualmente el componente.
+    setTimeout(() => {
+      try {
+        if (window.history.state && window.history.state.modal === modalId) {
+          // Unflag before back so we don't double-trigger
+          isPopping.current = true;
+          window.history.back();
+        }
+      } catch (e) {
+        // Ignorar errores de acceso al historial
+      }
+    }, 300);
+  }, [modalId]);
 
   return closeModal;
 }

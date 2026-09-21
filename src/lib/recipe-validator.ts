@@ -1,6 +1,9 @@
 export interface RecipeValidationData {
   name?: string | null;
   base_servings?: number | string | null;
+  rice_qty?: number | string | null;
+  stock_qty?: number | string | null;
+  stock_ingredient_id?: string | null;
   ingredients?: Array<{
     display_text?: string | null;
     normalized_quantity?: number | string | null;
@@ -15,7 +18,7 @@ export interface RecipeValidationData {
 }
 
 export interface ValidationIssue {
-  field: 'name' | 'base_servings' | 'ingredients' | 'steps';
+  field: 'name' | 'base_servings' | 'rice_qty' | 'ingredients' | 'steps';
   message: string;
 }
 
@@ -169,56 +172,38 @@ export function validateRecipeForPublishing(recipe: RecipeValidationData): Recip
     });
   }
 
-  // 3. Ingredientes:
+  // 3. Arroz Estructural (Datos técnicos)
+  const riceQtyNum = recipe.rice_qty !== null && recipe.rice_qty !== undefined && recipe.rice_qty !== ''
+    ? Number(recipe.rice_qty)
+    : NaN;
+
+  if (isNaN(riceQtyNum) || riceQtyNum <= 0) {
+    issues.push({
+      field: 'rice_qty',
+      message: 'Añade la cantidad de arroz en Datos técnicos.'
+    });
+  }
+
+  // 4. Ingredientes:
   // - Debe incluir al menos un ingrediente.
-  // - Debe contener obligatoriamente arroz entre los ingredientes.
   // - No puede haber ingredientes con nombre vacío.
-  // - Si un ingrediente NO tiene expresión de cantidad ("al gusto", "pizca", etc.), debe tener una cantidad numérica > 0.
+  // - Cantidad y unidad son opcionales. No hace falta vinculación al catálogo maestro.
   const rawIngredients = recipe.ingredients || [];
   if (rawIngredients.length === 0) {
     issues.push({
       field: 'ingredients',
-      message: 'Añade todos los ingredientes necesarios, con sus cantidades cuando corresponda.'
-    });
-    // Si no hay ningún ingrediente, también falta el arroz
-    issues.push({
-      field: 'ingredients',
-      message: 'Añade arroz a los ingredientes (v3).'
+      message: 'Añade los ingredientes necesarios para la receta.'
     });
   } else {
     let hasValidIngredient = false;
     let hasEmptyNameIngredient = false;
-    const missingQtyNames: string[] = [];
-
-    // Verificación obligatoria de presencia de arroz
-    if (!hasRiceIngredient(rawIngredients)) {
-      issues.push({
-        field: 'ingredients',
-        message: 'Añade arroz a los ingredientes (v3).'
-      });
-    }
 
     rawIngredients.forEach((ing) => {
       const displayText = (ing.display_text || '').trim();
       if (!displayText) {
         hasEmptyNameIngredient = true;
-        return;
-      }
-
-      const qty = ing.normalized_quantity !== null && ing.normalized_quantity !== undefined && ing.normalized_quantity !== ''
-        ? Number(ing.normalized_quantity)
-        : null;
-
-      const isNonQuantifiable = isNonQuantifiableIngredient(displayText);
-
-      if (qty !== null && !isNaN(qty) && qty > 0) {
-        hasValidIngredient = true;
-      } else if (isNonQuantifiable) {
-        // Legitimate non-quantifiable ingredient like "Sal al gusto" or "Unas hebras de azafrán"
-        hasValidIngredient = true;
       } else {
-        // Needs quantity for scaling & cooking
-        missingQtyNames.push(displayText);
+        hasValidIngredient = true;
       }
     });
 
@@ -229,19 +214,10 @@ export function validateRecipeForPublishing(recipe: RecipeValidationData): Recip
       });
     }
 
-    if (missingQtyNames.length > 0) {
-      const examples = missingQtyNames.slice(0, 3).join(', ');
-      const more = missingQtyNames.length > 3 ? ` y ${missingQtyNames.length - 3} más` : '';
+    if (!hasValidIngredient && !hasEmptyNameIngredient) {
       issues.push({
         field: 'ingredients',
-        message: `Falta indicar la cantidad de: ${examples}${more}. Si es al gusto, indícalo (ej: "al gusto").`
-      });
-    }
-
-    if (!hasValidIngredient && missingQtyNames.length === 0 && !hasEmptyNameIngredient) {
-      issues.push({
-        field: 'ingredients',
-        message: 'Añade todos los ingredientes necesarios, con sus cantidades cuando corresponda.'
+        message: 'Añade los ingredientes necesarios para la receta.'
       });
     }
   }

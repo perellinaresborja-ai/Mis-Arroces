@@ -80,7 +80,7 @@ export async function updateRecipeStatus(id: string, status: string, scheduledFo
   if (status === 'PUBLISHED') {
     const { data: rec, error: recError } = await supabase
       .from("recipes")
-      .select("name, base_servings, recipe_ingredients(display_text, normalized_quantity, unit_id), recipe_steps(instruction, duration_minutes, notes)")
+      .select("name, base_servings, rice_qty, stock_qty, stock_ingredient_id, recipe_ingredients(display_text, normalized_quantity, unit_id), recipe_steps(instruction, duration_minutes, notes)")
       .eq("id", id)
       .eq("owner_id", user.id)
       .maybeSingle();
@@ -93,6 +93,9 @@ export async function updateRecipeStatus(id: string, status: string, scheduledFo
     const validation = validateRecipeForPublishing({
       name: rec.name,
       base_servings: rec.base_servings,
+      rice_qty: rec.rice_qty,
+      stock_qty: rec.stock_qty,
+      stock_ingredient_id: rec.stock_ingredient_id,
       ingredients: rec.recipe_ingredients,
       steps: rec.recipe_steps,
     });
@@ -111,7 +114,7 @@ export async function updateRecipeStatus(id: string, status: string, scheduledFo
   revalidatePath("/cookbook");
   revalidatePath("/");
 
-  redirect("/recipes/" + id);
+  if (!skipRedirect) { redirect("/recipes/" + id); }
 }
 
 interface RecipeStepInput {
@@ -123,7 +126,7 @@ interface RecipeStepInput {
   media_id?: string | null;
 }
 
-export async function updateRecipeFull(id: string, data: any) {
+export async function updateRecipeFull(id: string, data: any, skipRedirect: boolean = false) {
   const { createClient } = require("@/lib/supabase/server");
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -144,6 +147,9 @@ export async function updateRecipeFull(id: string, data: any) {
     const validation = validateRecipeForPublishing({
       name: baseData.name,
       base_servings: baseData.base_servings,
+      rice_qty: baseData.rice_qty,
+      stock_qty: baseData.stock_qty,
+      stock_ingredient_id: baseData.stock_ingredient_id,
       ingredients: ingredients,
       steps: steps,
     });
@@ -347,7 +353,7 @@ export async function updateRecipeFull(id: string, data: any) {
   revalidatePath("/cookbook");
   revalidatePath("/");
 
-  redirect("/recipes/" + id);
+  if (!skipRedirect) { redirect("/recipes/" + id); }
 }
 
 export async function toggleWantToCook(recipeId: string, wantToCook: boolean) {
@@ -399,25 +405,42 @@ export async function deleteRecipe(recipeId: string) {
   if (!user) throw new Error("Unauthorized")
 
   // Verify ownership before modifying related records
-  const { data: recipe } = await supabase.from('recipes').select('id').eq('id', recipeId).eq('owner_id', user.id).single();
+  const { data: recipe } = await supabase.from('recipes').select('id, status').eq('id', recipeId).eq('owner_id', user.id).single();
   if (!recipe) throw new Error("Unauthorized or not found");
 
-  // 1. Delete saves for this recipe across all users
-  await supabase.from('saves').delete().eq('recipe_id', recipeId);
-  
-  // 2. Delete want_to_cook entries for this recipe
-  await supabase.from('want_to_cook').delete().eq('recipe_id', recipeId);
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const adminClient = serviceKey 
+    ? createAdminClient(process.env.NEXT_PUBLIC_SUPABASE_URL || '', serviceKey) 
+    : supabase;
 
-  // 3. Soft delete the recipe (leaves cooking_sessions intact)
-  const { error } = await supabase
-    .from('recipes')
-    .update({ deleted_at: new Date().toISOString() })
-    .eq('id', recipeId)
-    .eq('owner_id', user.id)
+  if (recipe.status === 'DRAFT') {
+    // Drafts have no public dependencies (comments/sessions from others)
+    // We can hard-delete them cleanly to avoid polluting DB.
+    // ON DELETE CASCADE will handle recipe_ingredients, recipe_steps, recipe_media, etc.
+    const { error } = await adminClient.from('recipes').delete().eq('id', recipeId);
+    if (error) {
+      console.error("Hard delete draft recipe error:", error)
+      throw new Error(error.message)
+    }
+  } else {
+    // Published recipes might have cooking sessions or social interactions.
+    // 1. Delete saves for this recipe across all users
+    await adminClient.from('saves').delete().eq('recipe_id', recipeId);
+    
+    // 2. Delete want_to_cook entries for this recipe
+    await adminClient.from('want_to_cook').delete().eq('recipe_id', recipeId);
 
-  if (error) {
-    console.error("Delete recipe error:", error)
-    throw new Error(error.message)
+    // 3. Soft delete the recipe (leaves cooking_sessions intact)
+    // We use adminClient because RLS on 'recipes' FOR UPDATE prevents updating if deleted_at IS NULL without a WITH CHECK
+    const { error } = await adminClient
+      .from('recipes')
+      .update({ deleted_at: new Date().toISOString() })
+      .eq('id', recipeId)
+
+    if (error) {
+      console.error("Soft delete recipe error:", error)
+      throw new Error(error.message)
+    }
   }
 
   revalidatePath('/')
@@ -639,4 +662,4 @@ export async function getOrCreateRiceVariety(name: string) {
   revalidatePath("/recipes", "layout");
   revalidatePath("/discover");
   return created;
-}
+}

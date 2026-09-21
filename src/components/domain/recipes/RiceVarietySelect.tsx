@@ -11,8 +11,8 @@ interface RiceVariety {
 
 interface RiceVarietySelectProps {
   varietyId?: string | null
-  customVariety?: string | null
-  onChange: (val: { varietyId: string | null; customVariety: string | null }) => void
+  
+  onChange: (val: { varietyId: string | null;  }) => void
   initialVarieties: RiceVariety[]
   disabled?: boolean
 }
@@ -27,11 +27,10 @@ function normalize(str: string) {
 
 export function RiceVarietySelect({
   varietyId,
-  customVariety,
+  
   onChange,
   initialVarieties = [],
-  disabled = false,
-}: RiceVarietySelectProps) {
+  disabled = false }: RiceVarietySelectProps) {
   const [varieties, setVarieties] = useState<RiceVariety[]>(initialVarieties)
   const [isOpen, setIsOpen] = useState(false)
   const [inputValue, setInputValue] = useState("")
@@ -58,18 +57,15 @@ export function RiceVarietySelect({
     if (!isOpen) {
       if (selectedCatalogVariety) {
         setInputValue(selectedCatalogVariety.name)
-      } else if (customVariety) {
-        setInputValue(customVariety)
       } else {
         setInputValue("")
       }
     }
-  }, [varietyId, customVariety, selectedCatalogVariety, isOpen])
+  }, [varietyId,  selectedCatalogVariety, isOpen])
 
   const normInput = normalize(inputValue)
   const isInputMatchingSelected =
-    (selectedCatalogVariety && normalize(selectedCatalogVariety.name) === normInput) ||
-    (customVariety && normalize(customVariety) === normInput)
+    (selectedCatalogVariety && normalize(selectedCatalogVariety.name) === normInput) 
 
   // Filter list: if input matches current selection or is empty, show all. Otherwise filter.
   const filteredVarieties =
@@ -79,14 +75,14 @@ export function RiceVarietySelect({
 
   const handleSelect = (v: RiceVariety) => {
     setInputValue(v.name)
-    onChange({ varietyId: v.id, customVariety: null })
+    onChange({ varietyId: v.id })
     setIsOpen(false)
   }
 
   const handleClear = (e: React.MouseEvent) => {
     e.stopPropagation()
     setInputValue("")
-    onChange({ varietyId: null, customVariety: null })
+    onChange({ varietyId: null })
     inputRef.current?.focus()
   }
 
@@ -96,17 +92,17 @@ export function RiceVarietySelect({
 
     const trimmed = text.trim()
     if (!trimmed) {
-      onChange({ varietyId: null, customVariety: null })
+      onChange({ varietyId: null })
       return
     }
 
     // Check if what the user typed directly matches a catalog variety
     const match = varieties.find((v) => normalize(v.name) === normalize(trimmed))
     if (match) {
-      onChange({ varietyId: match.id, customVariety: null })
+      onChange({ varietyId: match.id })
     } else {
       // It's a custom variety written by the user
-      onChange({ varietyId: null, customVariety: trimmed })
+      onChange({ varietyId: null })
     }
   }
 
@@ -118,16 +114,16 @@ export function RiceVarietySelect({
         const trimmed = inputValue.trim()
         if (!trimmed) {
           setInputValue("")
-          onChange({ varietyId: null, customVariety: null })
+          onChange({ varietyId: null })
         } else {
           const match = varieties.find((v) => normalize(v.name) === normalize(trimmed))
           if (match) {
             setInputValue(match.name)
-            onChange({ varietyId: match.id, customVariety: null })
+            onChange({ varietyId: match.id })
           } else {
             // Keep the custom variety typed by user
             setInputValue(trimmed)
-            onChange({ varietyId: null, customVariety: trimmed })
+            onChange({ varietyId: null })
           }
         }
       }
@@ -149,9 +145,9 @@ export function RiceVarietySelect({
         // Leave as custom variety and close dropdown
         setIsOpen(false)
         if (trimmed) {
-          onChange({ varietyId: null, customVariety: trimmed })
+          onChange({ varietyId: null })
         } else {
-          onChange({ varietyId: null, customVariety: null })
+          onChange({ varietyId: null })
         }
       }
       inputRef.current?.blur()
@@ -159,8 +155,6 @@ export function RiceVarietySelect({
       setIsOpen(false)
       if (selectedCatalogVariety) {
         setInputValue(selectedCatalogVariety.name)
-      } else if (customVariety) {
-        setInputValue(customVariety)
       } else {
         setInputValue("")
       }
