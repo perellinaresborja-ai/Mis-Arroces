@@ -360,15 +360,17 @@ export function StoryCreator({
         <div ref={containerRef} {...bindBackgroundGestures()} className="relative w-full max-w-[400px] touch-none h-full max-h-[85vh] md:max-h-full bg-zinc-900 border border-white/10 md:rounded-xl overflow-hidden" style={{ aspectRatio: '9/16' }}>
           
           {/* Close Button Inside Card */}
-          <button 
-            onClick={(e) => {
-              e.stopPropagation();
-              setShowDiscardDialog(true);
-            }}
-            className="absolute top-4 right-4 z-[100] w-8 h-8 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center text-white hover:bg-black/60 transition-colors pointer-events-auto"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
-          </button>
+          {mode === 'EDIT' && (
+            <button 
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowDiscardDialog(true);
+              }}
+              className="absolute top-4 right-4 z-[100] w-8 h-8 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center text-white hover:bg-black/60 transition-colors pointer-events-auto"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+            </button>
+          )}
           
           <SharedStoryRenderer 
             mediaUrl={draftMediaUrl} 
