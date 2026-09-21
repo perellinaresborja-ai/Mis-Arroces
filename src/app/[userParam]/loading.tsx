@@ -10,13 +10,11 @@ export default function Loading() {
         <Skeleton className="w-32 h-4" />
         <div className="flex gap-4 mt-2">
           <Skeleton className="w-24 h-10 rounded-xl" />
-          <Skeleton className="w-24 h-10 rounded-xl" />
         </div>
       </div>
 
       {/* Tabs Skeleton */}
       <div className="w-full border-b border-border mb-6 flex gap-4">
-        <Skeleton className="w-20 h-10" />
         <Skeleton className="w-20 h-10" />
         <Skeleton className="w-20 h-10" />
       </div>

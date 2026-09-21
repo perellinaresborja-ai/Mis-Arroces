@@ -5,6 +5,7 @@ import Link from "next/link"
 import { ShareButton } from "@/components/domain/ShareButton"
 import { ReactionButton } from "@/components/domain/ReactionButton"
 import { MediaCarousel } from "@/components/domain/MediaCarousel"
+import { MediaImage } from "@/components/domain/MediaImage"
 import { MessageCircle, Bookmark } from "lucide-react"
 import { FeedCommentsInline } from "@/components/domain/FeedCommentsInline"
 import { PostOptionsMenu } from "@/components/domain/PostOptionsMenu"
@@ -91,11 +92,20 @@ export function FeedCard({
       
       {/* Header */}
       <header className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Link href={`/@${user.username}`} className="w-10 h-10 rounded-full bg-muted overflow-hidden shrink-0 block">
-            {avatar && <img src={avatar} alt={user.username} className="w-full h-full object-cover" />}
-          </Link>
-          <div>
+          <div className="flex items-center gap-3">
+            <Link href={`/@${user.username}`} className="w-10 h-10 rounded-full bg-muted overflow-hidden shrink-0 block relative">
+              {avatar && (
+                <MediaImage 
+                  src={avatar} 
+                  alt={user.username} 
+                  className="w-full h-full object-cover" 
+                  fill={true} 
+                  variant="avatar" 
+                  fallbackType="avatar"
+                />
+              )}
+            </Link>
+            <div>
             <div className="flex items-center">
               <Link href={`/@${user.username}`} className="font-bold text-[15px] hover:underline">
                 {user.display_name || `@${user.username}`}

@@ -65,7 +65,7 @@ export function MediaImage({
     return <div className={`bg-muted ${className}`} />
   }
 
-  const shouldUnoptimize = unoptimized || isPrivate || variant === 'avatar';
+  const shouldUnoptimize = unoptimized || isPrivate;
 
   if (shouldUnoptimize) {
     if (fill) {
