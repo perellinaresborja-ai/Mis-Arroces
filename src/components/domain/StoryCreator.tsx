@@ -6,12 +6,13 @@ import { StoryTransform, StoryOverlay, StoryBackground, DrawingOverlay } from '@
 import { createClient } from '@/lib/supabase/client';
 import { createStory } from '@/app/actions/stories';
 import { optimizeStoryVideo } from '@/lib/video-optimizer';
-import { globalStoryDraftUrl, globalStoryDraftType, globalStoryDraftFile, clearGlobalStoryDraft, setGlobalStoryDraft } from '@/lib/story-draft';
+import { globalStoryDraftUrl, globalStoryDraftType, globalStoryDraftFile, globalStoryDraftFresh, clearGlobalStoryDraft, setGlobalStoryDraft, consumeGlobalStoryDraft } from '@/lib/story-draft';
 import { SharedStoryRenderer, renderOverlayContent } from './SharedStoryRenderer';
 import { DraggableOverlay } from './stories/DraggableOverlay';
 import { MentionPicker, RecipePicker, IngredientPicker, LocationPicker, StickerPicker, LinkPicker, QuestionPicker, PollPicker, cleanIngredientName } from './stories/StickerPickers';
 import { Camera, User, ChefHat, MapPin, AlignLeft, AlignCenter, AlignRight, Apple, Image as ImageIcon, Trash2, Paintbrush, Sparkles, Link as LinkIcon, HelpCircle, BarChart2, Music } from 'lucide-react';
 import { StoryMusicSelector } from './StoryMusicSelector';
+import { useModalHistory } from '@/hooks/useModalHistory';
 
 const TEXT_COLORS = ['#ffffff', '#000000', '#ef4444', '#f97316', '#eab308', '#22c55e', '#3b82f6', '#a855f7', '#ec4899'];
 const TEXT_FONTS = ['sans-serif', 'serif', 'monospace', 'Impact'];
@@ -28,6 +29,14 @@ export function StoryCreator({
   initialPost?: { id: string, authorName: string, text?: string, coverUrl?: string }
 }) {
   const router = useRouter();
+
+  const safeBack = () => {
+    if ((window.history.state && window.history.state.idx > 0) || (document.referrer && new URL(document.referrer).host === window.location.host)) {
+      safeBack();
+    } else {
+      router.push('/');
+    }
+  };
   const supabase = createClient();
   const containerRef = useRef<HTMLDivElement>(null);
   const [overlays, setOverlays] = useState<StoryOverlay[]>([]);
@@ -36,14 +45,22 @@ export function StoryCreator({
   const [background, setBackground] = useState<StoryBackground>({ type: 'color', value: '#18181B' });
   const [draftMediaUrl, setDraftMediaUrl] = useState<string | undefined>(initialMedia?.url);
   const [draftMediaType, setDraftMediaType] = useState<'IMAGE'|'VIDEO'|undefined>(initialMedia?.type);
+  const [videoHasAudio, setVideoHasAudio] = useState(true);
   const [draftMediaSize, setDraftMediaSize] = useState<number | null>(null);
   const [mediaTransform, setMediaTransform] = useState({ translateX: 0, translateY: 0, scale: 1, rotation: 0 });
 
   useEffect(() => {
-    if (globalStoryDraftUrl && !initialMedia) {
+    if (globalStoryDraftUrl && !initialMedia && globalStoryDraftFresh) {
       setDraftMediaUrl(globalStoryDraftUrl);
       setDraftMediaType(globalStoryDraftType || 'IMAGE');
       // Set mode to EDIT since we have media
+      setMode('EDIT');
+      consumeGlobalStoryDraft();
+    } else if (globalStoryDraftUrl && !globalStoryDraftFresh) {
+      // Stale draft! Clear it.
+      clearGlobalStoryDraft();
+      setDraftMediaUrl(undefined);
+      setDraftMediaType(undefined);
       setMode('EDIT');
     } else if (!initialMedia && !initialRecipe && !initialSession && !initialPost) {
       // Always default to EDIT so the user sees the 'Subir' file picker first,
@@ -63,6 +80,19 @@ export function StoryCreator({
   
   const [mode, setMode] = useState<'EDIT'|'DRAW'|'TEXT'|'STICKER'|'MUSIC'>('EDIT');
   const [musicConfig, setMusicConfig] = useState<any>(null);
+
+  useEffect(() => {
+    if (mode === 'MUSIC' && videoRef.current) {
+      const v = videoRef.current as any;
+      let hasA = false;
+      if (v.audioTracks && v.audioTracks.length > 0) hasA = true;
+      else if (v.mozHasAudio) hasA = true;
+      else if (v.webkitAudioDecodedByteCount > 0) hasA = true;
+      else if (v.videoTracks && v.videoTracks.length > 0 && !v.audioTracks) hasA = false; 
+      else hasA = true; // Fallback to true if we cannot definitively prove it has no audio
+      setVideoHasAudio(hasA);
+    }
+  }, [mode]);
   const videoRef = useRef<HTMLVideoElement>(null);
   
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -168,6 +198,8 @@ export function StoryCreator({
   const [textAlign, setTextAlign] = useState<'left'|'center'|'right'>('center');
 
   const [showDiscardDialog, setShowDiscardDialog] = useState(false);
+  const safeCloseMode = useModalHistory(mode !== 'EDIT', () => setMode('EDIT'), 'storyCreatorMode');
+  const safeCloseDiscard = useModalHistory(showDiscardDialog, () => setShowDiscardDialog(false), 'storyDiscard');
 
   // Init recipe, session or post if passed
     useEffect(() => {
@@ -363,14 +395,14 @@ export function StoryCreator({
               <button 
                 onClick={() => {
                   clearGlobalStoryDraft();
-                  router.back();
+                  safeBack();
                 }}
                 className="w-full py-3 bg-destructive hover:bg-destructive/90 text-destructive-foreground font-bold rounded-2xl transition-colors"
               >
                 Descartar cambios
               </button>
               <button 
-                onClick={() => setShowDiscardDialog(false)}
+                onClick={() => safeCloseDiscard()}
                 className="w-full py-3 bg-muted hover:bg-muted/80 text-foreground font-bold rounded-2xl transition-colors"
               >
                 Seguir editando
@@ -384,12 +416,7 @@ export function StoryCreator({
       <div className="flex-1 relative flex items-center justify-center overflow-hidden" onClick={() => setSelectedOverlayId(null)}>
         <div ref={containerRef} {...bindBackgroundGestures()} className="relative w-full max-w-[400px] touch-none h-full max-h-[85vh] md:max-h-full bg-zinc-900 border border-white/10 md:rounded-xl overflow-hidden" style={{ aspectRatio: '9/16' }}>
           
-          {/* Debug Info */}
-          {draftMediaSize && mode === 'EDIT' && (
-            <div className="absolute top-4 left-4 z-[90] bg-black/70 backdrop-blur-sm text-green-400 text-[10px] font-mono px-2 py-1 rounded-md border border-green-400/30">
-              {(draftMediaSize / (1024 * 1024)).toFixed(2)} MB
-            </div>
-          )}
+          
 
           {/* Close Button Inside Card */}
           {mode === 'EDIT' && (
@@ -555,10 +582,26 @@ export function StoryCreator({
         
       {mode === 'EDIT' && (
           <div className="p-4 flex flex-col gap-4 h-full">
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-3 grid-rows-2 gap-2">
+                {/* Fila 1 */}
                 <button onClick={() => setMode('TEXT')} className="flex flex-col items-center justify-center gap-1.5 p-3 bg-muted hover:bg-muted/80 rounded-2xl transition-colors text-foreground">
                   <AlignLeft size={22} className="text-primary"/>
                   <span className="text-[11px] font-bold">Texto</span>
+                </button>
+                <button onClick={() => { setMode('STICKER'); setActiveStickerType('MENTION'); }} className="flex flex-col items-center justify-center gap-1.5 p-3 bg-muted hover:bg-muted/80 rounded-2xl transition-colors text-foreground">
+                  <User size={22} className="text-primary"/>
+                  <span className="text-[11px] font-bold">Mención</span>
+                </button>
+                <button onClick={() => { setMode('STICKER'); setActiveStickerType('LOCATION'); }} className="flex flex-col items-center justify-center gap-1.5 p-3 bg-muted hover:bg-muted/80 rounded-2xl transition-colors text-foreground">
+                  <MapPin size={22} className="text-primary"/>
+                  <span className="text-[11px] font-bold">Ubicación</span>
+                </button>
+
+                {/* Fila 2 */}
+                <button onClick={() => setMode('MUSIC')} className="flex flex-col items-center justify-center gap-1.5 p-3 bg-muted hover:bg-muted/80 rounded-2xl transition-colors text-foreground relative">
+                  <Music size={22} className={musicConfig ? "text-green-500" : "text-primary"}/>
+                  <span className="text-[11px] font-bold">Música</span>
+                  {musicConfig && <div className="absolute top-2 right-2 w-2 h-2 bg-green-500 rounded-full border border-zinc-900"></div>}
                 </button>
                 <button onClick={() => setMode('DRAW')} className="flex flex-col items-center justify-center gap-1.5 p-3 bg-muted hover:bg-muted/80 rounded-2xl transition-colors text-foreground">
                   <Paintbrush size={22} className="text-primary"/>
@@ -566,12 +609,7 @@ export function StoryCreator({
                 </button>
                 <button onClick={() => setMode('STICKER')} className="flex flex-col items-center justify-center gap-1.5 p-3 bg-muted hover:bg-muted/80 rounded-2xl transition-colors text-foreground">
                   <Sparkles size={22} className="text-primary"/>
-                  <span className="text-[11px] font-bold">Stickers</span>
-                </button>
-                <button onClick={() => setMode('MUSIC')} className="flex flex-col items-center justify-center gap-1.5 p-3 bg-muted hover:bg-muted/80 rounded-2xl transition-colors text-foreground relative">
-                  <Music size={22} className={musicConfig ? "text-green-500" : "text-primary"}/>
-                  <span className="text-[11px] font-bold">Música</span>
-                  {musicConfig && <div className="absolute top-2 right-2 w-2 h-2 bg-green-500 rounded-full border border-zinc-900"></div>}
+                  <span className="text-[11px] font-bold">Añadir</span>
                 </button>
               </div>
             
@@ -581,7 +619,7 @@ export function StoryCreator({
                 <option value="FOLLOWERS">Solo Seguidores</option>
               </select>
                             <button onClick={handlePublish} disabled={isPublishing || isOptimizing} className="w-full font-bold text-lg bg-primary hover:bg-primary/90 text-primary-foreground py-4 rounded-full transition-transform active:scale-[0.98] disabled:opacity-50">
-                  {isOptimizing ? "Optimizando vídeo..." : isPublishing ? "Publicando..." : "Publicar Story"}
+                  {(isPublishing || isOptimizing) ? "Publicando..." : "Publicar Story"}
                 </button>
             </div>
           </div>
@@ -649,11 +687,9 @@ export function StoryCreator({
           <div className="flex flex-col h-[380px] md:h-full relative bg-card">
             {!activeStickerType ? (
               <div className="p-4 grid grid-cols-2 gap-2.5 overflow-y-auto">
-                <button onClick={() => setActiveStickerType('MENTION')} className="bg-muted hover:bg-muted/80 text-foreground p-4 rounded-2xl flex items-center justify-center gap-2 transition-colors font-medium border border-border"><User size={18} className="text-primary"/> Mención</button>
-                <button onClick={() => setActiveStickerType('LOCATION')} className="bg-muted hover:bg-muted/80 text-foreground p-4 rounded-2xl flex items-center justify-center gap-2 transition-colors font-medium border border-border"><MapPin size={18} className="text-primary"/> Ubicación</button>
                 <button onClick={() => setActiveStickerType('RECIPE')} className="bg-muted hover:bg-muted/80 text-foreground p-4 rounded-2xl flex items-center justify-center gap-2 transition-colors font-medium border border-border"><ChefHat size={18} className="text-primary"/> Receta</button>
                 <button onClick={() => setActiveStickerType('INGREDIENT')} className="bg-muted hover:bg-muted/80 text-foreground p-4 rounded-2xl flex items-center justify-center gap-2 transition-colors font-medium border border-border"><Apple size={18} className="text-primary"/> Ingrediente</button>
-                <button onClick={() => setActiveStickerType('GIF')} className="bg-muted hover:bg-muted/80 text-foreground p-4 rounded-2xl flex items-center justify-center gap-2 transition-colors font-medium border border-border"><Sparkles size={18} className="text-primary"/> Stickers</button>
+                <button onClick={() => setActiveStickerType('GIF')} className="bg-muted hover:bg-muted/80 text-foreground p-4 rounded-2xl flex items-center justify-center gap-2 transition-colors font-medium border border-border"><Sparkles size={18} className="text-primary"/> Stickers/GIF</button>
                 <button onClick={() => setActiveStickerType('LINK')} className="bg-muted hover:bg-muted/80 text-foreground p-4 rounded-2xl flex items-center justify-center gap-2 transition-colors font-medium border border-border"><LinkIcon size={18} className="text-primary"/> Enlace</button>
                 <button onClick={() => setActiveStickerType('QUESTION')} className="bg-muted hover:bg-muted/80 text-foreground p-4 rounded-2xl flex items-center justify-center gap-2 transition-colors font-medium border border-border"><HelpCircle size={18} className="text-primary"/> Pregunta</button>
                 <button onClick={() => setActiveStickerType('POLL')} className="bg-muted hover:bg-muted/80 text-foreground p-4 rounded-2xl flex items-center justify-center gap-2 transition-colors font-medium border border-border"><BarChart2 size={18} className="text-primary"/> Votación</button>
@@ -698,13 +734,14 @@ export function StoryCreator({
       </div>
 
       {mode === 'MUSIC' && (
-        <StoryMusicSelector 
+        <StoryMusicSelector
+          isVideo={draftMediaType === 'VIDEO' && videoHasAudio}
           maxDurationMs={draftMediaType === 'VIDEO' ? ((videoRef.current?.duration || 5) * 1000) : 5000}
           onSelect={(config) => {
             setMusicConfig(config);
             setMode('EDIT');
           }}
-          onClose={() => setMode('EDIT')}
+          onClose={() => safeCloseMode()}
         />
       )}
     </div>

@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react'
 import { Music, Play, Pause, Search, X, Volume2, ArrowLeft, Video } from 'lucide-react'
 import { getMusicCatalog } from '@/app/actions/stories'
+import { useModalHistory } from '@/hooks/useModalHistory'
 
 export interface MusicTrack {
   id: string
@@ -19,6 +20,13 @@ export function StoryMusicSelector({ onSelect, onClose, maxDurationMs, isVideo =
   const [search, setSearch] = useState("")
   const [selectedTrack, setSelectedTrack] = useState<MusicTrack | null>(null)
   
+  const safeCloseFragment = useModalHistory(selectedTrack !== null, () => {
+    if (audioRef.current) audioRef.current.pause();
+    setSelectedTrack(null);
+    setIsPlaying(false);
+    setPlayingId(null);
+  }, 'storyMusicFragment');
+
   // Fragment selector state
   const [fragmentDurationMs, setFragmentDurationMs] = useState(isVideo ? maxDurationMs : 5000)
   const [durationInput, setDurationInput] = useState((fragmentDurationMs / 1000).toString())
@@ -41,6 +49,76 @@ export function StoryMusicSelector({ onSelect, onClose, maxDurationMs, isVideo =
   const containerRef = useRef<HTMLDivElement>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
   const [containerWidth, setContainerWidth] = useState(300)
+
+  const dragState = useRef<{ type: 'left' | 'right' | null, startX: number, initialDuration: number, initialStart: number, initialScrollLeft: number }>({
+    type: null, startX: 0, initialDuration: 0, initialStart: 0, initialScrollLeft: 0
+  });
+
+  const maxVisualDurationForScale = Math.max(15000, fragmentDurationMs);
+  const maxWindowWidth = Math.min(280, containerWidth - 40); 
+  const pixelsPerMs = maxWindowWidth / maxVisualDurationForScale;
+  const windowWidth = fragmentDurationMs * pixelsPerMs;
+
+  useEffect(() => {
+    const onPointerMove = (e: PointerEvent) => {
+      if (!dragState.current.type || !selectedTrack) return;
+      
+      const { type, startX, initialDuration, initialStart } = dragState.current;
+      const deltaX = e.clientX - startX;
+      const deltaMs = deltaX / pixelsPerMs;
+      
+      const minDur = 2000;
+      const maxDur = 15000;
+
+      if (type === 'right') {
+        let newDuration = initialDuration + deltaMs;
+        newDuration = Math.max(minDur, Math.min(maxDur, newDuration));
+        if (initialStart + newDuration > selectedTrack.duration_ms) {
+          newDuration = selectedTrack.duration_ms - initialStart;
+        }
+        setFragmentDurationMs(newDuration);
+      } 
+      else if (type === 'left') {
+        let newStart = initialStart + deltaMs;
+        let newDuration = initialDuration - deltaMs;
+        
+        if (newDuration < minDur) {
+          newStart = initialStart + initialDuration - minDur;
+          newDuration = minDur;
+        }
+        if (newDuration > maxDur) {
+          newStart = initialStart + initialDuration - maxDur;
+          newDuration = maxDur;
+        }
+        if (newStart < 0) {
+          newStart = 0;
+          newDuration = initialStart + initialDuration;
+        }
+        
+        setFragmentDurationMs(newDuration);
+        if (scrollRef.current) {
+          scrollRef.current.scrollLeft = newStart * pixelsPerMs;
+          setStartTimeMs(newStart);
+        }
+      }
+    };
+    
+    const onPointerUp = () => {
+      if (dragState.current.type) {
+        dragState.current.type = null;
+        if (audioRef.current && playingId === selectedTrack?.id) {
+          audioRef.current.currentTime = (scrollRef.current?.scrollLeft || 0) / pixelsPerMs / 1000;
+        }
+      }
+    };
+    
+    window.addEventListener('pointermove', onPointerMove);
+    window.addEventListener('pointerup', onPointerUp);
+    return () => {
+      window.removeEventListener('pointermove', onPointerMove);
+      window.removeEventListener('pointerup', onPointerUp);
+    }
+  }, [selectedTrack, pixelsPerMs]);
 
   useEffect(() => {
     getMusicCatalog().then(data => {
@@ -157,14 +235,6 @@ export function StoryMusicSelector({ onSelect, onClose, maxDurationMs, isVideo =
     return t.title.toLowerCase().includes(search.toLowerCase()) || 
            t.artist.toLowerCase().includes(search.toLowerCase());
   })
-
-  // Timeline dimensions
-  // Scale dynamically so the chosen duration fits in a ~280px window (or smaller for very short clips)
-  // This makes the window visually responsive while ensuring even a 5-minute song can be selected without overflowing.
-  const maxVisualDurationForScale = Math.max(15000, fragmentDurationMs);
-  const maxWindowWidth = Math.min(280, containerWidth - 40); 
-  const pixelsPerMs = maxWindowWidth / maxVisualDurationForScale;
-  const windowWidth = fragmentDurationMs * pixelsPerMs;
 
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
     if (!selectedTrack) return;
@@ -313,11 +383,7 @@ export function StoryMusicSelector({ onSelect, onClose, maxDurationMs, isVideo =
           <>
             <div className="p-4 border-b border-border flex items-center justify-between bg-card text-foreground">
               <button 
-                onClick={() => {
-                  if (audioRef.current) audioRef.current.pause();
-                  setSelectedTrack(null);
-                  setIsPlaying(false);
-                }} 
+                onClick={() => safeCloseFragment()} 
                 className="p-2 text-muted-foreground hover:text-foreground rounded-full hover:bg-muted transition-colors"
               >
                 <ArrowLeft className="w-5 h-5" />
@@ -359,11 +425,35 @@ export function StoryMusicSelector({ onSelect, onClose, maxDurationMs, isVideo =
                   <div className="absolute inset-0 pointer-events-none z-20 flex justify-center h-full">
                     <div className="w-full h-full bg-background/60 backdrop-blur-[1px]" />
                     <div 
-                      className="h-full border-x-[3px] border-y-2 border-orange-500 bg-orange-500/10 flex-shrink-0 relative shadow-sm transition-all duration-300"
+                      className="h-full border-x-[3px] border-y-2 border-orange-500 bg-orange-500/10 flex-shrink-0 relative shadow-sm transition-all duration-0"
                       style={{ width: windowWidth }}
                     >
                         <div className="absolute -top-6 left-1/2 -translate-x-1/2 text-xs font-bold text-white bg-orange-500 px-2.5 py-0.5 rounded-full shadow-sm whitespace-nowrap">
-                           {formatTime(startTimeMs)}
+                           {formatTime(startTimeMs)} - {formatTime(startTimeMs + fragmentDurationMs)}
+                        </div>
+                        
+                        {/* Left Handle */}
+                        <div 
+                          className="absolute left-[-20px] top-0 bottom-0 w-[40px] flex items-center justify-center cursor-ew-resize pointer-events-auto touch-none group"
+                          onPointerDown={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            dragState.current = { type: 'left', startX: e.clientX, initialDuration: fragmentDurationMs, initialStart: startTimeMs, initialScrollLeft: scrollRef.current?.scrollLeft || 0 };
+                          }}
+                        >
+                          <div className="w-1.5 h-8 bg-white border border-orange-500 rounded-full shadow-md group-hover:bg-orange-100 transition-colors" />
+                        </div>
+                        
+                        {/* Right Handle */}
+                        <div 
+                          className="absolute right-[-20px] top-0 bottom-0 w-[40px] flex items-center justify-center cursor-ew-resize pointer-events-auto touch-none group"
+                          onPointerDown={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            dragState.current = { type: 'right', startX: e.clientX, initialDuration: fragmentDurationMs, initialStart: startTimeMs, initialScrollLeft: scrollRef.current?.scrollLeft || 0 };
+                          }}
+                        >
+                          <div className="w-1.5 h-8 bg-white border border-orange-500 rounded-full shadow-md group-hover:bg-orange-100 transition-colors" />
                         </div>
                     </div>
                     <div className="w-full h-full bg-background/60 backdrop-blur-[1px]" />
@@ -381,7 +471,7 @@ export function StoryMusicSelector({ onSelect, onClose, maxDurationMs, isVideo =
                       <div style={{ width: Math.max(0, containerWidth / 2 - windowWidth / 2), flexShrink: 0 }} />
                       
                       {/* The track waveform */}
-                      <div className="flex items-center h-16 flex-shrink-0 px-[2px] transition-all duration-300" style={{ width: selectedTrack.duration_ms * pixelsPerMs }}>
+                      <div className="flex items-center h-16 flex-shrink-0 px-[2px] transition-all duration-0" style={{ width: selectedTrack.duration_ms * pixelsPerMs }}>
                         {bars.map((h, i) => (
                           <div key={i} className="flex-1 mx-[1px] rounded-full flex items-center justify-center h-full">
                             <div className="w-full bg-foreground opacity-20 rounded-full" style={{ height: `${h}%` }} />

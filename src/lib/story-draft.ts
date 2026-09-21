@@ -1,6 +1,7 @@
 export let globalStoryDraftFile: File | null = null;
 export let globalStoryDraftUrl: string | null = null;
 export let globalStoryDraftType: 'IMAGE' | 'VIDEO' | null = null;
+export let globalStoryDraftFresh: boolean = false;
 
 export const setGlobalStoryDraft = (file: File) => {
   globalStoryDraftFile = file;
@@ -9,6 +10,11 @@ export const setGlobalStoryDraft = (file: File) => {
   }
   globalStoryDraftUrl = URL.createObjectURL(file);
   globalStoryDraftType = file.type.startsWith('video/') ? 'VIDEO' : 'IMAGE';
+  globalStoryDraftFresh = true;
+};
+
+export const consumeGlobalStoryDraft = () => {
+  globalStoryDraftFresh = false;
 };
 
 export const clearGlobalStoryDraft = () => {
@@ -18,4 +24,5 @@ export const clearGlobalStoryDraft = () => {
   globalStoryDraftFile = null;
   globalStoryDraftUrl = null;
   globalStoryDraftType = null;
+  globalStoryDraftFresh = false;
 };

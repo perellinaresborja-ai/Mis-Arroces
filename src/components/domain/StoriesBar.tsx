@@ -10,10 +10,17 @@ import { setGlobalStoryDraft } from "@/lib/story-draft"
 
 import { MediaImage } from "@/components/domain/MediaImage"
 import { User } from "lucide-react"
+import { useModalHistory } from "@/hooks/useModalHistory"
 
 export function StoriesBar({ groupedStories, currentUser }: { groupedStories: any[], currentUser: any }) {
   const [activeGroupIndex, setActiveGroupIndex] = useState<number | null>(null)
   const router = useRouter()
+
+  const safeCloseViewer = useModalHistory(
+    activeGroupIndex !== null, 
+    () => setActiveGroupIndex(null), 
+    'storiesViewer'
+  );
 
   useEffect(() => {
     if (typeof window !== "undefined" && groupedStories && groupedStories.length > 0) {
@@ -42,7 +49,7 @@ export function StoriesBar({ groupedStories, currentUser }: { groupedStories: an
   }
 
   const handleCloseViewer = () => {
-    setActiveGroupIndex(null)
+    safeCloseViewer()
   }
 
   const currentUserAvatarPath = currentUser?.avatar?.storage_path || (Array.isArray(currentUser?.avatar) ? currentUser.avatar[0]?.storage_path : null);
