@@ -88,8 +88,9 @@ REGLAS OBLIGATORIAS:
   }
 
   try {
-    const key = process.env.GEMINI_API_KEY;
-    if (!key) return { error: "No hay clave de API configurada para Gemini." };
+    const rawKey = process.env.GEMINI_API_KEY;
+    if (!rawKey) return { error: "No hay clave de API configurada para Gemini." };
+    const key = rawKey.trim().replace(/['"]/g, '');
     
     let lastError = null;
     let parsedData = null;
@@ -117,7 +118,9 @@ REGLAS OBLIGATORIAS:
             lastError = `Gemini temp error ${status}`;
             if (i < 3) { await new Promise(r => setTimeout(r, i * 1500)); continue; }
           }
-          return { error: `Error de Gemini (${status}): La IA no pudo procesar la solicitud.` };
+          let cleanErr = err;
+          try { cleanErr = JSON.parse(err).error.message; } catch(e) {}
+          return { error: `Gemini (${status}): ${cleanErr}` };
         }
         
         const json = await res.json();
