@@ -33,6 +33,7 @@ export default function CreateRecipeOptions({ createManualAction }: { createManu
   }
 
   const [aiText, setAiText] = useState("")
+  const [voiceText, setVoiceText] = useState("")
   const [importUrl, setImportUrl] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -112,7 +113,7 @@ export default function CreateRecipeOptions({ createManualAction }: { createManu
           }
           
           if (newText) {
-            setAiText(prev => (prev ? prev.trim() + ' ' : '') + newText)
+            setVoiceText(prev => (prev ? prev.trim() + ' ' : '') + newText)
           }
           lastFinalsRef.current = sessionFinals
         }
@@ -167,7 +168,7 @@ export default function CreateRecipeOptions({ createManualAction }: { createManu
       recognitionRef.current.stop()
     }
     setIsListening(false)
-    setAiText("")
+    setVoiceText("")
     setInterimText("")
     lastFinalsRef.current = ""
     setError(null)
@@ -178,12 +179,12 @@ export default function CreateRecipeOptions({ createManualAction }: { createManu
     await createManualAction()
   }
 
-  const handleAi = async () => {
-    if (!aiText.trim()) return
+  const handleAi = async (textToProcess: string) => {
+    if (!textToProcess.trim()) return
     setIsLoading(true)
     setError(null)
     try {
-      const res = await createAiRecipeDraft(aiText)
+      const res = await createAiRecipeDraft(textToProcess)
       router.push(`/recipes/${res.recipeId}/edit`)
     } catch (err: any) {
       setError(err.message || "Error procesando la receta con IA.")
@@ -241,7 +242,7 @@ export default function CreateRecipeOptions({ createManualAction }: { createManu
               Cancelar
             </button>
             <button
-              onClick={handleAi}
+              onClick={() => handleAi(aiText)}
               disabled={isLoading || aiText.trim().length < 15}
               className="px-6 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-full font-medium transition-colors flex items-center gap-2 disabled:opacity-50"
             >
@@ -289,8 +290,8 @@ export default function CreateRecipeOptions({ createManualAction }: { createManu
             <textarea
               className="w-full h-48 p-4 rounded-xl border border-border bg-card text-foreground resize-none focus:ring-2 focus:ring-orange-500 outline-none"
               placeholder="Puedes editar la transcripción aquí..."
-              value={aiText + (interimText ? (aiText ? ' ' : '') + interimText : '')}
-              onChange={(e) => setAiText(e.target.value)}
+              value={voiceText + (interimText ? (voiceText ? ' ' : '') + interimText : '')}
+              onChange={(e) => setVoiceText(e.target.value)}
               disabled={isLoading}
             />
           </div>
@@ -306,8 +307,8 @@ export default function CreateRecipeOptions({ createManualAction }: { createManu
               Cancelar
             </button>
             <button
-              onClick={handleAi}
-              disabled={isLoading || aiText.trim().length < 15}
+              onClick={() => handleAi(voiceText)}
+              disabled={isLoading || voiceText.trim().length < 15}
               className="px-6 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-full font-medium transition-colors flex items-center gap-2 disabled:opacity-50"
             >
               {isLoading && <Loader2 className="w-4 h-4 animate-spin" />}
