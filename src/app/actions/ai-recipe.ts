@@ -94,13 +94,17 @@ REGLAS OBLIGATORIAS:
     
     let lastError = null;
     let parsedData = null;
+    
+    const fallbackModels = ["gemini-3.5-flash-lite", "gemini-3.6-flash", "gemini-3.5-flash"];
+    let currentModelIndex = 0;
 
     for (let i = 1; i <= 3; i++) {
       try {
+        const model = fallbackModels[currentModelIndex];
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 12000);
 
-        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key=${key}`, {
+        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`, {
           method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             contents: [{ role: "user", parts: [{ text: `${systemPrompt}\n\nTexto libre de la receta:\n${cleanText}` }] }],
@@ -116,11 +120,18 @@ REGLAS OBLIGATORIAS:
           const err = await res.text();
           if ([429, 500, 502, 503, 504].includes(status)) {
             lastError = `Gemini temp error ${status}`;
-            if (i < 3) { await new Promise(r => setTimeout(r, i * 1500)); continue; }
+            if (i < 3) {
+              if (currentModelIndex < fallbackModels.length - 1) {
+                currentModelIndex++; // Fallback to next model
+              } else {
+                await new Promise(r => setTimeout(r, i * 1500));
+              }
+              continue;
+            }
           }
           let cleanErr = err;
           try { cleanErr = JSON.parse(err).error.message; } catch(e) {}
-          return { error: `Gemini (${status}): ${cleanErr}` };
+          return { error: `Gemini (${status}) con modelo ${model}: ${cleanErr}` };
         }
         
         const json = await res.json();
@@ -133,7 +144,12 @@ REGLAS OBLIGATORIAS:
       } catch (err: any) {
         if (err.name === 'AbortError') {
           lastError = "Timeout de Gemini superado";
-          if (i < 3) continue;
+          if (i < 3) {
+            if (currentModelIndex < fallbackModels.length - 1) {
+              currentModelIndex++; // Fallback to next model
+            }
+            continue;
+          }
           return { error: "La IA tardó demasiado en responder (timeout). Inténtalo de nuevo." };
         }
         console.error("Gemini fetch exception:", err);

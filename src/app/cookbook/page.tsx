@@ -18,7 +18,7 @@ export default async function CookbookPage(props: { searchParams?: Promise<{ tab
   let sessions: any[] = []
 
   if (tab === "mine") {
-    const { data } = await supabase.from("recipes").select("*, recipe_ingredients(id), recipe_steps(id), recipe_media!recipe_media_recipe_id_fkey(display_order, media:media_assets(storage_path)), variety:rice_varieties(name), style:rice_styles(name), likes:recipe_likes(user_id), comments:recipe_comments(id)").eq("owner_id", user.id).order("created_at", { ascending: false })
+    const { data } = await supabase.from("recipes").select("*, recipe_ingredients(id, display_text), recipe_steps(id), recipe_media!recipe_media_recipe_id_fkey(display_order, media:media_assets(storage_path)), variety:rice_varieties(name), style:rice_styles(name), likes:recipe_likes(user_id), comments:recipe_comments(id)").eq("owner_id", user.id).order("created_at", { ascending: false })
     
     const rawData = data || []
     recipes = rawData.filter((r: any) => {

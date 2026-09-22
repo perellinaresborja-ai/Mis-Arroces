@@ -41,19 +41,37 @@ export function CookbookRecipeCard({ recipe, tab }: { recipe: any, tab: string }
 
   const isScheduled = recipe.status === 'PUBLISHED' && recipe.scheduled_for && new Date(recipe.scheduled_for) > new Date()
 
+  let fallbackText = "";
+  if (recipe.name?.trim()) {
+    fallbackText = recipe.name;
+  } else if (recipe.recipe_ingredients && recipe.recipe_ingredients.length > 0 && recipe.recipe_ingredients[0].display_text?.trim()) {
+    fallbackText = recipe.recipe_ingredients[0].display_text;
+  } else if (recipe.variety?.name?.trim()) {
+    fallbackText = recipe.variety.name;
+  } else {
+    fallbackText = "Borrador de receta";
+  }
+
   return (
     <div className="flex flex-col w-full group relative" style={{ opacity: isDeleting ? 0.5 : 1, pointerEvents: isDeleting ? 'none' : 'auto' }}>
       <Link 
         href={`/recipes/${recipe.id}`}
         className="aspect-square bg-muted cursor-pointer overflow-hidden border border-border/50 rounded-xl relative block"
       >
-        <MediaImage 
-          src={coverUrl} 
-          alt={recipe.name} 
-          variant="feed"
-          fallbackType="recipe"
-          className="w-full h-full object-cover transition-transform md:group-hover:scale-105" 
-        />
+        {coverUrl ? (
+          <MediaImage 
+            src={coverUrl} 
+            alt={recipe.name || "Receta"} 
+            variant="feed"
+            className="w-full h-full object-cover transition-transform md:group-hover:scale-105" 
+          />
+        ) : (
+          <div className="w-full h-full p-4 flex items-center justify-center text-center transition-transform md:group-hover:scale-105 bg-card">
+            <h3 className="text-xl md:text-2xl font-bold text-foreground line-clamp-4 leading-tight">
+              {fallbackText}
+            </h3>
+          </div>
+        )}
         
         {tab === 'mine' && (
           <div className="absolute top-1.5 left-1.5 z-10 flex gap-1">

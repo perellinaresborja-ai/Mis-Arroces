@@ -47,7 +47,7 @@ export interface FeedCardProps {
   isPinned?: boolean
 
   // Media
-  media: { id: string, storage_path: string }[]
+  media: { id: string, storage_path: string, media_type?: string }[]
   priority?: boolean
 }
 
@@ -150,9 +150,9 @@ export function FeedCard({
       </header>
 
       {/* Context Badge (Sessions) */}
-      {entityType === 'session' && (
+      {entityType === 'session' && linkedRecipe?.id && (
         <div className="text-sm font-medium">
-          Ha cocinado <Link href={`/recipes/${linkedRecipe?.id}`} className="text-primary hover:underline">{linkedRecipe?.name}</Link>
+          Ha cocinado <Link href={`/recipes/${linkedRecipe.id}`} className="text-primary hover:underline">{linkedRecipe.name}</Link>
         </div>
       )}
 
