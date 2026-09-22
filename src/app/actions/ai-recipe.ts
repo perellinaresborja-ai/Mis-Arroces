@@ -1,4 +1,5 @@
 "use server"
+export const maxDuration = 60;
 
 import { createClient } from "@/lib/supabase/server"
 import { z } from "zod"
@@ -102,7 +103,7 @@ REGLAS OBLIGATORIAS:
       try {
         const model = fallbackModels[currentModelIndex];
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 12000);
+        const timeoutId = setTimeout(() => controller.abort(), 25000);
 
         const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`, {
           method: "POST", headers: { "Content-Type": "application/json" },
