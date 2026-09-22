@@ -42,7 +42,13 @@ export default function CreateRecipeOptions({ createManualAction }: { createManu
   const isListeningRef = useRef(false)
   const [interimText, setInterimText] = useState("")
   const recognitionRef = useRef<any>(null)
-  const lastFinalsRef = useRef("")
+  
+  const voiceTextRef = useRef(voiceText)
+  const baseTextRef = useRef("")
+
+  useEffect(() => {
+    voiceTextRef.current = voiceText
+  }, [voiceText])
 
   useEffect(() => {
     return () => {
@@ -85,7 +91,8 @@ export default function CreateRecipeOptions({ createManualAction }: { createManu
       recognition.onstart = () => {
         setIsListening(true)
         isListeningRef.current = true
-        lastFinalsRef.current = ""
+        // Guardamos el texto base que existía antes de iniciar ESTE bloque de grabación
+        baseTextRef.current = voiceTextRef.current
         setError(null)
       }
 
@@ -93,7 +100,8 @@ export default function CreateRecipeOptions({ createManualAction }: { createManu
         let currentInterim = ''
         let sessionFinals = ''
         
-        // Loop through all results from the beginning of the continuous session
+        // Android Chrome no siempre avanza resultIndex ni mantiene historial consistente
+        // Iteramos todo lo que nos da en esta sesión
         for (let i = 0; i < event.results.length; i++) {
           const transcript = event.results[i][0].transcript
           if (event.results[i].isFinal) {
@@ -105,19 +113,13 @@ export default function CreateRecipeOptions({ createManualAction }: { createManu
         
         sessionFinals = sessionFinals.trim()
         
-        if (sessionFinals !== lastFinalsRef.current) {
-          let newText = sessionFinals
-          // If the new final string starts with our previously seen string, just take the new part
-          if (sessionFinals.startsWith(lastFinalsRef.current)) {
-            newText = sessionFinals.substring(lastFinalsRef.current.length).trim()
-          }
+        // Reconstruimos el texto total basándonos estrictamente en el texto previo al inicio de la sesión
+        // + lo que haya reconocido definitivamente en ESTA sesión
+        const newTotalText = baseTextRef.current 
+          ? baseTextRef.current.trim() + (sessionFinals ? ' ' + sessionFinals : '')
+          : sessionFinals
           
-          if (newText) {
-            setVoiceText(prev => (prev ? prev.trim() + ' ' : '') + newText)
-          }
-          lastFinalsRef.current = sessionFinals
-        }
-        
+        setVoiceText(newTotalText)
         setInterimText(currentInterim)
       }
 
@@ -170,7 +172,7 @@ export default function CreateRecipeOptions({ createManualAction }: { createManu
     setIsListening(false)
     setVoiceText("")
     setInterimText("")
-    lastFinalsRef.current = ""
+    baseTextRef.current = ""
     setError(null)
   }
 
@@ -233,22 +235,25 @@ export default function CreateRecipeOptions({ createManualAction }: { createManu
           
           {error && <p className="text-destructive text-sm font-medium">{error}</p>}
           
-          <div className="flex justify-end gap-3">
-            <button
-              onClick={() => setMode('CHOICE')}
-              disabled={isLoading}
-              className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-            >
-              Cancelar
-            </button>
-            <button
-              onClick={() => handleAi(aiText)}
-              disabled={isLoading || aiText.trim().length < 15}
-              className="px-6 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-full font-medium transition-colors flex items-center gap-2 disabled:opacity-50"
-            >
-              {isLoading && <Loader2 className="w-4 h-4 animate-spin" />}
-              {isLoading ? "Procesando..." : "Generar borrador"}
-            </button>
+          <div className="flex flex-col items-end gap-1.5">
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setMode('CHOICE')}
+                disabled={isLoading}
+                className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() => handleAi(aiText)}
+                disabled={isLoading || aiText.trim().length < 15}
+                className="px-6 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-full font-medium transition-colors flex items-center gap-2 disabled:opacity-50"
+              >
+                {isLoading && <Loader2 className="w-4 h-4 animate-spin" />}
+                {isLoading ? "Procesando..." : "Generar borrador"}
+              </button>
+            </div>
+            <p className="text-[11px] text-muted-foreground/70 pr-4 italic">la organizamos por ti.</p>
           </div>
         </div>
       </div>
@@ -298,22 +303,25 @@ export default function CreateRecipeOptions({ createManualAction }: { createManu
           
           {error && <p className="text-destructive text-sm font-medium">{error}</p>}
           
-          <div className="flex justify-end gap-3">
-            <button
-              onClick={handleCancelVoice}
-              disabled={isLoading}
-              className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-            >
-              Cancelar
-            </button>
-            <button
-              onClick={() => handleAi(voiceText)}
-              disabled={isLoading || voiceText.trim().length < 15}
-              className="px-6 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-full font-medium transition-colors flex items-center gap-2 disabled:opacity-50"
-            >
-              {isLoading && <Loader2 className="w-4 h-4 animate-spin" />}
-              {isLoading ? "Procesando..." : "Generar borrador"}
-            </button>
+          <div className="flex flex-col items-end gap-1.5">
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={handleCancelVoice}
+                disabled={isLoading}
+                className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() => handleAi(voiceText)}
+                disabled={isLoading || voiceText.trim().length < 15}
+                className="px-6 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-full font-medium transition-colors flex items-center gap-2 disabled:opacity-50"
+              >
+                {isLoading && <Loader2 className="w-4 h-4 animate-spin" />}
+                {isLoading ? "Procesando..." : "Generar borrador"}
+              </button>
+            </div>
+            <p className="text-[11px] text-muted-foreground/70 pr-4 italic">la organizamos por ti.</p>
           </div>
         </div>
       </div>
