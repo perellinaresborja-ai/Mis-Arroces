@@ -274,7 +274,7 @@ export default function CreateRecipeOptions({ createManualAction }: { createManu
                 className="px-6 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-full font-medium transition-colors flex items-center gap-2 disabled:opacity-50"
               >
                 {isLoading && <Loader2 className="w-4 h-4 animate-spin" />}
-                {isLoading ? "Procesando..." : "Generar borrador"}
+                {isLoading ? "Creando tu receta..." : "Generar borrador"}
               </button>
             </div>
             <p className="text-[11px] text-muted-foreground/70 pr-4 italic">la organizamos por ti.</p>

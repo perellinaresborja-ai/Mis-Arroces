@@ -95,30 +95,47 @@ REGLAS OBLIGATORIAS:
     let parsedData = null;
 
     for (let i = 1; i <= 3; i++) {
-      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${key}`, {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{ role: "user", parts: [{ text: `${systemPrompt}\n\nTexto libre de la receta:\n${cleanText}` }] }],
-          generationConfig: { temperature: 0.1, responseMimeType: "application/json", responseSchema: toGeminiSchema(baseSchema) }
-        })
-      });
-      
-      if (!res.ok) {
-        const err = await res.text();
-        if (res.status === 429 || res.status === 503 || res.status === 500) {
-          lastError = `Gemini temporary error ${res.status}`;
-          if (i < 3) { await new Promise(r => setTimeout(r, i * 1000)); continue; }
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 12000);
+
+        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${key}`, {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [{ role: "user", parts: [{ text: `${systemPrompt}\n\nTexto libre de la receta:\n${cleanText}` }] }],
+            generationConfig: { temperature: 0.1, responseMimeType: "application/json", responseSchema: toGeminiSchema(baseSchema) }
+          }),
+          signal: controller.signal
+        });
+        
+        clearTimeout(timeoutId);
+        
+        if (!res.ok) {
+          const status = res.status;
+          const err = await res.text();
+          if ([429, 500, 502, 503, 504].includes(status)) {
+            lastError = `Gemini temp error ${status}`;
+            if (i < 3) { await new Promise(r => setTimeout(r, i * 1500)); continue; }
+          }
+          return { error: `Error de Gemini (${status}): La IA no pudo procesar la solicitud.` };
         }
-        return { error: `Error de Gemini (${res.status}): La IA no pudo procesar la solicitud.` };
+        
+        const json = await res.json();
+        const str = json.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (!str) return { error: "Respuesta vacía de la IA." };
+        
+        const cleanedStr = str.replace(/^```json\s*/, '').replace(/```\s*$/, '').trim();
+        parsedData = JSON.parse(cleanedStr);
+        break;
+      } catch (err: any) {
+        if (err.name === 'AbortError') {
+          lastError = "Timeout de Gemini superado";
+          if (i < 3) continue;
+          return { error: "La IA tardó demasiado en responder (timeout). Inténtalo de nuevo." };
+        }
+        console.error("Gemini fetch exception:", err);
+        return { error: "Fallo inesperado de red al conectar con IA." };
       }
-      
-      const json = await res.json();
-      const str = json.candidates?.[0]?.content?.parts?.[0]?.text;
-      if (!str) return { error: "Respuesta vacía de la IA." };
-      
-      const cleanedStr = str.replace(/^```json\s*/, '').replace(/```\s*$/, '').trim();
-      parsedData = JSON.parse(cleanedStr);
-      break;
     }
     
     if (!parsedData) return { error: "La IA está ocupada en este momento. Inténtalo de nuevo en unos segundos." };
