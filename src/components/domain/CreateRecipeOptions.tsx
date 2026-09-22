@@ -277,7 +277,6 @@ export default function CreateRecipeOptions({ createManualAction }: { createManu
                 {isLoading ? "Creando tu receta..." : "Generar borrador"}
               </button>
             </div>
-            <p className="text-[11px] text-muted-foreground/70 pr-4 italic">la organizamos por ti.</p>
           </div>
         </div>
       </div>
@@ -345,7 +344,6 @@ export default function CreateRecipeOptions({ createManualAction }: { createManu
                 {isLoading ? "Procesando..." : "Generar borrador"}
               </button>
             </div>
-            <p className="text-[11px] text-muted-foreground/70 pr-4 italic">la organizamos por ti.</p>
           </div>
         </div>
       </div>
