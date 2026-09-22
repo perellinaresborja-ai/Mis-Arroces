@@ -94,7 +94,7 @@ export function MessageBubble({ message, isOwn, onReply, currentUserId }: { mess
             let query;
             if (mType === 'RECIPE') query = supabase.from('recipes').select('*').eq('id', mEntityId).single();
             else if (mType === 'SESSION') query = supabase.from('cooking_sessions').select('*').eq('id', mEntityId).single();
-            else query = supabase.from('stories').select('*, profiles(username), story_media(media:media_assets(storage_path))').eq('id', mEntityId).single();
+            else query = supabase.from('stories').select('*, author:profiles!stories_owner_id_fkey(id, username, display_name, avatar:media_assets!fk_profiles_avatar(storage_path)), story_media(media:media_assets(storage_path)), recipe:recipes(id, name, recipe_media(media:media_assets(storage_path))), session:cooking_sessions(id, session_media(media:media_assets(storage_path)))').eq('id', mEntityId).single();
             
             const { data, error } = await query;
             
@@ -234,7 +234,15 @@ export function MessageBubble({ message, isOwn, onReply, currentUserId }: { mess
           )}
 
           {(mType === 'RECIPE' || mType === 'SESSION' || mType === 'STORY') && (
-            <div className="bg-background/10 rounded-xl p-3 mb-2 border border-border text-foreground">
+            <div 
+              onClick={(e) => {
+                if (mType === 'STORY' && entityStatus === 'LOADED' && entityData) {
+                  e.stopPropagation();
+                  setShowStoryViewer(true);
+                }
+              }}
+              className={`bg-background/10 rounded-xl p-3 mb-2 border border-border text-foreground ${mType === 'STORY' && entityStatus === 'LOADED' ? 'cursor-pointer hover:bg-background/20 transition-colors' : ''}`}
+            >
               {entityStatus === 'LOADING' && <p className="text-xs opacity-70">Cargando...</p>}
               {entityStatus === 'EXPIRED' && <p className="text-xs font-bold">Esta historia ya no está disponible.</p>}
               {entityStatus === 'UNAVAILABLE' && <p className="text-xs font-bold">Esta historia ya no está disponible.</p>}
@@ -250,8 +258,8 @@ export function MessageBubble({ message, isOwn, onReply, currentUserId }: { mess
                   {mType === 'STORY' && (entityData as any).story_media?.[0]?.media?.storage_path && (
                     <img src={`${process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://zvesoygqssyyojqyswwm.supabase.co'}/storage/v1/object/public/recipe_media/${(entityData as any).story_media[0].media.storage_path}`} className="w-full h-40 object-cover rounded-lg mb-2 opacity-90" />
                   )}
-                  {mType === 'STORY' && (entityData as any).profiles?.username && (
-                    <p className="text-sm font-bold truncate">@{(entityData as any).profiles.username}</p>
+                  {mType === 'STORY' && (entityData as any).author?.username && (
+                    <p className="text-sm font-bold truncate">@{(entityData as any).author.username}</p>
                   )}
                   {mType !== 'STORY' && entityData.title && <p className="text-sm font-bold truncate">{entityData.title as string}</p>}
                   
@@ -302,6 +310,7 @@ export function MessageBubble({ message, isOwn, onReply, currentUserId }: { mess
           <StoriesViewer 
             stories={[entityData]} 
             onClose={() => setShowStoryViewer(false)} 
+            currentUserId={currentUserId}
           />
         )}
 
