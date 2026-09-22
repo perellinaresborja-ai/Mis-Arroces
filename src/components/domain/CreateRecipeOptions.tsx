@@ -37,6 +37,11 @@ export default function CreateRecipeOptions({ createManualAction }: { createManu
   const [importUrl, setImportUrl] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [debugLogs, setDebugLogs] = useState<string[]>([])
+
+  const logDebug = (msg: string) => {
+    setDebugLogs(prev => [...prev, `${new Date().toISOString().substring(11,23)}: ${msg}`])
+  }
 
   const [isListening, setIsListening] = useState(false)
   const isListeningRef = useRef(false)
@@ -91,19 +96,19 @@ export default function CreateRecipeOptions({ createManualAction }: { createManu
       recognition.onstart = () => {
         setIsListening(true)
         isListeningRef.current = true
-        // Guardamos el texto base que existía antes de iniciar ESTE bloque de grabación
         baseTextRef.current = voiceTextRef.current
         setError(null)
+        logDebug(`[onstart] baseTextRef: "${baseTextRef.current}"`)
       }
 
       recognition.onresult = (event: any) => {
         let currentInterim = ''
         let sessionFinals = ''
         
-        // Android Chrome no siempre avanza resultIndex ni mantiene historial consistente
-        // Iteramos todo lo que nos da en esta sesión
+        let resultDetails = []
         for (let i = 0; i < event.results.length; i++) {
           const transcript = event.results[i][0].transcript
+          resultDetails.push(`[${i}] "${transcript}" (final:${event.results[i].isFinal})`)
           if (event.results[i].isFinal) {
             sessionFinals += transcript + ' '
           } else {
@@ -113,17 +118,19 @@ export default function CreateRecipeOptions({ createManualAction }: { createManu
         
         sessionFinals = sessionFinals.trim()
         
-        // Reconstruimos el texto total basándonos estrictamente en el texto previo al inicio de la sesión
-        // + lo que haya reconocido definitivamente en ESTA sesión
         const newTotalText = baseTextRef.current 
           ? baseTextRef.current.trim() + (sessionFinals ? ' ' + sessionFinals : '')
           : sessionFinals
+          
+        logDebug(`[onresult] idx:${event.resultIndex}, len:${event.results.length}, base: "${baseTextRef.current}", newTotal: "${newTotalText}"`)
+        logDebug(`[onresult data] ${resultDetails.join(' | ')}`)
           
         setVoiceText(newTotalText)
         setInterimText(currentInterim)
       }
 
       recognition.onerror = (event: any) => {
+        logDebug(`[onerror] err:${event.error}`)
         if (event.error !== 'no-speech') {
           hasError = true
           isListeningRef.current = false
@@ -131,7 +138,7 @@ export default function CreateRecipeOptions({ createManualAction }: { createManu
           setInterimText("")
           
           if (event.error === 'network') {
-            setError("Error de red: El navegador bloqueó el servicio de voz nativo. Si usas Brave o Edge, prueba con Google Chrome.")
+            setError("Error de red: El navegador bloqueó el servicio de voz nativo.")
           } else if (event.error === 'not-allowed') {
             setError("Debes conceder permisos de micrófono en el navegador.")
           } else {
@@ -141,11 +148,13 @@ export default function CreateRecipeOptions({ createManualAction }: { createManu
       }
 
       recognition.onend = () => {
+        logDebug(`[onend] isListeningRef:${isListeningRef.current}, hasError:${hasError}`)
         setInterimText("")
         if (isListeningRef.current && !hasError) {
           try {
             recognition.start()
           } catch (e) {
+            logDebug(`[onend] catch start fail: ${e}`)
             isListeningRef.current = false
             setIsListening(false)
           }
@@ -323,6 +332,12 @@ export default function CreateRecipeOptions({ createManualAction }: { createManu
             </div>
             <p className="text-[11px] text-muted-foreground/70 pr-4 italic">la organizamos por ti.</p>
           </div>
+
+          {debugLogs.length > 0 && (
+            <div className="mt-4 p-2 bg-black/10 rounded overflow-auto h-64 text-xs font-mono text-foreground break-words">
+              {debugLogs.map((log, i) => <div key={i} className="border-b border-border/50 pb-1 mb-1">{log}</div>)}
+            </div>
+          )}
         </div>
       </div>
     )
