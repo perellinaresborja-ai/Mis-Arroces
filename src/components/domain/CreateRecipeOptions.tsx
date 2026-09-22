@@ -410,7 +410,7 @@ export default function CreateRecipeOptions({ createManualAction }: { createManu
         <p className="text-muted-foreground">¿Cómo prefieres empezar?</p>
       </div>
 
-      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-3xl mx-auto">
         <button
           onClick={handleManual}
           disabled={isLoading}
