@@ -84,6 +84,95 @@ export async function importRecipeFromUrlAction(
   const titleForSlug = recipeData.title || "receta-importada"
   const slug = `${titleForSlug.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)+/g, "")}-${Date.now()}`
 
+  let rice_qty: number | null = null
+  let variety_id: string | null = null
+  let stock_qty: number | null = null
+  let stock_ingredient_id: string | null = null
+  const ingsToInsert: any[] = []
+
+  if (recipeData.ingredients && recipeData.ingredients.length > 0) {
+    let order = 1
+    let extractedRice = false
+    let extractedBroth = false
+
+    for (const ing of recipeData.ingredients) {
+      const parsed = parseAndMatchIngredient(ing.raw_text, catalogs)
+      
+      let isRice = false
+      let isBroth = false
+      
+      if (parsed.canonicalIngredientId) {
+        const canonical = catalogs.ingredients.find(i => i.id === parsed.canonicalIngredientId)
+        if (canonical) {
+          const norm = canonical.normalized_name || ""
+          if (norm.includes("arroz")) isRice = true
+          if (norm.includes("caldo") || norm.includes("fumet") || norm.includes("fondo")) isBroth = true
+        }
+      } else {
+        const lower = ing.raw_text.toLowerCase()
+        if (lower.includes("arroz")) isRice = true
+        if (lower.includes("caldo") || lower.includes("fumet") || lower.includes("fondo")) isBroth = true
+      }
+      
+      if (isRice && !extractedRice) {
+        extractedRice = true
+        
+        const lowerRaw = ing.raw_text.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+        for (const v of catalogs.varieties) {
+          const vName = v.name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+          if (lowerRaw.includes(vName)) {
+            variety_id = v.id
+            break
+          }
+        }
+        
+        if (parsed.normalizedQuantity) {
+          if (parsed.unitId) {
+            const u = catalogs.units.find(x => x.id === parsed.unitId)
+            if (u && (u.name.toLowerCase().includes("kilo") || u.name.toLowerCase() === "kg")) {
+              rice_qty = parsed.normalizedQuantity * 1000
+            } else if (u && (u.name.toLowerCase().includes("gramo") || u.name.toLowerCase() === "g" || u.name.toLowerCase() === "gr")) {
+              rice_qty = parsed.normalizedQuantity
+            } else if (parsed.normalizedQuantity >= 50) {
+              rice_qty = parsed.normalizedQuantity
+            }
+          } else if (parsed.normalizedQuantity >= 50) {
+            rice_qty = parsed.normalizedQuantity
+          }
+        }
+        continue
+      }
+      
+      if (isBroth && !extractedBroth) {
+        extractedBroth = true
+        stock_ingredient_id = parsed.canonicalIngredientId
+        
+        if (parsed.normalizedQuantity) {
+          if (parsed.unitId) {
+            const u = catalogs.units.find(x => x.id === parsed.unitId)
+            if (u && (u.name.toLowerCase().includes("litro") && !u.name.toLowerCase().includes("mili"))) {
+              stock_qty = parsed.normalizedQuantity * 1000
+            } else if (u && u.name.toLowerCase().includes("mili")) {
+              stock_qty = parsed.normalizedQuantity
+            } else if (u && u.name.toLowerCase().includes("gramo")) {
+              stock_qty = parsed.normalizedQuantity
+            }
+          }
+        }
+        continue
+      }
+      
+      ingsToInsert.push({
+        display_order: order++,
+        display_text: parsed.displayText || ing.raw_text,
+        normalized_quantity: parsed.normalizedQuantity,
+        unit_id: parsed.unitId,
+        canonical_ingredient_id: parsed.canonicalIngredientId,
+        is_scalable: true,
+      })
+    }
+  }
+
   // 6. Create DRAFT recipe in database without hallucinating missing data
   const recipeInsertPayload: any = {
     owner_id: user.id,
@@ -95,6 +184,10 @@ export async function importRecipeFromUrlAction(
     source_platform: platform,
     base_servings: recipeData.servings ?? null,
     cook_time: recipeData.cook_time_minutes || recipeData.total_time_minutes || null,
+    rice_qty,
+    variety_id,
+    stock_qty,
+    stock_ingredient_id,
   }
 
   const { data: inserted, error: recipeError } = await supabase
@@ -111,21 +204,13 @@ export async function importRecipeFromUrlAction(
   const recipeId = inserted.id
 
   // 7. Insert parsed ingredients preserving raw text
-  if (recipeData.ingredients && recipeData.ingredients.length > 0) {
-    const ingsToInsert = recipeData.ingredients.map((ing, idx) => {
-      const parsed = parseAndMatchIngredient(ing.raw_text, catalogs)
-      return {
-        recipe_id: recipeId,
-        display_order: idx + 1,
-        display_text: parsed.displayText || ing.raw_text,
-        normalized_quantity: parsed.normalizedQuantity,
-        unit_id: parsed.unitId,
-        canonical_ingredient_id: parsed.canonicalIngredientId,
-        is_scalable: true,
-      }
-    })
+  if (ingsToInsert.length > 0) {
+    const finalIngsToInsert = ingsToInsert.map(ing => ({
+      ...ing,
+      recipe_id: recipeId
+    }))
 
-    const { error: ingError } = await supabase.from("recipe_ingredients").insert(ingsToInsert)
+    const { error: ingError } = await supabase.from("recipe_ingredients").insert(finalIngsToInsert)
     if (ingError) {
       console.error("Error inserting imported ingredients:", ingError)
     }

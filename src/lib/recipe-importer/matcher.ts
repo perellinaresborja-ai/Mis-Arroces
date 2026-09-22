@@ -33,6 +33,14 @@ function normalizeString(str: string): string {
     .replace(/\s+/g, " ")
 }
 
+function extractFractionSuffix(text: string): { val: number, remainder: string } {
+  const fractionMatch = text.match(/^(?:y\s+)?(?:medio|media|1\/2)\b/i)
+  if (fractionMatch) return { val: 0.5, remainder: text.slice(fractionMatch[0].length).trim() }
+  const quarterMatch = text.match(/^(?:y\s+)?(?:cuarto|1\/4)\b/i)
+  if (quarterMatch) return { val: 0.25, remainder: text.slice(quarterMatch[0].length).trim() }
+  return { val: 0, remainder: text }
+}
+
 export function parseAndMatchIngredient(
   rawText: string,
   catalogs: {
@@ -68,8 +76,7 @@ export function parseAndMatchIngredient(
   let extractedQuantity: number | null = null
   let matchedUnitId: string | null = null
 
-  // 1. Check leading quantity like: "400 g", "1,5 l", "1/2", "1"
-  // Check fractions e.g. "1/2" -> 0.5
+  // 1. Check leading quantity
   const fractionMatch = working.match(/^([0-9]+)\s*\/\s*([0-9]+)\b/)
   if (fractionMatch) {
     const num = parseFloat(fractionMatch[1])
@@ -79,11 +86,25 @@ export function parseAndMatchIngredient(
       working = working.slice(fractionMatch[0].length).trim()
     }
   } else {
-    const qtyMatch = working.match(/^([0-9]+(?:[.,][0-9]+)?)\s*/)
-    if (qtyMatch) {
-      extractedQuantity = parseFloat(qtyMatch[1].replace(",", "."))
-      working = working.slice(qtyMatch[0].length).trim()
+    const naturalMatch = working.match(/^(un\s+cuarto|medio|media|una\s+mitad|un|una|dos|tres|cuatro|cinco)\b/i)
+    if (naturalMatch) {
+      const valMap: Record<string, number> = { "un cuarto": 0.25, "medio": 0.5, "media": 0.5, "una mitad": 0.5, "un": 1, "una": 1, "dos": 2, "tres": 3, "cuatro": 4, "cinco": 5 }
+      extractedQuantity = valMap[naturalMatch[1].toLowerCase()]
+      working = working.slice(naturalMatch[0].length).trim()
+    } else {
+      const qtyMatch = working.match(/^([0-9]+(?:[.,][0-9]+)?)\s*/)
+      if (qtyMatch) {
+        extractedQuantity = parseFloat(qtyMatch[1].replace(",", "."))
+        working = working.slice(qtyMatch[0].length).trim()
+      }
     }
+  }
+
+  // Check fraction suffix before unit (e.g. "1 y medio litros")
+  if (extractedQuantity !== null) {
+    const sf = extractFractionSuffix(working)
+    extractedQuantity += sf.val
+    working = sf.remainder
   }
 
   // 2. Check leading unit
@@ -101,6 +122,13 @@ export function parseAndMatchIngredient(
       }
       break
     }
+  }
+
+  // Check fraction suffix after unit (e.g. "1 litro y medio")
+  if (extractedQuantity !== null) {
+    const sf = extractFractionSuffix(working)
+    extractedQuantity += sf.val
+    working = sf.remainder
   }
 
   // Strip leading prepositions like "de ", "d' "
@@ -124,8 +152,6 @@ export function parseAndMatchIngredient(
         canonicalId = aliasMatch.id
       } else {
         // 3C. Strict substring: only if candidate exactly matches full words and is unique
-        const words = normalizedQuery.split(" ")
-        // If single generic word like "arroz", match "Arroz Redondo" or "Arroz" if unambiguous
         const matches = catalogs.ingredients.filter(i => {
           return i.normalized_name === normalizedQuery ||
             i.ingredient_aliases?.some(a => a.normalized_alias === normalizedQuery)
@@ -138,8 +164,11 @@ export function parseAndMatchIngredient(
     }
   }
 
+  let finalDisplayText = namePart || cleanOriginal
+  finalDisplayText = finalDisplayText.charAt(0).toUpperCase() + finalDisplayText.slice(1)
+
   return {
-    displayText: cleanOriginal, // Preserve complete original text
+    displayText: finalDisplayText,
     normalizedQuantity: extractedQuantity,
     unitId: matchedUnitId,
     canonicalIngredientId: canonicalId,
