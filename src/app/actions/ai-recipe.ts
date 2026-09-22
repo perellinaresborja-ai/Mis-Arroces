@@ -2,6 +2,8 @@
 
 import { createClient } from "@/lib/supabase/server"
 import { z } from "zod"
+import { getCatalogs } from "@/app/actions/recipes"
+import { parseAndMatchIngredient } from "@/lib/recipe-importer/matcher"
 
 export async function parseRecipeFreeText(text: string) {
   const cleanText = text.trim()
@@ -85,83 +87,62 @@ REGLAS OBLIGATORIAS:
     return s;
   }
 
-  async function callGemini(text: string) {
+  try {
     const key = process.env.GEMINI_API_KEY;
-    if (!key) throw new Error("No hay clave de API configurada para Gemini.");
+    if (!key) return { error: "No hay clave de API configurada para Gemini." };
+    
     let lastError = null;
+    let parsedData = null;
+
     for (let i = 1; i <= 3; i++) {
       const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${key}`, {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          contents: [{ role: "user", parts: [{ text: `${systemPrompt}\n\nTexto libre de la receta:\n${text}` }] }],
+          contents: [{ role: "user", parts: [{ text: `${systemPrompt}\n\nTexto libre de la receta:\n${cleanText}` }] }],
           generationConfig: { temperature: 0.1, responseMimeType: "application/json", responseSchema: toGeminiSchema(baseSchema) }
         })
       });
+      
       if (!res.ok) {
         const err = await res.text();
         if (res.status === 429 || res.status === 503 || res.status === 500) {
-          lastError = new Error(`Gemini temporary error ${res.status}: ${err}`);
+          lastError = `Gemini temporary error ${res.status}`;
           if (i < 3) { await new Promise(r => setTimeout(r, i * 1000)); continue; }
         }
-        throw new Error(`Gemini error ${res.status}: ${err}`);
+        return { error: `Error de Gemini (${res.status}): La IA no pudo procesar la solicitud.` };
       }
+      
       const json = await res.json();
       const str = json.candidates?.[0]?.content?.parts?.[0]?.text;
-      if (!str) throw new Error("Respuesta vacía de la IA.");
-      return JSON.parse(str);
+      if (!str) return { error: "Respuesta vacía de la IA." };
+      
+      const cleanedStr = str.replace(/^```json\s*/, '').replace(/```\s*$/, '').trim();
+      parsedData = JSON.parse(cleanedStr);
+      break;
     }
-    throw lastError;
-  }
-
-  async function callOpenAI(text: string) {
-    const key = process.env.OPENAI_API_KEY;
-    if (!key) throw new Error("No hay clave de API configurada para OpenAI.");
-    const prompt = `${systemPrompt}\n\nDebes responder en formato JSON que cumpla ESTRICTAMENTE este esquema:\n${JSON.stringify(baseSchema, null, 2)}`;
-    const res = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST", headers: { "Content-Type": "application/json", "Authorization": `Bearer ${key}` },
-      body: JSON.stringify({
-        model: "gpt-4o-mini",
-        messages: [{ role: "system", content: prompt }, { role: "user", content: `Texto libre de la receta:\n${text}` }],
-        temperature: 0.1,
-        response_format: { type: "json_object" }
-      })
-    });
-    if (!res.ok) throw new Error(`OpenAI error: ${await res.text()}`);
-    const json = await res.json();
-    const str = json.choices?.[0]?.message?.content;
-    if (!str) throw new Error("Respuesta vacía de la IA.");
-    return JSON.parse(str);
-  }
-
-  try {
-    const parsed = await callGemini(cleanText);
-    return { data: parsed };
+    
+    if (!parsedData) return { error: "La IA está ocupada en este momento. Inténtalo de nuevo en unos segundos." };
+    
+    return { data: parsedData };
   } catch (err: any) {
-    console.error("Gemini failed, falling back to OpenAI:", err);
-    try {
-      const parsed = await callOpenAI(cleanText);
-      return { data: parsed };
-    } catch (err2: any) {
-      console.error("OpenAI fallback failed:", err2);
-      return { error: "La IA está ocupada en este momento. Inténtalo de nuevo en unos segundos." };
-    }
+    console.error("Gemini failed:", err);
+    return { error: "Fallo inesperado al procesar la receta con IA." };
   }
 }
 
 export async function createAiRecipeDraft(text: string) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error("Unauthorized")
+  try {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: "Debes iniciar sesión para usar esta función." }
 
-  const { data: aiData, error: aiError } = await parseRecipeFreeText(text)
-  if (aiError || !aiData) throw new Error(aiError || "Unknown AI Error")
+    const { data: aiData, error: aiError } = await parseRecipeFreeText(text)
+    if (aiError || !aiData) return { error: aiError || "No se pudo procesar la receta con IA." }
 
-  const slug = "receta-ia-" + Date.now()
+    const slug = "receta-ia-" + Date.now()
 
-  // 1. Fetch catalogs for proper matching
-  const { getCatalogs } = await import("@/app/actions/recipes");
-  const { parseAndMatchIngredient } = await import("@/lib/recipe-importer/matcher");
-  const catalogs = await getCatalogs();
+    // 1. Fetch catalogs for proper matching
+    const catalogs = await getCatalogs();
 
   let riceVarietyId = null;
   let stockIngredientId = null;
@@ -218,7 +199,7 @@ export async function createAiRecipeDraft(text: string) {
     status: 'DRAFT'
   }).select().single()
 
-  if (insertError || !recipe) throw new Error("Error creando el borrador.")
+  if (insertError || !recipe) return { error: "Error creando el borrador en la base de datos." }
 
   // 2b. Insert Vessel
   if (vesselTypeId || aiData.vessel_diameter_cm || aiData.vessel_notes) {
@@ -247,7 +228,11 @@ export async function createAiRecipeDraft(text: string) {
       }
     })
     const { error: ingError } = await supabase.from('recipe_ingredients').insert(ingInserts)
-    if (ingError) console.error("Error inserting ingredients:", ingError)
+    if (ingError) {
+      console.error("Error inserting ingredients:", ingError)
+      await supabase.from('recipes').delete().eq('id', recipe.id)
+      return { error: "Fallo al guardar los ingredientes. Operación cancelada." }
+    }
   }
 
   // 4. Insert Steps
@@ -262,8 +247,17 @@ export async function createAiRecipeDraft(text: string) {
         step_number: idx + 1
       };
     })
-    await supabase.from('recipe_steps').insert(stepInserts)
+    const { error: stepError } = await supabase.from('recipe_steps').insert(stepInserts)
+    if (stepError) {
+      console.error("Error inserting steps:", stepError)
+      await supabase.from('recipes').delete().eq('id', recipe.id)
+      return { error: "Fallo al guardar los pasos. Operación cancelada." }
+    }
   }
 
   return { recipeId: recipe.id }
+  } catch (err: any) {
+    console.error("Server Action Exception (createAiRecipeDraft):", err)
+    return { error: err.message || "Excepción interna del servidor." }
+  }
 }

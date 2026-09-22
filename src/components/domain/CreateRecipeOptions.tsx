@@ -203,6 +203,11 @@ export default function CreateRecipeOptions({ createManualAction }: { createManu
     setError(null)
     try {
       const res = await createAiRecipeDraft(textToProcess)
+      if (res.error) {
+        setError(res.error)
+        setIsLoading(false)
+        return
+      }
       router.push(`/recipes/${res.recipeId}/edit`)
     } catch (err: any) {
       setError(err.message || "Error procesando la receta con IA.")
@@ -254,7 +259,10 @@ export default function CreateRecipeOptions({ createManualAction }: { createManu
           <div className="flex flex-col items-end gap-1.5">
             <div className="flex justify-end gap-3">
               <button
-                onClick={() => setMode('CHOICE')}
+                onClick={() => {
+                  setAiText("")
+                  setError(null)
+                }}
                 disabled={isLoading}
                 className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
               >
