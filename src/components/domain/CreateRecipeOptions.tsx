@@ -37,11 +37,6 @@ export default function CreateRecipeOptions({ createManualAction }: { createManu
   const [importUrl, setImportUrl] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [debugLogs, setDebugLogs] = useState<string[]>([])
-
-  const logDebug = (msg: string) => {
-    setDebugLogs(prev => [...prev, `${new Date().toISOString().substring(11,23)}: ${msg}`])
-  }
 
   const [isListening, setIsListening] = useState(false)
   const isListeningRef = useRef(false)
@@ -98,21 +93,39 @@ export default function CreateRecipeOptions({ createManualAction }: { createManu
         isListeningRef.current = true
         baseTextRef.current = voiceTextRef.current
         setError(null)
-        logDebug(`[onstart] baseTextRef: "${baseTextRef.current}"`)
       }
 
       recognition.onresult = (event: any) => {
+        let isAndroidCumulative = false
+        // Detectar si Android Chrome está enviando el historial completo en cada resultado
+        if (event.results.length > 1) {
+          for (let i = 1; i < event.results.length; i++) {
+            const prev = event.results[i-1][0].transcript.trim()
+            const curr = event.results[i][0].transcript.trim()
+            if (prev.length > 0 && curr.length > prev.length && curr.toLowerCase().startsWith(prev.toLowerCase())) {
+              isAndroidCumulative = true
+              break
+            }
+          }
+        }
+
         let currentInterim = ''
         let sessionFinals = ''
-        
-        let resultDetails = []
-        for (let i = 0; i < event.results.length; i++) {
-          const transcript = event.results[i][0].transcript
-          resultDetails.push(`[${i}] "${transcript}" (final:${event.results[i].isFinal})`)
-          if (event.results[i].isFinal) {
-            sessionFinals += transcript + ' '
-          } else {
-            currentInterim += transcript
+
+        if (isAndroidCumulative) {
+          // BUG DE ANDROID CHROME: El último elemento contiene toda la frase de la sesión
+          const lastTranscript = event.results[event.results.length - 1][0].transcript.trim()
+          sessionFinals = lastTranscript
+          // En modo acumulativo, no separamos interim, todo va al texto principal en tiempo real
+        } else {
+          // COMPORTAMIENTO ESTÁNDAR (Desktop / iOS Safari): Cada índice es un fragmento independiente
+          for (let i = 0; i < event.results.length; i++) {
+            const transcript = event.results[i][0].transcript
+            if (event.results[i].isFinal) {
+              sessionFinals += transcript + ' '
+            } else {
+              currentInterim += transcript
+            }
           }
         }
         
@@ -122,15 +135,11 @@ export default function CreateRecipeOptions({ createManualAction }: { createManu
           ? baseTextRef.current.trim() + (sessionFinals ? ' ' + sessionFinals : '')
           : sessionFinals
           
-        logDebug(`[onresult] idx:${event.resultIndex}, len:${event.results.length}, base: "${baseTextRef.current}", newTotal: "${newTotalText}"`)
-        logDebug(`[onresult data] ${resultDetails.join(' | ')}`)
-          
         setVoiceText(newTotalText)
         setInterimText(currentInterim)
       }
 
       recognition.onerror = (event: any) => {
-        logDebug(`[onerror] err:${event.error}`)
         if (event.error !== 'no-speech') {
           hasError = true
           isListeningRef.current = false
@@ -148,13 +157,11 @@ export default function CreateRecipeOptions({ createManualAction }: { createManu
       }
 
       recognition.onend = () => {
-        logDebug(`[onend] isListeningRef:${isListeningRef.current}, hasError:${hasError}`)
         setInterimText("")
         if (isListeningRef.current && !hasError) {
           try {
             recognition.start()
           } catch (e) {
-            logDebug(`[onend] catch start fail: ${e}`)
             isListeningRef.current = false
             setIsListening(false)
           }
@@ -332,12 +339,6 @@ export default function CreateRecipeOptions({ createManualAction }: { createManu
             </div>
             <p className="text-[11px] text-muted-foreground/70 pr-4 italic">la organizamos por ti.</p>
           </div>
-
-          {debugLogs.length > 0 && (
-            <div className="mt-4 p-2 bg-black/10 rounded overflow-auto h-64 text-xs font-mono text-foreground break-words">
-              {debugLogs.map((log, i) => <div key={i} className="border-b border-border/50 pb-1 mb-1">{log}</div>)}
-            </div>
-          )}
         </div>
       </div>
     )
