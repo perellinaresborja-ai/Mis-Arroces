@@ -154,7 +154,7 @@ export async function safeFetchHtml(url: string, maxRedirects = 3): Promise<stri
     }
 
     if (!res.ok) {
-      throw new Error(`La página respondió con estado ${res.status}. [DEBUG_INFO: status=${res.status} url=${currentUrl}]`)
+      throw new Error(`La página respondió con estado ${res.status}.`)
     }
 
     const contentType = res.headers.get("content-type") || ""
@@ -169,7 +169,7 @@ export async function safeFetchHtml(url: string, maxRedirects = 3): Promise<stri
       if (text.length > 2.5 * 1024 * 1024) {
         throw new Error("La página web supera el límite de tamaño permitido.")
       }
-      return text + `\n<!-- DEBUG_INFO: status=${res.status} url=${currentUrl} -->`
+      return text
     }
 
     const chunks: Uint8Array[] = []
@@ -195,7 +195,7 @@ export async function safeFetchHtml(url: string, maxRedirects = 3): Promise<stri
       fullHtml += decoder.decode(chunk, { stream: true })
     }
     fullHtml += decoder.decode()
-    return fullHtml + `\n<!-- DEBUG_INFO: status=${res.status} url=${currentUrl} -->`
+    return fullHtml
   }
 
   throw new Error("Demasiadas redirecciones al intentar acceder a la receta.")
