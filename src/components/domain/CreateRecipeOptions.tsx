@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { createAiRecipeDraft } from "@/app/actions/ai-recipe"
-import { importRecipeFromUrlAction } from "@/app/actions/import-recipe"
+import { importRecipeFromUrlAction, pollAsyncImportAction } from "@/app/actions/import-recipe"
 import { Loader2, Wand2, PenLine, Globe, Link as LinkIcon, Mic, MicOff } from "lucide-react"
 
 export default function CreateRecipeOptions({ createManualAction }: { createManualAction: () => Promise<void> }) {
@@ -215,12 +215,57 @@ export default function CreateRecipeOptions({ createManualAction }: { createManu
     }
   }
 
+  const isPollingCancelledRef = useRef(false)
+  const pollRun = async (runId: string, url: string, startTime: number) => {
+    if (isPollingCancelledRef.current) {
+      setIsLoading(false)
+      return
+    }
+
+    if (Date.now() - startTime > 180000) {
+      setError("La extracción ha superado el tiempo máximo de 3 minutos. Por favor, inténtalo de nuevo más tarde.")
+      setIsLoading(false)
+      return
+    }
+
+    try {
+      const pollRes = await pollAsyncImportAction(runId, url)
+      if (!pollRes.success) {
+        throw new Error(pollRes.error || "Error al consultar estado de la extracción.")
+      }
+      
+      if (pollRes.pending) {
+        setTimeout(() => pollRun(runId, url, startTime), 5000)
+        return
+      }
+
+      if (pollRes.recipeId) {
+        router.push(`/recipes/${pollRes.recipeId}/edit`)
+      } else {
+        throw new Error("No se pudo obtener el ID del borrador.")
+      }
+    } catch (err: any) {
+      if (!isPollingCancelledRef.current) {
+        setError(err.message || "Error al procesar la receta.")
+        setIsLoading(false)
+      }
+    }
+  }
+
   const handleImport = async () => {
     if (!importUrl.trim()) return
     setIsLoading(true)
     setError(null)
+    isPollingCancelledRef.current = false
     try {
       const res = await importRecipeFromUrlAction(importUrl, true)
+      
+      if (res.success && res.isAsync && res.runId) {
+        // Iniciar polling (no detenemos el loading aún)
+        setTimeout(() => pollRun(res.runId!, importUrl, Date.now()), 5000)
+        return
+      }
+
       if (res.success && res.recipeId) {
         router.push(`/recipes/${res.recipeId}/edit`)
       } else {
@@ -381,9 +426,11 @@ export default function CreateRecipeOptions({ createManualAction }: { createManu
           <div className="flex justify-end gap-3">
             <button
               onClick={() => {
-                setImportUrl("")
-                setError(null)
-              }}
+                  setImportUrl("")
+                  setError(null)
+                  isPollingCancelledRef.current = true
+                  setIsLoading(false)
+                }}
               disabled={isLoading}
               className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
             >
@@ -395,7 +442,7 @@ export default function CreateRecipeOptions({ createManualAction }: { createManu
               className="px-6 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-full font-medium transition-colors flex items-center gap-2 disabled:opacity-50"
             >
               {isLoading && <Loader2 className="w-4 h-4 animate-spin" />}
-              {isLoading ? "Importando..." : "Importar y crear borrador"}
+              {isLoading ? (importUrl.includes("instagram") ? "Extrayendo receta de Instagram..." : importUrl.includes("facebook") || importUrl.includes("fb.watch") ? "Extrayendo receta de Facebook..." : "Importando...") : "Importar y crear borrador"}
             </button>
           </div>
         </div>
@@ -470,3 +517,4 @@ export default function CreateRecipeOptions({ createManualAction }: { createManu
     </div>
   )
 }
+

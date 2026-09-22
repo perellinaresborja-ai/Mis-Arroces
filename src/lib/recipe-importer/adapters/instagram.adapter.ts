@@ -11,27 +11,35 @@ export class InstagramAdapter {
         }
       }
 
-      const appId = process.env.META_APP_ID
-      const clientToken = process.env.META_APP_SECRET || process.env.META_CLIENT_TOKEN
+      const apifyToken = process.env.APIFY_API_TOKEN
 
-      // Official Meta oEmbed requires an app access token (app_id|client_token)
-      if (!appId || !clientToken) {
+      if (!apifyToken) {
         return {
           success: false,
           missingConfig: true,
-          error: "La importación directa desde Instagram requiere configuración oficial de Meta API en el servidor."
+          error: "La importación desde Instagram requiere configurar APIFY_API_TOKEN en el servidor."
         }
       }
 
-      const accessToken = `${appId}|${clientToken}`
-      const oembedUrl = `https://graph.facebook.com/v21.0/instagram_oembed?url=${encodeURIComponent(url)}&access_token=${accessToken}`
+      const apifyUrl = `https://api.apify.com/v2/acts/apify~instagram-scraper/run-sync-get-dataset-items?token=${apifyToken}&timeout=60`
 
       const controller = new AbortController()
-      const timeout = setTimeout(() => controller.abort(), 8000)
+      const timeout = setTimeout(() => controller.abort(), 55000)
 
       let res: Response
       try {
-        res = await fetch(oembedUrl, { signal: controller.signal })
+        res = await fetch(apifyUrl, { 
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ directUrls: [url], resultsType: "details" }),
+          signal: controller.signal 
+        })
+      } catch (err: any) {
+        clearTimeout(timeout)
+        if (err.name === "AbortError") {
+          return { success: false, error: "La extracción de Instagram ha tardado demasiado. Por favor, vuelve a intentarlo." }
+        }
+        throw err
       } finally {
         clearTimeout(timeout)
       }
@@ -39,30 +47,44 @@ export class InstagramAdapter {
       if (!res.ok) {
         return {
           success: false,
-          error: "La publicación de Instagram no es pública o no está disponible."
+          error: "Instagram ha bloqueado el acceso a la publicación o el servicio de extracción está saturado."
         }
       }
 
       const data = await res.json()
-      const rawCaption: string = data.title || ""
-      const authorName: string = data.author_name || null
+      if (!Array.isArray(data) || data.length === 0) {
+        return {
+          success: false,
+          error: "No se encontró información en esta URL. ¿Es posible que sea una cuenta privada?"
+        }
+      }
+
+      const post = data[0]
+      if (post.error) {
+        return {
+          success: false,
+          error: post.errorDescription || "Publicación no accesible o cuenta privada."
+        }
+      }
+
+      const rawCaption: string = post.caption || ""
+      const authorName: string = post.ownerFullName || post.ownerUsername || "Instagram"
 
       if (!rawCaption.trim()) {
         return {
           success: false,
           isInsufficient: true,
-          error: "Esta publicación de Instagram no tiene pie de foto con la receta."
+          error: "Esta publicación de Instagram no tiene texto o pie de foto del que extraer una receta."
         }
       }
 
-      // Parse caption with AI structurer
-      const parsed = await parseRecipeTextWithAi(rawCaption, `Receta de Instagram (@${authorName || "arrocero"})`)
+      const parsed = await parseRecipeTextWithAi(rawCaption, `Receta de Instagram (@${authorName})`)
 
       if (parsed.isInsufficient || !parsed.recipe || (parsed.recipe.ingredients.length === 0 && parsed.recipe.instructions.length === 0)) {
         return {
           success: false,
           isInsufficient: true,
-          error: "El pie de foto de este Instagram no contiene una receta con ingredientes o pasos identificables."
+          error: "El texto de esta publicación no contiene una receta con ingredientes o pasos identificables."
         }
       }
 
@@ -71,9 +93,9 @@ export class InstagramAdapter {
 
       const recipe: ImportedRecipe = {
         source_platform: "INSTAGRAM",
-        source_url: `https://www.instagram.com/p/${shortcode}/`,
+        source_url: post.url || url,
         external_id: shortcode,
-        title: recipeData.title || `Receta de @${authorName || "Instagram"}`,
+        title: recipeData.title || `Receta de @${authorName}`,
         description: rawCaption,
         author_name: authorName,
         servings: recipeData.servings ?? null,

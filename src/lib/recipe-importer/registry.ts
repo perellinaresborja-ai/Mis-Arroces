@@ -3,12 +3,14 @@ import { WebRecipeAdapter } from "./adapters/web-recipe.adapter"
 import { TikTokAdapter } from "./adapters/tiktok.adapter"
 import { YouTubeAdapter } from "./adapters/youtube.adapter"
 import { InstagramAdapter } from "./adapters/instagram.adapter"
+import { FacebookAdapter } from "./adapters/facebook.adapter"
 import { ImportResult } from "./types"
 
 const webAdapter = new WebRecipeAdapter()
 const tikTokAdapter = new TikTokAdapter()
 const youTubeAdapter = new YouTubeAdapter()
 const instagramAdapter = new InstagramAdapter()
+const facebookAdapter = new FacebookAdapter()
 
 export async function fetchRecipeFromAnyUrl(rawUrl: string): Promise<ImportResult> {
   const detection = detectPlatformAndNormalizeUrl(rawUrl)
@@ -25,6 +27,9 @@ export async function fetchRecipeFromAnyUrl(rawUrl: string): Promise<ImportResul
 
     case "INSTAGRAM":
       return await instagramAdapter.extract(detection.normalizedUrl, detection.externalId)
+      
+    case "FACEBOOK":
+      return await facebookAdapter.extract(detection.normalizedUrl, detection.externalId)
 
     default:
       return {
@@ -32,4 +37,8 @@ export async function fetchRecipeFromAnyUrl(rawUrl: string): Promise<ImportResul
         error: "Plataforma no compatible."
       }
   }
+}
+
+export async function checkFacebookRunStatus(runId: string): Promise<ImportResult & { pending?: boolean }> {
+  return await facebookAdapter.checkStatus(runId)
 }

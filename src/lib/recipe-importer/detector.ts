@@ -101,7 +101,22 @@ export function detectPlatformAndNormalizeUrl(rawUrl: string): DetectionResult {
     }
   }
 
-  // 4. Fallback: Generic Recipe Web
+  // 4. Facebook
+  // Formats:
+  // - facebook.com/page/posts/ID
+  // - facebook.com/page/videos/ID
+  // - fb.watch/ID
+  if (hostname === "facebook.com" || hostname === "m.facebook.com" || hostname === "fb.com" || hostname === "fb.watch") {
+    // Para Apify es mejor pasar la URL limpia completa sin trackers
+    const cleanUrl = `https://www.facebook.com${pathname}`
+    return {
+      platform: "FACEBOOK",
+      normalizedUrl: cleanUrl,
+      externalId: null // Apify extrae el ID correctamente
+    }
+  }
+
+  // 5. Fallback: Generic Recipe Web
   // Remove common marketing/tracking queries (utm_*, igsh, fbclid, etc.)
   const cleanSearchParams = new URLSearchParams()
   for (const [key, value] of parsed.searchParams.entries()) {

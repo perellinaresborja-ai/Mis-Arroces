@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache"
 import { createClient } from "@/lib/supabase/server"
 import { detectPlatformAndNormalizeUrl } from "@/lib/recipe-importer/detector"
-import { fetchRecipeFromAnyUrl } from "@/lib/recipe-importer/registry"
+import { fetchRecipeFromAnyUrl, checkFacebookRunStatus } from "@/lib/recipe-importer/registry"
 import { parseAndMatchIngredient } from "@/lib/recipe-importer/matcher"
 import { getCatalogs } from "@/app/actions/recipes"
 
@@ -13,6 +13,8 @@ export interface ImportRecipeActionResult {
   error?: string
   existingDraftId?: string
   isInsufficient?: boolean
+  isAsync?: boolean
+  runId?: string
 }
 
 export async function importRecipeFromUrlAction(
@@ -67,7 +69,7 @@ export async function importRecipeFromUrlAction(
   // 3. Delegate to registered platform adapter
   const importResult = await fetchRecipeFromAnyUrl(canonicalUrl)
 
-  if (!importResult.success || !importResult.recipe) {
+  if (!importResult.success || (!importResult.recipe && !importResult.isAsync)) {
     return {
       success: false,
       isInsufficient: importResult.isInsufficient,
@@ -75,9 +77,19 @@ export async function importRecipeFromUrlAction(
     }
   }
 
-  const recipeData = importResult.recipe
+  if (importResult.isAsync && importResult.runId) {
+    return { success: true, isAsync: true, runId: importResult.runId }
+  }
+
+  const recipeData = importResult.recipe!
 
   // 4. Fetch catalogs for conservative ingredient matching
+  
+  return await saveImportedRecipe(recipeData, user, canonicalUrl, platform)
+}
+
+async function saveImportedRecipe(recipeData: any, user: any, canonicalUrl: string, platform: string): Promise<ImportRecipeActionResult> {
+  const supabase = await createClient()
   const catalogs = await getCatalogs()
 
   // 5. Generate clean slug
@@ -221,7 +233,7 @@ export async function importRecipeFromUrlAction(
 
   // 8. Insert instructions preserving sequence
   if (recipeData.instructions && recipeData.instructions.length > 0) {
-    const stepsToInsert = recipeData.instructions.map((step, idx) => ({
+    const stepsToInsert = recipeData.instructions.map((step: any, idx: number) => ({
       recipe_id: recipeId,
       step_number: step.step_number || idx + 1,
       instruction: step.text,
@@ -240,4 +252,39 @@ export async function importRecipeFromUrlAction(
     success: true,
     recipeId,
   }
+}
+
+export async function pollAsyncImportAction(runId: string, url: string): Promise<ImportRecipeActionResult & { pending?: boolean }> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { success: false, error: "Debes iniciar sesión para importar recetas." }
+
+  const detection = detectPlatformAndNormalizeUrl(url)
+  const canonicalUrl = detection.normalizedUrl
+  const platform = detection.platform
+
+  const { data: existing } = await (supabase.from("recipes") as any)
+    .select("id")
+    .eq("owner_id", user.id)
+    .eq("source_url", canonicalUrl)
+    .is("deleted_at", null)
+    .maybeSingle()
+
+  if (existing) {
+    return { success: true, recipeId: existing.id }
+  }
+
+  const statusResult = await checkFacebookRunStatus(runId)
+  if (!statusResult.success) {
+    return { success: false, error: statusResult.error }
+  }
+  if (statusResult.pending) {
+    return { success: true, pending: true }
+  }
+  
+  if (statusResult.recipe) {
+    return await saveImportedRecipe(statusResult.recipe, user, canonicalUrl, platform)
+  }
+  
+  return { success: false, error: "Error desconocido durante la extracción." }
 }

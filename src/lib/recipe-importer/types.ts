@@ -1,4 +1,4 @@
-export type SourcePlatform = 'WEB' | 'TIKTOK' | 'YOUTUBE' | 'INSTAGRAM';
+export type SourcePlatform = 'WEB' | 'TIKTOK' | 'YOUTUBE' | 'INSTAGRAM' | 'FACEBOOK';
 
 export type ExtractionStatus = 'COMPLETE' | 'PARTIAL' | 'UNSTRUCTURED';
 
@@ -36,4 +36,6 @@ export interface ImportResult {
   error?: string;
   isInsufficient?: boolean;
   missingConfig?: boolean;
+  isAsync?: boolean;
+  runId?: string;
 }
