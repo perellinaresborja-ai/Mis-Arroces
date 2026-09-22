@@ -4,9 +4,20 @@ import { extractRecipeFromJsonLd } from "../extractor"
 
 export class WebRecipeAdapter {
   async extract(url: string): Promise<ImportResult> {
+    let debugStr = "";
     try {
       const html = await safeFetchHtml(url)
+      
+      const debugMatch = html.match(/<!-- DEBUG_INFO: status=(\d+) url=(.*?) -->/);
+      const status = debugMatch ? debugMatch[1] : 'unknown';
+      const finalUrl = debugMatch ? debugMatch[2] : 'unknown';
+      const htmlSize = html.length;
+      const hasJsonLd = html.includes('application/ld+json');
+      const hasRecipe = html.includes('"Recipe"') || html.includes("'Recipe'") || html.includes('&quot;Recipe&quot;');
+
       const extracted = extractRecipeFromJsonLd(html)
+
+      debugStr = ` [DEBUG: status=${status}, url=${finalUrl}, size=${htmlSize}, jsonld=${hasJsonLd}, recipe=${hasRecipe}, ing_len=${extracted.ingredients?.length||0}, ins_len=${extracted.instructions?.length||0}]`;
 
       const ingredients = extracted.ingredients.map(ing => ({
         raw_text: ing
@@ -47,12 +58,12 @@ export class WebRecipeAdapter {
         success: !isInsufficient,
         recipe,
         isInsufficient,
-        error: isInsufficient ? "No se han encontrado ingredientes ni pasos en esta página." : undefined
+        error: isInsufficient ? ("No se han encontrado ingredientes ni pasos en esta página." + debugStr) : undefined
       }
     } catch (err: any) {
       return {
         success: false,
-        error: err.message || "No se ha podido extraer la receta desde la web indicada."
+        error: (err.message || "No se ha podido extraer la receta desde la web indicada.") + debugStr
       }
     }
   }
