@@ -174,8 +174,8 @@ export default async function RecipeDetailPage({
   if (recipe.status === 'PUBLISHED') {
     if (user) {
       const [{ data: savedData }, { data: wantData }] = await Promise.all([
-        supabase.from("collections").select("id, collection_recipes!inner(recipe_id)").eq("owner_id", user.id).eq("name", "Guardados").eq("collection_recipes.recipe_id", recipe.id).maybeSingle(),
-        supabase.from("want_to_cook").select("id").eq("user_id", user.id).eq("recipe_id", recipe.id).single()
+        supabase.from("saves").select("recipe_id").eq("user_id", user.id).eq("recipe_id", recipe.id).maybeSingle(),
+        supabase.from("want_to_cook").select("id").eq("user_id", user.id).eq("recipe_id", recipe.id).maybeSingle()
       ])
       isSaved = !!savedData
       isWantToCook = !!wantData
