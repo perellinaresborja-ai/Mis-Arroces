@@ -184,11 +184,6 @@ export default function CreateRecipeOptions({ createManualAction }: { createManu
     setError(null)
     try {
       const res = await createAiRecipeDraft(aiText)
-      if (res.error) {
-        setError(res.error)
-        setIsLoading(false)
-        return
-      }
       router.push(`/recipes/${res.recipeId}/edit`)
     } catch (err: any) {
       setError(err.message || "Error procesando la receta con IA.")
