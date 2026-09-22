@@ -41,6 +41,7 @@ export default function CreateRecipeOptions({ createManualAction }: { createManu
   const isListeningRef = useRef(false)
   const [interimText, setInterimText] = useState("")
   const recognitionRef = useRef<any>(null)
+  const lastFinalsRef = useRef("")
 
   useEffect(() => {
     return () => {
@@ -83,25 +84,39 @@ export default function CreateRecipeOptions({ createManualAction }: { createManu
       recognition.onstart = () => {
         setIsListening(true)
         isListeningRef.current = true
+        lastFinalsRef.current = ""
         setError(null)
       }
 
       recognition.onresult = (event: any) => {
         let currentInterim = ''
-        let finalTranscripts = ''
+        let sessionFinals = ''
         
-        for (let i = event.resultIndex; i < event.results.length; i++) {
+        // Loop through all results from the beginning of the continuous session
+        for (let i = 0; i < event.results.length; i++) {
           const transcript = event.results[i][0].transcript
           if (event.results[i].isFinal) {
-            finalTranscripts += transcript + ' '
+            sessionFinals += transcript + ' '
           } else {
             currentInterim += transcript
           }
         }
         
-        if (finalTranscripts) {
-          setAiText(prev => (prev ? prev.trim() + ' ' : '') + finalTranscripts.trim())
+        sessionFinals = sessionFinals.trim()
+        
+        if (sessionFinals !== lastFinalsRef.current) {
+          let newText = sessionFinals
+          // If the new final string starts with our previously seen string, just take the new part
+          if (sessionFinals.startsWith(lastFinalsRef.current)) {
+            newText = sessionFinals.substring(lastFinalsRef.current.length).trim()
+          }
+          
+          if (newText) {
+            setAiText(prev => (prev ? prev.trim() + ' ' : '') + newText)
+          }
+          lastFinalsRef.current = sessionFinals
         }
+        
         setInterimText(currentInterim)
       }
 
