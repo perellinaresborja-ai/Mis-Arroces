@@ -14,7 +14,9 @@ export const ExtractedRecipeAiSchema = z.object({
   total_time_minutes: z.number().nullable().describe("Tiempo total en minutos SOLO si se indica expresamente. Si no, null"),
   ingredients: z.array(
     z.object({
-      raw_text: z.string().describe("Texto íntegro original del ingrediente con su cantidad si existe (ej. '400g arroz bomba', '1 cebolla')")
+      raw_text: z.string().describe("Texto Ãntegro original del ingrediente con su cantidad si existe (ej. '400g arroz bomba', '1 cebolla')"),
+      detected_price: z.number().nullable().optional().describe("Precio normalizado a nÃºmero si se menciona expresamente (ej: 3.80). Si no se dice, null."),
+      detected_price_unit: z.string().nullable().optional().describe("Unidad a la que se refiere el precio (ej: 'kg', 'L', 'unidad'). Si no se dice, null.")
     })
   ).default([]).describe("Lista de ingredientes mencionados"),
   instructions: z.array(
@@ -196,7 +198,7 @@ function parseWithHeuristics(
   contextTitle?: string | null
 ): AiParserResult {
   const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean)
-  const ingredients: { raw_text: string }[] = []
+  const ingredients: { raw_text: string; detected_price?: number | null; detected_price_unit?: string | null }[] = []
   const instructions: { step_number: number; text: string; notes?: string | null }[] = []
 
   let inIngredients = false

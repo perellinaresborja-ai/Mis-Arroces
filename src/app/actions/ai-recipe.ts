@@ -38,8 +38,12 @@ REGLAS OBLIGATORIAS:
       base_servings: { type: "number", nullable: true },
       rice_qty: { type: "number", nullable: true, description: "Cantidad del ingrediente principal (arroz) en gramos." },
       rice_variety_hint: { type: "string", nullable: true, description: "Nombre de la variedad de arroz (ej: Bomba, Albufera) para buscar su ID luego." },
+      rice_detected_price: { type: "number", nullable: true, description: "Precio normalizado a número si se menciona (ej: 3.80)." },
+      rice_detected_price_unit: { type: "string", nullable: true, description: "Unidad del precio del arroz (ej: 'kg', 'L', 'unidad')." },
       stock_qty: { type: "number", nullable: true, description: "Cantidad de líquido/caldo en mililitros (ml)." },
       stock_ingredient_hint: { type: "string", nullable: true, description: "Nombre del caldo o fondo (ej: Caldo de pescado) para buscar su ID luego." },
+      stock_detected_price: { type: "number", nullable: true, description: "Precio normalizado a número si se menciona (ej: 3.80)." },
+      stock_detected_price_unit: { type: "string", nullable: true, description: "Unidad del precio del caldo (ej: 'kg', 'L', 'unidad')." },
       rest_time_minutes: { type: "number", nullable: true, description: "Tiempo de reposo en minutos si se especifica." },
       cook_time_minutes: { type: "number", nullable: true, description: "Tiempo de cocción en minutos." },
       difficulty: { type: "string", nullable: true, enum: ["EASY", "MEDIUM", "HARD"] },
@@ -54,7 +58,9 @@ REGLAS OBLIGATORIAS:
         items: {
           type: "object",
           properties: {
-            raw_text: { type: "string", description: "El nombre y cantidad del ingrediente (ej. '1 cebolla pequeña', '200g de pollo')" }
+            raw_text: { type: "string", description: "El nombre y cantidad del ingrediente (ej. '1 cebolla pequeña', '200g de pollo')" },
+            detected_price: { type: "number", nullable: true, description: "Precio normalizado a número si se menciona expresamente (ej: 3.80). Si no se dice, null." },
+            detected_price_unit: { type: "string", nullable: true, description: "Unidad a la que se refiere el precio (ej: 'kg', 'L', 'unidad'). Si no se dice, null." }
           },
           required: ["raw_text"]
         }
@@ -251,6 +257,7 @@ export async function createAiRecipeDraft(text: string) {
   }
 
   // 3. Insert Ingredients via Matcher
+  const detectedPrices: any[] = [];
   if (aiData.ingredients && aiData.ingredients.length > 0) {
     const ingInserts = aiData.ingredients.map((ing: any, idx: number) => {
       const parsed = parseAndMatchIngredient(ing.raw_text, catalogs);
@@ -263,12 +270,95 @@ export async function createAiRecipeDraft(text: string) {
         display_order: idx + 1
       }
     })
-    const { error: ingError } = await supabase.from('recipe_ingredients').insert(ingInserts)
+    const { data: insertedIngs, error: ingError } = await supabase.from('recipe_ingredients').insert(ingInserts).select()
     if (ingError) {
       console.error("Error inserting ingredients:", ingError)
       await supabase.from('recipes').delete().eq('id', recipe.id)
-      return { error: "Fallo al guardar los ingredientes. Operación cancelada." }
+      return { error: "Fallo al guardar los ingredientes. OperaciÃ³n cancelada." }
     }
+    
+    // Guardar precios detectados (tanto para DB como para localStorage del cliente)
+    const costInserts: any[] = [];
+    insertedIngs?.forEach((insertedIng, idx) => {
+       const aiIng = aiData.ingredients[idx];
+       if (aiIng.detected_price != null) {
+          let purchaseUnitId = insertedIng.unit_id;
+          if (aiIng.detected_price_unit) {
+             const hintLower = aiIng.detected_price_unit.toLowerCase();
+             const matchedUnit = catalogs.units?.find((u:any) => hintLower.includes(u.name?.toLowerCase()));
+             if (matchedUnit) purchaseUnitId = matchedUnit.id;
+          }
+          if (purchaseUnitId) {
+            costInserts.push({
+               id: insertedIng.id,
+               recipe_id: recipe.id,
+               owner_id: user.id,
+               purchase_amount: 1,
+               purchase_unit_id: purchaseUnitId,
+               purchase_price: aiIng.detected_price
+            });
+          }
+          detectedPrices.push({
+             canonicalId: insertedIng.canonical_ingredient_id,
+             name: insertedIng.display_text,
+             price: aiIng.detected_price,
+             unitId: purchaseUnitId
+          });
+       }
+    });
+    if (costInserts.length > 0) {
+      const { error: costError } = await supabase.from('recipe_ingredient_costs').insert(costInserts);
+      if (costError) console.error("Error inserting costs:", costError);
+    }
+  }
+
+  // Precios para arroz y caldo (Solo para localStorage, DB no permite FK sin recipe_ingredients)
+  if (aiData.rice_detected_price != null) {
+     let unitId = catalogs.units?.find((u:any) => u.name?.toLowerCase() === 'kg')?.id;
+     if (aiData.rice_detected_price_unit) {
+         const matched = catalogs.units?.find((u:any) => aiData.rice_detected_price_unit!.toLowerCase().includes(u.name?.toLowerCase()));
+         if (matched) unitId = matched.id;
+     }
+     detectedPrices.push({
+         canonicalId: riceVarietyId,
+         name: catalogs.varieties?.find((v:any) => v.id === riceVarietyId)?.name || 'Arroz',
+         price: aiData.rice_detected_price,
+         unitId
+     });
+  }
+  
+  if (aiData.stock_detected_price != null) {
+     let unitId = catalogs.units?.find((u:any) => u.name?.toLowerCase() === 'l')?.id;
+     if (aiData.stock_detected_price_unit) {
+         const matched = catalogs.units?.find((u:any) => aiData.stock_detected_price_unit!.toLowerCase().includes(u.name?.toLowerCase()));
+         if (matched) unitId = matched.id;
+     }
+     detectedPrices.push({
+         canonicalId: stockIngredientId,
+         name: catalogs.ingredients?.find((i:any) => i.id === stockIngredientId)?.normalized_name || 'Caldo',
+         price: aiData.stock_detected_price,
+         unitId
+     });
+  }
+
+  if (detectedPrices.length > 0) {
+     for (const dp of detectedPrices) {
+       if (dp.price == null || !dp.unitId) continue;
+       const upsertData: any = {
+         user_id: user.id,
+         purchase_price: dp.price,
+         purchase_unit_id: dp.unitId,
+         updated_at: new Date().toISOString()
+       };
+       if (dp.canonicalId) {
+          upsertData.canonical_ingredient_id = dp.canonicalId;
+       } else {
+          upsertData.raw_name = dp.name;
+       }
+       await supabase.from('user_ingredient_prices').upsert(upsertData, {
+         onConflict: dp.canonicalId ? 'user_id,canonical_ingredient_id' : 'user_id,raw_name'
+       });
+     }
   }
 
   // 4. Insert Steps
@@ -291,7 +381,7 @@ export async function createAiRecipeDraft(text: string) {
     }
   }
 
-  return { recipeId: recipe.id }
+  return { recipeId: recipe.id, detectedPrices }
   } catch (err: any) {
     console.error("Server Action Exception (createAiRecipeDraft):", err)
     return { error: err.message || "Excepción interna del servidor." }

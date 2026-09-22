@@ -510,11 +510,15 @@ export function renderOverlayContent(overlay: StoryOverlay, mode: string, ctx?: 
       }
 
       return (
-        <div onClick={handleClick} className="bg-card rounded-2xl overflow-hidden shadow-2xl border border-border flex flex-col w-48 cursor-pointer pointer-events-auto transition-transform hover:scale-105">
+        <div onClick={handleClick} className="bg-card rounded-2xl overflow-hidden shadow-2xl border border-border flex flex-col w-60 cursor-pointer pointer-events-auto transition-transform hover:scale-105">
+          {p.coverUrl && (
+            <img src={p.coverUrl} className="w-full aspect-square object-cover" />
+          )}
           {!p.coverUrl && p.text && (<div className="p-4 bg-muted relative flex-1 flex items-center justify-center text-center"><p className="text-sm italic text-muted-foreground line-clamp-3">{p.text}</p></div>)}
           <div className="p-3.5 flex flex-col gap-1 text-center bg-card border-t border-border">
             <span className="font-bold text-foreground text-sm truncate">@{p.authorName}</span>
-            <span className="text-xs font-semibold text-primary">Ver publicación</span>
+            {p.text && p.coverUrl && <p className="text-xs text-muted-foreground line-clamp-2 text-left mt-1">{p.text}</p>}
+            <span className="text-xs font-semibold text-primary mt-1">Ver publicación</span>
           </div>
         </div>
       );

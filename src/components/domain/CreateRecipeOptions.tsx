@@ -431,7 +431,6 @@ export default function CreateRecipeOptions({ createManualAction }: { createManu
                   isPollingCancelledRef.current = true
                   setIsLoading(false)
                 }}
-              disabled={isLoading}
               className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
             >
               Cancelar

@@ -769,8 +769,38 @@ export default function EditRecipeForm({ recipe, catalogs }: { recipe: any, cata
           </div>
           </CollapsibleSection>
 
-
-        <EscandalloSection recipeId={recipe.id} initialIngredients={ingFields} catalogs={catalogs} baseServings={Number(watch("base_servings") || 2)} setValue={setValue} />
+        {(() => {
+          const combinedEscandalloIngredients = [...ingFields];
+          const riceQty = watch("rice_qty");
+          const varietyId = watch("variety_id");
+          if (riceQty && varietyId) {
+            const variety = catalogs.varieties?.find((v: any) => v.id === varietyId);
+            combinedEscandalloIngredients.unshift({
+              id: "virtual_rice",
+              db_id: "virtual_rice",
+              display_text: variety?.name || "Arroz",
+              normalized_quantity: riceQty,
+              unit_id: catalogs.units?.find((u: any) => u.name.toLowerCase() === 'g')?.id || "",
+              canonical_ingredient_id: variety?.id, // Utiliza el ID de variedad como id canónico
+              is_virtual: true
+            } as any);
+          }
+          const stockQty = watch("stock_qty");
+          const stockIngId = watch("stock_ingredient_id");
+          if (stockQty && stockIngId) {
+            const stockIng = catalogs.ingredients?.find((i: any) => i.id === stockIngId);
+            combinedEscandalloIngredients.unshift({
+              id: "virtual_stock",
+              db_id: "virtual_stock",
+              display_text: stockIng?.name || "Caldo",
+              normalized_quantity: stockQty,
+              unit_id: catalogs.units?.find((u: any) => u.name.toLowerCase() === 'ml')?.id || "",
+              canonical_ingredient_id: stockIng?.canonical_ingredient_id || stockIng?.id,
+              is_virtual: true
+            } as any);
+          }
+          return <EscandalloSection recipeId={recipe.id} initialIngredients={combinedEscandalloIngredients} catalogs={catalogs} baseServings={Number(watch("base_servings") || 2)} setValue={setValue} />;
+        })()}
 
           {/* Steps */}
         <CollapsibleSection id="section-steps" title="Pasos de Elaboración" forceOpen={openSections.steps} rightAction={<Button type="button" variant="outline" size="sm" onClick={() => appendStep({ instruction: "", duration_minutes: "", notes: "" })}>

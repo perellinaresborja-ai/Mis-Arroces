@@ -1467,6 +1467,58 @@ export type Database = {
           },
         ]
       }
+      user_ingredient_prices: {
+        Row: {
+          id: string
+          user_id: string
+          canonical_ingredient_id: string | null
+          raw_name: string | null
+          purchase_price: number
+          purchase_unit_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          canonical_ingredient_id?: string | null
+          raw_name?: string | null
+          purchase_price: number
+          purchase_unit_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          canonical_ingredient_id?: string | null
+          raw_name?: string | null
+          purchase_price?: number
+          purchase_unit_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_ingredient_prices_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_ingredient_prices_canonical_ingredient_id_fkey"
+            columns: ["canonical_ingredient_id"]
+            isOneToOne: false
+            referencedRelation: "ingredients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_ingredient_prices_purchase_unit_id_fkey"
+            columns: ["purchase_unit_id"]
+            isOneToOne: false
+            referencedRelation: "units"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       recipe_ingredient_costs: {
         Row: {
           id: string
