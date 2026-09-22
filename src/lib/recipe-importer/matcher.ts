@@ -60,15 +60,15 @@ export function parseAndMatchIngredient(
 
   // Common units mapping in Spanish
   const unitPatterns: { regex: RegExp; nameKeywords: string[] }[] = [
-    { regex: /^(?:kg|kilos?|kilogramos?)\b/i, nameKeywords: ["kilo", "kilogramo"] },
-    { regex: /^(?:g|gr|grs|gramos?)\b/i, nameKeywords: ["gramo"] },
-    { regex: /^(?:l|lt|lts|litros?)\b/i, nameKeywords: ["litro"] },
-    { regex: /^(?:ml|mililitros?)\b/i, nameKeywords: ["mililitro"] },
+    { regex: /^(?:kg|kilos?|kilogramos?)\b/i, nameKeywords: ["kilo", "kilogramo", "kg"] },
+    { regex: /^(?:g|gr|grs|gramos?)\b/i, nameKeywords: ["gramo", "g"] },
+    { regex: /^(?:l|lt|lts|litros?)\b/i, nameKeywords: ["litro", "l"] },
+    { regex: /^(?:ml|mililitros?)\b/i, nameKeywords: ["mililitro", "ml"] },
     { regex: /^(?:cucharadas?|cda|cdas)\b/i, nameKeywords: ["cucharada"] },
     { regex: /^(?:cucharaditas?|cdta|cdtas)\b/i, nameKeywords: ["cucharadita"] },
     { regex: /^(?:pizcas?)\b/i, nameKeywords: ["pizca"] },
-    { regex: /^(?:dientes?)\b/i, nameKeywords: ["diente", "unidad"] },
-    { regex: /^(?:unidades?|uds?|ud|count)\b/i, nameKeywords: ["unidad"] },
+    { regex: /^(?:dientes?)\b/i, nameKeywords: ["diente", "unidad", "und"] },
+    { regex: /^(?:unidades?|uds?|ud|count)\b/i, nameKeywords: ["unidad", "und"] },
     { regex: /^(?:vasos?|tazas?)\b/i, nameKeywords: ["vaso", "taza"] },
   ]
 
@@ -115,7 +115,7 @@ export function parseAndMatchIngredient(
       // Look up unit in database catalogs
       const unitObj = catalogs.units.find(u => {
         const uLower = u.name.toLowerCase()
-        return up.nameKeywords.some(kw => uLower.includes(kw))
+        return up.nameKeywords.some(kw => uLower === kw || uLower.split(/\s+/).includes(kw))
       })
       if (unitObj) {
         matchedUnitId = unitObj.id

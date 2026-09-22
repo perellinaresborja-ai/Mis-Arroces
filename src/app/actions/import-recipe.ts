@@ -150,13 +150,16 @@ export async function importRecipeFromUrlAction(
         if (parsed.normalizedQuantity) {
           if (parsed.unitId) {
             const u = catalogs.units.find(x => x.id === parsed.unitId)
-            if (u && (u.name.toLowerCase().includes("litro") && !u.name.toLowerCase().includes("mili"))) {
+            const uName = u ? u.name.toLowerCase() : ""
+            if (uName === "l" || (uName.includes("litro") && !uName.includes("mili"))) {
               stock_qty = parsed.normalizedQuantity * 1000
-            } else if (u && u.name.toLowerCase().includes("mili")) {
+            } else if (uName === "ml" || uName.includes("mili")) {
               stock_qty = parsed.normalizedQuantity
-            } else if (u && u.name.toLowerCase().includes("gramo")) {
+            } else if (uName === "g" || uName === "gr" || uName.includes("gramo")) {
               stock_qty = parsed.normalizedQuantity
             }
+          } else if (parsed.normalizedQuantity >= 50) {
+            stock_qty = parsed.normalizedQuantity
           }
         }
         continue
