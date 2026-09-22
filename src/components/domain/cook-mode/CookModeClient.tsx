@@ -494,12 +494,12 @@ export function CookModeClient({ recipe, userName, reset }: { recipe: CookModeRe
 
                   const stepObj = recipe.steps[stepIdx]
 
-                  // 2. Read ONLY notes of the finished step (no beep, alarm, or prefix phrase)
+                  // 2. Read ONLY notes of the finished step
                   if (stepObj?.notes && stepObj.notes.trim().length > 0) {
                     await speakText(stepObj.notes.trim())
                   }
 
-                  // 3. Auto-advance logic: check live autoAdvanceRef.current immediately after speech
+                  // 3. Auto-advance logic: check live autoAdvanceRef.current
                   if (autoAdvanceRef.current) {
                     if (stepIdx + 1 < recipe.steps.length) {
                       setCurrentStepIndex(stepIdx + 1)
@@ -680,17 +680,11 @@ export function CookModeClient({ recipe, userName, reset }: { recipe: CookModeRe
           </button>
         </div>
 
-        {/* Step indicator centered AND Auto-Advance button */}
+        {/* Step indicator centered */}
         <div className="flex flex-col items-center gap-2 z-10 shrink-0">
           <div className="text-center font-black text-white/40 uppercase tracking-widest text-xs sm:text-sm">
             Paso {currentStepIndex + 1} de {recipe.steps.length}
           </div>
-          <button 
-            onClick={toggleAutoAdvance} 
-            className={`text-[10px] sm:text-xs font-bold px-3 py-1 rounded-full flex items-center justify-center gap-1.5 transition-colors ${autoAdvance ? 'bg-primary/20 text-primary border border-primary/30' : 'bg-white/10 text-white/60 border border-white/5 hover:bg-white/20'}`}
-          >
-            {autoAdvance ? '✅ Avance Automático' : '⚪ Avance Automático'}
-          </button>
         </div>
 
         {/* Spacer to balance the top bar layout */}
@@ -737,33 +731,41 @@ export function CookModeClient({ recipe, userName, reset }: { recipe: CookModeRe
 
             {/* Timer Display */}
             {hasDuration && (
-            <div className="bg-white/10 border border-white/20 rounded-3xl p-5 flex flex-col items-center justify-center gap-4 shadow-2xl">
-              <div className={`text-6xl md:text-7xl font-black font-mono tracking-tighter tabular-nums leading-none ${timer?.isRunning ? 'text-primary' : 'text-white'}`}>
-                {formatTime(displayTime)}
-              </div>
-              <div className="flex gap-3 w-full">
-                <button 
-                  onClick={() => toggleTimer(currentStepIndex, step.duration_minutes)}
-                  className="flex-1 py-4 rounded-2xl bg-white text-black font-black text-lg flex items-center justify-center gap-2 hover:bg-white/90 active:scale-95 transition-transform"
-                >
-                  {timer?.isRunning ? (
-                    <><Pause className="w-5 h-5 fill-current"/> PAUSAR</>
-                  ) : (
-                    <><Play className="w-5 h-5 fill-current"/> {timer?.remainingMs < durationMs ? "CONTINUAR" : "INICIAR"}</>
-                  )}
-                </button>
-                {timer && timer.remainingMs < durationMs && (
+              <div className="bg-white/10 border border-white/20 rounded-3xl p-4 flex flex-col items-center justify-center gap-3 shadow-2xl">
+                <div className={`text-6xl md:text-7xl font-black font-mono tracking-tighter tabular-nums leading-none ${timer?.isRunning ? 'text-primary' : 'text-white'}`}>
+                  {formatTime(displayTime)}
+                </div>
+                <div className="flex flex-col w-full gap-2">
+                  <div className="flex gap-2 w-full">
+                    <button 
+                      onClick={() => toggleTimer(currentStepIndex, step.duration_minutes)}
+                      className="flex-1 py-3 rounded-2xl bg-white text-black font-black text-lg flex items-center justify-center gap-2 hover:bg-white/90 active:scale-95 transition-transform"
+                    >
+                      {timer?.isRunning ? (
+                        <><Pause className="w-5 h-5 fill-current"/> PAUSAR</>
+                      ) : (
+                        <><Play className="w-5 h-5 fill-current"/> {timer?.remainingMs < durationMs ? "CONTINUAR" : "INICIAR"}</>
+                      )}
+                    </button>
+                    {timer && timer.remainingMs < durationMs && (
+                      <button 
+                        onClick={() => resetTimer(currentStepIndex, step.duration_minutes)}
+                        className="w-16 py-3 rounded-2xl bg-white/20 text-white flex items-center justify-center hover:bg-white/30 active:scale-95 transition-transform shrink-0"
+                        aria-label="Reiniciar temporizador"
+                      >
+                        <RotateCcw className="w-5 h-5" aria-hidden="true" />
+                      </button>
+                    )}
+                  </div>
                   <button 
-                    onClick={() => resetTimer(currentStepIndex, step.duration_minutes)}
-                    className="w-16 py-4 rounded-2xl bg-white/20 text-white flex items-center justify-center hover:bg-white/30 active:scale-95 transition-transform shrink-0"
-                    aria-label="Reiniciar temporizador"
+                    onClick={toggleAutoAdvance} 
+                    className={`text-[10px] sm:text-xs font-bold px-3 py-2 rounded-xl flex items-center justify-center gap-1.5 transition-colors ${autoAdvance ? 'bg-primary/20 text-primary border border-primary/30' : 'bg-white/10 text-white/60 border border-white/5 hover:bg-white/20'}`}
                   >
-                    <RotateCcw className="w-5 h-5" aria-hidden="true" />
+                    {autoAdvance ? '✅ Avance Automático' : '⚪ Avance Automático'}
                   </button>
-                )}
+                </div>
               </div>
-            </div>
-          )}
+            )}
 
           {step.notes && (
             <div className={`mt-2 p-4 rounded-2xl border ${timer?.remainingMs === 0 ? 'bg-primary/20 border-primary/50 text-primary animate-pulse' : 'bg-white/5 border-white/10 text-white/80'} text-center md:text-lg font-medium leading-relaxed`}>
