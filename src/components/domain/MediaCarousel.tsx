@@ -1,54 +1,124 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useRef, useEffect } from "react"
 import Image from "next/image"
-import { ChevronLeft, ChevronRight } from "lucide-react"
+import { ChevronLeft, ChevronRight, Volume2, VolumeX } from "lucide-react"
+import Link from "next/link";
 
 interface MediaItem {
   id: string
   storage_path: string
+  media_type?: string // 'IMAGE' or 'VIDEO'
 }
 
-import Link from "next/link";
 export function MediaCarousel({ items, bucket = "recipe_media", href, priority = false }: { items: MediaItem[], bucket?: string, href?: string, priority?: boolean }) {
   const [currentIndex, setCurrentIndex] = useState(0)
+  const [isMuted, setIsMuted] = useState(true)
+  const videoRefs = useRef<{ [key: number]: HTMLVideoElement | null }>({})
   
   if (!items || items.length === 0) return null
 
-  // Supabase public URL prefix
   const NEXT_PUBLIC_SUPABASE_URL = "https://zvesoygqssyyojqyswwm.supabase.co"
-  const getImageUrl = (path: string) => `${NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/${bucket}/${path}`
+  const getMediaUrl = (path: string) => `${NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/${bucket}/${path}`
 
   const next = (e?: React.MouseEvent) => { e?.preventDefault(); e?.stopPropagation(); setCurrentIndex(prev => (prev + 1) % items.length) }
   const prev = (e?: React.MouseEvent) => { e?.preventDefault(); e?.stopPropagation(); setCurrentIndex(prev => (prev - 1 + items.length) % items.length) }
+  const toggleMute = (e?: React.MouseEvent) => {
+    e?.preventDefault()
+    e?.stopPropagation()
+    setIsMuted(!isMuted)
+  }
+
+  // Play current video, pause others
+  useEffect(() => {
+    Object.entries(videoRefs.current).forEach(([index, videoEl]) => {
+      if (!videoEl) return
+      if (parseInt(index) === currentIndex) {
+        videoEl.play().catch(() => {})
+      } else {
+        videoEl.pause()
+        videoEl.currentTime = 0
+      }
+    })
+  }, [currentIndex])
+
+  const renderMedia = (item: MediaItem, index: number) => {
+    const isVideo = item.media_type === 'VIDEO' || item.storage_path.match(/\.(mp4|webm|mov)$/i)
+    const url = getMediaUrl(item.storage_path)
+
+    if (isVideo) {
+      return (
+        <div className="absolute inset-0 w-full h-full">
+          <video
+            ref={el => { videoRefs.current[index] = el }}
+            src={url}
+            className="w-full h-full object-cover"
+            autoPlay={index === currentIndex}
+            muted={isMuted}
+            loop
+            playsInline
+          />
+          {index === currentIndex && (
+            <button
+              onClick={toggleMute}
+              className="absolute bottom-3 right-3 bg-black/60 text-white rounded-full p-2 hover:bg-black/80 transition z-10"
+            >
+              {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+            </button>
+          )}
+        </div>
+      )
+    }
+
+    return (
+      <Image 
+        src={url} 
+        alt={`Media ${index + 1}`} 
+        fill 
+        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" 
+        className="object-cover" 
+        priority={priority && index === 0} 
+      />
+    )
+  }
 
   return (
     <div className="relative w-full aspect-square md:aspect-[4/3] rounded-2xl overflow-hidden bg-black/5">
       {href ? (
-        <Link href={href} className="absolute inset-0">
-          <Image src={getImageUrl(items[currentIndex].storage_path)} alt={`Media ${currentIndex + 1}`} fill sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" className="object-cover" priority={priority && currentIndex === 0} />
+        <Link href={href} className="absolute inset-0 block">
+          {items.map((item, index) => (
+            <div key={item.id} className="absolute inset-0" style={{ opacity: index === currentIndex ? 1 : 0, transition: 'opacity 0.2s', pointerEvents: index === currentIndex ? 'auto' : 'none' }}>
+              {renderMedia(item, index)}
+            </div>
+          ))}
         </Link>
       ) : (
-        <Image src={getImageUrl(items[currentIndex].storage_path)} alt={`Media ${currentIndex + 1}`} fill sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" className="object-cover" priority={priority && currentIndex === 0} />
+        <div className="absolute inset-0">
+          {items.map((item, index) => (
+            <div key={item.id} className="absolute inset-0" style={{ opacity: index === currentIndex ? 1 : 0, transition: 'opacity 0.2s', pointerEvents: index === currentIndex ? 'auto' : 'none' }}>
+              {renderMedia(item, index)}
+            </div>
+          ))}
+        </div>
       )}
 
       {items.length > 1 && (
         <>
           <button 
             onClick={prev}
-            className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/60 text-white rounded-full p-2 transition"
+            className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/60 text-white rounded-full p-2 transition z-10"
           >
             <ChevronLeft className="w-5 h-5" />
           </button>
           
           <button 
             onClick={next}
-            className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/60 text-white rounded-full p-2 transition"
+            className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/60 text-white rounded-full p-2 transition z-10"
           >
             <ChevronRight className="w-5 h-5" />
           </button>
           
-          <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-1.5">
+          <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-1.5 z-10">
             {items.map((_, idx) => (
               <div 
                 key={idx} 

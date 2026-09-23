@@ -480,7 +480,7 @@ export default function CreateRecipeOptions({ createManualAction }: { createManu
             <Wand2 className="w-8 h-8 text-orange-500" />
           </div>
           <div>
-            <h3 className="font-semibold text-lg">Con IA</h3>
+            <h3 className="font-semibold text-lg">Escribir receta</h3>
             <p className="text-sm text-muted-foreground mt-1">Escribe o pega tu receta y la convertimos en un borrador listo para editar.</p>
           </div>
         </button>

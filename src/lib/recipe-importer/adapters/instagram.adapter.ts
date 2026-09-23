@@ -8,7 +8,7 @@ export class InstagramAdapter {
       if (!shortcode) {
         return {
           success: false,
-          error: "No se ha podido identificar el enlace de la publicación o Reel de Instagram."
+          error: "No se ha podido identificar el enlace de la publicaciÃ³n o Reel de Instagram."
         }
       }
 
@@ -18,7 +18,7 @@ export class InstagramAdapter {
         return {
           success: false,
           missingConfig: true,
-          error: "La importación desde Instagram requiere configurar APIFY_API_TOKEN en el servidor."
+          error: "La importaciÃ³n desde Instagram requiere configurar APIFY_API_TOKEN en el servidor."
         }
       }
 
@@ -38,7 +38,7 @@ export class InstagramAdapter {
       } catch (err: any) {
         clearTimeout(timeout)
         if (err.name === "AbortError") {
-          return { success: false, error: "La extracción de Instagram ha tardado demasiado. Por favor, vuelve a intentarlo." }
+          return { success: false, error: "La extracciÃ³n de Instagram ha tardado demasiado. Por favor, vuelve a intentarlo." }
         }
         throw err
       } finally {
@@ -48,7 +48,7 @@ export class InstagramAdapter {
       if (!res.ok) {
         return {
           success: false,
-          error: "Instagram ha bloqueado el acceso a la publicación o el servicio de extracción está saturado."
+          error: "Instagram ha bloqueado el acceso a la publicaciÃ³n o el servicio de extracciÃ³n estÃ¡ saturado."
         }
       }
 
@@ -56,7 +56,7 @@ export class InstagramAdapter {
       if (!Array.isArray(data) || data.length === 0) {
         return {
           success: false,
-          error: "No se encontró información en esta URL. ¿Es posible que sea una cuenta privada?"
+          error: "No se encontrÃ³ informaciÃ³n en esta URL. Â¿Es posible que sea una cuenta privada?"
         }
       }
 
@@ -64,7 +64,7 @@ export class InstagramAdapter {
       if (post.error) {
         return {
           success: false,
-          error: post.errorDescription || "Publicación no accesible o cuenta privada."
+          error: post.errorDescription || "PublicaciÃ³n no accesible o cuenta privada."
         }
       }
 
@@ -75,7 +75,7 @@ export class InstagramAdapter {
         return {
           success: false,
           isInsufficient: true,
-          error: "Esta publicación de Instagram no tiene texto o pie de foto del que extraer una receta."
+          error: "Esta publicaciÃ³n de Instagram no tiene texto o pie de foto del que extraer una receta."
         }
       }
 
@@ -85,7 +85,7 @@ export class InstagramAdapter {
         return {
           success: false,
           isInsufficient: true,
-          error: draftRes.error || "El texto de esta publicación no contiene una receta con ingredientes o pasos identificables."
+          error: draftRes.error || "El texto de esta publicaciÃ³n no contiene una receta con ingredientes o pasos identificables."
         }
       }
 

@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useCallback, useRef } from "react"
-import { uploadMedia, ALLOWED_MIME_TYPES, MAX_FILE_SIZE_MB } from "@/services/media/client"
+import { uploadMedia, ALLOWED_MIME_TYPES, MAX_FILE_SIZE_MB, MAX_VIDEO_SIZE_MB } from "@/services/media/client"
 import { Camera, X, Image as ImageIcon, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import Image from "next/image"
@@ -23,6 +23,38 @@ interface MediaUploaderProps {
   hidePreview?: boolean
 }
 
+function VideoPreview({ src, fileType }: { src: string, fileType: string }) {
+  const [hasNoVideoTrack, setHasNoVideoTrack] = useState(false);
+
+  return (
+    <>
+      <video 
+        src={src} 
+        className={cn("absolute inset-0 object-cover w-full h-full", hasNoVideoTrack && "opacity-0")} 
+        autoPlay 
+        muted 
+        loop 
+        playsInline 
+        preload="metadata"
+        onLoadedMetadata={(e) => {
+          if (e.currentTarget.videoWidth === 0 && e.currentTarget.duration > 0) {
+            setHasNoVideoTrack(true);
+          }
+        }}
+      />
+      {hasNoVideoTrack && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 text-white p-4 text-center">
+          <div className="bg-white/20 p-3 rounded-full mb-2">
+            <Loader2 className="w-6 h-6 animate-spin opacity-50" />
+          </div>
+          <p className="text-sm font-medium">Vídeo Listo</p>
+          <p className="text-xs text-white/60 mt-1">El navegador no puede previsualizar este formato, pero se publicará correctamente.</p>
+        </div>
+      )}
+    </>
+  );
+}
+
 export function MediaUploader({ maxItems = 1, context, onMediaChange, className, emptyLabel, variant = 'default', hidePreview = false }: MediaUploaderProps) {
   const [items, setItems] = useState<SelectedMedia[]>([])
   const inputRef = useRef<HTMLInputElement>(null)
@@ -36,8 +68,11 @@ export function MediaUploader({ maxItems = 1, context, onMediaChange, className,
           alert(`Formato no soportado: ${file.name}`)
           return false
         }
-        if (file.size > MAX_FILE_SIZE_MB * 1024 * 1024) {
-          alert(`El archivo ${file.name} es demasiado grande (Max ${MAX_FILE_SIZE_MB}MB)`)
+        
+        const isVideo = file.type.startsWith('video/')
+        const maxSize = isVideo ? MAX_VIDEO_SIZE_MB : MAX_FILE_SIZE_MB
+        if (file.size > maxSize * 1024 * 1024) {
+          alert(`El archivo ${file.name} es demasiado grande (Max ${maxSize}MB)`)
           return false
         }
         return true
@@ -115,7 +150,11 @@ export function MediaUploader({ maxItems = 1, context, onMediaChange, className,
         <div className={cn("gap-3", maxItems === 1 ? "grid grid-cols-1" : "grid grid-cols-2 md:grid-cols-3")}>
           {items.map((item, index) => (
             <div key={item.id} className={cn("relative aspect-square overflow-hidden border border-border group bg-muted", context === 'avatars' ? "rounded-full" : "rounded-xl")}>
-              <Image src={item.previewUrl} alt="Preview" fill className="object-cover" />
+              {item.file.type.startsWith('video/') ? (
+                <VideoPreview src={item.previewUrl} fileType={item.file.type} />
+              ) : (
+                <Image src={item.previewUrl} alt="Preview" fill className="object-cover" />
+              )}
               
               <div className={cn("absolute z-10 flex gap-1", context === 'avatars' ? "inset-0 items-center justify-center bg-black/20" : "top-2 right-2")}>
                 <button 

@@ -1,9 +1,10 @@
 import { createClient } from "@/lib/supabase/client"
 import { v4 as uuidv4 } from "uuid"
+import { registerMediaAsset } from "@/app/actions/media"
 
 export const MAX_IMAGE_SIZE_MB = 15
 export const MAX_FILE_SIZE_MB = 15 // alias for backwards compatibility
-export const MAX_VIDEO_SIZE_MB = 100
+export const MAX_VIDEO_SIZE_MB = 50
 export const JPEG_QUALITY = 0.80
 
 export type AllowedMimeType = 'image/jpeg' | 'image/png' | 'image/webp' | 'image/heic' | 'image/heif' | 'video/mp4' | 'video/webm' | 'video/quicktime'
@@ -30,8 +31,8 @@ function getMaxLongEdge(context: string): number {
 
 // Super simple client-side image resizer using Canvas
 export async function prepareImage(file: File, context: string): Promise<File | Blob> {
-  // If it's not an image we can process natively (like HEIC), just return it
-  if (file.type === 'image/heic' || file.type === 'image/heif') {
+  // If it's not an image we can process natively (like HEIC or videos), just return it
+  if (file.type === 'image/heic' || file.type === 'image/heif' || file.type.startsWith('video/')) {
     return file
   }
 
@@ -118,21 +119,14 @@ export async function uploadMedia(file: File, context: 'recipes' | 'posts' | 'se
 
   if (uploadError) {
     console.error("Storage upload error", uploadError)
+    if (uploadError.message?.includes("exceeded the maximum allowed size") || uploadError.message?.includes("EntityTooLarge") || (uploadError as any).statusCode === '413') {
+      throw new Error(`El servidor rechazó el archivo por superar el límite (Max ${isVideo ? MAX_VIDEO_SIZE_MB : MAX_IMAGE_SIZE_MB}MB).`)
+    }
     throw uploadError
   }
 
-  // Register in media_assets
-  const { data: mediaAsset, error: dbError } = await supabase.from("media_assets").insert({
-    owner_id: session.user.id,
-    storage_path: filePath,
-    media_type: isVideo ? 'VIDEO' : 'IMAGE',
-    mime_type: processedFile.type,
-  }).select("id").single()
+  // Register in media_assets via Server Action for strict server-side size validation
+  const assetId = await registerMediaAsset(filePath, processedFile.type, bucket)
 
-  if (dbError) {
-    console.error("DB insert error", dbError)
-    throw dbError
-  }
-
-  return mediaAsset.id
+  return assetId
 }

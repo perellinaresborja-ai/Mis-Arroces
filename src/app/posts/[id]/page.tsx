@@ -18,7 +18,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
     .select(`
       id, content, visibility,
       author:profiles!social_posts_author_id_fkey(username, display_name, avatar:media_assets!fk_profiles_avatar(storage_path)),
-      post_media(display_order, media:media_assets(storage_path))
+      post_media(display_order, media:media_assets(storage_path, media_type))
     `)
     .eq("id", resolvedParams.id)
     .single()
@@ -89,7 +89,7 @@ export default async function PostDetailPage({ params }: { params: Promise<{ id:
       recipe:recipes(id, name),
       post_media(
         display_order,
-        media:media_assets(id, storage_path)
+        media:media_assets(id, storage_path, media_type)
       )
     `)
     .eq("id", resolvedParams.id)
