@@ -9,8 +9,9 @@ import { useUserSession } from "@/components/providers/UserSessionProvider";
 
 export function BottomNav() {
   const pathname = usePathname();
-  const { avatarUrl } = useUserSession();
+  const { avatarUrl, username } = useUserSession();
   const displayAvatar = avatarUrl;
+  const profileHref = username ? `/@${username}` : "/me";
 
   const navItems = [
     {
@@ -34,7 +35,7 @@ export function BottomNav() {
       label: "Recetario",
     },
     {
-      href: "/me",
+      href: profileHref,
       icon: User, // Fallback if no avatar
       label: "Perfil",
       isAvatar: true
@@ -49,13 +50,16 @@ export function BottomNav() {
         {navItems.map((item) => {
           const isActive = item.href === "/" 
             ? pathname === "/" 
-            : pathname === item.href || pathname.startsWith(`${item.href}/`);
+            : (item.isAvatar
+                ? (pathname === "/me" || (username ? pathname === `/@${username}` || pathname.startsWith(`/@${username}/`) : false))
+                : (pathname === item.href || pathname.startsWith(`${item.href}/`)));
           const Icon = item.icon;
 
           return (
             <Link
-              key={item.href}
+              key={item.label}
               href={item.href}
+              prefetch={true}
               className={cn(
                 "flex flex-col items-center justify-center gap-1 w-full h-full relative",
                 isActive ? "text-foreground" : "text-muted-foreground"

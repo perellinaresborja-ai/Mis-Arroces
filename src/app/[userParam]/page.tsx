@@ -1,4 +1,5 @@
 // @ts-nocheck
+import { cache } from "react"
 import { createClient } from "@/lib/supabase/server"
 import { getProfileHighlights } from "@/app/actions/highlights"
 import { getArchivedStories, fetchUserActiveStories } from "@/app/actions/stories"
@@ -16,23 +17,45 @@ import { ProfileAvatar } from "@/components/domain/ProfileAvatar"
 import { ProfileFollowButton } from "@/components/domain/ProfileFollowButton"
 import { ReportButton } from "@/components/domain/ReportButton"
 import { FounderCardModal } from "@/components/domain/FounderCardModal"
-
 import { ViewTracker } from "@/components/domain/ViewTracker"
+
+const getProfileData = cache(async (username: string) => {
+  const supabase = await createClient()
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select(`*, avatar:media_assets!fk_profiles_avatar(storage_path), cover:media_assets!fk_profiles_cover(storage_path)`)
+    .eq("username", username)
+    .maybeSingle()
+
+  if (profile) {
+    return { profile, aliasRedirect: null }
+  }
+
+  // Check aliases
+  const { data: alias } = await supabase
+    .from("username_aliases" as any)
+    .select("profile_id, profiles(username)")
+    .eq("username", username)
+    .maybeSingle()
+
+  if (alias && (alias as any).profiles?.username) {
+    return { profile: null, aliasRedirect: (alias as any).profiles.username }
+  }
+
+  return { profile: null, aliasRedirect: null }
+})
 
 export async function generateMetadata({ params }: { params: Promise<{ userParam: string }> }) {
   const resolvedParams = await params;
   const rawParam = decodeURIComponent(resolvedParams.userParam);
   const username = rawParam.startsWith("@") ? rawParam.substring(1) : rawParam;
 
-  const supabase = await createClient();
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("display_name, bio, privacy_level, avatar:media_assets!fk_profiles_avatar(storage_path)")
-    .eq("username", username)
-    .single();
+  const { profile } = await getProfileData(username);
 
   if (!profile) {
-    notFound();
+    return {
+      title: "Perfil no encontrado | misarroces",
+    };
   }
 
   const isPublic = profile.privacy_level === "PUBLIC";
@@ -95,123 +118,114 @@ export default async function PublicProfilePage({
 
   const supabase = await createClient()
   
-  const [authRes, profileRes] = await Promise.all([
+  const [authRes, profileData] = await Promise.all([
     supabase.auth.getUser(),
-    supabase.from("profiles")
-      .select(`*, avatar:media_assets!fk_profiles_avatar(storage_path), cover:media_assets!fk_profiles_cover(storage_path)`)
-      .eq("username", username).single()
+    getProfileData(username)
   ])
 
-  const user = authRes.data?.user
-  let profile = profileRes.data
-  let profileError = profileRes.error
-  
-  if (profileError && profileError.code === 'PGRST116') {
-    // try to find in aliases
-    // @ts-ignore
-    const { data: alias } = await supabase.from("username_aliases").select("profile_id, profiles(username)").eq("username", username).single()
-    if (alias && alias.profiles?.username) {
-      redirect(`/@${alias.profiles.username}`)
-    }
+  if (profileData.aliasRedirect) {
+    redirect(`/@${profileData.aliasRedirect}`)
   }
 
-  if (profileError) console.error("Profile fetch error:", profileError)
+  const profile = profileData.profile
   if (!profile) notFound()
 
-  let founderNumber: number | null = null
-  let publicCode: string | undefined = undefined
-
-  try {
-    const [founderRes, identityRes] = await Promise.all([
-      supabase.from("founders" as any).select("founder_number").eq("user_id", profile.id).maybeSingle(),
-      supabase.from("user_identities" as any).select("public_code").eq("user_id", profile.id).maybeSingle()
-    ])
-    if (typeof (founderRes.data as any)?.founder_number === "number") {
-      founderNumber = (founderRes.data as any).founder_number
-    }
-    if ((identityRes.data as any)?.public_code) {
-      publicCode = (identityRes.data as any).public_code
-    }
-  } catch {
-    // Tablas pendientes de migración o error no crítico
-  }
-
-  const avatarUrl = profile.avatar?.storage_path 
-    ? `${"https://zvesoygqssyyojqyswwm.supabase.co"}/storage/v1/object/public/recipe_media/${profile.avatar.storage_path}`
-    : null
-
+  const user = authRes.data?.user
   const isSelf = user?.id === profile.id
 
-  let followStatus = null
-  if (user && !isSelf) {
-    const { data: follow } = await supabase.from("follows").select("status").match({ follower_id: user.id, following_id: profile.id }).single()
-    if (follow) followStatus = follow.status
-  }
+  // If visiting own profile, followStatus is null; otherwise fetch follow status
+  const followPromise = (!isSelf && user)
+    ? supabase.from("follows").select("status").match({ follower_id: user.id, following_id: profile.id }).maybeSingle()
+    : Promise.resolve({ data: null })
 
-  const canViewPrivate = isSelf || (profile.privacy_level === "PUBLIC") || (followStatus === "ACCEPTED")
+  // If isSelf or PUBLIC, canViewPrivate is known true upfront!
+  const isPublicProfile = profile.privacy_level === "PUBLIC"
+  const canViewImmediately = isSelf || isPublicProfile
   const visibilityFilter = isSelf ? ["PUBLIC", "PRIVATE", "FOLLOWERS"] : ["PUBLIC", "FOLLOWERS"]
 
-  
-  let highlights: any[] = []
-  let archivedStories: any[] = []
-  let hasActiveShoppingItems = false
-  let feedItems: any[] = []
-  
-  // Parallelize everything!
-  const parallelQueries = [];
-  
-  // 0. Followers
-  parallelQueries.push(supabase.from("follows").select("*", { count: "exact", head: true }).eq("following_id", profile.id).eq("status", "ACCEPTED"));
-  // 1. Following
-  parallelQueries.push(supabase.from("follows").select("*", { count: "exact", head: true }).eq("follower_id", profile.id).eq("status", "ACCEPTED"));
-  
-  // 2. Highlights
-  parallelQueries.push( (isSelf || canViewPrivate) ? getProfileHighlights(profile.id) : Promise.resolve([]) );
-  
-  // 3. Archived Stories
-  parallelQueries.push( isSelf ? getArchivedStories() : Promise.resolve([]) );
-  
-  // 4. Shopping Lists
-  parallelQueries.push( isSelf ? supabase.from('shopping_lists').select('shopping_list_items(id, is_checked)').eq('user_id', user.id).single() : Promise.resolve({ data: null }) );
-
-  // 5. Active stories for this user profile (visible to current visitor)
-  parallelQueries.push( fetchUserActiveStories(profile.id) );
-
-  // 6, 7, 8. Feed items
-  if (canViewPrivate) {
-    parallelQueries.push(supabase.from("recipes").select(`*, author:profiles!recipes_owner_id_fkey(id, username, display_name, avatar:media_assets!fk_profiles_avatar(storage_path)), recipe_media(display_order, media:media_assets(id, storage_path, media_type))`).eq("owner_id", profile.id).eq("status", "PUBLISHED").in("visibility", visibilityFilter));
-    parallelQueries.push(supabase.from("cooking_sessions").select(`*, author:profiles!cooking_sessions_user_id_fkey(id, username, display_name, avatar:media_assets!fk_profiles_avatar(storage_path)), session_media(display_order, media:media_assets(id, storage_path, media_type)), recipe:recipes(id, name)`).eq("user_id", profile.id).eq("status", "PUBLISHED").in("visibility", visibilityFilter));
-    parallelQueries.push(supabase.from("social_posts").select(`*, author:profiles!social_posts_author_id_fkey(id, username, display_name, avatar:media_assets!fk_profiles_avatar(storage_path)), post_media(display_order, media:media_assets(id, storage_path, media_type)), recipe:recipes(id, name)`).eq("author_id", profile.id).in("visibility", visibilityFilter));
-  } else {
-    parallelQueries.push(Promise.resolve({ data: [] }), Promise.resolve({ data: [] }), Promise.resolve({ data: [] }));
-  }
-
+  // Parallel batch: Metadata, follows, stories, shopping, and entities (if immediately viewable)
   const [
+    founderRes,
+    identityRes,
+    followRes,
     followersRes,
     followingRes,
     highlightsRes,
     archivedStoriesRes,
     shoppingRes,
     activeStoryGroupRes,
-    recRes,
-    sesRes,
-    postRes
-  ] = await Promise.all(parallelQueries) as any[];
+    recipesRes,
+    sessionsRes,
+    postsRes
+  ] = await Promise.all([
+    // Founder number
+    supabase.from("founders" as any).select("founder_number").eq("user_id", profile.id).maybeSingle().catch(() => ({ data: null })),
+    // Public code
+    supabase.from("user_identities" as any).select("public_code").eq("user_id", profile.id).maybeSingle().catch(() => ({ data: null })),
+    // Follow status
+    followPromise,
+    // Followers count
+    supabase.from("follows").select("*", { count: "exact", head: true }).eq("following_id", profile.id).eq("status", "ACCEPTED"),
+    // Following count
+    supabase.from("follows").select("*", { count: "exact", head: true }).eq("follower_id", profile.id).eq("status", "ACCEPTED"),
+    // Highlights
+    canViewImmediately ? getProfileHighlights(profile.id) : Promise.resolve([]),
+    // Archived stories
+    isSelf ? getArchivedStories() : Promise.resolve([]),
+    // Shopping list
+    isSelf ? supabase.from('shopping_lists').select('shopping_list_items(id, is_checked)').eq('user_id', user.id).maybeSingle() : Promise.resolve({ data: null }),
+    // Active stories
+    fetchUserActiveStories(profile.id),
+    // Recipes (if canViewImmediately)
+    canViewImmediately
+      ? supabase.from("recipes").select(`*, author:profiles!recipes_owner_id_fkey(id, username, display_name, avatar:media_assets!fk_profiles_avatar(storage_path)), recipe_media(display_order, media:media_assets(id, storage_path, media_type))`).eq("owner_id", profile.id).eq("status", "PUBLISHED").in("visibility", visibilityFilter)
+      : Promise.resolve({ data: [] }),
+    // Sessions (if canViewImmediately)
+    canViewImmediately
+      ? supabase.from("cooking_sessions").select(`*, author:profiles!cooking_sessions_user_id_fkey(id, username, display_name, avatar:media_assets!fk_profiles_avatar(storage_path)), session_media(display_order, media:media_assets(id, storage_path, media_type)), recipe:recipes(id, name)`).eq("user_id", profile.id).eq("status", "PUBLISHED").in("visibility", visibilityFilter)
+      : Promise.resolve({ data: [] }),
+    // Posts (if canViewImmediately)
+    canViewImmediately
+      ? supabase.from("social_posts").select(`*, author:profiles!social_posts_author_id_fkey(id, username, display_name, avatar:media_assets!fk_profiles_avatar(storage_path)), post_media(display_order, media:media_assets(id, storage_path, media_type)), recipe:recipes(id, name)`).eq("author_id", profile.id).in("visibility", visibilityFilter)
+      : Promise.resolve({ data: [] })
+  ])
 
-  const followersCount = followersRes.count || 0;
-  const followingCount = followingRes.count || 0;
-  highlights = highlightsRes;
-  archivedStories = archivedStoriesRes;
-  const activeStoryGroup = activeStoryGroupRes;
-  
-  if (shoppingRes.data?.shopping_list_items) {
-    hasActiveShoppingItems = shoppingRes.data.shopping_list_items.some((i: any) => !i.is_checked);
+  const founderNumber = typeof (founderRes?.data as any)?.founder_number === "number" ? (founderRes.data as any).founder_number : null
+  const publicCode = (identityRes?.data as any)?.public_code || undefined
+  const followStatus = followRes?.data?.status || null
+  const canViewPrivate = canViewImmediately || (followStatus === "ACCEPTED")
+
+  let highlights = highlightsRes || []
+  if (!canViewImmediately && canViewPrivate) {
+    highlights = await getProfileHighlights(profile.id)
   }
 
+  const followersCount = followersRes.count || 0
+  const followingCount = followingRes.count || 0
+  const archivedStories = archivedStoriesRes || []
+  const activeStoryGroup = activeStoryGroupRes
+
+  let recData = recipesRes?.data || []
+  let sesData = sessionsRes?.data || []
+  let postData = postsRes?.data || []
+
+  // If was private but followStatus is ACCEPTED, fetch entities now
+  if (!canViewImmediately && canViewPrivate) {
+    const [extraRec, extraSes, extraPost] = await Promise.all([
+      supabase.from("recipes").select(`*, author:profiles!recipes_owner_id_fkey(id, username, display_name, avatar:media_assets!fk_profiles_avatar(storage_path)), recipe_media(display_order, media:media_assets(id, storage_path, media_type))`).eq("owner_id", profile.id).eq("status", "PUBLISHED").in("visibility", visibilityFilter),
+      supabase.from("cooking_sessions").select(`*, author:profiles!cooking_sessions_user_id_fkey(id, username, display_name, avatar:media_assets!fk_profiles_avatar(storage_path)), session_media(display_order, media:media_assets(id, storage_path, media_type)), recipe:recipes(id, name)`).eq("user_id", profile.id).eq("status", "PUBLISHED").in("visibility", visibilityFilter),
+      supabase.from("social_posts").select(`*, author:profiles!social_posts_author_id_fkey(id, username, display_name, avatar:media_assets!fk_profiles_avatar(storage_path)), post_media(display_order, media:media_assets(id, storage_path, media_type)), recipe:recipes(id, name)`).eq("author_id", profile.id).in("visibility", visibilityFilter)
+    ])
+    recData = extraRec.data || []
+    sesData = extraSes.data || []
+    postData = extraPost.data || []
+  }
+
+  let feedItems: any[] = []
   if (canViewPrivate) {
-    const recipes = (recRes.data || []).map((r: any) => ({ ...r, entity_type: 'recipe', sort_date: new Date(r.created_at).getTime() }))
-    const sessions = (sesRes.data || []).map((s: any) => ({ ...s, entity_type: 'session', sort_date: new Date(s.date || s.created_at).getTime() }))
-    const posts = (postRes.data || []).map((p: any) => ({ ...p, entity_type: 'post', sort_date: new Date(p.created_at).getTime() }))
+    const recipes = recData.map((r: any) => ({ ...r, entity_type: 'recipe', sort_date: new Date(r.created_at).getTime() }))
+    const sessions = sesData.map((s: any) => ({ ...s, entity_type: 'session', sort_date: new Date(s.date || s.created_at).getTime() }))
+    const posts = postData.map((p: any) => ({ ...p, entity_type: 'post', sort_date: new Date(p.created_at).getTime() }))
 
     feedItems = [...recipes, ...sessions, ...posts].sort((a, b) => {
       if (a.is_pinned && !b.is_pinned) return -1;
@@ -220,7 +234,6 @@ export default async function PublicProfilePage({
     })
 
     if (feedItems.length > 0) {
-      // Split items by type to fetch likes and comments
       const recipeIds = feedItems.filter(i => i.entity_type === 'recipe').map(i => i.id)
       const sessionIds = feedItems.filter(i => i.entity_type === 'session').map(i => i.id)
       const postIds = feedItems.filter(i => i.entity_type === 'post').map(i => i.id)
@@ -261,15 +274,20 @@ export default async function PublicProfilePage({
     }
   }
 
+  const avatarUrl = profile.avatar?.storage_path 
+    ? `${"https://zvesoygqssyyojqyswwm.supabase.co"}/storage/v1/object/public/recipe_media/${profile.avatar.storage_path}`
+    : null;
+
   const coverUrl = profile.cover?.storage_path
     ? `${"https://zvesoygqssyyojqyswwm.supabase.co"}/storage/v1/object/public/recipe_media/${profile.cover.storage_path}`
     : null;
+
   return (
     <div className="pb-24 md:pb-8 bg-background min-h-screen overflow-x-hidden max-w-[100vw]">
       {profile.id && profile.id !== user?.id && <ViewTracker eventType="PROFILE_VIEW" entityType="PROFILE" entityId={profile.id} ownerId={profile.id} />}
       <header className="mb-6 relative">
         {/* COVER FULL WIDTH */}
-        <div className="w-full bg-muted relative z-0 overflow-hidden rounded-xl" style={{ height: '325px' }}>
+        <div className="w-full bg-muted relative z-0 overflow-hidden rounded-2xl" style={{ height: '325px' }}>
           {coverUrl ? (
             /* eslint-disable-next-line @next/next/no-img-element */
             <img src={coverUrl} alt="Cover" className="w-full h-full object-cover object-center" />
@@ -419,7 +437,7 @@ export default async function PublicProfilePage({
         </div>
 
         {!canViewPrivate && profile.privacy_level === "PRIVATE" ? (
-          <div className="text-center py-16 border border-border rounded-xl bg-card mx-2">
+          <div className="text-center py-16 border border-border rounded-2xl bg-card mx-2">
             <Lock className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
             <h2 className="text-xl font-bold mb-2">Esta cuenta es privada</h2>
             <p className="text-sm text-muted-foreground max-w-xs mx-auto">Sigue a este usuario para ver sus elaboraciones.</p>

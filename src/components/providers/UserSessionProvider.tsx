@@ -8,6 +8,7 @@ import type { User } from "@supabase/supabase-js"
 interface UserSessionContextType {
   user: User | null
   avatarUrl: string | null
+  username: string | null
   isLoading: boolean
   refreshAvatar: () => Promise<void>
 }
@@ -15,6 +16,7 @@ interface UserSessionContextType {
 const UserSessionContext = createContext<UserSessionContextType>({
   user: null,
   avatarUrl: null,
+  username: null,
   isLoading: true,
   refreshAvatar: async () => {},
 })
@@ -26,13 +28,16 @@ export function useUserSession() {
 export function UserSessionProvider({
   children,
   initialAvatarUrl = null,
+  initialUsername = null,
 }: {
   children: React.ReactNode
   initialAvatarUrl?: string | null
+  initialUsername?: string | null
 }) {
   const pathname = usePathname()
   const [user, setUser] = useState<User | null>(null)
   const [avatarUrl, setAvatarUrl] = useState<string | null>(initialAvatarUrl)
+  const [username, setUsername] = useState<string | null>(initialUsername)
   const [isLoading, setIsLoading] = useState(true)
 
   // Track active user ID and request sequence to prevent redundant calls and race conditions
@@ -44,6 +49,7 @@ export function UserSessionProvider({
     if (!userId) {
       if (requestIdRef.current === targetRequestId) {
         setAvatarUrl(null)
+        setUsername(null)
       }
       return
     }
@@ -52,13 +58,17 @@ export function UserSessionProvider({
       const supabase = createClient()
       const { data } = await supabase
         .from("profiles")
-        .select(`avatar:media_assets!fk_profiles_avatar(storage_path)`)
+        .select(`username, avatar:media_assets!fk_profiles_avatar(storage_path)`)
         .eq("id", userId)
         .single()
 
       // Ensure this response matches the latest active request
       if (requestIdRef.current !== targetRequestId) {
         return
+      }
+
+      if (data?.username) {
+        setUsername(data.username)
       }
 
       const avatarData: any = data?.avatar
@@ -171,6 +181,7 @@ export function UserSessionProvider({
       value={{
         user,
         avatarUrl,
+        username,
         isLoading,
         refreshAvatar: () => syncAuth(true),
       }}

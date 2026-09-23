@@ -77,6 +77,7 @@ export default async function RootLayout({
 }>) {
   let pendingLegal = false;
   let avatarUrl: string | null = null;
+  let initialUsername: string | null = null;
   try {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
@@ -84,10 +85,11 @@ export default async function RootLayout({
       pendingLegal = await checkPendingLegal(user.id);
       
       const { data } = await supabase.from('profiles')
-        .select(`avatar:media_assets!fk_profiles_avatar(storage_path)`)
+        .select(`username, avatar:media_assets!fk_profiles_avatar(storage_path)`)
         .eq('id', user.id)
         .single();
-        
+      
+      initialUsername = data?.username || null;
       const avatarPath = Array.isArray(data?.avatar) ? data.avatar[0]?.storage_path : data?.avatar?.storage_path;
       if (avatarPath) {
         avatarUrl = avatarPath.startsWith('http') ? avatarPath : `https://zvesoygqssyyojqyswwm.supabase.co/storage/v1/object/public/recipe_media/${avatarPath}`;
@@ -98,7 +100,7 @@ export default async function RootLayout({
     <html lang="es" suppressHydrationWarning>
       <body className={`${inter.className} antialiased bg-background text-foreground safe-area-pt safe-area-pb overflow-x-hidden`}>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-          <UserSessionProvider initialAvatarUrl={avatarUrl}>
+          <UserSessionProvider initialAvatarUrl={avatarUrl} initialUsername={initialUsername}>
             <AuthPromptProvider>
             <Suspense fallback={null}>
               <GA4Loader />

@@ -15,8 +15,10 @@ import { StoriesViewer } from "@/components/domain/StoriesViewer"
 
 export function DesktopNav() {
   const pathname = usePathname()
-  const { user, avatarUrl } = useUserSession()
+  const { user, avatarUrl, username } = useUserSession()
   const displayAvatar = avatarUrl
+  const profileHref = username ? `/@${username}` : "/me"
+  const isProfileActive = pathname === "/me" || (username ? pathname === `/@${username}` : false)
 
   const [activeStoryGroup, setActiveStoryGroup] = useState<any | null>(null)
   const [isViewerOpen, setIsViewerOpen] = useState(false)
@@ -130,11 +132,12 @@ export function DesktopNav() {
 
                   {/* Inner Photo Link: triggers Profile navigation */}
                   <Link
-                    href="/me"
+                    href={profileHref}
+                    prefetch={true}
                     onClick={(e) => e.stopPropagation()}
                     className={cn(
                       "relative z-20 w-[31px] h-[31px] rounded-full overflow-hidden flex items-center justify-center transition-transform hover:scale-105 focus:outline-none cursor-pointer",
-                      (pathname === "/me" || pathname.startsWith("/me/")) ? "ring-1 ring-primary/60" : ""
+                      isProfileActive ? "ring-1 ring-primary/60" : ""
                     )}
                     title="Ver mi perfil"
                     aria-label="Ver mi perfil"
@@ -152,22 +155,23 @@ export function DesktopNav() {
                 </div>
               ) : (
                 <Link 
-                  href="/me" 
-                  className={cn("transition-colors hover:opacity-80 shrink-0", pathname === "/me" || pathname.startsWith("/me/") ? "opacity-100" : "opacity-80")}
+                  href={profileHref} 
+                  prefetch={true}
+                  className={cn("transition-colors hover:opacity-80 shrink-0", isProfileActive ? "opacity-100" : "opacity-80")}
                   title="Ver mi perfil"
                   aria-label="Ver mi perfil"
                 >
                   {displayAvatar ? (
                     <div className={cn(
                       "relative w-9 h-9 rounded-full overflow-hidden border-2 flex items-center justify-center",
-                      (pathname === "/me" || pathname.startsWith("/me/")) ? "border-primary" : "border-transparent"
+                      isProfileActive ? "border-primary" : "border-transparent"
                     )}>
                       <MediaImage src={displayAvatar} alt="Perfil" fallbackType="avatar" className="w-full h-full object-cover" fill={true} variant="avatar" />
                     </div>
                   ) : (
                     <div className={cn(
                       "w-9 h-9 rounded-full bg-muted flex items-center justify-center border-2",
-                      (pathname === "/me" || pathname.startsWith("/me/")) ? "border-primary" : "border-transparent"
+                      isProfileActive ? "border-primary" : "border-transparent"
                     )}>
                       <User className="h-5 w-5 text-muted-foreground" />
                     </div>
