@@ -1,8 +1,8 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useRef, useEffect } from "react"
 import Link from "next/link"
-import { Trash2, Pencil } from "lucide-react"
+import { Trash2, Pencil, MoreHorizontal } from "lucide-react"
 import { deleteRecipe } from "@/app/actions/recipes"
 import { useRouter } from "next/navigation"
 import { MediaImage } from "./MediaImage"
@@ -12,22 +12,39 @@ import { Button } from "@/components/ui/button"
 export function CookbookRecipeCard({ recipe, tab }: { recipe: any, tab: string }) {
   const router = useRouter()
   const [isDeleting, setIsDeleting] = useState(false)
+  const [showConfirm, setShowConfirm] = useState(false)
+  const [showMenu, setShowMenu] = useState(false)
+  const menuRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!showMenu) return
+    const handleClickOutside = (e: MouseEvent | TouchEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setShowMenu(false)
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside)
+    document.addEventListener("touchstart", handleClickOutside)
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside)
+      document.removeEventListener("touchstart", handleClickOutside)
+    }
+  }, [showMenu])
 
   const mediaArray = recipe.recipe_media
   const sorted = mediaArray ? [...mediaArray].sort((a: any, b: any) => (a.display_order||0) - (b.display_order||0)) : []
   const path = sorted[0]?.media?.storage_path
   const coverUrl = path ? `https://zvesoygqssyyojqyswwm.supabase.co/storage/v1/object/public/recipe_media/${path}` : null
 
-  const [showConfirm, setShowConfirm] = useState(false);
-
   const handleDelete = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setShowConfirm(true);
+    e.preventDefault()
+    e.stopPropagation()
+    setShowMenu(false)
+    setShowConfirm(true)
   }
 
   const confirmDelete = async () => {
-    setShowConfirm(false);
+    setShowConfirm(false)
     setIsDeleting(true)
     try {
       await deleteRecipe(recipe.id)
@@ -41,15 +58,15 @@ export function CookbookRecipeCard({ recipe, tab }: { recipe: any, tab: string }
 
   const isScheduled = recipe.status === 'PUBLISHED' && recipe.scheduled_for && new Date(recipe.scheduled_for) > new Date()
 
-  let fallbackText = "";
+  let fallbackText = ""
   if (recipe.name?.trim()) {
-    fallbackText = recipe.name;
+    fallbackText = recipe.name
   } else if (recipe.recipe_ingredients && recipe.recipe_ingredients.length > 0 && recipe.recipe_ingredients[0].display_text?.trim()) {
-    fallbackText = recipe.recipe_ingredients[0].display_text;
+    fallbackText = recipe.recipe_ingredients[0].display_text
   } else if (recipe.variety?.name?.trim()) {
-    fallbackText = recipe.variety.name;
+    fallbackText = recipe.variety.name
   } else {
-    fallbackText = "Borrador de receta";
+    fallbackText = "Borrador de receta"
   }
 
   return (
@@ -85,21 +102,69 @@ export function CookbookRecipeCard({ recipe, tab }: { recipe: any, tab: string }
       </Link>
 
       {tab === 'mine' && (
-        <div className="absolute top-2 right-2 z-20 flex items-center gap-2">
-          <Link
-            href={`/recipes/${recipe.id}/edit`}
-            onClick={(e) => e.stopPropagation()}
-            className="bg-black/50 hover:bg-primary text-white p-1.5 rounded-full transition-colors"
-          >
-            <Pencil className="w-4 h-4" />
-          </Link>
-          <button 
-            onClick={handleDelete}
-            className="bg-black/50 hover:bg-destructive text-white p-1.5 rounded-full transition-colors"
-          >
-            <Trash2 className="w-4 h-4" />
-          </button>
-        </div>
+        <>
+          {/* MÓVIL: Botón ⋯ discreto en esquina con menú compacto */}
+          <div ref={menuRef} className="md:hidden absolute top-2 right-2 z-30">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                setShowMenu((prev) => !prev)
+              }}
+              className="w-7 h-7 rounded-full bg-black/55 text-white flex items-center justify-center backdrop-blur-xs transition-transform active:scale-95 shadow-sm"
+              aria-label="Opciones de receta"
+            >
+              <MoreHorizontal className="w-4 h-4" />
+            </button>
+
+            {showMenu && (
+              <div
+                className="absolute top-8 right-0 z-40 bg-card/95 backdrop-blur-md border border-border rounded-2xl shadow-xl p-1 min-w-[125px] animate-in fade-in zoom-in-95 duration-150"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <Link
+                  href={`/recipes/${recipe.id}/edit`}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setShowMenu(false)
+                  }}
+                  className="flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-foreground hover:bg-muted rounded-xl transition-colors w-full"
+                >
+                  <Pencil className="w-3.5 h-3.5 text-muted-foreground" />
+                  <span>Editar</span>
+                </Link>
+                <button
+                  type="button"
+                  onClick={handleDelete}
+                  className="flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-destructive hover:bg-destructive/10 rounded-xl transition-colors w-full text-left"
+                >
+                  <Trash2 className="w-3.5 h-3.5 text-destructive" />
+                  <span>Eliminar</span>
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* ESCRITORIO: Botones visibles en hover */}
+          <div className="hidden md:flex absolute top-2 right-2 z-20 items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+            <Link
+              href={`/recipes/${recipe.id}/edit`}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-black/50 hover:bg-primary text-white p-1.5 rounded-full transition-colors"
+              title="Editar receta"
+            >
+              <Pencil className="w-4 h-4" />
+            </Link>
+            <button 
+              onClick={handleDelete}
+              className="bg-black/50 hover:bg-destructive text-white p-1.5 rounded-full transition-colors"
+              title="Eliminar receta"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          </div>
+        </>
       )}
 
       {tab === 'want' && (
