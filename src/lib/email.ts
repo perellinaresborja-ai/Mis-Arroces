@@ -1,5 +1,4 @@
 import { Resend } from 'resend'
-import QRCode from 'qrcode'
 
 function getResend() {
   return new Resend(process.env.RESEND_API_KEY)
@@ -100,23 +99,7 @@ export async function sendFounderEmail(
   const idUrl = `${baseUrl}/id/${publicCode}`
   const referralUrl = `${baseUrl}/fundadores/r/${publicCode}`
 
-  // Generar QR en buffer para adjuntarlo como CID inline (garantiza renderizado nativo sin 404 ni dependencias externas)
-  let qrPngBuffer: Buffer | null = null
-  try {
-    qrPngBuffer = await QRCode.toBuffer(idUrl, {
-      width: 280,
-      margin: 1,
-      color: {
-        dark: '#18181B',
-        light: '#FFFFFF',
-      },
-      errorCorrectionLevel: 'M',
-    })
-  } catch (qrErr) {
-    console.error('Error generando QR buffer en sendFounderEmail:', qrErr)
-  }
-
-  const qrImageSrc = qrPngBuffer ? 'cid:qr-fundador' : `${baseUrl}/api/qr/${publicCode}`
+  const qrImageSrc = `${baseUrl}/api/qr/${publicCode}`
 
   return await getResend().emails.send({
     from: 'misarroces <info@misarroces.es>',
@@ -240,16 +223,5 @@ export async function sendFounderEmail(
         </div>
       `,
     }),
-    attachments: qrPngBuffer
-      ? [
-          {
-            content: qrPngBuffer,
-            filename: 'qr-fundador.png',
-            content_type: 'image/png',
-            content_id: 'qr-fundador',
-            contentId: 'qr-fundador',
-          } as any,
-        ]
-      : undefined,
   })
 }
