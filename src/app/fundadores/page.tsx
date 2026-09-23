@@ -1,0 +1,92 @@
+import { createClient } from "@/lib/supabase/server"
+import Link from "next/link"
+import { Shield, ArrowRight, Lock } from "lucide-react"
+
+export const revalidate = 60
+
+export default async function FundadoresPage() {
+  const supabase = await createClient()
+  
+  // Comprobar únicamente si el cupo ya está completado
+  let isClosed = false
+  try {
+    const { count } = await supabase
+      .from('founders')
+      .select('*', { count: 'exact', head: true })
+    isClosed = (count || 0) >= 100
+  } catch {
+    isClosed = false
+  }
+
+  return (
+    <div className="min-h-[100dvh] bg-[#F7F5F0] text-[#18181B] selection:bg-[#EA580C] selection:text-white flex flex-col items-center justify-center px-4 py-16 md:py-24 relative overflow-hidden">
+      
+      {/* Background decorations */}
+      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-[#EA580C]/5 blur-[120px] pointer-events-none" />
+      <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-[#EA580C]/10 blur-[120px] pointer-events-none" />
+
+      <div className="max-w-2xl w-full mx-auto text-center relative z-10 flex flex-col items-center">
+        
+        {/* Shield Icon */}
+        <div className="w-20 h-20 bg-black text-white rounded-3xl flex items-center justify-center shadow-2xl mb-8 transform -rotate-6">
+          <Shield className="w-10 h-10 text-[#EA580C]" />
+        </div>
+
+        <h1 className="text-4xl md:text-5xl font-black tracking-tight mb-4 text-balance">
+          Los 100 Arroceros <span className="text-[#EA580C]">Fundadores</span>
+        </h1>
+
+        <p className="text-base md:text-lg text-[#52525B] mb-8 text-balance max-w-xl leading-relaxed">
+          Solo existirán 100 Arroceros Fundadores en misarroces.es. Una distinción permanente e irrepetible para quienes forman parte del inicio de la comunidad.
+        </p>
+
+        {/* Action Card */}
+        <div className="bg-white border border-[#EAE7E0] p-8 rounded-[2rem] shadow-sm w-full max-w-md mb-10 relative overflow-hidden">
+          {isClosed ? (
+            <div className="flex flex-col items-center text-center py-4">
+              <div className="w-12 h-12 rounded-full bg-zinc-100 flex items-center justify-center mb-4 text-zinc-600">
+                <Lock className="w-6 h-6" />
+              </div>
+              <h2 className="text-xl font-bold text-[#18181B] mb-2">Plazas cerradas</h2>
+              <p className="text-sm text-[#71717A] leading-relaxed">
+                Los 100 Arroceros Fundadores ya se han completado. Esta distinción ha quedado cerrada para siempre.
+              </p>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center text-center">
+              <div className="inline-block bg-[#F7F5F0] border border-[#EA580C]/30 rounded-full px-3 py-1 text-xs font-bold text-[#EA580C] uppercase tracking-wider mb-4">
+                Plazas Limitadas
+              </div>
+              <p className="text-sm text-[#52525B] leading-relaxed mb-6">
+                Para optar a una de las plazas, regístrate y publica tu primera receta mientras queden plazas disponibles. En cuanto se alcancen los 100 miembros, el acceso se cerrará de forma automática y definitiva.
+              </p>
+              <Link 
+                href="/create/recipe"
+                className="w-full flex items-center justify-center gap-2 bg-[#EA580C] hover:bg-[#EA580C]/90 text-white font-extrabold py-4 px-6 rounded-2xl transition-all shadow-lg shadow-[#EA580C]/20 hover:shadow-[#EA580C]/40 active:scale-[0.98] uppercase tracking-wide text-sm"
+              >
+                QUIERO FORMAR PARTE <ArrowRight className="w-4 h-4" />
+              </Link>
+            </div>
+          )}
+        </div>
+
+        {/* Info Grid */}
+        <div className="grid sm:grid-cols-2 gap-5 w-full max-w-xl text-left">
+          <div className="bg-white/60 backdrop-blur-md p-6 rounded-3xl border border-[#EAE7E0]">
+            <h3 className="font-bold text-[#18181B] mb-1.5 text-sm">ID Fundador Permanente</h3>
+            <p className="text-xs text-[#52525B] leading-relaxed">
+              Identificador digital permanente e intransferible que te acredita como miembro de Los 100 para siempre.
+            </p>
+          </div>
+          <div className="bg-white/60 backdrop-blur-md p-6 rounded-3xl border border-[#EAE7E0]">
+            <h3 className="font-bold text-[#18181B] mb-1.5 text-sm">Cultura y Experiencias</h3>
+            <p className="text-xs text-[#52525B] leading-relaxed">
+              Identificación exclusiva para participar en jornadas, catas, concursos y actividades oficiales de la comunidad.
+            </p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  )
+}

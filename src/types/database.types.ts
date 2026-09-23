@@ -1288,7 +1288,33 @@ export type Database = {
           },
         ]
       }
-      profiles: {
+              founders: {
+          Row: {
+            founder_number: number
+            user_id: string
+            granted_at: string
+          }
+          Insert: {
+            founder_number: number
+            user_id: string
+            granted_at?: string
+          }
+          Update: {
+            founder_number?: number
+            user_id?: string
+            granted_at?: string
+          }
+          Relationships: [
+            {
+              foreignKeyName: "founders_user_id_fkey"
+              columns: ["user_id"]
+              isOneToOne: true
+              referencedRelation: "profiles"
+              referencedColumns: ["id"]
+            }
+          ]
+        }
+profiles: {
         Row: {
           account_status: Database["public"]["Enums"]["account_status_enum"]
           account_type: Database["public"]["Enums"]["base_account_type_enum"]
@@ -1991,7 +2017,8 @@ export type Database = {
           rest_time: number | null
           rice_qty: number | null
           scheduled_for: string | null
-          slug: string
+            published_at: string | null
+            slug: string
           status: Database["public"]["Enums"]["recipe_status_enum"]
           stock_qty: number | null
             stock_ingredient_id: string | null
@@ -2020,7 +2047,8 @@ export type Database = {
           rest_time?: number | null
           rice_qty?: number | null
           scheduled_for?: string | null
-          slug: string
+            published_at?: string | null
+            slug: string
           status?: Database["public"]["Enums"]["recipe_status_enum"]
           stock_qty?: number | null
             stock_ingredient_id?: string | null
@@ -2049,7 +2077,8 @@ export type Database = {
           rest_time?: number | null
           rice_qty?: number | null
           scheduled_for?: string | null
-          slug?: string
+            published_at?: string | null
+            slug?: string
           status?: Database["public"]["Enums"]["recipe_status_enum"]
           stock_qty?: number | null
             stock_ingredient_id?: string | null
@@ -3402,7 +3431,8 @@ export type Database = {
           rest_time: number | null
           rice_qty: number | null
           scheduled_for: string | null
-          slug: string | null
+            published_at: string | null
+            slug: string | null
           status: Database["public"]["Enums"]["recipe_status_enum"] | null
           stock_qty: number | null
             stock_ingredient_id: string | null
@@ -3491,7 +3521,11 @@ export type Database = {
         }
         Returns: Json
       }
-      get_trending_recipes: {
+              claim_founder_spot: {
+          Args: { p_user_id: string }
+          Returns: number
+        }
+get_trending_recipes: {
         Args: { limit_val?: number }
         Returns: {
           recipe_id: string

@@ -25,6 +25,32 @@ export async function GET(request: Request) {
           account_type: 'PERSONAL',
           privacy_level: 'PUBLIC'
         })
+
+        // Registro interno de recomendación si existe cookie founder_ref
+        try {
+          const { cookies } = await import('next/headers');
+          const cookieStore = await cookies();
+          const refCode = cookieStore.get('founder_ref')?.value;
+          if (refCode) {
+            const { data: refIdentity } = await supabase
+              .from('user_identities' as any)
+              .select('user_id')
+              .eq('public_code', refCode)
+              .maybeSingle();
+
+            const refUserId = (refIdentity as any)?.user_id;
+            if (refUserId && refUserId !== session.user.id) {
+              await (supabase.from('founder_referrals' as any) as any).insert({
+                referrer_founder_id: refUserId,
+                referred_user_id: session.user.id,
+                referral_code: refCode,
+                registered_at: new Date().toISOString(),
+              });
+            }
+          }
+        } catch {
+          // No bloqueante
+        }
       }
       return NextResponse.redirect(`${origin}${next}`)
     }

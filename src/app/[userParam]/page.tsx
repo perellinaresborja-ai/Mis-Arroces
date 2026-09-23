@@ -15,6 +15,7 @@ import { ProfileShareModal } from "@/components/domain/ProfileShareModal"
 import { ProfileAvatar } from "@/components/domain/ProfileAvatar"
 import { ProfileFollowButton } from "@/components/domain/ProfileFollowButton"
 import { ReportButton } from "@/components/domain/ReportButton"
+import { FounderCardModal } from "@/components/domain/FounderCardModal"
 
 import { ViewTracker } from "@/components/domain/ViewTracker"
 
@@ -116,6 +117,24 @@ export default async function PublicProfilePage({
 
   if (profileError) console.error("Profile fetch error:", profileError)
   if (!profile) notFound()
+
+  let founderNumber: number | null = null
+  let publicCode: string | undefined = undefined
+
+  try {
+    const [founderRes, identityRes] = await Promise.all([
+      supabase.from("founders" as any).select("founder_number").eq("user_id", profile.id).maybeSingle(),
+      supabase.from("user_identities" as any).select("public_code").eq("user_id", profile.id).maybeSingle()
+    ])
+    if (typeof (founderRes.data as any)?.founder_number === "number") {
+      founderNumber = (founderRes.data as any).founder_number
+    }
+    if ((identityRes.data as any)?.public_code) {
+      publicCode = (identityRes.data as any).public_code
+    }
+  } catch {
+    // Tablas pendientes de migración o error no crítico
+  }
 
   const avatarUrl = profile.avatar?.storage_path 
     ? `${"https://zvesoygqssyyojqyswwm.supabase.co"}/storage/v1/object/public/recipe_media/${profile.avatar.storage_path}`
@@ -296,6 +315,18 @@ export default async function PublicProfilePage({
               </div>
             )}
           </div>
+
+          {founderNumber !== null && founderNumber >= 0 && founderNumber <= 99 && (
+            <div className="mt-2.5 flex justify-center">
+              <FounderCardModal
+                username={profile.username}
+                displayName={profile.display_name || profile.username}
+                founderNumber={founderNumber}
+                publicCode={publicCode}
+                isSelf={isSelf}
+              />
+            </div>
+          )}
 
           {profile.bio && <p className="text-[15px] mt-3 max-w-md text-center whitespace-pre-wrap">{profile.bio}</p>}
           {(profile as any).website && (

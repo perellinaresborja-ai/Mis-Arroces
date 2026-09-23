@@ -106,6 +106,25 @@ export async function updateRecipeStatus(id: string, status: string, scheduledFo
   }
 
   await supabase.from("recipes").update({ status, scheduled_for: scheduledFor }).eq("id", id).eq("owner_id", user.id);
+
+    if (status === 'PUBLISHED') {
+      const { data: founderNumber, error: founderErr } = await supabase.rpc('claim_founder_spot', { p_user_id: user.id });
+      if (!founderErr && typeof founderNumber === 'number' && founderNumber >= 0 && founderNumber <= 99) {
+        try {
+          const { data: prof } = await supabase.from('profiles').select('username, display_name').eq('id', user.id).single();
+          const { data: identityCode } = await supabase.rpc('get_or_create_user_identity', { p_user_id: user.id });
+          const { sendFounderEmail } = require('@/lib/email');
+          await sendFounderEmail(user.email, founderNumber, {
+            displayName: prof?.display_name || undefined,
+            username: prof?.username || undefined,
+            publicCode: (typeof identityCode === 'string' ? identityCode : undefined)
+          });
+        } catch(e) {
+          console.error('Error enviando email fundador:', e);
+        }
+      }
+    }
+
   const { revalidatePath } = require("next/cache");
   const { redirect } = require("next/navigation");
   
