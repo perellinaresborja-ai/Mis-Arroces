@@ -1,5 +1,5 @@
 import { ImportedRecipe, ImportResult } from "../types"
-import { parseRecipeTextWithAi } from "../structurer/ai-recipe-parser"
+import { parseRecipeFreeText } from "@/app/actions/ai-recipe"
 
 export class InstagramAdapter {
   async extract(url: string, shortcode: string | null): Promise<ImportResult> {
@@ -78,32 +78,51 @@ export class InstagramAdapter {
         }
       }
 
-      const parsed = await parseRecipeTextWithAi(rawCaption, `Receta de Instagram (@${authorName})`)
+      const parsed = await parseRecipeFreeText(`Contexto: Receta de Instagram (@${authorName})\n\n${rawCaption}`)
 
-      if (parsed.isInsufficient || !parsed.recipe || (parsed.recipe.ingredients.length === 0 && parsed.recipe.instructions.length === 0)) {
+      if (parsed.error || !parsed.data) {
         return {
           success: false,
           isInsufficient: true,
-          error: "El texto de esta publicación no contiene una receta con ingredientes o pasos identificables."
+          error: parsed.error || "El texto de esta publicación no contiene una receta con ingredientes o pasos identificables."
         }
       }
 
-      const recipeData = parsed.recipe
-      const isComplete = recipeData.ingredients.length > 0 && recipeData.instructions.length > 0
+      const aiData = parsed.data;
+      
+      const ingredients = aiData.ingredients ? aiData.ingredients.map((ing: any) => ({ raw_text: ing.raw_text })) : [];
+      if (aiData.rice_qty && aiData.rice_variety_hint) {
+         ingredients.unshift({ raw_text: `${aiData.rice_qty}g de ${aiData.rice_variety_hint}` });
+      } else if (aiData.rice_variety_hint) {
+         ingredients.unshift({ raw_text: `${aiData.rice_variety_hint}` });
+      }
+      if (aiData.stock_qty && aiData.stock_ingredient_hint) {
+         ingredients.unshift({ raw_text: `${aiData.stock_qty}ml de ${aiData.stock_ingredient_hint}` });
+      } else if (aiData.stock_ingredient_hint) {
+         ingredients.unshift({ raw_text: `${aiData.stock_ingredient_hint}` });
+      }
+
+      const instructions = aiData.instructions ? aiData.instructions.map((inst: any, idx: number) => ({
+         step_number: idx + 1,
+         text: inst.instruction,
+         notes: inst.notes || null
+      })) : [];
+
+      const isComplete = ingredients.length > 0 && instructions.length > 0
 
       const recipe: ImportedRecipe = {
         source_platform: "INSTAGRAM",
         source_url: post.url || url,
         external_id: shortcode,
-        title: recipeData.title || `Receta de @${authorName}`,
-        description: rawCaption,
+        title: aiData.title || `Receta de @${authorName}`,
+        description: aiData.description || null,
         author_name: authorName,
-        servings: recipeData.servings ?? null,
-        prep_time_minutes: recipeData.prep_time_minutes ?? null,
-        cook_time_minutes: recipeData.cook_time_minutes ?? null,
-        total_time_minutes: recipeData.total_time_minutes ?? null,
-        ingredients: recipeData.ingredients,
-        instructions: recipeData.instructions,
+        servings: aiData.servings ?? null,
+        prep_time_minutes: aiData.prep_time_minutes ?? null,
+        cook_time_minutes: aiData.cook_time_minutes ?? null,
+        total_time_minutes: aiData.cook_time_minutes ?? null, // Fallback if no total time
+        ingredients,
+        instructions,
         raw_source_text: rawCaption,
         extraction_status: isComplete ? "COMPLETE" : "PARTIAL",
         warning_notes: []
