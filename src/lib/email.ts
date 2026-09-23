@@ -209,7 +209,7 @@ export async function sendFounderEmail(
             ¿Conoces a otro arrocero que debería estar entre Los 100?
           </p>
           <p style="margin:0 0 16px 0;font-size:13.5px;color:#52525B;line-height:22px;">
-            Invítalo ahora. Las plazas son limitadas, no se muestra cuántas quedan y, cuando Los 100 estén completos, se cerrará para siempre.
+            Invítalo ahora. Las plazas son limitadas y, cuando Los 100 estén completos, se cerrará para siempre.
           </p>
           <div style="text-align:center;margin:12px 0 6px 0;">
             <a
@@ -220,6 +220,64 @@ export async function sendFounderEmail(
               RECOMENDAR A UN ARROCERO
             </a>
           </div>
+        </div>
+      `,
+    }),
+  })
+}
+
+export async function sendAdminEmail(to: string) {
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.misarroces.es'
+  const publicCode = '18d5f0f25ca26440'
+  const idUrl = `${baseUrl}/id/${publicCode}`
+  const qrImageSrc = `${baseUrl}/api/qr/${publicCode}`
+
+  return await getResend().emails.send({
+    from: 'misarroces <info@misarroces.es>',
+    to,
+    subject: '¡Tu ID de Administrador en misarroces! ✦ @perellinares',
+    html: buildEmailHtml({
+      title: 'Tu ID Oficial de Administrador',
+      body: `
+        <p style="margin:0 0 14px 0;font-size:14px;color:#3F3F46;line-height:23px;text-align:center;">
+          Aquí tienes tu ID oficial permanente como creador y administrador de misarroces.
+        </p>
+
+        <table cellpadding="0" cellspacing="0" border="0" align="center" style="margin:14px auto 10px auto;width:240px;background:#FAF8F5;border:1.5px solid #18181B;border-radius:20px;padding:6px;box-shadow:0 6px 18px rgba(0,0,0,0.08);">
+          <tr>
+            <td align="center" style="border:1px solid #EAE3D7;border-radius:15px;background:#FDFBF7;padding:14px 10px 10px 10px;text-align:center;">
+              <div style="margin-bottom:8px;">
+                <span style="font-size:15px;font-weight:900;color:#18181B;letter-spacing:-0.03em;">mis<span style="color:#EA580C;">arroces</span></span>
+              </div>
+              <div style="display:inline-block;background:#FFFFFF;border:1px solid #18181B;border-radius:20px;padding:2px 10px;font-size:8px;font-weight:900;color:#18181B;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:10px;">
+                ID ADMIN
+              </div>
+              <div style="font-size:14px;font-weight:900;color:#18181B;margin-bottom:10px;">
+                @perellinares
+              </div>
+              <div style="background:#FFFFFF;border:1px solid #E5DFD5;border-radius:12px;padding:6px;display:inline-block;box-shadow:0 3px 10px rgba(0,0,0,0.04);margin-bottom:9px;">
+                <img src="${qrImageSrc}" alt="QR @perellinares" width="96" height="96" style="display:block;border-radius:5px;" />
+              </div>
+              <div style="border-top:1px dashed #E0D8CB;padding-top:7px;margin-top:1px;">
+                <div style="font-size:9px;font-weight:800;color:#18181B;letter-spacing:0.22em;line-height:1;margin-bottom:2px;text-transform:uppercase;">
+                  ✦ ADMIN ✦
+                </div>
+                <div style="font-size:9px;font-weight:700;color:#A1A1AA;letter-spacing:0.06em;line-height:1;">
+                  misarroces
+                </div>
+              </div>
+            </td>
+          </tr>
+        </table>
+
+        <div style="margin:14px 0 18px 0;text-align:center;">
+          <a
+            href="${idUrl}"
+            target="_blank"
+            style="display:inline-block;background-color:#EA580C;color:#FFFFFF;font-size:14px;font-weight:800;letter-spacing:0.04em;text-decoration:none;padding:12px 30px;border-radius:12px;box-shadow:0 4px 14px rgba(234,88,12,0.25);text-transform:uppercase;"
+          >
+            VER MI ID
+          </a>
         </div>
       `,
     }),

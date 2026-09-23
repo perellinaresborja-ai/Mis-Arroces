@@ -145,8 +145,12 @@ export default async function MemberIdPage({
               </span>
             </div>
 
-            {/* Distinción Fundador / Usuario */}
-            {isFounder ? (
+            {/* Distinción Admin / Fundador / Usuario */}
+            {username === 'perellinares' ? (
+              <div className="inline-block bg-white border border-[#18181B] rounded-full px-2.5 py-0.5 text-[8.5px] font-extrabold text-[#18181B] tracking-widest uppercase mb-2 shadow-2xs">
+                ID ADMIN
+              </div>
+            ) : isFounder ? (
               <div className="inline-block bg-white border border-[#EA580C] rounded-full px-2.5 py-0.5 text-[8.5px] font-extrabold text-[#EA580C] tracking-widest uppercase mb-2 shadow-2xs">
                 ID FUNDADOR
               </div>
