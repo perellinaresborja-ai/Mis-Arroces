@@ -102,7 +102,7 @@ export function InstallAppRow() {
                     Instala misarroces
                   </h3>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    Añade la app a tu pantalla de inicio en 2 pasos:
+                    Instala misarroces en tu iPhone en 2 pasos.
                   </p>
                 </div>
               </div>
