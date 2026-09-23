@@ -1,7 +1,5 @@
 "use server"
 
-export const maxDuration = 60;
-
 import { revalidatePath } from "next/cache"
 import { createClient } from "@/lib/supabase/server"
 import { detectPlatformAndNormalizeUrl } from "@/lib/recipe-importer/detector"

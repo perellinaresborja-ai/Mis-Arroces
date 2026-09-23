@@ -1,7 +1,5 @@
 "use server"
 
-export const maxDuration = 60;
-
 import { createClient } from "@/lib/supabase/server"
 import { z } from "zod"
 import { getCatalogs } from "@/app/actions/recipes"
