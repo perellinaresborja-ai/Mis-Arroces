@@ -159,9 +159,9 @@ export default async function PublicProfilePage({
     postsRes
   ] = await Promise.all([
     // Founder number
-    supabase.from("founders" as any).select("founder_number").eq("user_id", profile.id).maybeSingle().catch(() => ({ data: null })),
+    supabase.from("founders" as any).select("founder_number").eq("user_id", profile.id).maybeSingle().then(r => r, () => ({ data: null })),
     // Public code
-    supabase.from("user_identities" as any).select("public_code").eq("user_id", profile.id).maybeSingle().catch(() => ({ data: null })),
+    supabase.from("user_identities" as any).select("public_code").eq("user_id", profile.id).maybeSingle().then(r => r, () => ({ data: null })),
     // Follow status
     followPromise,
     // Followers count
