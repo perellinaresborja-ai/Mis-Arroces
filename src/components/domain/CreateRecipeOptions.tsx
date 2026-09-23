@@ -495,7 +495,7 @@ export default function CreateRecipeOptions({ createManualAction }: { createManu
           </div>
           <div>
             <h3 className="font-semibold text-lg">Por voz</h3>
-            <p className="text-sm text-muted-foreground mt-1">Cuéntanos tu receta y la convertimos en un borrador listo para editar.</p>
+            <p className="text-sm text-muted-foreground mt-1">Cuéntanos tu receta y la preparamos para que puedas revisarla y editarla.</p>
           </div>
         </button>
 
@@ -509,7 +509,7 @@ export default function CreateRecipeOptions({ createManualAction }: { createManu
           </div>
           <div>
             <h3 className="font-semibold text-lg">Importar receta</h3>
-            <p className="text-sm text-muted-foreground mt-1">Pega el enlace de una receta de una web. La importaremos y crearemos un borrador que podrás revisar y completar.</p>
+            <p className="text-sm text-muted-foreground mt-1">Pega el enlace de una receta y la importaremos para que puedas revisarla y completarla.</p>
           </div>
         </button>
       </div>
