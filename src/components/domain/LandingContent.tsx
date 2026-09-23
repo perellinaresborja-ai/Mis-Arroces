@@ -126,7 +126,7 @@ export function LandingContent({ isHome = false }: { isHome?: boolean }) {
             </Link>
           ) : (
             <Link href="/login" className={buttonVariants({ size: "lg", className: "rounded-xl font-bold text-lg px-10 h-14" })}>
-              Crear mi cuenta en misarroces.es
+              Crear mi cuenta
             </Link>
           )}
         </div>

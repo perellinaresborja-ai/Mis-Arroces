@@ -41,14 +41,10 @@ export default function LinksPage() {
         await navigator.share(shareData)
       } catch (err: any) {
         console.error('Error sharing:', err)
-        // Si falla (y no es porque el usuario ha cancelado manualmente), copiamos el link
-        if (err.name !== 'AbortError') {
-          handleCopy()
-        }
+        // Si falla, NO copiamos el enlace para mantener acciones separadas
       }
     } else {
-      // Si el navegador interno no soporta compartir nativo, copiamos al portapapeles
-      handleCopy()
+      alert('Tu navegador no soporta la función nativa de compartir. Usa el botón "Copiar link".')
     }
   }
 
@@ -92,40 +88,44 @@ export default function LinksPage() {
         <Link 
           href={getHref('/feed', false)}
           onClick={() => handleTracking('Ir a misarroces', '/feed', false)}
-          className="w-full flex items-center justify-center relative bg-card border border-border hover:border-primary/50 text-foreground font-semibold py-4 px-6 rounded-3xl shadow-sm transition-all"
+          className="w-full grid grid-cols-[3rem_1fr_3rem] items-center bg-card border border-border hover:border-primary/50 text-foreground font-semibold py-4 px-2 rounded-3xl shadow-sm transition-all"
         >
-          <Home className="w-5 h-5 absolute left-6 text-muted-foreground" />
-          <span>Ir a misarroces</span>
+          <div className="flex justify-center"><Home className="w-5 h-5 text-muted-foreground shrink-0" /></div>
+          <span className="text-center leading-tight">Ir a misarroces</span>
+          <div />
         </Link>
 
         {/* 2. Trae tus recetas de Instagram */}
         <Link 
           href={getHref('/create/recipe#import', true)}
           onClick={() => handleTracking('Trae tus recetas de Instagram', '/create/recipe#import', true)}
-          className="w-full flex items-center justify-center relative bg-primary hover:bg-primary/90 text-primary-foreground font-semibold py-4 px-6 rounded-3xl shadow-sm transition-all"
+          className="w-full grid grid-cols-[3rem_1fr_3rem] items-center bg-primary hover:bg-primary/90 text-primary-foreground font-semibold py-4 px-2 rounded-3xl shadow-sm transition-all"
         >
-          <Smartphone className="w-5 h-5 absolute left-6 opacity-80" />
-          <span>Trae tus recetas de Instagram</span>
+          <div className="flex justify-center"><Smartphone className="w-5 h-5 opacity-80 shrink-0" /></div>
+          <span className="text-center leading-tight">Trae tus recetas de Instagram</span>
+          <div />
         </Link>
 
         {/* 3. ¿Qué es misarroces? */}
         <Link 
           href={getHref('/sobre-misarroces', false)}
           onClick={() => handleTracking('¿Qué es misarroces?', '/sobre-misarroces', false)}
-          className="w-full flex items-center justify-center relative bg-card border border-border hover:border-primary/50 text-foreground font-semibold py-4 px-6 rounded-3xl shadow-sm transition-all"
+          className="w-full grid grid-cols-[3rem_1fr_3rem] items-center bg-card border border-border hover:border-primary/50 text-foreground font-semibold py-4 px-2 rounded-3xl shadow-sm transition-all"
         >
-          <Info className="w-5 h-5 absolute left-6 text-muted-foreground" />
-          <span>¿Qué es misarroces?</span>
+          <div className="flex justify-center"><Info className="w-5 h-5 text-muted-foreground shrink-0" /></div>
+          <span className="text-center leading-tight">¿Qué es misarroces?</span>
+          <div />
         </Link>
 
         {/* 4. Crea tu recetario */}
         <Link 
           href={getHref('/cookbook', true)}
           onClick={() => handleTracking('Crea tu recetario', '/cookbook', true)}
-          className="w-full flex items-center justify-center relative bg-card border border-border hover:border-primary/50 text-foreground font-semibold py-4 px-6 rounded-3xl shadow-sm transition-all"
+          className="w-full grid grid-cols-[3rem_1fr_3rem] items-center bg-card border border-border hover:border-primary/50 text-foreground font-semibold py-4 px-2 rounded-3xl shadow-sm transition-all"
         >
-          <BookOpen className="w-5 h-5 absolute left-6 text-muted-foreground" />
-          <span>Crea tu recetario</span>
+          <div className="flex justify-center"><BookOpen className="w-5 h-5 text-muted-foreground shrink-0" /></div>
+          <span className="text-center leading-tight">Crea tu recetario</span>
+          <div />
         </Link>
 
         {/* Share Section */}
