@@ -93,11 +93,19 @@ export async function toggleFollow(targetUserId: string, isPrivate: boolean, cur
     await supabase.from("follows").delete().match({ follower_id: user.id, following_id: targetUserId })
   } else {
     const status = isPrivate ? "PENDING" : "ACCEPTED"
-    await supabase.from("follows").insert({
+    const { error: insertErr } = await supabase.from("follows").insert({
       follower_id: user.id,
       following_id: targetUserId,
       status
     })
+
+    if (insertErr) {
+      if (insertErr.code === '23505') {
+        // Ya existe la fila de follow en BD, no creamos notificación duplicada
+        return
+      }
+      throw new Error("Error al seguir al usuario: " + insertErr.message)
+    }
     
     await createNotification(
       targetUserId, 

@@ -56,6 +56,8 @@ export function FeedFollowButton({
       return
     }
 
+    if (isPending) return // Bloqueo estricto contra doble pulsación concurrente
+
     if (status === 'ACCEPTED') {
       setShowMenu(!showMenu)
       return

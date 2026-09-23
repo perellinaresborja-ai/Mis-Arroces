@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server"
 import { Database } from "@/types/database.types"
+import { createClient as createAdminClient } from "@supabase/supabase-js"
 
 type NotificationType = Database["public"]["Enums"]["notification_type_enum"]
 
@@ -41,7 +42,13 @@ export async function createNotification(
 
   // Deduplication check for repeatable actions
   if (type === 'LIKE' || type === 'FOLLOW' || type === 'FOLLOW_REQUEST') {
-    const { data: existing } = await supabase
+    const adminKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const dbClient = (adminKey && supabaseUrl)
+      ? createAdminClient(supabaseUrl, adminKey, { auth: { autoRefreshToken: false, persistSession: false } })
+      : supabase
+
+    const { data: existing } = await dbClient
       .from('notifications')
       .select('id')
       .eq('recipient_id', recipient_id)
@@ -49,11 +56,13 @@ export async function createNotification(
       .eq('type', type)
       .eq('entity_type', entity_type)
       .eq('entity_id', entity_id)
-      .single()
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
 
     if (existing) {
       // Just mark it as unread again and update timestamp
-      await supabase
+      await dbClient
         .from('notifications')
         .update({ is_read: false, created_at: new Date().toISOString() })
         .eq('id', existing.id)
