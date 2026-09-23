@@ -69,12 +69,16 @@ export async function importRecipeFromUrlAction(
   // 3. Delegate to registered platform adapter
   const importResult = await fetchRecipeFromAnyUrl(canonicalUrl)
 
-  if (!importResult.success || (!importResult.recipe && !importResult.isAsync)) {
+  if (!importResult.success || (!importResult.recipe && !importResult.isAsync && !importResult.recipeId)) {
     return {
       success: false,
       isInsufficient: importResult.isInsufficient,
       error: importResult.error || "No se ha podido procesar esta receta."
     }
+  }
+
+  if (importResult.recipeId) {
+    return { success: true, recipeId: importResult.recipeId }
   }
 
   if (importResult.isAsync && importResult.runId) {

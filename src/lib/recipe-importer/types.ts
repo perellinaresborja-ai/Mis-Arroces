@@ -33,6 +33,7 @@ export interface ImportedRecipe {
 export interface ImportResult {
   success: boolean;
   recipe?: ImportedRecipe;
+  recipeId?: string;
   error?: string;
   isInsufficient?: boolean;
   missingConfig?: boolean;

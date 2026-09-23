@@ -1,5 +1,6 @@
 import { ImportedRecipe, ImportResult } from "../types"
-import { parseRecipeFreeText } from "@/app/actions/ai-recipe"
+import { createAiRecipeDraft } from "@/app/actions/ai-recipe"
+import { createClient } from "@/lib/supabase/server"
 
 export class InstagramAdapter {
   async extract(url: string, shortcode: string | null): Promise<ImportResult> {
@@ -7,7 +8,7 @@ export class InstagramAdapter {
       if (!shortcode) {
         return {
           success: false,
-          error: "No se ha podido identificar el enlace de la publicaciÃ³n o Reel de Instagram."
+          error: "No se ha podido identificar el enlace de la publicación o Reel de Instagram."
         }
       }
 
@@ -17,7 +18,7 @@ export class InstagramAdapter {
         return {
           success: false,
           missingConfig: true,
-          error: "La importaciÃ³n desde Instagram requiere configurar APIFY_API_TOKEN en el servidor."
+          error: "La importación desde Instagram requiere configurar APIFY_API_TOKEN en el servidor."
         }
       }
 
@@ -37,7 +38,7 @@ export class InstagramAdapter {
       } catch (err: any) {
         clearTimeout(timeout)
         if (err.name === "AbortError") {
-          return { success: false, error: "La extracciÃ³n de Instagram ha tardado demasiado. Por favor, vuelve a intentarlo." }
+          return { success: false, error: "La extracción de Instagram ha tardado demasiado. Por favor, vuelve a intentarlo." }
         }
         throw err
       } finally {
@@ -47,7 +48,7 @@ export class InstagramAdapter {
       if (!res.ok) {
         return {
           success: false,
-          error: "Instagram ha bloqueado el acceso a la publicaciÃ³n o el servicio de extracciÃ³n estÃ¡ saturado."
+          error: "Instagram ha bloqueado el acceso a la publicación o el servicio de extracción está saturado."
         }
       }
 
@@ -55,7 +56,7 @@ export class InstagramAdapter {
       if (!Array.isArray(data) || data.length === 0) {
         return {
           success: false,
-          error: "No se encontrÃ³ informaciÃ³n en esta URL. Â¿Es posible que sea una cuenta privada?"
+          error: "No se encontró información en esta URL. ¿Es posible que sea una cuenta privada?"
         }
       }
 
@@ -63,7 +64,7 @@ export class InstagramAdapter {
       if (post.error) {
         return {
           success: false,
-          error: post.errorDescription || "PublicaciÃ³n no accesible o cuenta privada."
+          error: post.errorDescription || "Publicación no accesible o cuenta privada."
         }
       }
 
@@ -74,63 +75,30 @@ export class InstagramAdapter {
         return {
           success: false,
           isInsufficient: true,
-          error: "Esta publicaciÃ³n de Instagram no tiene texto o pie de foto del que extraer una receta."
+          error: "Esta publicación de Instagram no tiene texto o pie de foto del que extraer una receta."
         }
       }
 
-      const parsed = await parseRecipeFreeText(`Contexto: Receta de Instagram (@${authorName})\n\n${rawCaption}`)
+      const draftRes = await createAiRecipeDraft(`Contexto: Receta de Instagram (@${authorName})\n\n${rawCaption}`)
 
-      if (parsed.error || !parsed.data) {
+      if (draftRes.error || !draftRes.recipeId) {
         return {
           success: false,
           isInsufficient: true,
-          error: parsed.error || "El texto de esta publicaciÃ³n no contiene una receta con ingredientes o pasos identificables."
+          error: draftRes.error || "El texto de esta publicación no contiene una receta con ingredientes o pasos identificables."
         }
       }
 
-      const aiData = parsed.data;
-      
-      const ingredients = aiData.ingredients ? aiData.ingredients.map((ing: any) => ({ raw_text: ing.raw_text })) : [];
-      if (aiData.rice_qty && aiData.rice_variety_hint) {
-         ingredients.unshift({ raw_text: `${aiData.rice_qty}g de ${aiData.rice_variety_hint}` });
-      } else if (aiData.rice_variety_hint) {
-         ingredients.unshift({ raw_text: `${aiData.rice_variety_hint}` });
-      }
-      if (aiData.stock_qty && aiData.stock_ingredient_hint) {
-         ingredients.unshift({ raw_text: `${aiData.stock_qty}ml de ${aiData.stock_ingredient_hint}` });
-      } else if (aiData.stock_ingredient_hint) {
-         ingredients.unshift({ raw_text: `${aiData.stock_ingredient_hint}` });
-      }
-
-      const instructions = aiData.instructions ? aiData.instructions.map((inst: any, idx: number) => ({
-         step_number: idx + 1,
-         text: inst.instruction,
-         notes: inst.notes || null
-      })) : [];
-
-      const isComplete = ingredients.length > 0 && instructions.length > 0
-
-      const recipe: ImportedRecipe = {
-        source_platform: "INSTAGRAM",
+      const supabase = await createClient();
+      await (supabase.from("recipes") as any).update({
         source_url: post.url || url,
-        external_id: shortcode,
-        title: aiData.title || `Receta de @${authorName}`,
-        description: aiData.description || null,
-        author_name: authorName,
-        servings: aiData.servings ?? null,
-        prep_time_minutes: aiData.prep_time_minutes ?? null,
-        cook_time_minutes: aiData.cook_time_minutes ?? null,
-        total_time_minutes: aiData.cook_time_minutes ?? null, // Fallback if no total time
-        ingredients,
-        instructions,
-        raw_source_text: rawCaption,
-        extraction_status: isComplete ? "COMPLETE" : "PARTIAL",
-        warning_notes: []
-      }
+        source_platform: "INSTAGRAM",
+        external_id: shortcode
+      }).eq("id", draftRes.recipeId);
 
       return {
         success: true,
-        recipe
+        recipeId: draftRes.recipeId
       }
     } catch (err: any) {
       return {
