@@ -6,6 +6,7 @@ import { ShareButton } from "@/components/domain/ShareButton"
 import { ReactionButton } from "@/components/domain/ReactionButton"
 import { MediaCarousel } from "@/components/domain/MediaCarousel"
 import { MediaImage } from "@/components/domain/MediaImage"
+import { RecipeFeedPlaceholder } from "@/components/domain/RecipeFeedPlaceholder"
 import { MessageCircle, Bookmark } from "lucide-react"
 import { FeedCommentsInline } from "@/components/domain/FeedCommentsInline"
 import { PostOptionsMenu } from "@/components/domain/PostOptionsMenu"
@@ -162,11 +163,13 @@ export function FeedCard({
       )}
 
       {/* Media */}
-      {media.length > 0 && (
+      {media.length > 0 ? (
         <div className="rounded-2xl overflow-hidden border border-border/50">
           <MediaCarousel items={media} href={href} priority={priority} />
         </div>
-      )}
+      ) : entityType === 'recipe' ? (
+        <RecipeFeedPlaceholder href={href} recipeName={recipeName} />
+      ) : null}
 
       {/* Context Badge (Recipes) */}
       {entityType === 'recipe' && (
