@@ -9,12 +9,16 @@ export function LandingContent({ isHome = false }: { isHome?: boolean }) {
     <div className="w-full max-w-5xl mx-auto px-4 md:px-8 space-y-16 pb-24 md:pb-8 pt-4 md:pt-12">
       {/* Hero Section */}
       <header className="text-center space-y-6 pt-8">
-        <div className="relative w-48 h-32 md:w-64 md:h-48 mx-auto mb-8">
+        <div className="relative w-48 h-32 md:w-64 md:h-48 mx-auto mb-6">
           <Image src="/logover.png" alt="Mis Arroces Logo" fill sizes="400px" className="object-contain" priority />
         </div>
-        <h1 className="text-4xl md:text-6xl font-bold tracking-tight text-foreground">
-          {isHome ? "misarroces" : "¿Qué es misarroces.es?"}
-        </h1>
+        {isHome ? (
+          <h1 className="sr-only">misarroces</h1>
+        ) : (
+          <h1 className="text-4xl md:text-6xl font-bold tracking-tight text-foreground">
+            ¿Qué es misarroces.es?
+          </h1>
+        )}
         <p className="text-xl md:text-2xl text-muted-foreground max-w-2xl mx-auto">
           La red social de los arroces. Una comunidad exclusiva para arroceros. Descubre, guarda y comparte las mejores recetas y paellas con el mundo.
         </p>
