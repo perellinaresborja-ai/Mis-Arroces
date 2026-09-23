@@ -67,7 +67,7 @@ export default function LinksPage() {
   return (
     <div className="min-h-[100dvh] bg-background flex flex-col items-center pt-12 md:pt-24 px-6 relative w-full">
       {/* Logo */}
-      <div className="relative w-28 h-28 mb-4">
+      <div className="relative w-[118px] h-[118px] mb-4">
         <Image src="/logopaellaicono.png" alt="misarroces Icono" fill sizes="200px" className="object-contain" priority />
       </div>
       
