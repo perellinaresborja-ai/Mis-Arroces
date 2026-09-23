@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server"
 import Link from "next/link"
-import { Shield, ArrowRight, Lock } from "lucide-react"
+import Image from "next/image"
+import { ArrowRight, Lock } from "lucide-react"
 
 export const revalidate = 60
 
@@ -27,9 +28,15 @@ export default async function FundadoresPage() {
 
       <div className="max-w-2xl w-full mx-auto text-center relative z-10 flex flex-col items-center">
         
-        {/* Shield Icon */}
-        <div className="w-20 h-20 bg-black text-white rounded-3xl flex items-center justify-center shadow-2xl mb-8 transform -rotate-6">
-          <Shield className="w-10 h-10 text-[#EA580C]" />
+        {/* Logo misarroces */}
+        <div className="relative w-28 h-28 sm:w-32 sm:h-32 mb-6">
+          <Image
+            src="/logopngver.png"
+            alt="misarroces"
+            fill
+            className="object-contain"
+            priority
+          />
         </div>
 
         <h1 className="text-4xl md:text-5xl font-black tracking-tight mb-4 text-balance">
