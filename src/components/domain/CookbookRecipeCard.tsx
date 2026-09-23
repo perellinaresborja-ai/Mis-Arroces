@@ -86,7 +86,7 @@ export function CookbookRecipeCard({ recipe, tab }: { recipe: any, tab: string }
           />
         ) : (
           <div className="w-full h-full p-4 flex items-center justify-center text-center transition-transform md:group-hover:scale-105 bg-card">
-            <h3 className="text-xl md:text-2xl font-bold text-foreground line-clamp-4 leading-tight">
+            <h3 className="text-sm md:text-2xl font-semibold md:font-bold text-foreground line-clamp-3 md:line-clamp-4 leading-tight">
               {fallbackText}
             </h3>
           </div>

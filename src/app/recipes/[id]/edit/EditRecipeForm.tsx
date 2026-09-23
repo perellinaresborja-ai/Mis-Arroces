@@ -243,114 +243,113 @@ export default function EditRecipeForm({ recipe, catalogs }: { recipe: any, cata
       finalScheduledFor = recipe.scheduled_for
     }
 
-      // Client-side integrity check if destination or current status is PUBLISHED
-      if (finalStatus === 'PUBLISHED') {
-        const currentValues = getValues()
-        
-        const validation = validateRecipeForPublishing({
-          name: currentValues.name,
-          base_servings: currentValues.base_servings,
-          rice_qty: currentValues.rice_qty,
-          stock_qty: currentValues.stock_qty,
-          stock_ingredient_id: currentValues.stock_ingredient_id,
-          ingredients: currentValues.ingredients,
-          steps: currentValues.steps
-        })
+    // Client-side integrity check if destination or current status is PUBLISHED
+    if (finalStatus === 'PUBLISHED') {
+      const currentValues = getValues()
+      
+      const validation = validateRecipeForPublishing({
+        name: currentValues.name,
+        base_servings: currentValues.base_servings,
+        rice_qty: currentValues.rice_qty,
+        stock_qty: currentValues.stock_qty,
+        stock_ingredient_id: currentValues.stock_ingredient_id,
+        ingredients: currentValues.ingredients,
+        steps: currentValues.steps
+      })
 
-        if (!validation.isValid) {
-          setValidationErrors(validation.errorList)
-          window.scrollTo({ top: 0, behavior: 'smooth' })
-          if (validation.issues.length > 0) {
-            scrollToErrorField(validation.issues[0].field)
-          }
-          // Downgrade to DRAFT so we save the progress and don't lose data
-          finalStatus = 'DRAFT'
-          finalScheduledFor = null
-        } else {
-          setValidationErrors([])
+      if (!validation.isValid) {
+        setValidationErrors(validation.errorList)
+        window.scrollTo({ top: 0, behavior: 'smooth' })
+        if (validation.issues.length > 0) {
+          scrollToErrorField(validation.issues[0].field)
         }
+        return
       } else {
         setValidationErrors([])
       }
-
-      setValue('status', finalStatus)
-      setValue('scheduled_for', finalScheduledFor)
-
-      handleSubmit(onSubmit)()
+    } else {
+      setValidationErrors([])
     }
 
+    setValue('status', finalStatus)
+    setValue('scheduled_for', finalScheduledFor)
+
+    handleSubmit(onSubmit)()
+  }
+
   const onSubmit = async (data: any) => {
-    console.log("[INSTRUMENTATION] >>> onSubmit called.");
     setIsSaving(true)
     setTechnicalError(null)
     try {
-      
-        console.log("Submitting mediaItems:", mediaItems);
-          const finalMediaIds: string[] = []
-        for (const item of mediaItems) {
-          if (item.type === 'existing') {
-            finalMediaIds.push(item.id!)
-          } else if (item.file) {
-            const uploadedId = await uploadMedia(item.file, 'recipes', recipe.id)
-            finalMediaIds.push(uploadedId)
-          }
+      const finalMediaIds: string[] = []
+      for (const item of mediaItems) {
+        if (item.type === 'existing' && item.id) {
+          finalMediaIds.push(item.id)
+        } else if (item.file) {
+          const uploadedId = await uploadMedia(item.file, 'recipes', recipe.id)
+          finalMediaIds.push(uploadedId)
         }
-        data.media_ids = finalMediaIds
-          console.log("FINAL MEDIA IDS:", finalMediaIds);
+      }
+      data.media_ids = finalMediaIds
 
-        // Upload step media
-        if (data.steps && data.steps.length > 0) {
-          for (let i = 0; i < data.steps.length; i++) {
-            const s = data.steps[i];
-            if (s.mediaItem) {
-              if (s.mediaItem.type === 'new' && s.mediaItem.file) {
-                const uploadedId = await uploadMedia(s.mediaItem.file, 'recipes', recipe.id)
-                s.media_id = uploadedId;
-              } else if (s.mediaItem.type === 'existing') {
-                s.media_id = s.mediaItem.id;
-              }
-            } else {
-              s.media_id = null;
+      // Upload step media
+      if (data.steps && data.steps.length > 0) {
+        for (let i = 0; i < data.steps.length; i++) {
+          const s = data.steps[i];
+          if (s.mediaItem) {
+            if (s.mediaItem.type === 'new' && s.mediaItem.file) {
+              const uploadedId = await uploadMedia(s.mediaItem.file, 'recipes', recipe.id)
+              s.media_id = uploadedId;
+            } else if (s.mediaItem.type === 'existing') {
+              s.media_id = s.mediaItem.id;
             }
+          } else {
+            s.media_id = null;
           }
         }
-
-          // Strip out File objects to avoid Next.js payload limits
-          const cleanData = { ...data };
-          if (cleanData.steps) {
-            cleanData.steps = cleanData.steps.map((s: any) => {
-              const cleanStep = { ...s };
-              delete cleanStep.mediaItem;
-              return cleanStep;
-            });
-          }
-          
-          // DRAFTs stay in the editor, PUBLISHED recipes redirect to their public page
-          const skipRedirect = cleanData.status === 'DRAFT';
-          await updateRecipeFull(recipe.id, cleanData, skipRedirect);
-          
-          if (skipRedirect) {
-            setIsSaving(false);
-          }
-      } catch (err: any) {
-      if (err?.message?.includes('NEXT_REDIRECT') || err?.digest?.includes('NEXT_REDIRECT')) {
-        throw err;
       }
-      console.error("Error al guardar receta:", err)
+
+      // Strip out File objects to avoid Next.js payload limits
+      const cleanData = { ...data };
+      if (cleanData.steps) {
+        cleanData.steps = cleanData.steps.map((s: any) => {
+          const cleanStep = { ...s };
+          delete cleanStep.mediaItem;
+          return cleanStep;
+        });
+      }
       
-      const errMsg = err?.message || ""
-      const isDomainValidationError = errMsg.startsWith("No se puede guardar como publicada:") || errMsg.startsWith("No se puede publicar la receta:")
+      // DRAFTs stay in the editor, PUBLISHED recipes redirect to their public page
+      const skipRedirect = cleanData.status === 'DRAFT';
+      const result = await updateRecipeFull(recipe.id, cleanData, skipRedirect);
       
-      if (isDomainValidationError) {
-        const cleanMsg = errMsg.replace(/^No se puede (guardar como publicada|publicar la receta):\s*/, '').trim()
-        setValidationErrors(cleanMsg ? [cleanMsg] : ["La receta no cumple los requisitos para ser publicada."])
+      if (!result || !result.success) {
+        if (result?.isValidation) {
+          setValidationErrors(result.errorList || [result.error]);
+        } else {
+          setTechnicalError(result?.error || "Ha ocurrido un error inesperado al guardar la receta. Por favor, inténtalo de nuevo.");
+        }
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        setIsSaving(false);
+        return;
+      }
+
+      setTechnicalError(null);
+      setValidationErrors([]);
+
+      if (!skipRedirect) {
+        router.push("/recipes/" + recipe.id);
+        router.refresh();
       } else {
-        // Technical error: keep validation errors list intact, display technical error in separate banner
-        setTechnicalError("Ha ocurrido un error inesperado al guardar la receta. Por favor, inténtalo de nuevo.")
+        setIsSaving(false);
+        setAutosaveStatus('saved');
+        setTimeout(() => setAutosaveStatus('idle'), 3000);
       }
-
-      window.scrollTo({ top: 0, behavior: 'smooth' })
-      setIsSaving(false)
+    } catch (err: any) {
+      console.error("Error al guardar receta:", err);
+      setTechnicalError(err?.message || "Ha ocurrido un error inesperado al guardar la receta. Por favor, inténtalo de nuevo.");
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      setIsSaving(false);
     }
   }
 

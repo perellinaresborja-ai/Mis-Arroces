@@ -132,238 +132,301 @@ interface RecipeStepInput {
   media_id?: string | null;
 }
 
-export async function updateRecipeFull(id: string, data: any, skipRedirect: boolean = false) {
-  const { createClient } = require("@/lib/supabase/server");
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error("Auth");
-  
-  const { steps, ingredients, vessels, media_ids, tags, vessel_type_id, vessel_diameter_cm, vessel_notes, ...rawBaseData } = data;
-  
-  // Clean empty strings to null for postgres
-  const baseData = { ...rawBaseData };
-  if (baseData.base_servings === "") baseData.base_servings = null;
-  for (const key of Object.keys(baseData)) {
-    if (baseData[key] === '') baseData[key] = null;
-  }
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-  // Validate integrity when publishing or when keeping an already published recipe in PUBLISHED status
-  if (baseData.status === 'PUBLISHED') {
-    const { validateRecipeForPublishing } = require("@/lib/recipe-validator");
-    const validation = validateRecipeForPublishing({
-      name: baseData.name,
-      base_servings: baseData.base_servings,
-      rice_qty: baseData.rice_qty,
-      stock_qty: baseData.stock_qty,
-      stock_ingredient_id: baseData.stock_ingredient_id,
-      ingredients: ingredients,
-      steps: steps,
-    });
-
-    if (!validation.isValid) {
-      throw new Error("No se puede guardar como publicada: " + validation.errorList.join(" "));
+export async function updateRecipeFull(id: string, data: any, skipRedirect: boolean = false, customSupabase?: any) {
+  try {
+    const supabase = customSupabase || (await (require("@/lib/supabase/server").createClient)());
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      return { success: false, error: "Debes iniciar sesión para editar recetas." };
     }
-  }
-  
-  const { data: updatedRecipe, error: recipeError } = await supabase
-    .from("recipes")
-    .update(baseData)
-    .eq("id", id)
-    .eq("owner_id", user.id)
-    .select("id")
-    .maybeSingle();
+    
+    const { steps, ingredients, vessels, media_ids, tags, vessel_type_id, vessel_diameter_cm, vessel_notes, ...rawBaseData } = data;
+    
+    // Clean empty strings and sanitize data types for postgres
+    const baseData = { ...rawBaseData };
+    
+    // Numbers
+    baseData.base_servings = baseData.base_servings !== "" && baseData.base_servings != null ? Number(baseData.base_servings) : 1;
+    baseData.rice_qty = baseData.rice_qty !== "" && baseData.rice_qty != null ? Number(baseData.rice_qty) : null;
+    baseData.stock_qty = baseData.stock_qty !== "" && baseData.stock_qty != null ? Number(baseData.stock_qty) : null;
+    baseData.cook_time = baseData.cook_time !== "" && baseData.cook_time != null ? Number(baseData.cook_time) : null;
+    baseData.rest_time = baseData.rest_time !== "" && baseData.rest_time != null ? Number(baseData.rest_time) : null;
 
-  if (recipeError) {
-    throw new Error("Error actualizando receta: " + recipeError.message);
-  }
+    // UUID foreign keys: if not valid UUID, null
+    const uuidFields = ['style_id', 'variety_id', 'heat_source_id', 'stock_ingredient_id'];
+    for (const uf of uuidFields) {
+      if (baseData[uf] && !UUID_REGEX.test(baseData[uf])) {
+        baseData[uf] = null;
+      }
+    }
 
-  if (!updatedRecipe) {
-    throw new Error("La receta no se ha actualizado. No existe o no pertenece al usuario autenticado.");
-  }
+    // Clean remaining empty strings to null
+    for (const key of Object.keys(baseData)) {
+      if (baseData[key] === '') baseData[key] = null;
+    }
 
+    // Validate integrity when publishing or keeping as published
+    if (baseData.status === 'PUBLISHED') {
+      const { validateRecipeForPublishing } = require("@/lib/recipe-validator");
+      const validation = validateRecipeForPublishing({
+        name: baseData.name,
+        base_servings: baseData.base_servings,
+        rice_qty: baseData.rice_qty,
+        stock_qty: baseData.stock_qty,
+        stock_ingredient_id: baseData.stock_ingredient_id,
+        ingredients: ingredients,
+        steps: steps,
+      });
+
+      if (!validation.isValid) {
+        return {
+          success: false,
+          isValidation: true,
+          error: "No se puede guardar como publicada: " + validation.errorList.join(" "),
+          errorList: validation.errorList,
+        };
+      }
+    }
+    
+    const { data: updatedRecipe, error: recipeError } = await supabase
+      .from("recipes")
+      .update(baseData)
+      .eq("id", id)
+      .eq("owner_id", user.id)
+      .select("id")
+      .maybeSingle();
+
+    if (recipeError) {
+      console.error("Error actualizando receta en Supabase:", recipeError);
+      return { success: false, error: "Error actualizando receta: " + recipeError.message };
+    }
+
+    if (!updatedRecipe) {
+      return { success: false, error: "La receta no se ha actualizado. No existe o no pertenece al usuario autenticado." };
+    }
+
+    // STEPS
     if (steps) {
-      const existingStepIds = steps.filter((s: RecipeStepInput) => s.db_id).map((s: any) => s.db_id);
+      const crypto = require('crypto');
+      // Assign resolved UUIDs to every step
+      steps.forEach((s: any) => {
+        if (s.db_id && UUID_REGEX.test(s.db_id)) {
+          s.resolvedId = s.db_id;
+        } else if (s.id && UUID_REGEX.test(s.id)) {
+          s.resolvedId = s.id;
+        } else {
+          s.resolvedId = crypto.randomUUID();
+        }
+      });
+
+      const existingStepIds = steps
+        .map((s: any) => (s.db_id && UUID_REGEX.test(s.db_id)) ? s.db_id : (s.id && UUID_REGEX.test(s.id)) ? s.id : null)
+        .filter(Boolean) as string[];
       
       if (existingStepIds.length > 0) {
         const { error: delError } = await supabase.from("recipe_steps")
           .delete()
           .eq("recipe_id", id)
           .not("id", "in", '(' + existingStepIds.join(',') + ')');
-        if (delError) throw new Error("STEP DEL ERROR: " + delError.message);
+        if (delError) console.error("STEP DEL ERROR:", delError);
       } else {
         await supabase.from("recipe_steps").delete().eq("recipe_id", id);
       }
 
       if (steps.length > 0) {
-        const crypto = require('crypto');
-        steps.forEach((s: RecipeStepInput) => {
-          if (!s.db_id && !s.id) {
-            s.id = crypto.randomUUID();
-          }
-        });
-
-        // TEMPORARY PHASE: Shift step_numbers to avoid UNIQUE(recipe_id, step_number) collision during reorder
-        const stepsToShift = steps.map((s: RecipeStepInput, idx: number) => ({
-          id: s.db_id || s.id,
+        // Phase 1: Shift to avoid unique constraint collision
+        const stepsToShift = steps.map((s: any, idx: number) => ({
+          id: s.resolvedId,
           recipe_id: id,
           step_number: idx + 10000,
-          instruction: s.instruction,
+          instruction: s.instruction || "",
           duration_minutes: s.duration_minutes ? Number(s.duration_minutes) : null,
-          notes: s.notes || undefined,
-          media_id: s.media_id || undefined,
+          notes: s.notes || null,
+          media_id: (s.media_id && UUID_REGEX.test(s.media_id)) ? s.media_id : null,
         }));
         
         const { error: shiftError } = await supabase.from("recipe_steps").upsert(stepsToShift);
-        if (shiftError) throw new Error("STEP SHIFT ERROR: " + shiftError.message);
+        if (shiftError) console.error("STEP SHIFT ERROR:", shiftError);
 
-        // FINAL PHASE: Assign final step_numbers
-        const stepsToUpsert = steps.map((s: RecipeStepInput, idx: number) => ({
-          id: s.db_id || s.id,
+        // Phase 2: Final renumbering
+        const stepsToUpsert = steps.map((s: any, idx: number) => ({
+          id: s.resolvedId,
           recipe_id: id,
           step_number: idx + 1,
-          instruction: s.instruction,
+          instruction: s.instruction || "",
           duration_minutes: s.duration_minutes ? Number(s.duration_minutes) : null,
-          notes: s.notes || undefined,
-          media_id: s.media_id || undefined,
+          notes: s.notes || null,
+          media_id: (s.media_id && UUID_REGEX.test(s.media_id)) ? s.media_id : null,
         }));
         const { error: stepUpsertError } = await supabase.from("recipe_steps").upsert(stepsToUpsert);
-        if (stepUpsertError) throw new Error("STEP UPSERT ERROR: " + stepUpsertError.message);
+        if (stepUpsertError) {
+          console.error("STEP UPSERT ERROR:", stepUpsertError);
+          return { success: false, error: "Error al guardar los pasos: " + stepUpsertError.message };
+        }
       }
     }
 
-  if (ingredients) {
-    const existingIngIds = ingredients.filter((i: any) => i.db_id).map((i: any) => i.db_id);
-    
-    // Delete ingredients that are no longer in the list
-    if (existingIngIds.length > 0) {
-      const { error: delError } = await supabase.from("recipe_ingredients")
-        .delete()
-        .eq("recipe_id", id)
-        .not("id", "in", '(' + existingIngIds.join(',') + ')');
-      if (delError) throw new Error("ING DEL ERROR: " + delError.message);
-    } else {
-      await supabase.from("recipe_ingredients").delete().eq("recipe_id", id);
-    }
-
-    if (ingredients.length > 0) {
-      // Generate IDs for new ingredients so we can link costs
+    // INGREDIENTS
+    if (ingredients) {
       const crypto = require('crypto');
-      ingredients.forEach((i) => {
-        if (!i.db_id && !i.id) {
-          i.id = crypto.randomUUID();
+      ingredients.forEach((i: any) => {
+        if (i.db_id && UUID_REGEX.test(i.db_id)) {
+          i.resolvedId = i.db_id;
+        } else if (i.id && UUID_REGEX.test(i.id)) {
+          i.resolvedId = i.id;
+        } else {
+          i.resolvedId = crypto.randomUUID();
         }
       });
-      
-      const ingsToUpsert = ingredients.map((i: any, idx: number) => ({
-        id: i.db_id || i.id || undefined,
-        recipe_id: id,
-        display_order: idx + 1,
-        display_text: i.display_text,
-        normalized_quantity: i.normalized_quantity ? Number(i.normalized_quantity) : null,
-        unit_id: i.unit_id || null,
-        canonical_ingredient_id: i.canonical_ingredient_id || null,
-      }));
-      
-      const { error: ingError } = await supabase.from("recipe_ingredients").upsert(ingsToUpsert);
-      if (ingError) throw new Error("ING UPSERT ERROR: " + ingError.message);
 
-      // Auto-growth queue for unmatched ingredients
-      const unmatched = ingredients.filter((i: any) => !i.canonical_ingredient_id && i.display_text);
-      if (unmatched.length > 0) {
-        for (const u of unmatched) {
-          const norm = u.display_text.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, "").replace(/[^\w\s]/g, '').trim().replace(/\s+/g, ' ');
-          if (norm) {
-            const { data: existing } = await supabase.from('unmatched_ingredients').select('id, frequency_count').eq('normalized_text', norm).maybeSingle();
-            if (existing) {
-              await supabase.from('unmatched_ingredients').update({ frequency_count: existing.frequency_count + 1, last_seen_at: new Date().toISOString() }).eq('id', existing.id);
-            } else {
-              await supabase.from('unmatched_ingredients').insert({ display_text: u.display_text, normalized_text: norm }).catch(() => {}); // ignore duplicates
+      const existingIngIds = ingredients
+        .map((i: any) => (i.db_id && UUID_REGEX.test(i.db_id)) ? i.db_id : (i.id && UUID_REGEX.test(i.id)) ? i.id : null)
+        .filter(Boolean) as string[];
+      
+      if (existingIngIds.length > 0) {
+        const { error: delError } = await supabase.from("recipe_ingredients")
+          .delete()
+          .eq("recipe_id", id)
+          .not("id", "in", '(' + existingIngIds.join(',') + ')');
+        if (delError) console.error("ING DEL ERROR:", delError);
+      } else {
+        await supabase.from("recipe_ingredients").delete().eq("recipe_id", id);
+      }
+
+      if (ingredients.length > 0) {
+        const ingsToUpsert = ingredients.map((i: any, idx: number) => ({
+          id: i.resolvedId,
+          recipe_id: id,
+          display_order: idx + 1,
+          display_text: i.display_text || "",
+          normalized_quantity: i.normalized_quantity ? Number(i.normalized_quantity) : null,
+          unit_id: (i.unit_id && UUID_REGEX.test(i.unit_id)) ? i.unit_id : null,
+          canonical_ingredient_id: (i.canonical_ingredient_id && UUID_REGEX.test(i.canonical_ingredient_id)) ? i.canonical_ingredient_id : null,
+          is_scalable: i.is_scalable ?? true,
+        }));
+        
+        const { error: ingError } = await supabase.from("recipe_ingredients").upsert(ingsToUpsert);
+        if (ingError) {
+          console.error("ING UPSERT ERROR:", ingError);
+          return { success: false, error: "Error al guardar los ingredientes: " + ingError.message };
+        }
+
+        // Auto-growth queue for unmatched ingredients
+        const unmatched = ingredients.filter((i: any) => !i.canonical_ingredient_id && i.display_text);
+        if (unmatched.length > 0) {
+          for (const u of unmatched) {
+            const norm = u.display_text.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, "").replace(/[^\w\s]/g, '').trim().replace(/\s+/g, ' ');
+            if (norm) {
+              const { data: existing } = await supabase.from('unmatched_ingredients').select('id, frequency_count').eq('normalized_text', norm).maybeSingle();
+              if (existing) {
+                await supabase.from('unmatched_ingredients').update({ frequency_count: existing.frequency_count + 1, last_seen_at: new Date().toISOString() }).eq('id', existing.id);
+              } else {
+                try {
+                  await supabase.from('unmatched_ingredients').insert({ display_text: u.display_text, normalized_text: norm });
+                } catch (ignored) {}
+              }
             }
           }
         }
-      }
 
-      // Now save costs
-      const costsToUpsert = ingredients
-          .filter((i: any) => i.costData && (i.costData.purchase_amount || i.costData.purchase_price))
-          .map((i: any) => ({
-            id: i.db_id || i.id, // the ID used in ingsToUpsert
+        // Save costs only for valid real ingredient IDs (manual escandallo per recipe)
+        const costsToUpsert = ingredients
+            .filter((i: any) => i.costData && (i.costData.purchase_amount || i.costData.purchase_price) && i.resolvedId && UUID_REGEX.test(i.resolvedId))
+            .map((i: any) => ({
+              id: i.resolvedId,
+              recipe_id: id,
+              owner_id: user.id,
+              purchase_amount: i.costData.purchase_amount ? Number(i.costData.purchase_amount) : 1,
+              purchase_unit_id: (i.costData.purchase_unit_id && UUID_REGEX.test(i.costData.purchase_unit_id)) ? i.costData.purchase_unit_id : null,
+              purchase_price: i.costData.purchase_price ? Number(i.costData.purchase_price) : null
+            }));
+        
+        if (costsToUpsert.length > 0) {
+          const { error: costError } = await supabase.from("recipe_ingredient_costs").upsert(costsToUpsert);
+          if (costError) console.error("COST UPSERT ERROR (non-fatal):", costError);
+        }
+      }
+    }
+
+    // VESSELS
+    const hasFlatVessel = vessel_type_id || vessel_diameter_cm || vessel_notes;
+    if ((vessels && vessels.length > 0) || hasFlatVessel) {
+      await supabase.from("recipe_vessels").delete().eq("recipe_id", id);
+      const v = (vessels && vessels.length > 0) ? vessels[0] : { vessel_type_id: vessel_type_id, diameter_cm: vessel_diameter_cm, notes: vessel_notes };
+      if (v.vessel_type_id || v.diameter_cm || v.notes) {
+        let finalVesselTypeId = (v.vessel_type_id && UUID_REGEX.test(v.vessel_type_id)) ? v.vessel_type_id : null;
+        if (!finalVesselTypeId) {
+          const { data: defaultVessel } = await supabase.from("vessel_types").select("id").eq("name", "Paella").maybeSingle();
+          finalVesselTypeId = defaultVessel?.id || null;
+        }
+        
+        if (finalVesselTypeId) {
+          const { error: vesselError } = await supabase.from("recipe_vessels").insert({
             recipe_id: id,
-            owner_id: user.id,
-            purchase_amount: i.costData.purchase_amount ? Number(i.costData.purchase_amount) : null,
-            purchase_unit_id: i.costData.purchase_unit_id || null,
-            purchase_price: i.costData.purchase_price ? Number(i.costData.purchase_price) : null
-          }));
-      
-      if (costsToUpsert.length > 0) {
-        const { error: costError } = await supabase.from("recipe_ingredient_costs").upsert(costsToUpsert);
-        if (costError) throw new Error("COST UPSERT ERROR: " + costError.message);
+            vessel_type_id: finalVesselTypeId,
+            diameter_cm: v.diameter_cm ? Number(v.diameter_cm) : null,
+            notes: v.notes || null,
+          });
+          if (vesselError) console.error("Vessel insert error:", vesselError);
+        }
       }
     }
-  }
 
-  // Handle vessels either as array or flat fields
-  const hasFlatVessel = vessel_type_id || vessel_diameter_cm || vessel_notes;
-  if ((vessels && vessels.length > 0) || hasFlatVessel) {
-    await supabase.from("recipe_vessels").delete().eq("recipe_id", id);
-    const v = (vessels && vessels.length > 0) ? vessels[0] : { vessel_type_id: vessel_type_id, diameter_cm: vessel_diameter_cm, notes: vessel_notes };
-    if (v.vessel_type_id || v.diameter_cm || v.notes) {
-      let finalVesselTypeId = v.vessel_type_id;
-      if (!finalVesselTypeId) {
-        const { data: defaultVessel } = await supabase.from("vessel_types").select("id").eq("name", "Paella").maybeSingle();
-        finalVesselTypeId = defaultVessel?.id || null;
-      }
-      
-      if (finalVesselTypeId) {
-        const { error: vesselError } = await supabase.from("recipe_vessels").insert({
+    // TAGS
+    if (tags) {
+      await supabase.from("recipe_tags").delete().eq("recipe_id", id);
+      const validTags = tags.filter((tid: string) => UUID_REGEX.test(tid));
+      if (validTags.length > 0) {
+        const tagsToInsert = validTags.map((tid: string) => ({
           recipe_id: id,
-          vessel_type_id: finalVesselTypeId,
-          diameter_cm: v.diameter_cm ? Number(v.diameter_cm) : null,
-          notes: v.notes || null,
-        });
-        if (vesselError) console.error("Vessel insert error:", vesselError);
+          tag_id: tid
+        }));
+        await supabase.from("recipe_tags").insert(tagsToInsert);
       }
     }
-  }
 
-  if (tags) {
-    await supabase.from("recipe_tags").delete().eq("recipe_id", id);
-    if (tags.length > 0) {
-      const tagsToInsert = tags.map((tid: string) => ({
-        recipe_id: id,
-        tag_id: tid
-      }));
-      await supabase.from("recipe_tags").insert(tagsToInsert);
+    // MEDIA
+    if (media_ids) {
+      await supabase.from("recipe_media").delete().eq("recipe_id", id);
+      const validMediaIds = media_ids.filter((mid: string) => UUID_REGEX.test(mid));
+      if (validMediaIds.length > 0) {
+        const mediasToInsert = validMediaIds.map((mid: string, idx: number) => ({
+          recipe_id: id,
+          media_id: mid,
+          display_order: idx + 1,
+          is_primary: idx === 0
+        }));
+        const { error: insertError } = await supabase.from("recipe_media").insert(mediasToInsert);
+        if (insertError) console.error("MEDIA INSERT ERROR:", insertError);
+      }
     }
-  }
 
-  if (media_ids) {
-    await supabase.from("recipe_media").delete().eq("recipe_id", id);
-    if (media_ids.length > 0) {
-      const mediasToInsert = media_ids.map((mid: string, idx: number) => ({
-        recipe_id: id,
-        media_id: mid,
-        display_order: idx + 1,
-        is_primary: idx === 0
-      }));
-      const { error: insertError } = await supabase.from("recipe_media").insert(mediasToInsert);
-      if (insertError) throw new Error("MEDIA INSERT ERROR: " + insertError.message);
+    if (baseData.status === 'PUBLISHED') {
+      try {
+        await processFounderSpotAndEmail(user.id, user.email);
+      } catch (founderErr) {
+        console.error("Founder spot non-fatal error:", founderErr);
+      }
     }
+
+    try {
+      const { revalidatePath } = require("next/cache");
+      revalidatePath("/recipes/" + id);
+      revalidatePath("/recipes/" + id + "/edit");
+      revalidatePath("/cookbook");
+      revalidatePath("/");
+    } catch (cacheErr) {
+      // Non-fatal if called outside Next.js request context or if cache store is not initialized
+      console.warn("revalidatePath warning:", cacheErr);
+    }
+
+    return { success: true, recipeId: id };
+  } catch (err: any) {
+    console.error("Unexpected error in updateRecipeFull:", err);
+    return { success: false, error: err?.message || "Error inesperado al guardar la receta." };
   }
-
-  if (baseData.status === 'PUBLISHED') {
-    await processFounderSpotAndEmail(user.id, user.email);
-  }
-
-  const { revalidatePath } = require("next/cache");
-  const { redirect } = require("next/navigation");
-  
-  revalidatePath("/recipes/" + id);
-  revalidatePath("/recipes/" + id + "/edit");
-  revalidatePath("/cookbook");
-  revalidatePath("/");
-
-  if (!skipRedirect) { redirect("/recipes/" + id); }
 }
 
 export async function toggleWantToCook(recipeId: string, wantToCook: boolean) {
