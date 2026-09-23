@@ -72,7 +72,7 @@ export function StoryCreator({
   }, []);
   
   
-  const [mode, setMode] = useState<'EDIT'|'DRAW'|'TEXT'|'STICKER'|'MUSIC'|'VOLUME'>('EDIT');
+  const [mode, setMode] = useState<'EDIT'|'DRAW'|'TEXT'|'STICKER'|'MUSIC'>('EDIT');
   const [musicConfig, setMusicConfig] = useState<any>(null);
 
   useEffect(() => {
@@ -601,12 +601,6 @@ export function StoryCreator({
                 </button>
 
                 {/* Fila 2 */}
-                {((draftMediaType === 'VIDEO' && videoHasAudio) || musicConfig?.track_id) && (
-                  <button onClick={() => setMode('VOLUME')} className="flex flex-col items-center justify-center gap-1.5 p-3 bg-muted hover:bg-muted/80 rounded-2xl transition-colors text-foreground relative">
-                    <Volume2 size={22} className="text-primary"/>
-                    <span className="text-[11px] font-bold">Volumen</span>
-                  </button>
-                )}
                 <button onClick={() => setMode('MUSIC')} className="flex flex-col items-center justify-center gap-1.5 p-3 bg-muted hover:bg-muted/80 rounded-2xl transition-colors text-foreground relative">
                   <Music size={22} className={musicConfig ? "text-green-500" : "text-primary"}/>
                   <span className="text-[11px] font-bold">Música</span>
@@ -742,59 +736,7 @@ export function StoryCreator({
 
       </div>
 
-      {mode === 'VOLUME' && (
-          <div className="absolute inset-0 z-20 flex flex-col bg-background/80 backdrop-blur-sm">
-            <div className="flex-1" onClick={() => setMode('EDIT')} />
-            <div className="bg-card p-6 rounded-t-3xl shadow-xl flex flex-col gap-8 animate-in slide-in-from-bottom-full duration-300">
-              <div className="flex items-center justify-between">
-                <h3 className="font-bold text-xl">Ajustar volúmenes</h3>
-                <button onClick={() => setMode('EDIT')} className="p-2 bg-muted hover:bg-muted/80 rounded-full transition-colors"><X size={20}/></button>
-              </div>
 
-              <div className="flex flex-col gap-6">
-                {(draftMediaType === 'VIDEO' && videoHasAudio) && (
-                  <div className="flex flex-col gap-4">
-                    <div className="flex justify-between items-center text-sm font-medium">
-                      <span className="flex items-center gap-2"><Video size={18} className="text-muted-foreground"/> Audio original</span>
-                      <span className="text-muted-foreground">{Math.round((musicConfig?.original_audio_volume ?? 1) * 100)}%</span>
-                    </div>
-                    <input 
-                      type="range" min={0} max={100} 
-                      value={(musicConfig?.original_audio_volume ?? 1) * 100}
-                      onChange={(e) => {
-                        const v = parseInt(e.target.value) / 100;
-                        setMusicConfig((prev: any) => ({ ...prev, original_audio_volume: v }));
-                      }}
-                      className="w-full accent-orange-500 h-2 bg-muted rounded-full appearance-none"
-                    />
-                  </div>
-                )}
-
-                {musicConfig?.track_id && (
-                  <div className="flex flex-col gap-4">
-                    <div className="flex justify-between items-center text-sm font-medium">
-                      <span className="flex items-center gap-2"><Music size={18} className="text-muted-foreground"/> Música añadida</span>
-                      <span className="text-muted-foreground">{Math.round((musicConfig?.music_volume ?? 1) * 100)}%</span>
-                    </div>
-                    <input 
-                      type="range" min={0} max={100} 
-                      value={(musicConfig?.music_volume ?? 1) * 100}
-                      onChange={(e) => {
-                        const v = parseInt(e.target.value) / 100;
-                        setMusicConfig((prev: any) => ({ ...prev, music_volume: v }));
-                      }}
-                      className="w-full accent-orange-500 h-2 bg-muted rounded-full appearance-none"
-                    />
-                  </div>
-                )}
-              </div>
-              
-              <button onClick={() => setMode('EDIT')} className="w-full mt-2 bg-primary hover:bg-primary/90 text-primary-foreground font-bold p-4 rounded-2xl transition-colors">
-                Listo
-              </button>
-            </div>
-          </div>
-        )}
 
       {mode === 'MUSIC' && (
         <StoryMusicSelector
