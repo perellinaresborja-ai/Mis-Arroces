@@ -10,6 +10,8 @@ export function LoginForm({ initialMode = "login", error, message }: { initialMo
   const [mode, setMode] = useState<"login" | "signup">(initialMode)
   const [showPassword, setShowPassword] = useState(false)
   const [acqData, setAcqData] = useState("")
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -48,7 +50,7 @@ export function LoginForm({ initialMode = "login", error, message }: { initialMo
         </button>
       </div>
 
-      <form className="space-y-4 relative z-10" noValidate>
+      <form action={mode === "login" ? login : signup} className="space-y-4 relative z-10" noValidate>
         <input type="hidden" name="acquisition_data" value={acqData} />
         {error && (
           <div className="p-3 text-sm text-destructive bg-destructive/10 rounded-xl text-center font-medium border border-destructive/20 space-y-1">
@@ -90,7 +92,9 @@ export function LoginForm({ initialMode = "login", error, message }: { initialMo
               autoCorrect="off"
               spellCheck={false}
               placeholder="tu@email.com"
-              required 
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               className="w-full h-12 px-4 bg-transparent border-2 border-border/80 focus:border-charcoal rounded-xl outline-none transition-colors text-charcoal text-base" 
             />
           </div>
@@ -111,7 +115,9 @@ export function LoginForm({ initialMode = "login", error, message }: { initialMo
                 autoCorrect="off"
                 spellCheck={false}
                 placeholder={mode === "login" ? "••••••••" : "Mínimo 6 caracteres"}
-                required 
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
                 className="w-full h-12 pl-4 pr-12 bg-transparent border-2 border-border/80 focus:border-charcoal rounded-xl outline-none transition-colors text-charcoal text-base font-medium tracking-wide" 
               />
               <button 
@@ -131,7 +137,7 @@ export function LoginForm({ initialMode = "login", error, message }: { initialMo
           <div className="flex items-center justify-between pt-1">
             <label className="flex items-center gap-2 cursor-pointer group">
               <div className="relative flex items-center justify-center">
-                <input type="checkbox" name="remember" className="peer appearance-none w-5 h-5 border-2 border-border/80 rounded checked:bg-primary checked:border-primary transition-colors cursor-pointer" defaultChecked />
+                <input type="checkbox" name="remember" className="peer appearance-none w-5 h-5 border-2 border-charcoal/40 bg-white rounded-md checked:bg-primary checked:border-primary transition-colors cursor-pointer" defaultChecked />
                 <svg className="absolute w-3 h-3 text-primary-foreground opacity-0 peer-checked:opacity-100 pointer-events-none transition-opacity" viewBox="0 0 14 10" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
                   <path d="M1 5L4.5 8.5L13 1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
@@ -154,7 +160,7 @@ export function LoginForm({ initialMode = "login", error, message }: { initialMo
                   name="legal_accepted" 
                   id="legal_accepted"
                   required
-                  className="peer appearance-none w-5 h-5 border-2 border-border/80 rounded checked:bg-primary checked:border-primary transition-colors cursor-pointer"
+                  className="peer appearance-none w-5 h-5 border-2 border-charcoal/40 bg-white rounded-md checked:bg-primary checked:border-primary transition-colors cursor-pointer"
                 />
                 <svg className="absolute w-3 h-3 text-primary-foreground opacity-0 peer-checked:opacity-100 pointer-events-none transition-opacity" viewBox="0 0 14 10" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
                   <path d="M1 5L4.5 8.5L13 1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -172,7 +178,7 @@ export function LoginForm({ initialMode = "login", error, message }: { initialMo
                   name="age_18_confirmed" 
                   id="age_18_confirmed"
                   required
-                  className="peer appearance-none w-5 h-5 border-2 border-border/80 rounded checked:bg-primary checked:border-primary transition-colors cursor-pointer"
+                  className="peer appearance-none w-5 h-5 border-2 border-charcoal/40 bg-white rounded-md checked:bg-primary checked:border-primary transition-colors cursor-pointer"
                 />
                 <svg className="absolute w-3 h-3 text-primary-foreground opacity-0 peer-checked:opacity-100 pointer-events-none transition-opacity" viewBox="0 0 14 10" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
                   <path d="M1 5L4.5 8.5L13 1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
