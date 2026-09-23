@@ -42,3 +42,7 @@ export async function fetchRecipeFromAnyUrl(rawUrl: string): Promise<ImportResul
 export async function checkFacebookRunStatus(runId: string): Promise<ImportResult & { pending?: boolean }> {
   return await facebookAdapter.checkStatus(runId)
 }
+
+export async function checkInstagramRunStatus(runId: string): Promise<ImportResult & { pending?: boolean }> {
+  return await instagramAdapter.checkStatus(runId)
+}

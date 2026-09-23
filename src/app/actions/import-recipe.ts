@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache"
 import { createClient } from "@/lib/supabase/server"
 import { detectPlatformAndNormalizeUrl } from "@/lib/recipe-importer/detector"
-import { fetchRecipeFromAnyUrl, checkFacebookRunStatus } from "@/lib/recipe-importer/registry"
+import { fetchRecipeFromAnyUrl, checkFacebookRunStatus, checkInstagramRunStatus } from "@/lib/recipe-importer/registry"
 import { parseAndMatchIngredient } from "@/lib/recipe-importer/matcher"
 import { getCatalogs } from "@/app/actions/recipes"
 
@@ -278,7 +278,15 @@ export async function pollAsyncImportAction(runId: string, url: string): Promise
     return { success: true, recipeId: existing.id }
   }
 
-  const statusResult = await checkFacebookRunStatus(runId)
+  let statusResult: any;
+  if (platform === "FACEBOOK") {
+    statusResult = await checkFacebookRunStatus(runId);
+  } else if (platform === "INSTAGRAM") {
+    statusResult = await checkInstagramRunStatus(runId);
+  } else {
+    return { success: false, error: "Plataforma no soportada para encuestas asíncronas." };
+  }
+
   if (!statusResult.success) {
     return { success: false, error: statusResult.error }
   }
@@ -286,6 +294,10 @@ export async function pollAsyncImportAction(runId: string, url: string): Promise
     return { success: true, pending: true }
   }
   
+  if (statusResult.recipeId) {
+    return { success: true, recipeId: statusResult.recipeId }
+  }
+
   if (statusResult.recipe) {
     return await saveImportedRecipe(statusResult.recipe, user, canonicalUrl, platform)
   }
