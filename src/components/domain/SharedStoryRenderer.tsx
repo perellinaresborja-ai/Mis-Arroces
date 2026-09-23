@@ -488,13 +488,15 @@ export function renderOverlayContent(overlay: StoryOverlay, mode: string, ctx?: 
         if (mode === 'VIEWER') { e.stopPropagation(); window.location.href = '/posts/' + p.postId; } 
       };
 
+      const cleanAuthor = p.authorName ? p.authorName.replace(/^@+/, '') : 'usuario';
+
       if (style === 'compact') {
         return (
           <div 
             className="bg-card border border-border text-foreground px-4 py-2 rounded-2xl font-bold flex items-center gap-2 shadow-2xl cursor-pointer text-sm pointer-events-auto transition-transform hover:scale-105" 
             onClick={handleClick}
           >
-            <span>@{p.authorName}</span> 
+            <span>@{cleanAuthor}</span> 
             <span className="text-primary text-xs ml-1 border-l pl-2 border-border font-semibold">Ver</span>
           </div>
         );
@@ -503,7 +505,7 @@ export function renderOverlayContent(overlay: StoryOverlay, mode: string, ctx?: 
       if (style === 'text') {
         return (
           <div onClick={handleClick} className="text-white drop-shadow-md px-3 py-1.5 flex flex-col items-center cursor-pointer pointer-events-auto hover:opacity-80 transition-opacity">
-            <span className="font-bold text-lg text-center max-w-[200px] truncate">{p.text || `Publicación de ${p.authorName}`}</span>
+            <span className="font-bold text-lg text-center max-w-[200px] truncate">{p.text || `Publicación de @${cleanAuthor}`}</span>
             <span className="text-xs bg-black/50 border border-white/20 px-3 py-1 rounded-full mt-1 font-medium">Ver publicación →</span>
           </div>
         );
@@ -512,11 +514,16 @@ export function renderOverlayContent(overlay: StoryOverlay, mode: string, ctx?: 
       return (
         <div onClick={handleClick} className="bg-card rounded-2xl overflow-hidden shadow-2xl border border-border flex flex-col w-60 cursor-pointer pointer-events-auto transition-transform hover:scale-105">
           {p.coverUrl && (
-            <img src={p.coverUrl} className="w-full aspect-square object-cover" />
+            <img 
+              src={p.coverUrl} 
+              alt={p.text || "Publicación"} 
+              draggable={false}
+              className="w-full aspect-square object-cover pointer-events-none select-none" 
+            />
           )}
           {!p.coverUrl && p.text && (<div className="p-4 bg-muted relative flex-1 flex items-center justify-center text-center"><p className="text-sm italic text-muted-foreground line-clamp-3">{p.text}</p></div>)}
           <div className="p-3.5 flex flex-col gap-1 text-center bg-card border-t border-border">
-            <span className="font-bold text-foreground text-sm truncate">@{p.authorName}</span>
+            <span className="font-bold text-foreground text-sm truncate">@{cleanAuthor}</span>
             {p.text && p.coverUrl && <p className="text-xs text-muted-foreground line-clamp-2 text-left mt-1">{p.text}</p>}
             <span className="text-xs font-semibold text-primary mt-1">Ver publicación</span>
           </div>

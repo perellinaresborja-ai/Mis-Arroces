@@ -219,7 +219,7 @@ export function StoryCreator({
         setOverlays([newOverlay]);
         setMode("EDIT");
       }
-    }, []);
+    }, [initialRecipe, initialSession, initialPost]);
 
   const saveHistory = () => setHistory([...history, [...overlays]]);
 

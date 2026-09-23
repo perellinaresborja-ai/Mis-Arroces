@@ -22,8 +22,10 @@ export function ShareButton({ title, text, path }: { title: string, text: string
   const { share } = useShare()
 
   
-  const recipeMatch = path?.match(/\/recipes\/([^/?]+)/);
-  const sessionMatch = path?.match(/\/sessions\/([^/?]+)/);
+  const postMatch = path?.match(/(?:\/p\/post|\/posts)\/([^/?#]+)/);
+  const recipeMatch = path?.match(/(?:\/p\/recipe|\/recipes)\/([^/?#]+)/);
+  const sessionMatch = path?.match(/(?:\/p\/session|\/sessions)\/([^/?#]+)/);
+  const postId = postMatch ? postMatch[1] : null;
   const recipeId = recipeMatch ? recipeMatch[1] : null;
   const sessionId = sessionMatch ? sessionMatch[1] : null;
 
@@ -33,8 +35,10 @@ export function ShareButton({ title, text, path }: { title: string, text: string
   // Use a public QR code API
   const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(url)}&color=000000&bgcolor=ffffff`
 
+  const contentType = recipeId ? "recipe" : sessionId ? "session" : postId ? "post" : "link";
+
   const handleNativeShare = () => {
-    sendGAEvent("share", { method: "native", content_type: recipeId ? "recipe" : "link", item_id: url })
+    sendGAEvent("share", { method: "native", content_type: contentType, item_id: url })
     share(title, text, url)
   }
 
@@ -42,7 +46,7 @@ export function ShareButton({ title, text, path }: { title: string, text: string
     if (typeof navigator !== "undefined") {
       navigator.clipboard.writeText(url)
       setCopied(true)
-      sendGAEvent("share", { method: "copy", content_type: recipeId ? "recipe" : "link", item_id: url })
+      sendGAEvent("share", { method: "copy", content_type: contentType, item_id: url })
       setTimeout(() => setCopied(false), 2000)
     }
   }
@@ -91,7 +95,22 @@ export function ShareButton({ title, text, path }: { title: string, text: string
             
             {isAuth && (
             <div className="mt-3">
-              <Button variant="outline" className="w-full font-bold rounded-xl" size="lg" onClick={() => window.location.href = `/create/story?share=${encodeURIComponent(path)}`}>
+              <Button 
+                variant="outline" 
+                className="w-full font-bold rounded-xl" 
+                size="lg" 
+                onClick={() => {
+                  let target = `/create/story?share=${encodeURIComponent(path)}`;
+                  if (postId) {
+                    target = `/create/story?post_id=${postId}&share=${encodeURIComponent(path)}`;
+                  } else if (recipeId) {
+                    target = `/create/story?recipe_id=${recipeId}&share=${encodeURIComponent(path)}`;
+                  } else if (sessionId) {
+                    target = `/create/story?session_id=${sessionId}&share=${encodeURIComponent(path)}`;
+                  }
+                  window.location.href = target;
+                }}
+              >
                   <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v8"/><path d="M8 12h8"/></svg>
                   Compartir en Historia
               </Button>
