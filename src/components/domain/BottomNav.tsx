@@ -68,7 +68,7 @@ export function BottomNav() {
                 }
               }}
               className={cn(
-                "flex flex-col items-center justify-center gap-1 w-full h-full relative",
+                "flex flex-col items-center justify-center gap-1 w-full h-full relative active:scale-95 transition-transform",
                 isActive ? "text-foreground" : "text-muted-foreground"
               )}
             >

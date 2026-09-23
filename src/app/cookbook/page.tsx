@@ -18,7 +18,11 @@ export default async function CookbookPage(props: { searchParams?: Promise<{ tab
   let sessions: any[] = []
 
   if (tab === "mine") {
-    const { data } = await supabase.from("recipes").select("*, recipe_ingredients(id, display_text), recipe_steps(id), recipe_media!recipe_media_recipe_id_fkey(display_order, media:media_assets(storage_path)), variety:rice_varieties(name), style:rice_styles(name), likes:recipe_likes(user_id), comments:recipe_comments(id)").eq("owner_id", user.id).order("created_at", { ascending: false })
+    const { data } = await supabase
+      .from("recipes")
+      .select("id, name, status, scheduled_for, created_at, description, base_servings, rice_qty, stock_qty, stock_ingredient_id, cook_time, rest_time, difficulty, style_id, variety_id, heat_source_id, recipe_media!recipe_media_recipe_id_fkey(display_order, media:media_assets(storage_path)), variety:rice_varieties(name), recipe_ingredients(display_text)")
+      .eq("owner_id", user.id)
+      .order("created_at", { ascending: false })
     
     const rawData = data || []
     recipes = rawData.filter((r: any) => {
@@ -27,19 +31,30 @@ export default async function CookbookPage(props: { searchParams?: Promise<{ tab
                                       r.name === 'Nueva Receta' && 
                                       !hasBaseData &&
                                       (!r.recipe_media || r.recipe_media.length === 0) &&
-                                      (!r.recipe_ingredients || r.recipe_ingredients.length === 0) &&
-                                      (!r.recipe_steps || r.recipe_steps.length === 0);
+                                      (!r.recipe_ingredients || r.recipe_ingredients.length === 0);
       return !isCompletelyEmptyDraft;
     })
 
   } else if (tab === "saved") {
-    const { data } = await supabase.from("saves").select("recipes(*, recipe_media!recipe_media_recipe_id_fkey(display_order, media:media_assets(storage_path)), variety:rice_varieties(name), style:rice_styles(name), author:profiles!recipes_owner_id_fkey(username))").eq("user_id", user.id).order("saved_at", { ascending: false })
+    const { data } = await supabase
+      .from("saves")
+      .select("recipes(id, name, status, scheduled_for, created_at, recipe_media!recipe_media_recipe_id_fkey(display_order, media:media_assets(storage_path)), variety:rice_varieties(name), author:profiles!recipes_owner_id_fkey(username))")
+      .eq("user_id", user.id)
+      .order("saved_at", { ascending: false })
     recipes = data?.map(d => d.recipes).filter(Boolean) || []
   } else if (tab === "want") {
-    const { data } = await supabase.from("want_to_cook").select("recipes(*, recipe_media!recipe_media_recipe_id_fkey(display_order, media:media_assets(storage_path)), variety:rice_varieties(name), style:rice_styles(name), author:profiles!recipes_owner_id_fkey(username))").eq("user_id", user.id).order("added_at", { ascending: false })
+    const { data } = await supabase
+      .from("want_to_cook")
+      .select("recipes(id, name, status, scheduled_for, created_at, recipe_media!recipe_media_recipe_id_fkey(display_order, media:media_assets(storage_path)), variety:rice_varieties(name), author:profiles!recipes_owner_id_fkey(username))")
+      .eq("user_id", user.id)
+      .order("added_at", { ascending: false })
     recipes = data?.map(d => d.recipes).filter(Boolean) || []
   } else if (tab === "cooked") {
-    const { data } = await supabase.from("cooking_sessions").select("*, session_media(display_order, media:media_assets(storage_path)), recipe:recipes(id, name)").eq("user_id", user.id).order("created_at", { ascending: false })
+    const { data } = await supabase
+      .from("cooking_sessions")
+      .select("id, notes, created_at, rating, socarrat_rating, session_media(display_order, media:media_assets(storage_path)), recipe:recipes(id, name)")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
     sessions = data || []
   }
 
