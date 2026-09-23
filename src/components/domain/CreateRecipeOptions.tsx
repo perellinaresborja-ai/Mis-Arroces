@@ -8,9 +8,22 @@ import { Loader2, Wand2, PenLine, Globe, Link as LinkIcon, Mic, MicOff } from "l
 
 export default function CreateRecipeOptions({ createManualAction }: { createManualAction: () => Promise<void> }) {
   const router = useRouter()
-  const [mode, setModeState] = useState<'CHOICE' | 'AI' | 'IMPORT' | 'VOICE'>('CHOICE')
+  
+  const getInitialMode = () => {
+    if (typeof window !== 'undefined') {
+      const hash = window.location.hash;
+      if (hash === '#ai') return 'AI';
+      if (hash === '#import') return 'IMPORT';
+      if (hash === '#voice') return 'VOICE';
+    }
+    return 'CHOICE';
+  }
+
+  const [mode, setModeState] = useState<'CHOICE' | 'AI' | 'IMPORT' | 'VOICE'>(getInitialMode)
+  const [mounted, setMounted] = useState(false)
   
   useEffect(() => {
+    setMounted(true)
     const handleHashChange = () => {
       const hash = window.location.hash;
       if (hash === '#ai') setModeState('AI');
@@ -277,6 +290,8 @@ export default function CreateRecipeOptions({ createManualAction }: { createManu
     }
   }
 
+  if (!mounted) return null;
+
   if (mode === 'AI') {
     return (
       <div className="max-w-2xl mx-auto space-y-6">
@@ -404,7 +419,7 @@ export default function CreateRecipeOptions({ createManualAction }: { createManu
             Importar receta
           </h1>
           <p className="text-muted-foreground">
-            Pega el enlace de una receta de una web. La importaremos y crearemos un borrador que podrás revisar y completar.
+            Pega el enlace de una receta de Instagram o de una web. La importaremos y crearemos un borrador que podrás revisar y completar.
           </p>
         </div>
         
