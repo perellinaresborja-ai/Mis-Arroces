@@ -9,6 +9,8 @@ import { MediaImage } from "./MediaImage"
 import { ConfirmModal } from "@/components/ui/ConfirmModal"
 import { Button } from "@/components/ui/button"
 
+import { cn } from "@/lib/utils"
+
 export function CookbookRecipeCard({ recipe, tab }: { recipe: any, tab: string }) {
   const router = useRouter()
   const [isDeleting, setIsDeleting] = useState(false)
@@ -103,8 +105,8 @@ export function CookbookRecipeCard({ recipe, tab }: { recipe: any, tab: string }
 
       {tab === 'mine' && (
         <>
-          {/* MÓVIL: Botón ⋯ discreto en esquina con menú compacto */}
-          <div ref={menuRef} className="md:hidden absolute top-2 right-2 z-30">
+          {/* MÓVIL: Botón ⋯ ultra discreto sin círculo de fondo, con amplio touch target */}
+          <div ref={menuRef} className="md:hidden absolute top-1 right-1 z-30">
             <button
               type="button"
               onClick={(e) => {
@@ -112,7 +114,12 @@ export function CookbookRecipeCard({ recipe, tab }: { recipe: any, tab: string }
                 e.stopPropagation()
                 setShowMenu((prev) => !prev)
               }}
-              className="w-7 h-7 rounded-full bg-black/55 text-white flex items-center justify-center backdrop-blur-xs transition-transform active:scale-95 shadow-sm"
+              className={cn(
+                "p-2 flex items-center justify-center bg-transparent transition-transform active:scale-90",
+                coverUrl 
+                  ? "text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]" 
+                  : "text-foreground/60 hover:text-foreground"
+              )}
               aria-label="Opciones de receta"
             >
               <MoreHorizontal className="w-4 h-4" />
@@ -120,7 +127,7 @@ export function CookbookRecipeCard({ recipe, tab }: { recipe: any, tab: string }
 
             {showMenu && (
               <div
-                className="absolute top-8 right-0 z-40 bg-card/95 backdrop-blur-md border border-border rounded-2xl shadow-xl p-1 min-w-[125px] animate-in fade-in zoom-in-95 duration-150"
+                className="absolute top-8 right-1 z-40 bg-card/95 backdrop-blur-md border border-border rounded-2xl shadow-xl p-1 min-w-[125px] animate-in fade-in zoom-in-95 duration-150"
                 onClick={(e) => e.stopPropagation()}
               >
                 <Link
