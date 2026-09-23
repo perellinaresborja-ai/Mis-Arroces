@@ -15,10 +15,10 @@ export function InstagramCTA() {
   }
 
   return (
-    <div className="pt-3">
+    <div className="pt-3 flex justify-center">
       <Button 
         onClick={handleAction}
-        className="rounded-xl font-bold bg-primary hover:bg-primary/90 text-primary-foreground text-base px-8 py-6 h-auto shadow-sm w-full md:w-auto"
+        className="rounded-xl font-bold bg-primary hover:bg-primary/90 text-primary-foreground text-base px-8 py-6 h-auto shadow-sm w-full sm:w-auto"
       >
         Traer mi receta de Instagram
       </Button>

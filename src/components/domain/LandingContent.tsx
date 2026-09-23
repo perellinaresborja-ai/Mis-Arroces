@@ -103,11 +103,11 @@ export function LandingContent({ isHome = false }: { isHome?: boolean }) {
       </section>
 
       {/* Instagram Highlight */}
-      <section className="bg-gradient-to-br from-[#FFF5ED] to-[#FFE8D6] dark:from-orange-950/40 dark:to-orange-900/20 border border-orange-200 dark:border-orange-900/50 rounded-3xl p-8 md:p-12 text-center md:text-left flex flex-col md:flex-row items-center gap-8 shadow-sm my-12">
-        <div className="w-24 h-24 shrink-0 bg-white dark:bg-black rounded-3xl flex items-center justify-center shadow-md">
-          <Smartphone className="w-12 h-12 text-orange-600 dark:text-orange-500" />
+      <section className="bg-gradient-to-br from-[#FFF5ED] to-[#FFE8D6] dark:from-orange-950/40 dark:to-orange-900/20 border border-orange-200 dark:border-orange-900/50 rounded-3xl p-8 md:p-12 text-center flex flex-col items-center gap-6 shadow-sm my-12">
+        <div className="w-20 h-20 shrink-0 bg-white dark:bg-black rounded-3xl flex items-center justify-center shadow-md">
+          <Smartphone className="w-10 h-10 text-orange-600 dark:text-orange-500" />
         </div>
-        <div className="flex-1 space-y-4">
+        <div className="max-w-2xl space-y-4 text-center">
           <h3 className="text-2xl md:text-3xl font-bold text-foreground">¿Ya publicas tus arroces en Instagram?</h3>
           <p className="text-muted-foreground text-lg leading-relaxed">
             No dejes que tus recetas se pierdan en tu feed. Pega el enlace de tu publicación o Reel y misarroces.es la convierte en un borrador de receta organizado que podrás revisar, editar y guardar en tu recetario.
