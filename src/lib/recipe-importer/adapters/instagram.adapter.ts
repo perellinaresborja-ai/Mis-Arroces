@@ -71,15 +71,36 @@ export class InstagramAdapter {
       const rawCaption: string = post.caption || ""
       const authorName: string = post.ownerFullName || post.ownerUsername || "Instagram"
 
-      if (!rawCaption.trim()) {
+      let mediaBase64: string | undefined = undefined;
+      let mediaMimeType: string | undefined = undefined;
+
+      const mediaUrlToFetch = post.audioUrl || post.videoUrl;
+      
+      if (!rawCaption.trim() && !mediaUrlToFetch) {
         return {
           success: false,
           isInsufficient: true,
-          error: "Esta publicación de Instagram no tiene texto o pie de foto del que extraer una receta."
+          error: "Esta publicación de Instagram no tiene texto ni audio del que extraer una receta."
         }
       }
 
-      const draftRes = await createAiRecipeDraft(`Contexto: Receta de Instagram (@${authorName})\n\n${rawCaption}`)
+      if (mediaUrlToFetch) {
+        try {
+          const mediaRes = await fetch(mediaUrlToFetch);
+          if (mediaRes.ok) {
+            const arrayBuffer = await mediaRes.arrayBuffer();
+            const buffer = Buffer.from(arrayBuffer);
+            if (buffer.length < 20 * 1024 * 1024) {
+              mediaBase64 = buffer.toString('base64');
+              mediaMimeType = post.audioUrl ? "audio/mp4" : "video/mp4";
+            }
+          }
+        } catch (e) {
+          console.error("Error downloading Instagram media for transcription:", e);
+        }
+      }
+
+      const draftRes = await createAiRecipeDraft(`Contexto: Receta de Instagram (@${authorName})\n\n${rawCaption}`, mediaBase64, mediaMimeType)
 
       if (draftRes.error || !draftRes.recipeId) {
         return {

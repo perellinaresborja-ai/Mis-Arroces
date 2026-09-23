@@ -5,7 +5,7 @@ import { z } from "zod"
 import { getCatalogs } from "@/app/actions/recipes"
 import { parseAndMatchIngredient } from "@/lib/recipe-importer/matcher"
 
-export async function parseRecipeFreeText(text: string) {
+export async function parseRecipeFreeText(text: string, mediaBase64?: string, mimeType?: string) {
   const cleanText = text.trim()
   if (!cleanText || cleanText.length < 15) {
     return { error: "El texto es muy corto para extraer una receta." }
@@ -15,7 +15,7 @@ export async function parseRecipeFreeText(text: string) {
 La receta suele ser de arroz o paella, pero puede ser de cualquier cosa.
 
 REGLAS OBLIGATORIAS:
-1. Tienes prohibido inventar información (ingredientes, cantidades, pasos o tiempos) que no esté en el texto.
+1. Tienes prohibido inventar información (ingredientes, cantidades, pasos o tiempos) que no esté en el texto o en el audio/vídeo proporcionado.
 2. Si un dato dudoso o falta, devuélvelo como null.
 3. ESTRICTA SEPARACIÓN DE SSOT (Single Source of Truth):
    - El ingrediente principal (arroz, pasta, etc.) y su cantidad van EN EXCLUSIVA a \`rice_qty\` y \`rice_variety_hint\`. NO los incluyas en \`ingredients\`.
@@ -23,12 +23,13 @@ REGLAS OBLIGATORIAS:
    - El resto de ingredientes (carnes, verduras, especias, aceite) van a \`ingredients\`.
 4. El título debe ser conciso. Si no hay, infiere uno corto (ej: "Paella de marisco").
 5. La descripción SÓLO debe contener texto descriptivo (historia, consejos). NO metas aquí el recipiente, dificultad, estilo, ni ningún dato que ya tenga su propio campo.
-6. DESGLOSE SECUENCIAL LÓGICO DE PASOS Y TIEMPOS: Si el texto original contiene varias fases temporales o cambios de acción en una misma frase (ej. "Cocinar 8 min a fuego fuerte y luego 9 min a fuego medio-bajo", o "hervir 10 min y reposar 5 min"), DIVÍDELO OBLIGATORIAMENTE en pasos independientes.
+6. DESGLOSE SECUENCIAL LÓGICO DE PASOS Y TIEMPOS: Si el texto original o el audio contiene varias fases temporales o cambios de acción en una misma frase (ej. "Cocinar 8 min a fuego fuerte y luego 9 min a fuego medio-bajo", o "hervir 10 min y reposar 5 min"), DIVÍDELO OBLIGATORIAMENTE en pasos independientes.
    - Paso X: "Cocinar a fuego fuerte." -> duration_minutes: 8
    - Paso X+1: "Bajar a fuego medio-bajo y continuar la cocción." -> duration_minutes: 9
    - Paso X+2: "Apagar y dejar reposar." -> duration_minutes: 5
    Reposos con tiempo siempre van en su propio paso. Cada cambio de fuego/acción que lleve tiempo es un paso distinto con su propio \`duration_minutes\`.
-7. Responde ÚNICAMENTE con un JSON válido.`
+7. Fusiona inteligentemente el texto escrito y el audio/vídeo (si se adjunta). El texto y el audio se complementan. NO dupliques ingredientes y combina los pasos en orden cronológico real.
+8. Responde ÚNICAMENTE con un JSON válido.`
 
   const baseSchema = {
     type: "object",
@@ -104,16 +105,27 @@ REGLAS OBLIGATORIAS:
     const fallbackModels = ["gemini-3.5-flash-lite", "gemini-3.6-flash", "gemini-3.5-flash"];
     let currentModelIndex = 0;
 
+    const parts: any[] = [{ text: `${systemPrompt}\n\nTexto libre de la receta:\n${cleanText}` }];
+    
+    if (mediaBase64 && mimeType) {
+      parts.push({
+        inlineData: {
+          mimeType: mimeType,
+          data: mediaBase64
+        }
+      });
+    }
+
     for (let i = 1; i <= 3; i++) {
       try {
         const model = fallbackModels[currentModelIndex];
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 25000);
+        const timeoutId = setTimeout(() => controller.abort(), 45000); // 45s for audio processing
 
         const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`, {
           method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            contents: [{ role: "user", parts: [{ text: `${systemPrompt}\n\nTexto libre de la receta:\n${cleanText}` }] }],
+            contents: [{ role: "user", parts }],
             generationConfig: { temperature: 0.1, responseMimeType: "application/json", responseSchema: toGeminiSchema(baseSchema) }
           }),
           signal: controller.signal
@@ -172,13 +184,13 @@ REGLAS OBLIGATORIAS:
   }
 }
 
-export async function createAiRecipeDraft(text: string) {
+export async function createAiRecipeDraft(text: string, mediaBase64?: string, mimeType?: string) {
   try {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return { error: "Debes iniciar sesión para usar esta función." }
 
-    const { data: aiData, error: aiError } = await parseRecipeFreeText(text)
+    const { data: aiData, error: aiError } = await parseRecipeFreeText(text, mediaBase64, mimeType)
     if (aiError || !aiData) return { error: aiError || "No se pudo procesar la receta con IA." }
 
     const slug = "receta-ia-" + Date.now()
