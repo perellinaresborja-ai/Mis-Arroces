@@ -1,7 +1,9 @@
 import { Resend } from 'resend'
 import QRCode from 'qrcode'
 
-const resend = new Resend(process.env.RESEND_API_KEY)
+function getResend() {
+  return new Resend(process.env.RESEND_API_KEY)
+}
 
 function buildEmailHtml({
   title,
@@ -72,7 +74,7 @@ function buildEmailHtml({
 }
 
 export async function sendWelcomeEmail(to: string) {
-  return await resend.emails.send({
+  return await getResend().emails.send({
     from: 'misarroces <info@misarroces.es>',
     to,
     subject: '¡Bienvenido a misarroces!',
@@ -116,7 +118,7 @@ export async function sendFounderEmail(
 
   const qrImageSrc = qrPngBuffer ? 'cid:qr-fundador' : `${baseUrl}/api/qr/${publicCode}`
 
-  return await resend.emails.send({
+  return await getResend().emails.send({
     from: 'misarroces <info@misarroces.es>',
     to,
     subject: `¡Bienvenido, Arrocero Fundador #${formattedNumber}!`,
