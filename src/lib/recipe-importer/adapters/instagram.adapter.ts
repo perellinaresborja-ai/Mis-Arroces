@@ -85,18 +85,27 @@ export class InstagramAdapter {
       }
 
       if (mediaUrlToFetch) {
+        const mediaController = new AbortController();
+        const mediaTimeout = setTimeout(() => mediaController.abort(), 15000);
         try {
-          const mediaRes = await fetch(mediaUrlToFetch);
+          const mediaRes = await fetch(mediaUrlToFetch, { signal: mediaController.signal });
           if (mediaRes.ok) {
-            const arrayBuffer = await mediaRes.arrayBuffer();
-            const buffer = Buffer.from(arrayBuffer);
-            if (buffer.length < 20 * 1024 * 1024) {
-              mediaBase64 = buffer.toString('base64');
-              mediaMimeType = post.audioUrl ? "audio/mp4" : "video/mp4";
+            const contentLength = parseInt(mediaRes.headers.get('content-length') || '0', 10);
+            if (contentLength < 20 * 1024 * 1024) {
+              const arrayBuffer = await mediaRes.arrayBuffer();
+              const buffer = Buffer.from(arrayBuffer);
+              if (buffer.length < 20 * 1024 * 1024) {
+                mediaBase64 = buffer.toString('base64');
+                mediaMimeType = post.audioUrl ? "audio/mp4" : "video/mp4";
+              }
+            } else {
+              console.log("Instagram media too large to transcribe:", contentLength);
             }
           }
         } catch (e) {
           console.error("Error downloading Instagram media for transcription:", e);
+        } finally {
+          clearTimeout(mediaTimeout);
         }
       }
 
