@@ -1293,16 +1293,19 @@ export type Database = {
             founder_number: number
             user_id: string
             granted_at: string
+            welcome_email_sent_at: string | null
           }
           Insert: {
             founder_number: number
             user_id: string
             granted_at?: string
+            welcome_email_sent_at?: string | null
           }
           Update: {
             founder_number?: number
             user_id?: string
             granted_at?: string
+            welcome_email_sent_at?: string | null
           }
           Relationships: [
             {
@@ -3524,6 +3527,10 @@ profiles: {
               claim_founder_spot: {
           Args: { p_user_id: string }
           Returns: number
+        }
+        get_or_create_user_identity: {
+          Args: { p_user_id?: string }
+          Returns: string
         }
 get_trending_recipes: {
         Args: { limit_val?: number }
