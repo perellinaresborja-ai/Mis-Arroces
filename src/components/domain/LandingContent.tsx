@@ -72,7 +72,7 @@ export function LandingContent({ isHome = false }: { isHome?: boolean }) {
           <FeatureCard 
             icon={<LinkIcon className="w-6 h-6" />} 
             title="Importador Web" 
-            desc="Pega el enlace de una receta publicada en una web y la IA la estructurará automáticamente en tu recetario."
+            desc="Pega el enlace de una receta publicada en Instagram o en una web y se estructurará automáticamente en tu recetario."
           />
           <FeatureCard 
             icon={<ShoppingCart className="w-6 h-6" />} 
