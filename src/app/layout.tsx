@@ -9,6 +9,7 @@ import { createClient } from "@/lib/supabase/server";
 import { checkPendingLegal } from "@/app/actions/legal";
 import { LegalConsentGate } from "@/components/domain/LegalConsentGate";
 import { SpeedInsights } from "@vercel/speed-insights/next";
+import Link from "next/link";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -19,7 +20,6 @@ export const metadata: Metadata = {
     template: "%s | misarroces"
   },
   description: "Descubre, guarda y comparte las mejores recetas de arroces y paellas. Únete a la comunidad de chefs arroceros y muestra tus paellas al mundo.",
-  manifest: "/manifest.json",
   keywords: ["arroz", "paella", "recetas", "red social", "cocina", "chef", "paella valenciana", "gastronomía", "arroces"],
   openGraph: {
     type: "website",
@@ -113,6 +113,12 @@ export default async function RootLayout({
               <main className="flex-1 w-full pb-16 md:pb-0 pt-0">
                 {children}
               </main>
+              
+              <footer className="w-full text-center py-6 pb-24 md:pb-6 text-xs text-muted-foreground mt-auto">
+                <Link href="/sobre-misarroces" className="hover:underline opacity-60 hover:opacity-100 transition-opacity">
+                  Sobre misarroces
+                </Link>
+              </footer>
             </div>
             
             {/* Mobile Navigation */}

@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server"
 import Link from "next/link"
 import Image from "next/image"
 import { buttonVariants } from "@/components/ui/button"
+import Script from "next/script"
 import { Flame, PlaySquare } from "lucide-react"
 import { fetchFeedPage } from "@/app/actions/feed"
 import { FeedList } from "@/components/domain/FeedList"
@@ -81,6 +82,31 @@ export default async function Home() {
         <FeedList initialItems={feed} currentUserId={user?.id || null} />
 
       </div>
+      <Script
+        id="schema-org"
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@graph": [
+              {
+                "@type": "WebSite",
+                "name": "misarroces",
+                "alternateName": "misarroces.es",
+                "url": "https://www.misarroces.es"
+              },
+              {
+                "@type": "Organization",
+                "name": "misarroces",
+                "url": "https://www.misarroces.es",
+                "logo": "https://www.misarroces.es/logopaellaicono.png",
+                "description": "Plataforma y red social especializada en arroz, recetas y comunidad.",
+                "slogan": "La red social de los arroces"
+              }
+            ]
+          })
+        }}
+      />
     </div>
   )
 }

@@ -75,6 +75,7 @@ export async function GET() {
   // Static routes (omit artificial lastmod so crawlers are not fed fabricated modification times)
   xml += `  <url>\n    <loc>${escapeXml(baseUrl)}</loc>\n    <changefreq>daily</changefreq>\n    <priority>1.0</priority>\n  </url>\n`;
   xml += `  <url>\n    <loc>${escapeXml(baseUrl + '/discover')}</loc>\n    <changefreq>hourly</changefreq>\n    <priority>0.9</priority>\n  </url>\n`;
+  xml += `  <url>\n    <loc>${escapeXml(baseUrl + '/sobre-misarroces')}</loc>\n    <changefreq>monthly</changefreq>\n    <priority>0.5</priority>\n  </url>\n`;
 
   for (const recipe of recipes) {
     const loc = `${baseUrl}/recipes/${recipe.id}`;
