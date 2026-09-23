@@ -3,6 +3,7 @@ import Image from "next/image"
 import Link from "next/link"
 import { buttonVariants } from "@/components/ui/button"
 import { Flame, Users, BookOpen, Compass, ShoppingCart, Calculator, Coins, Leaf, ChefHat, Mic, Link as LinkIcon, Smartphone } from "lucide-react"
+import { InstagramCTA } from "./InstagramCTA"
 
 export const metadata: Metadata = {
   title: "¿Qué es misarroces.es?",
@@ -37,7 +38,7 @@ export default function SobreMisArroces() {
           <div className="text-center space-y-3">
             <h2 className="text-3xl font-bold">Todo lo que necesitas para tus arroces</h2>
             <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-              Herramientas diseñadas por y para cocineros para llevar tus arroces al siguiente nivel.
+              Herramientas diseñadas por y para cocineros para llevar tus arroces<br />al siguiente nivel.
             </p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pt-4">
@@ -106,6 +107,7 @@ export default function SobreMisArroces() {
             <p className="text-muted-foreground text-lg leading-relaxed">
               No dejes que tus recetas se pierdan en tu feed. Pega el enlace de tu publicación o Reel y misarroces.es la convierte en un borrador de receta organizado que podrás revisar, editar y guardar en tu recetario.
             </p>
+            <InstagramCTA />
           </div>
         </section>
 

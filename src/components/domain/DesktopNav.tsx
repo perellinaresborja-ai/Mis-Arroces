@@ -68,7 +68,7 @@ export function DesktopNav() {
     },
   ]
 
-  if (pathname === "/login" || pathname === "/forgot-password") return null
+  if (pathname === "/login" || pathname === "/forgot-password" || pathname === "/links") return null
 
   return (
     <>
