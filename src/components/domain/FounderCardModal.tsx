@@ -68,14 +68,14 @@ export function FounderCardModal({
   const handleShareReferral = () => {
     const text = `Te recomiendo para formar parte de Los 100 Arroceros Fundadores de misarroces.
 
-Solo existirán 100. No se muestra cuántas plazas quedan y, cuando se completen, se cerrará para siempre.`
+Solo existirán 100. Cuando se completen, se cerrará para siempre.`
     share("Recomendación para Los 100 Arroceros Fundadores", text, referralUrl)
   }
 
   const handleCopyReferral = () => {
     if (typeof navigator !== "undefined") {
       navigator.clipboard.writeText(
-        `Te recomiendo para formar parte de Los 100 Arroceros Fundadores de misarroces.\n\nSolo existirán 100. No se muestra cuántas plazas quedan y, cuando se completen, se cerrará para siempre.\n\n${referralUrl}`
+        `Te recomiendo para formar parte de Los 100 Arroceros Fundadores de misarroces.\n\nSolo existirán 100. Cuando se completen, se cerrará para siempre.\n\n${referralUrl}`
       )
       setCopiedReferral(true)
       setTimeout(() => setCopiedReferral(false), 2000)

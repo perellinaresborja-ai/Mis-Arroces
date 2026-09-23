@@ -7,6 +7,7 @@ import { LogoutButton } from "./components/LogoutButton"
 import ThemeSelectorRow from "./components/ThemeSelectorRow"
 import DeleteAccountRow from "./components/DeleteAccountRow"
 import DownloadDataRow from "./components/DownloadDataRow"
+import { MyIdSection } from "./components/MyIdSection"
 
 export default async function SettingsPage() {
   const supabase = await createClient()
@@ -27,6 +28,38 @@ export default async function SettingsPage() {
   }
 
   const isPrivate = profile.privacy_level === "PRIVATE"
+
+  // Fetch identity, founder status, and user activity history
+  let publicCode: string | null = null
+  let isFounder = false
+  let founderNumber: number | null = null
+  let activities: any[] = []
+
+  try {
+    const [identityRes, founderRes, actRes] = await Promise.all([
+      supabase.from("user_identities" as any).select("public_code").eq("user_id", user.id).maybeSingle(),
+      supabase.from("founders" as any).select("founder_number").eq("user_id", user.id).maybeSingle(),
+      (supabase.from("user_activity_history" as any).select("id, activity_type, title, description, occurred_at, metadata, status").eq("user_id", user.id).order("occurred_at", { ascending: false }) as any).then((res: any) => res, () => ({ data: [], error: null }))
+    ])
+
+    if ((identityRes.data as any)?.public_code) {
+      publicCode = (identityRes.data as any).public_code
+    } else {
+      const { data: code } = await (supabase.rpc as any)('get_or_create_user_identity', { p_user_id: user.id })
+      if (code) publicCode = String(code)
+    }
+
+    if (typeof (founderRes.data as any)?.founder_number === "number" && (founderRes.data as any).founder_number >= 0 && (founderRes.data as any).founder_number <= 99) {
+      isFounder = true
+      founderNumber = (founderRes.data as any).founder_number
+    }
+
+    if (actRes?.data && !actRes?.error) {
+      activities = actRes.data
+    }
+  } catch (err) {
+    console.error("Error fetching ID section data:", err)
+  }
 
   return (
     <div className="min-h-[100dvh] bg-background pb-20">
@@ -54,6 +87,17 @@ export default async function SettingsPage() {
                 <ChevronRight className="w-4 h-4 text-muted-foreground" />
               </Link>
             </div>
+          </section>
+
+          {/* MI ID */}
+          <section className="space-y-3" id="mi-id">
+            <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider pl-4">Mi ID</h3>
+            <MyIdSection
+              isFounder={isFounder}
+              founderNumber={founderNumber}
+              publicCode={publicCode}
+              activities={activities}
+            />
           </section>
 
           {/* APARIENCIA */}
