@@ -14,20 +14,30 @@ export async function GET(
       return new NextResponse('Código de ID inválido', { status: 400 });
     }
 
-    // Permitir el código demo de prueba para testing
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    // Permitir el código demo de prueba para testing solo si es admin
     const isDemoCode = cleanCode === 'a8f9c1e2b4d63f01';
 
-    if (!isDemoCode) {
-      // Validar contra la base de datos que la identidad existe y está activa
-      const supabase = await createClient();
+    if (isDemoCode) {
+      if (!user) {
+        return new NextResponse('No autorizado. El código QR es personal e intransferible.', { status: 403 });
+      }
+    } else {
+      // Validar contra la base de datos que la identidad existe, está activa y pertenece al usuario autenticado
       const { data: identity } = await supabase
         .from('user_identities' as any)
-        .select('id, is_active')
+        .select('id, is_active, user_id')
         .eq('public_code', cleanCode)
         .maybeSingle();
 
       if (!identity || !(identity as any).is_active) {
         return new NextResponse('Identidad no encontrada o inactiva', { status: 404 });
+      }
+
+      if (!user || user.id !== (identity as any).user_id) {
+        return new NextResponse('No autorizado. El código QR es personal e intransferible.', { status: 403 });
       }
     }
 
@@ -48,7 +58,7 @@ export async function GET(
     return new NextResponse(new Uint8Array(pngBuffer), {
       headers: {
         'Content-Type': 'image/png',
-        'Cache-Control': 'public, max-age=31536000, immutable',
+        'Cache-Control': 'private, no-cache, no-store, must-revalidate',
       },
     });
   } catch (error) {

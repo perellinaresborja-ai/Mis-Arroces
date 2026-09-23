@@ -6,7 +6,7 @@ import Link from "next/link"
 import { login, signup } from "./actions"
 import { useFormStatus } from "react-dom"
 
-export function LoginForm({ initialMode = "login", error, message }: { initialMode?: "login" | "signup", error?: string, message?: string }) {
+export function LoginForm({ initialMode = "login", error, message, redirectTo }: { initialMode?: "login" | "signup", error?: string, message?: string, redirectTo?: string }) {
   const [mode, setMode] = useState<"login" | "signup">(initialMode)
   useEffect(() => {
     if (initialMode) setMode(initialMode)
@@ -55,6 +55,7 @@ export function LoginForm({ initialMode = "login", error, message }: { initialMo
 
       <form action={mode === "login" ? login : signup} className="space-y-4 relative z-10" noValidate>
         <input type="hidden" name="acquisition_data" value={acqData} />
+        <input type="hidden" name="redirect" value={redirectTo || ""} />
         {error && (
           <div className="p-3 text-sm text-destructive bg-destructive/10 rounded-xl text-center font-medium border border-destructive/20 space-y-1">
             <p>{error}</p>

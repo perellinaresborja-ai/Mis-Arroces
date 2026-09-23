@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
+import { cookies } from "next/headers"
 import { createClient } from "@/lib/supabase/server"
 import { sendWelcomeEmail } from "@/lib/email"
 import { generateAvailableUsername } from "@/lib/username"
@@ -9,6 +10,7 @@ import { normalizeEmail, getFriendlyAuthErrorMessage } from "@/lib/auth-messages
 
 export async function login(formData: FormData) {
   const supabase = await createClient()
+  const cookieStore = await cookies()
   const email = normalizeEmail(formData.get("email") as string || "")
   const password = (formData.get("password") as string || "")
 
@@ -29,8 +31,6 @@ export async function login(formData: FormData) {
   // After login, check if user has a profile
   const { data: { user } } = await supabase.auth.getUser()
   if (user) {
-    const { cookies } = await import("next/headers")
-    const cookieStore = await cookies()
     cookieStore.set("ma_has_account", "1", {
       path: "/",
       maxAge: 60 * 60 * 24 * 730,
@@ -57,8 +57,20 @@ export async function login(formData: FormData) {
     }
   }
 
+  const returnCookie = cookieStore.get("misarroces_return_to")?.value
+  const formRedirect = formData.get("redirect") as string
+  const targetRedirect = formRedirect || returnCookie
+
+  if (returnCookie) {
+    cookieStore.delete("misarroces_return_to")
+  }
+
   revalidatePath("/", "layout")
-  redirect("/?login=success")
+  if (targetRedirect && targetRedirect.startsWith("/") && !targetRedirect.startsWith("//")) {
+    redirect(targetRedirect)
+  } else {
+    redirect("/?login=success")
+  }
 }
 
 export async function signup(formData: FormData) {

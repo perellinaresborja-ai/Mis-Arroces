@@ -36,7 +36,7 @@ export function FounderCardModal({
 
   useEffect(() => {
     setIsMounted(true)
-    if (typeof window !== "undefined") {
+    if (typeof window !== "undefined" && isSelf) {
       const params = new URLSearchParams(window.location.search)
       if (
         params.get("id") === "founder" ||
@@ -47,7 +47,7 @@ export function FounderCardModal({
         setIsOpen(true)
       }
     }
-  }, [])
+  }, [isSelf])
 
   const handleShare = () => {
     share(
@@ -82,19 +82,32 @@ Solo existirán 100. No se muestra cuántas plazas quedan y, cuando se completen
     }
   }
 
+  // En perfiles públicos/ajenos, mostrar únicamente la insignia sin "Ver ID" ni modal con QR
+  if (!isSelf) {
+    return (
+      <div
+        className="inline-flex items-center gap-2 px-3.5 py-1.5 bg-[#FAF8F5] text-[#18181B] rounded-full border border-[#E8E2D9] shadow-xs select-none"
+        title={`Arrocero Fundador #${formattedNumber}`}
+      >
+        <Shield className="w-4 h-4 text-[#EA580C] shrink-0" />
+        <span className="font-extrabold text-sm tracking-tight">Fundador #{formattedNumber}</span>
+      </div>
+    )
+  }
+
   return (
     <>
-      {/* Insignia / Botón para ver el ID en perfil */}
+      {/* Insignia interactiva exclusiva del propietario */}
       <button
         type="button"
         onClick={() => setIsOpen(true)}
-        className="group inline-flex items-center gap-2 px-3.5 py-1.5 bg-[#FAF8F5] hover:bg-white text-[#18181B] rounded-full border border-[#E8E2D9] shadow-sm transition-all hover:scale-105 active:scale-95"
-        title="Ver ID Fundador"
+        className="group inline-flex items-center gap-2 px-3.5 py-1.5 bg-[#FAF8F5] hover:bg-white text-[#18181B] rounded-full border border-[#E8E2D9] shadow-sm transition-all hover:scale-105 active:scale-95 cursor-pointer"
+        title="Ver mi ID de Fundador"
       >
         <Shield className="w-4 h-4 text-[#EA580C] shrink-0" />
         <span className="font-extrabold text-sm tracking-tight">Fundador #{formattedNumber}</span>
         <span className="text-[11px] font-bold text-[#EA580C] bg-[#EA580C]/10 px-2 py-0.5 rounded-full group-hover:bg-[#EA580C]/20 transition-colors">
-          Ver ID
+          Ver mi ID
         </span>
       </button>
 
@@ -143,8 +156,12 @@ Solo existirán 100. No se muestra cuántas plazas quedan y, cuando se completen
                 </div>
 
                 {/* @usuario */}
-                <div className="text-[14px] font-extrabold text-[#18181B] truncate leading-tight mt-1 mb-2.5">
+                <div className="text-[14px] font-extrabold text-[#18181B] truncate leading-tight mt-1 mb-1">
                   @{username}
+                </div>
+
+                <div className="inline-block bg-amber-50 border border-amber-200/80 rounded-full px-2 py-0.5 text-[7.5px] font-bold text-amber-800 tracking-wider uppercase mb-2">
+                  ID personal e intransferible
                 </div>
 
                 {/* QR Centrado con marco */}
