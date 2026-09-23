@@ -61,6 +61,12 @@ export function BottomNav() {
               key={item.label}
               href={item.href}
               prefetch={true}
+              onClick={(e) => {
+                if (item.href === '/' && pathname === '/') {
+                  e.preventDefault();
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }
+              }}
               className={cn(
                 "flex flex-col items-center justify-center gap-1 w-full h-full relative",
                 isActive ? "text-foreground" : "text-muted-foreground"

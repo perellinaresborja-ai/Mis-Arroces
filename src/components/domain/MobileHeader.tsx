@@ -15,7 +15,17 @@ export function MobileHeader() {
 
   return (
     <div className="md:hidden sticky top-0 z-40 flex h-16 items-center justify-between px-4 py-0 bg-background/95 backdrop-blur border-b border-border">
-      <Link href="/" className="flex items-center gap-1 shrink-0">
+      <Link
+        href="/"
+        prefetch={true}
+        onClick={(e) => {
+          if (pathname === '/') {
+            e.preventDefault();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }
+        }}
+        className="flex items-center gap-1 shrink-0"
+      >
         <div className="relative w-10 h-10 shrink-0">
           <Image src="/logopaellaicono.png" alt="Mis Arroces Icono" fill sizes="80px" className="object-contain" priority />
         </div>

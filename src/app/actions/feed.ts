@@ -4,9 +4,9 @@ import { createClient } from "@/lib/supabase/server"
 
 const PAGE_SIZE = 20
 
-export async function fetchFeedPage(pageIndex: number = 0) {
+export async function fetchFeedPage(pageIndex: number = 0, existingUser?: any) {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = existingUser !== undefined ? existingUser : (await supabase.auth.getUser()).data.user
 
   const offset = pageIndex * PAGE_SIZE
 

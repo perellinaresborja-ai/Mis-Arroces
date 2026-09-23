@@ -152,9 +152,9 @@ export async function createStory(data: {
 }
 
 
-export async function fetchActiveStories() {
+export async function fetchActiveStories(existingUser?: any) {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = existingUser !== undefined ? existingUser : (await supabase.auth.getUser()).data.user
   
   // Get all active stories with view count instead of loading all view rows
   const { data, error } = await supabase
@@ -190,16 +190,29 @@ export async function fetchActiveStories() {
       process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://zvesoygqssyyojqyswwm.supabase.co',
       serviceKey
     );
+    const mediaToSign: { mediaRef: any; path: string }[] = [];
     for (const story of data) {
       if (story.story_media && story.story_media.length > 0) {
         const path = story.story_media[0].media?.storage_path;
         if (path) {
-          // Admin client bypasses RLS on Storage to generate the signature
-          const { data: signed } = await adminSupabase.storage.from('recipe_media').createSignedUrl(path, 3600);
-          if (signed) {
-            (story.story_media[0].media as any).signed_url = signed.signedUrl;
-          }
+          mediaToSign.push({ mediaRef: story.story_media[0].media, path });
         }
+      }
+    }
+    if (mediaToSign.length > 0) {
+      try {
+        const { data: signedList } = await adminSupabase.storage
+          .from('recipe_media')
+          .createSignedUrls(mediaToSign.map(m => m.path), 3600);
+        if (signedList) {
+          signedList.forEach((signed, idx) => {
+            if (signed?.signedUrl && mediaToSign[idx]) {
+              (mediaToSign[idx].mediaRef as any).signed_url = signed.signedUrl;
+            }
+          });
+        }
+      } catch (err) {
+        console.error('Error signing story urls batch:', err);
       }
     }
   }
