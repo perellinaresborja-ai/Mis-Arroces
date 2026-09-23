@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react"
 import { usePwa } from "@/components/providers/PwaProvider"
-import { X } from "lucide-react"
+import { useUserSession } from "@/components/providers/UserSessionProvider"
+import { X, ArrowLeft } from "lucide-react"
 import Image from "next/image"
 
 const DISMISS_KEY = "misarroces_pwa_dismissed_until"
@@ -10,10 +11,25 @@ const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000
 
 export function InstallPrompt() {
   const { isInstalled, canInstall, isIos, promptInstall } = usePwa()
+  const { user, username } = useUserSession()
   const [isVisible, setIsVisible] = useState(false)
   const [showIosGuide, setShowIosGuide] = useState(false)
 
+  // Detectar al usuario perellinares para permitirle revisar los textos directamente en pantalla
+  const isTargetUser = Boolean(
+    user?.id === "d5e0c178-49d0-4160-b122-d518f5d46036" ||
+    (username && (username.toLowerCase().includes("perellinares") || username.toLowerCase().includes("pellinares")))
+  )
+
   useEffect(() => {
+    // Si es perellinares revisando textos, mostrar tras 1.5s sin importar dispositivo ni bloqueos
+    if (isTargetUser) {
+      const timer = setTimeout(() => {
+        setIsVisible(true)
+      }, 1500)
+      return () => clearTimeout(timer)
+    }
+
     // Si ya está instalada o en standalone, no mostrar nunca
     if (isInstalled) {
       setIsVisible(false)
@@ -41,19 +57,21 @@ export function InstallPrompt() {
     }, 6000)
 
     return () => clearTimeout(timer)
-  }, [isInstalled, canInstall, isIos])
+  }, [isInstalled, canInstall, isIos, isTargetUser])
 
   const handleDismiss = () => {
-    try {
-      localStorage.setItem(DISMISS_KEY, (Date.now() + THIRTY_DAYS_MS).toString())
-    } catch {
-      // Silencioso
+    if (!isTargetUser) {
+      try {
+        localStorage.setItem(DISMISS_KEY, (Date.now() + THIRTY_DAYS_MS).toString())
+      } catch {
+        // Silencioso
+      }
     }
     setIsVisible(false)
   }
 
   const handleInstallClick = async () => {
-    if (isIos) {
+    if (isIos || (!canInstall && isTargetUser)) {
       setShowIosGuide(true)
       return
     }
@@ -68,7 +86,7 @@ export function InstallPrompt() {
     }
   }
 
-  if (!isVisible || isInstalled) {
+  if (!isVisible || (isInstalled && !isTargetUser)) {
     return null
   }
 
@@ -129,6 +147,19 @@ export function InstallPrompt() {
                 Instalar misarroces
               </button>
             </div>
+
+            {isTargetUser && (
+              <div className="mt-3 pt-2.5 border-t border-border/50 flex items-center justify-between text-[11px] text-muted-foreground">
+                <span>Modo revisión (perellinares)</span>
+                <button
+                  type="button"
+                  onClick={() => setShowIosGuide(true)}
+                  className="text-primary font-semibold hover:underline"
+                >
+                  Ver pasos iPhone →
+                </button>
+              </div>
+            )}
           </div>
         ) : (
           <div>
@@ -184,14 +215,25 @@ export function InstallPrompt() {
               </div>
             </div>
 
-            {/* Botón de cierre */}
-            <button
-              type="button"
-              onClick={handleDismiss}
-              className="w-full py-2.5 rounded-2xl bg-primary text-primary-foreground font-bold text-xs sm:text-sm hover:opacity-90 active:scale-[0.98] transition-all text-center shadow-sm"
-            >
-              Entendido
-            </button>
+            {/* Acciones iOS */}
+            <div className="space-y-2">
+              <button
+                type="button"
+                onClick={handleDismiss}
+                className="w-full py-2.5 rounded-2xl bg-primary text-primary-foreground font-bold text-xs sm:text-sm hover:opacity-90 active:scale-[0.98] transition-all text-center shadow-sm"
+              >
+                Entendido
+              </button>
+              {isTargetUser && (
+                <button
+                  type="button"
+                  onClick={() => setShowIosGuide(false)}
+                  className="w-full py-1.5 text-xs text-muted-foreground hover:text-foreground flex items-center justify-center gap-1 transition-colors"
+                >
+                  <ArrowLeft className="w-3.5 h-3.5" /> Volver al aviso principal
+                </button>
+              )}
+            </div>
           </div>
         )}
       </div>
