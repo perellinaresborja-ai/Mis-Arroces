@@ -54,11 +54,8 @@ export default async function FundadoresPage() {
             </div>
           ) : (
             <div className="flex flex-col items-center text-center">
-              <div className="inline-block bg-[#F7F5F0] border border-[#EA580C]/30 rounded-full px-3 py-1 text-xs font-bold text-[#EA580C] uppercase tracking-wider mb-4">
-                Plazas Limitadas
-              </div>
               <p className="text-sm text-[#52525B] leading-relaxed mb-6">
-                Para optar a una de las plazas, regístrate y publica tu primera receta mientras queden plazas disponibles. En cuanto se alcancen los 100 miembros, el acceso se cerrará de forma automática y definitiva.
+                Para formar parte de Los 100, regístrate y publica tu primera receta mientras haya plazas disponibles. Cuando se alcancen los 100 miembros, el acceso se cerrará de forma automática y definitiva.
               </p>
               <Link 
                 href="/create/recipe"
@@ -75,13 +72,13 @@ export default async function FundadoresPage() {
           <div className="bg-white/60 backdrop-blur-md p-6 rounded-3xl border border-[#EAE7E0]">
             <h3 className="font-bold text-[#18181B] mb-1.5 text-sm">ID Fundador Permanente</h3>
             <p className="text-xs text-[#52525B] leading-relaxed">
-              Identificador digital permanente e intransferible que te acredita como miembro de Los 100 para siempre.
+              Tu identificación digital como miembro de Los 100. Personal, permanente e intransferible.
             </p>
           </div>
           <div className="bg-white/60 backdrop-blur-md p-6 rounded-3xl border border-[#EAE7E0]">
             <h3 className="font-bold text-[#18181B] mb-1.5 text-sm">Cultura y Experiencias</h3>
             <p className="text-xs text-[#52525B] leading-relaxed">
-              Identificación exclusiva para participar en jornadas, catas, concursos y actividades oficiales de la comunidad.
+              Tu condición de Arrocero Fundador estará vinculada a futuras jornadas, catas, concursos y experiencias de la comunidad.
             </p>
           </div>
         </div>
