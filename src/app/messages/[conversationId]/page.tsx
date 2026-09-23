@@ -1,5 +1,5 @@
 import { BackButton } from "@/components/domain/BackButton"
-import { fetchMessages, updateReadStatus } from "@/app/actions/messaging"
+import { fetchMessages } from "@/app/actions/messaging"
 import { createClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
 import Link from "next/link"
@@ -13,12 +13,17 @@ export default async function ConversationPage({ params }: { params: { conversat
 
     const { conversationId } = await Promise.resolve(params);
 
-    const { data: member, error: memberErr } = await supabase
-      .from('conversation_members')
-      .select('status')
-      .eq('conversation_id', conversationId)
-      .eq('user_id', user.id)
-      .single()
+    // Parallelize members query and messages fetch in a single round-trip
+    const [membersRes, messages] = await Promise.all([
+      supabase
+        .from('conversation_members')
+        .select('status, user_id, user:profiles!inner(id, username, display_name, avatar:media_assets!fk_profiles_avatar(storage_path))')
+        .eq('conversation_id', conversationId),
+      fetchMessages(conversationId)
+    ])
+
+    const members = (membersRes.data || []) as any[]
+    const member = members.find(m => m.user_id === user.id)
 
     if (!member) {
       return (
@@ -26,21 +31,11 @@ export default async function ConversationPage({ params }: { params: { conversat
           <h1 className="text-2xl font-bold text-red-500 mb-4">Error de Acceso</h1>
           <p>No se te reconoce como miembro de esta conversación.</p>
           <p className="mt-4 text-sm text-muted-foreground break-all">Conv ID: {conversationId}</p>
-          <p className="text-sm text-muted-foreground break-all">Error: {JSON.stringify(memberErr)}</p>
         </div>
       )
     }
 
-    await updateReadStatus(conversationId)
-
-    const { data: otherMember } = await supabase
-      .from('conversation_members')
-      .select('status, user_id, user:profiles!inner(id, username, display_name, avatar:media_assets!fk_profiles_avatar(storage_path))')
-      .eq('conversation_id', conversationId)
-      .neq('user_id', user.id)
-      .single()
-
-    const messages = await fetchMessages(conversationId)
+    const otherMember = members.find(m => m.user_id !== user.id)
 
     return (
       <div className="flex flex-col h-full w-full bg-background overflow-hidden relative overscroll-none select-none">

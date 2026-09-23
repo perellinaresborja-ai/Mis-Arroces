@@ -1,4 +1,4 @@
-﻿"use server"
+"use server"
 
 import { createClient } from "@/lib/supabase/server"
 import { createClient as createAdminClient } from "@supabase/supabase-js"
@@ -41,58 +41,68 @@ export async function fetchConversations() {
   const excludedUserIds = Array.from(new Set([...blockedIds, ...mutedIds]))
 
   // Fetch all members for conversations this user is in
-    const { data: convMembers, error: membersError } = await supabase
-      .from('conversation_members')
-      .select('*, conversations(*)')
-      .eq('user_id', user.id)
-      .is('archived_at', null)
-      .order('is_pinned', { ascending: false })
-      .order('last_read_at', { ascending: false })
+  const { data: convMembers, error: membersError } = await supabase
+    .from('conversation_members')
+    .select('*, conversations(*)')
+    .eq('user_id', user.id)
+    .is('archived_at', null)
+    .order('is_pinned', { ascending: false })
+    .order('last_read_at', { ascending: false })
 
-  if (membersError || !convMembers) return []
+  if (membersError || !convMembers || convMembers.length === 0) return []
 
-  const conversations = []
-  
-  for (const cm of convMembers) {
-    // Get other member details
-    const { data: others } = await supabase
-      .from('conversation_members')
-      .select('*, user:profiles!inner(id, username, display_name, avatar:media_assets!fk_profiles_avatar(storage_path))')
-      .eq('conversation_id', cm.conversation_id)
-      .neq('user_id', user.id)
-      .limit(1)
+  const convIds = convMembers.map(cm => cm.conversation_id)
 
-    const otherMember = others?.[0]
-    
-    // Skip if other member is blocked or muted
-    if (otherMember && excludedUserIds.includes(otherMember.user_id)) {
-      continue;
+  // Batch-fetch all other members in 1 single query instead of N queries
+  const { data: allOthers } = await supabase
+    .from('conversation_members')
+    .select('conversation_id, status, user_id, user:profiles!inner(id, username, display_name, avatar:media_assets!fk_profiles_avatar(storage_path))')
+    .in('conversation_id', convIds)
+    .neq('user_id', user.id)
+
+  const otherMemberMap = new Map<string, any>()
+  if (allOthers) {
+    for (const om of allOthers) {
+      otherMemberMap.set(om.conversation_id, om)
     }
-
-    // Get last message
-    const { data: lastMessage } = await supabase
-      .from('messages')
-      .select('*')
-      .eq('conversation_id', cm.conversation_id)
-      .order('created_at', { ascending: false })
-      .limit(1)
-
-    // Unread count (messages created after last_read_at)
-    const { count: unreadCount } = await supabase
-      .from('messages')
-      .select('*', { count: 'exact', head: true })
-      .eq('conversation_id', cm.conversation_id)
-      .neq('sender_id', user.id)
-      .gt('created_at', cm.last_read_at || '1970-01-01T00:00:00Z')
-      .is('deleted_at', null)
-
-    conversations.push({
-      ...cm,
-      otherMember,
-      lastMessage: lastMessage?.[0] || null,
-      unreadCount: unreadCount || 0
-    })
   }
+
+  // Filter out conversations with blocked/muted users
+  const validMembers = convMembers.filter(cm => {
+    const otherMember = otherMemberMap.get(cm.conversation_id)
+    return !(otherMember && excludedUserIds.includes(otherMember.user_id))
+  })
+
+  // Concurrently resolve last message and unread count for remaining conversations in parallel
+  const conversations = await Promise.all(
+    validMembers.map(async (cm) => {
+      const otherMember = otherMemberMap.get(cm.conversation_id)
+
+      const [lastMsgRes, unreadRes] = await Promise.all([
+        supabase
+          .from('messages')
+          .select('*')
+          .eq('conversation_id', cm.conversation_id)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle(),
+        supabase
+          .from('messages')
+          .select('*', { count: 'exact', head: true })
+          .eq('conversation_id', cm.conversation_id)
+          .neq('sender_id', user.id)
+          .gt('created_at', cm.last_read_at || '1970-01-01T00:00:00Z')
+          .is('deleted_at', null)
+      ])
+
+      return {
+        ...cm,
+        otherMember,
+        lastMessage: lastMsgRes.data || null,
+        unreadCount: unreadRes.count || 0
+      }
+    })
+  )
 
   // Sort by last message time or created_at
   conversations.sort((a, b) => {
@@ -207,9 +217,13 @@ export async function fetchMessages(conversationId: string) {
     .from('messages')
     .select('*, message_attachments(storage_path), parent:messages!reply_to_id(type, body), message_reactions(id, emoji, user_id)')
     .eq('conversation_id', conversationId)
-    .order('created_at', { ascending: true })
+    .order('created_at', { ascending: false })
+    .limit(60)
 
   if (error || !data) return []
+
+  // Re-order ascending for chat display
+  const orderedData = [...data].reverse()
 
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
   if (serviceKey) {
@@ -217,24 +231,37 @@ export async function fetchMessages(conversationId: string) {
       process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://zvesoygqssyyojqyswwm.supabase.co',
       serviceKey
     )
-    const result = []
-    for (const msg of data) {
-      let signedUrl = undefined
-      if (msg.message_attachments && msg.message_attachments.length > 0) {
-        const path = msg.message_attachments[0].storage_path
-        if (path) {
-          const { data: signed } = await adminSupabase.storage.from('message_media').createSignedUrl(path, 3600)
-          if (signed) {
-            signedUrl = signed.signedUrl
+
+    // Gather all paths to sign in a single batch
+    const pathsToSign: string[] = []
+    for (const msg of orderedData) {
+      const path = msg.message_attachments?.[0]?.storage_path
+      if (path) pathsToSign.push(path)
+    }
+
+    if (pathsToSign.length > 0) {
+      const { data: signedList } = await adminSupabase.storage
+        .from('message_media')
+        .createSignedUrls(pathsToSign, 3600)
+
+      const signedMap = new Map<string, string>()
+      if (signedList) {
+        for (const item of signedList) {
+          if (item.path && item.signedUrl) {
+            signedMap.set(item.path, item.signedUrl)
           }
         }
       }
-      result.push({ ...msg, signed_url: signedUrl })
+
+      return orderedData.map(msg => {
+        const path = msg.message_attachments?.[0]?.storage_path
+        const signedUrl = path ? signedMap.get(path) : undefined
+        return { ...msg, signed_url: signedUrl }
+      })
     }
-    return result
   }
 
-  return data.map(msg => ({ ...msg, signed_url: undefined }))
+  return orderedData.map(msg => ({ ...msg, signed_url: undefined }))
 }
 
 
