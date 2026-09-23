@@ -115,17 +115,16 @@ export default function LinksPage() {
         </button>
 
         {/* Share Section */}
-        <div className="mt-8 pt-8 border-t border-border w-full flex flex-col items-center space-y-3 opacity-90">
-          <h2 className="text-sm font-bold text-foreground">Comparte misarroces</h2>
-          <p className="text-xs text-muted-foreground text-center">
-            ¿Conoces a alguien que vive por y para el arroz? Compárteselo.
+        <div className="mt-8 pt-8 border-t border-border w-full flex flex-col items-center space-y-4">
+          <p className="text-sm font-semibold text-foreground text-center">
+            ¿Conoces a alguien que vive por y para el arroz?
           </p>
           <button 
             onClick={handleShareClick}
-            className="mt-2 inline-flex items-center justify-center gap-2 text-xs font-medium text-foreground bg-secondary/60 hover:bg-secondary px-5 py-2.5 rounded-full transition-colors"
+            className="inline-flex items-center justify-center gap-2 text-sm font-medium text-foreground bg-secondary/80 hover:bg-secondary px-6 py-2.5 rounded-full transition-colors"
           >
             <Share2 className="w-4 h-4" />
-            <span>Compartir enlace</span>
+            <span>Compárteselo</span>
           </button>
         </div>
 
