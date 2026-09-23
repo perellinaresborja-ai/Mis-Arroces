@@ -694,7 +694,10 @@ export async function getArchivedStories() {
     .eq('owner_id', user.id)
     .order('created_at', { ascending: false });
     
-  if (error) throw error;
+  if (error) {
+    console.error("Error fetching archived stories:", error);
+    return [];
+  }
 
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (serviceKey && data) {

@@ -11,7 +11,8 @@ export function BottomNav() {
   const pathname = usePathname();
   const { avatarUrl, username } = useUserSession();
   const displayAvatar = avatarUrl;
-  const profileHref = username ? `/@${username}` : "/me";
+  const cleanUsername = username ? username.replace(/^@+/, '') : null;
+  const profileHref = cleanUsername ? `/@${cleanUsername}` : "/me";
 
   const navItems = [
     {

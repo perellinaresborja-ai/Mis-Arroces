@@ -17,8 +17,9 @@ export function DesktopNav() {
   const pathname = usePathname()
   const { user, avatarUrl, username } = useUserSession()
   const displayAvatar = avatarUrl
-  const profileHref = username ? `/@${username}` : "/me"
-  const isProfileActive = pathname === "/me" || (username ? pathname === `/@${username}` : false)
+  const cleanUsername = username ? username.replace(/^@+/, '') : null
+  const profileHref = cleanUsername ? `/@${cleanUsername}` : "/me"
+  const isProfileActive = pathname === "/me" || (cleanUsername ? pathname === `/@${cleanUsername}` : false)
 
   const [activeStoryGroup, setActiveStoryGroup] = useState<any | null>(null)
   const [isViewerOpen, setIsViewerOpen] = useState(false)

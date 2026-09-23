@@ -20,35 +20,41 @@ import { FounderCardModal } from "@/components/domain/FounderCardModal"
 import { ViewTracker } from "@/components/domain/ViewTracker"
 
 const getProfileData = cache(async (username: string) => {
-  const supabase = await createClient()
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select(`*, avatar:media_assets!fk_profiles_avatar(storage_path), cover:media_assets!fk_profiles_cover(storage_path)`)
-    .eq("username", username)
-    .maybeSingle()
+  try {
+    const cleanUser = username.replace(/^@+/, '')
+    const supabase = await createClient()
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select(`*, avatar:media_assets!fk_profiles_avatar(storage_path), cover:media_assets!fk_profiles_cover(storage_path)`)
+      .eq("username", cleanUser)
+      .maybeSingle()
 
-  if (profile) {
-    return { profile, aliasRedirect: null }
+    if (profile) {
+      return { profile, aliasRedirect: null }
+    }
+
+    // Check aliases
+    const { data: alias } = await supabase
+      .from("username_aliases" as any)
+      .select("profile_id, profiles(username)")
+      .eq("username", cleanUser)
+      .maybeSingle()
+
+    if (alias && (alias as any).profiles?.username) {
+      return { profile: null, aliasRedirect: (alias as any).profiles.username }
+    }
+
+    return { profile: null, aliasRedirect: null }
+  } catch (err) {
+    console.error("Error in getProfileData:", err)
+    return { profile: null, aliasRedirect: null }
   }
-
-  // Check aliases
-  const { data: alias } = await supabase
-    .from("username_aliases" as any)
-    .select("profile_id, profiles(username)")
-    .eq("username", username)
-    .maybeSingle()
-
-  if (alias && (alias as any).profiles?.username) {
-    return { profile: null, aliasRedirect: (alias as any).profiles.username }
-  }
-
-  return { profile: null, aliasRedirect: null }
 })
 
 export async function generateMetadata({ params }: { params: Promise<{ userParam: string }> }) {
   const resolvedParams = await params;
   const rawParam = decodeURIComponent(resolvedParams.userParam);
-  const username = rawParam.startsWith("@") ? rawParam.substring(1) : rawParam;
+  const username = rawParam.replace(/^@+/, '');
 
   const { profile } = await getProfileData(username);
 
@@ -114,7 +120,7 @@ export default async function PublicProfilePage({
   const resolvedSearchParams = await searchParams
   const tab = resolvedSearchParams?.tab || 'posts'
   const rawParam = decodeURIComponent(resolvedParams.userParam)
-  const username = rawParam.startsWith("@") ? rawParam.substring(1) : rawParam
+  const username = rawParam.replace(/^@+/, '')
 
   const supabase = await createClient()
   
@@ -135,7 +141,7 @@ export default async function PublicProfilePage({
 
   // If visiting own profile, followStatus is null; otherwise fetch follow status
   const followPromise = (!isSelf && user)
-    ? supabase.from("follows").select("status").match({ follower_id: user.id, following_id: profile.id }).maybeSingle()
+    ? supabase.from("follows").select("status").match({ follower_id: user.id, following_id: profile.id }).maybeSingle().then(r => r, () => ({ data: null }))
     : Promise.resolve({ data: null })
 
   // If isSelf or PUBLIC, canViewPrivate is known true upfront!
@@ -143,7 +149,7 @@ export default async function PublicProfilePage({
   const canViewImmediately = isSelf || isPublicProfile
   const visibilityFilter = isSelf ? ["PUBLIC", "PRIVATE", "FOLLOWERS"] : ["PUBLIC", "FOLLOWERS"]
 
-  // Parallel batch: Metadata, follows, stories, shopping, and entities (if immediately viewable)
+  // Parallel batch: Metadata, follows, stories, and entities (if immediately viewable)
   const [
     founderRes,
     identityRes,
@@ -152,7 +158,6 @@ export default async function PublicProfilePage({
     followingRes,
     highlightsRes,
     archivedStoriesRes,
-    shoppingRes,
     activeStoryGroupRes,
     recipesRes,
     sessionsRes,
@@ -165,28 +170,26 @@ export default async function PublicProfilePage({
     // Follow status
     followPromise,
     // Followers count
-    supabase.from("follows").select("*", { count: "exact", head: true }).eq("following_id", profile.id).eq("status", "ACCEPTED"),
+    supabase.from("follows").select("*", { count: "exact", head: true }).eq("following_id", profile.id).eq("status", "ACCEPTED").then(r => r, () => ({ count: 0 })),
     // Following count
-    supabase.from("follows").select("*", { count: "exact", head: true }).eq("follower_id", profile.id).eq("status", "ACCEPTED"),
+    supabase.from("follows").select("*", { count: "exact", head: true }).eq("follower_id", profile.id).eq("status", "ACCEPTED").then(r => r, () => ({ count: 0 })),
     // Highlights
-    canViewImmediately ? getProfileHighlights(profile.id) : Promise.resolve([]),
+    canViewImmediately ? getProfileHighlights(profile.id).then(r => r, () => []) : Promise.resolve([]),
     // Archived stories
-    isSelf ? getArchivedStories() : Promise.resolve([]),
-    // Shopping list
-    isSelf ? supabase.from('shopping_lists').select('shopping_list_items(id, is_checked)').eq('user_id', user.id).maybeSingle() : Promise.resolve({ data: null }),
+    isSelf ? getArchivedStories().then(r => r, () => []) : Promise.resolve([]),
     // Active stories
-    fetchUserActiveStories(profile.id),
+    fetchUserActiveStories(profile.id).then(r => r, () => null),
     // Recipes (if canViewImmediately)
     canViewImmediately
-      ? supabase.from("recipes").select(`*, author:profiles!recipes_owner_id_fkey(id, username, display_name, avatar:media_assets!fk_profiles_avatar(storage_path)), recipe_media(display_order, media:media_assets(id, storage_path, media_type))`).eq("owner_id", profile.id).eq("status", "PUBLISHED").in("visibility", visibilityFilter)
+      ? supabase.from("recipes").select(`*, author:profiles!recipes_owner_id_fkey(id, username, display_name, avatar:media_assets!fk_profiles_avatar(storage_path)), recipe_media(display_order, media:media_assets(id, storage_path, media_type))`).eq("owner_id", profile.id).eq("status", "PUBLISHED").in("visibility", visibilityFilter).then(r => r, () => ({ data: [] }))
       : Promise.resolve({ data: [] }),
     // Sessions (if canViewImmediately)
     canViewImmediately
-      ? supabase.from("cooking_sessions").select(`*, author:profiles!cooking_sessions_user_id_fkey(id, username, display_name, avatar:media_assets!fk_profiles_avatar(storage_path)), session_media(display_order, media:media_assets(id, storage_path, media_type)), recipe:recipes(id, name)`).eq("user_id", profile.id).eq("status", "PUBLISHED").in("visibility", visibilityFilter)
+      ? supabase.from("cooking_sessions").select(`*, author:profiles!cooking_sessions_user_id_fkey(id, username, display_name, avatar:media_assets!fk_profiles_avatar(storage_path)), session_media(display_order, media:media_assets(id, storage_path, media_type)), recipe:recipes(id, name)`).eq("user_id", profile.id).eq("status", "PUBLISHED").in("visibility", visibilityFilter).then(r => r, () => ({ data: [] }))
       : Promise.resolve({ data: [] }),
     // Posts (if canViewImmediately)
     canViewImmediately
-      ? supabase.from("social_posts").select(`*, author:profiles!social_posts_author_id_fkey(id, username, display_name, avatar:media_assets!fk_profiles_avatar(storage_path)), post_media(display_order, media:media_assets(id, storage_path, media_type)), recipe:recipes(id, name)`).eq("author_id", profile.id).in("visibility", visibilityFilter)
+      ? supabase.from("social_posts").select(`*, author:profiles!social_posts_author_id_fkey(id, username, display_name, avatar:media_assets!fk_profiles_avatar(storage_path)), post_media(display_order, media:media_assets(id, storage_path, media_type)), recipe:recipes(id, name)`).eq("author_id", profile.id).in("visibility", visibilityFilter).then(r => r, () => ({ data: [] }))
       : Promise.resolve({ data: [] })
   ])
 
@@ -197,11 +200,11 @@ export default async function PublicProfilePage({
 
   let highlights = highlightsRes || []
   if (!canViewImmediately && canViewPrivate) {
-    highlights = await getProfileHighlights(profile.id)
+    highlights = await getProfileHighlights(profile.id).then(r => r, () => [])
   }
 
-  const followersCount = followersRes.count || 0
-  const followingCount = followingRes.count || 0
+  const followersCount = followersRes?.count || 0
+  const followingCount = followingRes?.count || 0
   const archivedStories = archivedStoriesRes || []
   const activeStoryGroup = activeStoryGroupRes
 
@@ -212,9 +215,9 @@ export default async function PublicProfilePage({
   // If was private but followStatus is ACCEPTED, fetch entities now
   if (!canViewImmediately && canViewPrivate) {
     const [extraRec, extraSes, extraPost] = await Promise.all([
-      supabase.from("recipes").select(`*, author:profiles!recipes_owner_id_fkey(id, username, display_name, avatar:media_assets!fk_profiles_avatar(storage_path)), recipe_media(display_order, media:media_assets(id, storage_path, media_type))`).eq("owner_id", profile.id).eq("status", "PUBLISHED").in("visibility", visibilityFilter),
-      supabase.from("cooking_sessions").select(`*, author:profiles!cooking_sessions_user_id_fkey(id, username, display_name, avatar:media_assets!fk_profiles_avatar(storage_path)), session_media(display_order, media:media_assets(id, storage_path, media_type)), recipe:recipes(id, name)`).eq("user_id", profile.id).eq("status", "PUBLISHED").in("visibility", visibilityFilter),
-      supabase.from("social_posts").select(`*, author:profiles!social_posts_author_id_fkey(id, username, display_name, avatar:media_assets!fk_profiles_avatar(storage_path)), post_media(display_order, media:media_assets(id, storage_path, media_type)), recipe:recipes(id, name)`).eq("author_id", profile.id).in("visibility", visibilityFilter)
+      supabase.from("recipes").select(`*, author:profiles!recipes_owner_id_fkey(id, username, display_name, avatar:media_assets!fk_profiles_avatar(storage_path)), recipe_media(display_order, media:media_assets(id, storage_path, media_type))`).eq("owner_id", profile.id).eq("status", "PUBLISHED").in("visibility", visibilityFilter).then(r => r, () => ({ data: [] })),
+      supabase.from("cooking_sessions").select(`*, author:profiles!cooking_sessions_user_id_fkey(id, username, display_name, avatar:media_assets!fk_profiles_avatar(storage_path)), session_media(display_order, media:media_assets(id, storage_path, media_type)), recipe:recipes(id, name)`).eq("user_id", profile.id).eq("status", "PUBLISHED").in("visibility", visibilityFilter).then(r => r, () => ({ data: [] })),
+      supabase.from("social_posts").select(`*, author:profiles!social_posts_author_id_fkey(id, username, display_name, avatar:media_assets!fk_profiles_avatar(storage_path)), post_media(display_order, media:media_assets(id, storage_path, media_type)), recipe:recipes(id, name)`).eq("author_id", profile.id).in("visibility", visibilityFilter).then(r => r, () => ({ data: [] }))
     ])
     recData = extraRec.data || []
     sesData = extraSes.data || []
@@ -240,16 +243,16 @@ export default async function PublicProfilePage({
 
       const queries = []
       if (recipeIds.length > 0) {
-        queries.push(supabase.from("recipe_likes").select("recipe_id, emoji, user_id").in("recipe_id", recipeIds).then(r => ({ type: 'recipe', likes: r.data })))
-        queries.push(supabase.from("recipe_comments").select("recipe_id").eq("is_deleted", false).in("recipe_id", recipeIds).then(r => ({ type: 'recipe', comments: r.data })))
+        queries.push(supabase.from("recipe_likes").select("recipe_id, emoji, user_id").in("recipe_id", recipeIds).then(r => ({ type: 'recipe', likes: r.data || [] }), () => ({ type: 'recipe', likes: [] })))
+        queries.push(supabase.from("recipe_comments").select("recipe_id").eq("is_deleted", false).in("recipe_id", recipeIds).then(r => ({ type: 'recipe', comments: r.data || [] }), () => ({ type: 'recipe', comments: [] })))
       }
       if (sessionIds.length > 0) {
-        queries.push(supabase.from("session_likes").select("session_id, emoji, user_id").in("session_id", sessionIds).then(r => ({ type: 'session', likes: r.data })))
-        queries.push(supabase.from("session_comments").select("session_id").eq("is_deleted", false).in("session_id", sessionIds).then(r => ({ type: 'session', comments: r.data })))
+        queries.push(supabase.from("session_likes").select("session_id, emoji, user_id").in("session_id", sessionIds).then(r => ({ type: 'session', likes: r.data || [] }), () => ({ type: 'session', likes: [] })))
+        queries.push(supabase.from("session_comments").select("session_id").eq("is_deleted", false).in("session_id", sessionIds).then(r => ({ type: 'session', comments: r.data || [] }), () => ({ type: 'session', comments: [] })))
       }
       if (postIds.length > 0) {
-        queries.push(supabase.from("post_likes").select("post_id, emoji, user_id").in("post_id", postIds).then(r => ({ type: 'post', likes: r.data })))
-        queries.push(supabase.from("post_comments").select("post_id").eq("is_deleted", false).in("post_id", postIds).then(r => ({ type: 'post', comments: r.data })))
+        queries.push(supabase.from("post_likes").select("post_id, emoji, user_id").in("post_id", postIds).then(r => ({ type: 'post', likes: r.data || [] }), () => ({ type: 'post', likes: [] })))
+        queries.push(supabase.from("post_comments").select("post_id").eq("is_deleted", false).in("post_id", postIds).then(r => ({ type: 'post', comments: r.data || [] }), () => ({ type: 'post', comments: [] })))
       }
 
       const results = await Promise.all(queries)

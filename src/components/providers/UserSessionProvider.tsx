@@ -68,7 +68,7 @@ export function UserSessionProvider({
       }
 
       if (data?.username) {
-        setUsername(data.username)
+        setUsername(data.username.replace(/^@+/, ''))
       }
 
       const avatarData: any = data?.avatar
