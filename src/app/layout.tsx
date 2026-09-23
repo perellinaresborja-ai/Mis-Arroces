@@ -116,12 +116,7 @@ export default async function RootLayout({
               <main className="flex-1 w-full pb-16 md:pb-0 pt-0">
                 {children}
               </main>
-              
-              <footer className="w-full text-center py-6 pb-24 md:pb-6 text-xs text-muted-foreground mt-auto">
-                <Link href="/sobre-misarroces" className="hover:underline opacity-60 hover:opacity-100 transition-opacity">
-                  Sobre misarroces
-                </Link>
-              </footer>
+
             </div>
             
             {/* Mobile Navigation */}
