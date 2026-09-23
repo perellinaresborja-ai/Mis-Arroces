@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { createPortal } from "react-dom"
 import Image from "next/image"
+import Link from "next/link"
 import { trackClickAction } from "@/app/actions/tracking"
 import { sendGAEvent } from "@/lib/analytics/ga4"
 import { Home, Smartphone, Info, BookOpen, Share2, Copy, Check, X } from "lucide-react"
@@ -28,18 +29,26 @@ export default function LinksPage() {
   const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(url)}&color=000000&bgcolor=ffffff`
 
   const handleNativeShare = async () => {
-    sendGAEvent("share_links", { origin: "/links", method: "native" })
     const shareData = {
       title: 'misarroces.es',
       text: 'La red social de los arroces.',
       url,
     }
-    if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
+    
+    if (typeof navigator !== "undefined" && navigator.share) {
       try {
+        sendGAEvent("share_links", { origin: "/links", method: "native" })
         await navigator.share(shareData)
-      } catch (err) {
+      } catch (err: any) {
         console.error('Error sharing:', err)
+        // Si falla (y no es porque el usuario ha cancelado manualmente), copiamos el link
+        if (err.name !== 'AbortError') {
+          handleCopy()
+        }
       }
+    } else {
+      // Si el navegador interno no soporta compartir nativo, copiamos al portapapeles
+      handleCopy()
     }
   }
 
@@ -50,18 +59,19 @@ export default function LinksPage() {
     setTimeout(() => setCopied(false), 2000)
   }
 
-  const handleAction = (name: string, path: string, requiresAuth: boolean = false) => {
+  const handleTracking = (name: string, path: string, requiresAuth: boolean = false) => {
     // 1. Registramos en Analytics (fire-and-forget para no bloquear la navegación)
     trackClickAction('LINK_CLICK', '/links', name, user?.id || 'anonymous').catch(() => {})
     sendGAEvent("link_click", { origin: "/links", button_name: name, destination: path })
 
-    // 2. Navegación directa forzada con window.location para evitar cuelgues del router en esta vista
+    // 2. Si requiere auth y no está logueado, guardamos la cookie de retorno
     if (requiresAuth && !user) {
       document.cookie = `misarroces_return_to=${path}; path=/; max-age=3600`
-      window.location.href = "/login"
-    } else {
-      window.location.href = path
     }
+  }
+
+  const getHref = (path: string, requiresAuth: boolean = false) => {
+    return (requiresAuth && !user) ? "/login" : path
   }
 
   return (
@@ -79,40 +89,44 @@ export default function LinksPage() {
       <div className="w-full max-w-sm space-y-4 flex flex-col items-stretch pb-16">
         
         {/* 1. Ir a misarroces */}
-        <button 
-          onClick={() => handleAction('Ir a misarroces', '/feed', false)}
+        <Link 
+          href={getHref('/feed', false)}
+          onClick={() => handleTracking('Ir a misarroces', '/feed', false)}
           className="w-full flex items-center justify-center relative bg-card border border-border hover:border-primary/50 text-foreground font-semibold py-4 px-6 rounded-3xl shadow-sm transition-all"
         >
           <Home className="w-5 h-5 absolute left-6 text-muted-foreground" />
           <span>Ir a misarroces</span>
-        </button>
+        </Link>
 
         {/* 2. Trae tus recetas de Instagram */}
-        <button 
-          onClick={() => handleAction('Trae tus recetas de Instagram', '/create/recipe#import', true)}
+        <Link 
+          href={getHref('/create/recipe#import', true)}
+          onClick={() => handleTracking('Trae tus recetas de Instagram', '/create/recipe#import', true)}
           className="w-full flex items-center justify-center relative bg-primary hover:bg-primary/90 text-primary-foreground font-semibold py-4 px-6 rounded-3xl shadow-sm transition-all"
         >
           <Smartphone className="w-5 h-5 absolute left-6 opacity-80" />
           <span>Trae tus recetas de Instagram</span>
-        </button>
+        </Link>
 
         {/* 3. ¿Qué es misarroces? */}
-        <button 
-          onClick={() => handleAction('¿Qué es misarroces?', '/sobre-misarroces', false)}
+        <Link 
+          href={getHref('/sobre-misarroces', false)}
+          onClick={() => handleTracking('¿Qué es misarroces?', '/sobre-misarroces', false)}
           className="w-full flex items-center justify-center relative bg-card border border-border hover:border-primary/50 text-foreground font-semibold py-4 px-6 rounded-3xl shadow-sm transition-all"
         >
           <Info className="w-5 h-5 absolute left-6 text-muted-foreground" />
           <span>¿Qué es misarroces?</span>
-        </button>
+        </Link>
 
         {/* 4. Crea tu recetario */}
-        <button 
-          onClick={() => handleAction('Crea tu recetario', '/cookbook', true)}
+        <Link 
+          href={getHref('/cookbook', true)}
+          onClick={() => handleTracking('Crea tu recetario', '/cookbook', true)}
           className="w-full flex items-center justify-center relative bg-card border border-border hover:border-primary/50 text-foreground font-semibold py-4 px-6 rounded-3xl shadow-sm transition-all"
         >
           <BookOpen className="w-5 h-5 absolute left-6 text-muted-foreground" />
           <span>Crea tu recetario</span>
-        </button>
+        </Link>
 
         {/* Share Section */}
         <div className="mt-8 pt-8 border-t border-border w-full flex flex-col items-center space-y-4">
