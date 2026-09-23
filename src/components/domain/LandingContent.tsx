@@ -1,7 +1,7 @@
 import Image from "next/image"
 import Link from "next/link"
 import { buttonVariants } from "@/components/ui/button"
-import { Flame, Users, BookOpen, Compass, ShoppingCart, Calculator, Coins, Leaf, ChefHat, Mic, Link as LinkIcon, Smartphone } from "lucide-react"
+import { Flame, Users, BookOpen, Compass, ShoppingCart, Calculator, Coins, Leaf, ChefHat, Mic, Link as LinkIcon, Smartphone, Bookmark, Share2 } from "lucide-react"
 import { InstagramCTA } from "@/app/sobre-misarroces/InstagramCTA"
 
 export function LandingContent({ isHome = false }: { isHome?: boolean }) {
@@ -25,15 +25,15 @@ export function LandingContent({ isHome = false }: { isHome?: boolean }) {
         <div className="pt-6">
           {isHome ? (
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <Link href="/login" className={buttonVariants({ size: "lg", className: "rounded-xl font-bold text-lg px-10 h-14 w-full sm:w-auto" })}>
+              <Link href="/login?mode=signup" className={buttonVariants({ size: "lg", className: "rounded-xl font-bold text-lg px-10 h-14 w-full sm:w-auto" })}>
                 Crear cuenta
               </Link>
-              <Link href="/login" className={buttonVariants({ variant: "outline", size: "lg", className: "rounded-xl font-bold text-lg px-10 h-14 w-full sm:w-auto" })}>
+              <Link href="/login?mode=login" className={buttonVariants({ variant: "outline", size: "lg", className: "rounded-xl font-bold text-lg px-10 h-14 w-full sm:w-auto" })}>
                 Entrar
               </Link>
             </div>
           ) : (
-            <Link href="/login" className={buttonVariants({ size: "lg", className: "rounded-xl font-bold text-lg px-10 h-14" })}>
+            <Link href="/login?mode=signup" className={buttonVariants({ size: "lg", className: "rounded-xl font-bold text-lg px-10 h-14" })}>
               Unirse a misarroces.es
             </Link>
           )}
@@ -48,7 +48,7 @@ export function LandingContent({ isHome = false }: { isHome?: boolean }) {
             Herramientas diseñadas por y para cocineros para llevar tus arroces<br />al siguiente nivel.
           </p>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pt-4">
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 pt-4">
           <FeatureCard 
             icon={<BookOpen className="w-6 h-6" />} 
             title="Tu Recetario Digital" 
@@ -99,6 +99,16 @@ export function LandingContent({ isHome = false }: { isHome?: boolean }) {
             title="Nutrición y Alérgenos" 
             desc="Obtén la información nutricional completa y los avisos de alérgenos de cada elaboración."
           />
+          <FeatureCard 
+            icon={<Bookmark className="w-6 h-6" />} 
+            title="Guarda tus Favoritas" 
+            desc="Guarda las recetas que más te gusten y tenlas siempre a mano para cocinarlas cuando quieras."
+          />
+          <FeatureCard 
+            icon={<Share2 className="w-6 h-6" />} 
+            title="Comparte tus Arroces" 
+            desc="Publica tus recetas y resultados, compártelos con la comunidad y crea tu propio perfil arrocero."
+          />
         </div>
       </section>
 
@@ -125,11 +135,11 @@ export function LandingContent({ isHome = false }: { isHome?: boolean }) {
         </p>
         <div className="pt-6">
           {isHome ? (
-            <Link href="/login" className={buttonVariants({ size: "lg", className: "rounded-xl font-bold text-lg px-10 h-14" })}>
+            <Link href="/login?mode=signup" className={buttonVariants({ size: "lg", className: "rounded-xl font-bold text-lg px-10 h-14" })}>
               Crear cuenta
             </Link>
           ) : (
-            <Link href="/login" className={buttonVariants({ size: "lg", className: "rounded-xl font-bold text-lg px-10 h-14" })}>
+            <Link href="/login?mode=signup" className={buttonVariants({ size: "lg", className: "rounded-xl font-bold text-lg px-10 h-14" })}>
               Crear mi cuenta
             </Link>
           )}
@@ -150,13 +160,13 @@ export function LandingContent({ isHome = false }: { isHome?: boolean }) {
 
 function FeatureCard({ icon, title, desc }: { icon: React.ReactNode, title: string, desc: string }) {
   return (
-    <div className="bg-card border border-border rounded-3xl p-6 flex flex-col space-y-4 hover:border-orange-500/30 hover:shadow-md transition-all duration-300">
-      <div className="w-12 h-12 bg-orange-100 dark:bg-orange-950/50 rounded-2xl flex items-center justify-center text-orange-600 dark:text-orange-500">
+    <div className="bg-card border border-border rounded-2xl sm:rounded-3xl p-4 sm:p-6 flex flex-col space-y-3 sm:space-y-4 hover:border-orange-500/30 hover:shadow-md transition-all duration-300">
+      <div className="w-10 h-10 sm:w-12 sm:h-12 bg-orange-100 dark:bg-orange-950/50 rounded-xl sm:rounded-2xl flex items-center justify-center text-orange-600 dark:text-orange-500 shrink-0">
         {icon}
       </div>
       <div>
-        <h3 className="font-bold text-lg mb-2">{title}</h3>
-        <p className="text-sm text-muted-foreground leading-relaxed">{desc}</p>
+        <h3 className="font-bold text-base sm:text-lg mb-1.5 sm:mb-2">{title}</h3>
+        <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">{desc}</p>
       </div>
     </div>
   )

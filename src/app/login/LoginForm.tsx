@@ -8,6 +8,9 @@ import { useFormStatus } from "react-dom"
 
 export function LoginForm({ initialMode = "login", error, message }: { initialMode?: "login" | "signup", error?: string, message?: string }) {
   const [mode, setMode] = useState<"login" | "signup">(initialMode)
+  useEffect(() => {
+    if (initialMode) setMode(initialMode)
+  }, [initialMode])
   const [showPassword, setShowPassword] = useState(false)
   const [acqData, setAcqData] = useState("")
   const [email, setEmail] = useState("")
