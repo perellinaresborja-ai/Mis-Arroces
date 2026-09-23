@@ -15,6 +15,9 @@ const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://www.misarroces.es'),
+  verification: {
+    google: "AVdmp5VSHlvt4qJ1TNYIVBm7fJ9a_oMdwDhp8gfDmQo",
+  },
   title: {
     default: "misarroces | La red social de los arroces",
     template: "%s | misarroces"
