@@ -16,7 +16,9 @@ import {
   Gift, 
   Award, 
   Sparkles,
-  UserPlus
+  UserPlus,
+  ChevronDown,
+  ChevronUp
 } from "lucide-react"
 
 export interface UserActivityItem {
@@ -63,6 +65,7 @@ export function MyIdSection({
   activities = [],
 }: MyIdSectionProps) {
   const [copied, setCopied] = useState(false)
+  const [isActivityOpen, setIsActivityOpen] = useState(false)
 
   const formattedFounderNumber = founderNumber !== null ? String(founderNumber).padStart(3, "0") : null
   const baseUrl = typeof window !== "undefined" && window.location.origin
@@ -179,52 +182,73 @@ export function MyIdSection({
       {/* APARTADO: MI ACTIVIDAD */}
       <div className="h-px bg-border"></div>
       <div className="p-4 sm:p-5">
-        <div className="flex items-center justify-between mb-3">
+        <button
+          type="button"
+          onClick={() => setIsActivityOpen((prev) => !prev)}
+          className="w-full flex items-center justify-between text-left group transition-colors select-none"
+        >
           <div className="flex items-center gap-2">
-            <Activity className="w-4 h-4 text-muted-foreground" />
-            <h4 className="font-bold text-sm text-foreground">Mi actividad</h4>
+            <Activity className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
+            <h4 className="font-bold text-sm text-foreground group-hover:text-primary transition-colors">
+              Mi actividad
+            </h4>
+            {activities.length > 0 && (
+              <span className="text-[11px] font-semibold bg-muted text-muted-foreground px-2 py-0.5 rounded-full border border-border">
+                {activities.length}
+              </span>
+            )}
           </div>
-          <span className="text-[11px] text-muted-foreground">Historial personal</span>
-        </div>
+          <div className="p-1 rounded-lg text-muted-foreground group-hover:text-foreground transition-colors">
+            {isActivityOpen ? (
+              <ChevronUp className="w-4 h-4" />
+            ) : (
+              <ChevronDown className="w-4 h-4" />
+            )}
+          </div>
+        </button>
 
-        {activities.length === 0 ? (
-          <div className="py-6 px-4 text-center rounded-2xl bg-muted/30 border border-dashed border-border/70">
-            <p className="text-sm font-medium text-muted-foreground">
-              Todavía no tienes actividad registrada.
-            </p>
-            <p className="text-xs text-muted-foreground/70 mt-1">
-              Aquí aparecerán tus eventos, catas, check-ins, concursos, sorteos y reconocimientos oficiales.
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-2.5">
-            {activities.map((act) => (
-              <div 
-                key={act.id} 
-                className="p-3.5 rounded-2xl bg-muted/40 border border-border/60 flex items-start gap-3"
-              >
-                <div className="p-2 rounded-xl bg-background border border-border shrink-0 mt-0.5">
-                  {getActivityIcon(act.activity_type)}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center justify-between gap-2">
-                    <h5 className="font-bold text-sm truncate">{act.title}</h5>
-                    <span className="text-[11px] text-muted-foreground shrink-0">
-                      {new Date(act.occurred_at).toLocaleDateString("es-ES", {
-                        day: "numeric",
-                        month: "short",
-                        year: "numeric",
-                      })}
-                    </span>
-                  </div>
-                  {act.description && (
-                    <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
-                      {act.description}
-                    </p>
-                  )}
-                </div>
+        {isActivityOpen && (
+          <div className="mt-4">
+            {activities.length === 0 ? (
+              <div className="py-6 px-4 text-center rounded-2xl bg-muted/30 border border-dashed border-border/70">
+                <p className="text-sm font-medium text-muted-foreground">
+                  Todavía no tienes actividad registrada.
+                </p>
+                <p className="text-xs text-muted-foreground/70 mt-1">
+                  Aquí aparecerán tus eventos, catas, check-ins, concursos, sorteos y reconocimientos oficiales.
+                </p>
               </div>
-            ))}
+            ) : (
+              <div className="space-y-2.5">
+                {activities.map((act) => (
+                  <div 
+                    key={act.id} 
+                    className="p-3.5 rounded-2xl bg-muted/40 border border-border/60 flex items-start gap-3"
+                  >
+                    <div className="p-2 rounded-xl bg-background border border-border shrink-0 mt-0.5">
+                      {getActivityIcon(act.activity_type)}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center justify-between gap-2">
+                        <h5 className="font-bold text-sm truncate">{act.title}</h5>
+                        <span className="text-[11px] text-muted-foreground shrink-0">
+                          {new Date(act.occurred_at).toLocaleDateString("es-ES", {
+                            day: "numeric",
+                            month: "short",
+                            year: "numeric",
+                          })}
+                        </span>
+                      </div>
+                      {act.description && (
+                        <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
+                          {act.description}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>
