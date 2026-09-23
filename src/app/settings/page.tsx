@@ -8,6 +8,7 @@ import ThemeSelectorRow from "./components/ThemeSelectorRow"
 import DeleteAccountRow from "./components/DeleteAccountRow"
 import DownloadDataRow from "./components/DownloadDataRow"
 import { MyIdSection } from "./components/MyIdSection"
+import { InstallAppRow } from "./components/InstallAppRow"
 
 export default async function SettingsPage() {
   const supabase = await createClient()
@@ -107,6 +108,9 @@ export default async function SettingsPage() {
               <ThemeSelectorRow />
             </div>
           </section>
+
+          {/* INSTALACIÓN PWA */}
+          <InstallAppRow />
 
           {/* PRIVACIDAD */}
           <section className="space-y-3">

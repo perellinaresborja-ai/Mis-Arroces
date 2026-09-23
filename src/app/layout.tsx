@@ -5,6 +5,7 @@ import { BottomNav } from "@/components/domain/BottomNav";
 import { DesktopNav } from "@/components/domain/DesktopNav";
 import { MobileHeader } from "@/components/domain/MobileHeader";
 import { AuthPromptProvider } from "@/components/providers/AuthPromptProvider";
+import { PwaProvider } from "@/components/providers/PwaProvider";
 import { createClient } from "@/lib/supabase/server";
 import { checkPendingLegal } from "@/app/actions/legal";
 import { LegalConsentGate } from "@/components/domain/LegalConsentGate";
@@ -24,6 +25,15 @@ export const metadata: Metadata = {
   },
   description: "Descubre, guarda y comparte las mejores recetas de arroces y paellas. Únete a la comunidad de chefs arroceros y muestra tus paellas al mundo.",
   keywords: ["arroz", "paella", "recetas", "red social", "cocina", "chef", "paella valenciana", "gastronomía", "arroces"],
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "misarroces",
+  },
+  icons: {
+    icon: "/icons/icon-192x192.png",
+    apple: "/apple-touch-icon.png",
+  },
   openGraph: {
     type: "website",
     locale: "es_ES",
@@ -101,30 +111,31 @@ export default async function RootLayout({
       <body className={`${inter.className} antialiased bg-background text-foreground safe-area-pt safe-area-pb overflow-x-hidden`}>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
           <UserSessionProvider initialAvatarUrl={avatarUrl} initialUsername={initialUsername}>
-            <AuthPromptProvider>
-            <Suspense fallback={null}>
-              <GA4Loader />
-              <AcquisitionProvider />
-            </Suspense>
-            <LegalConsentGate pendingLegal={pendingLegal} />
-            <CookieConsentBanner />
-            {/* Desktop Header */}
-            <DesktopNav />
-            {/* Mobile Header */}
-            <MobileHeader />
-            
-            {/* Responsive global container */}
-            <div className="flex min-h-[100dvh] md:min-h-[calc(100vh-64px)] w-full flex-col bg-background relative max-w-7xl mx-auto px-0 md:px-8">
-              <main className="flex-1 w-full pb-16 md:pb-0 pt-0">
-                {children}
-              </main>
-
-            </div>
-            
-            {/* Mobile Navigation */}
-            <BottomNav />
-            <SpeedInsights />
-            </AuthPromptProvider>
+            <PwaProvider>
+              <AuthPromptProvider>
+                <Suspense fallback={null}>
+                  <GA4Loader />
+                  <AcquisitionProvider />
+                </Suspense>
+                <LegalConsentGate pendingLegal={pendingLegal} />
+                <CookieConsentBanner />
+                {/* Desktop Header */}
+                <DesktopNav />
+                {/* Mobile Header */}
+                <MobileHeader />
+                
+                {/* Responsive global container */}
+                <div className="flex min-h-[100dvh] md:min-h-[calc(100vh-64px)] w-full flex-col bg-background relative max-w-7xl mx-auto px-0 md:px-8">
+                  <main className="flex-1 w-full pb-16 md:pb-0 pt-0">
+                    {children}
+                  </main>
+                </div>
+                
+                {/* Mobile Navigation */}
+                <BottomNav />
+                <SpeedInsights />
+              </AuthPromptProvider>
+            </PwaProvider>
           </UserSessionProvider>
         </ThemeProvider>
       </body>

@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sin conexión | misarroces</title>
+  <link rel="icon" href="/icons/icon-192x192.png">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: #F7F5F0;
+      color: #18181B;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .card {
+      max-width: 420px;
+      width: 100%;
+      background: #FFFFFF;
+      border: 1px solid #EAE7E0;
+      border-radius: 28px;
+      padding: 36px 24px;
+      text-align: center;
+      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.05);
+    }
+    .icon {
+      width: 72px;
+      height: 72px;
+      margin: 0 auto 20px auto;
+      border-radius: 20px;
+      background-color: #FAF8F5;
+      border: 1px solid #EAE7E0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 10px;
+    }
+    .icon img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+    h1 {
+      font-size: 20px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      margin-bottom: 10px;
+      color: #18181B;
+    }
+    p {
+      font-size: 14px;
+      line-height: 22px;
+      color: #52525B;
+      margin-bottom: 24px;
+    }
+    .btn {
+      display: inline-block;
+      background-color: #EA580C;
+      color: #FFFFFF;
+      font-size: 14px;
+      font-weight: 800;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+      padding: 12px 28px;
+      border-radius: 14px;
+      border: none;
+      cursor: pointer;
+      text-decoration: none;
+      box-shadow: 0 4px 14px rgba(234, 88, 12, 0.25);
+      transition: opacity 0.15s ease;
+    }
+    .btn:hover {
+      opacity: 0.9;
+    }
+    .brand {
+      margin-top: 24px;
+      font-size: 12px;
+      font-weight: 700;
+      color: #A1A1AA;
+      letter-spacing: 0.05em;
+    }
+    .brand span {
+      color: #EA580C;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="icon">
+      <img src="/icons/icon-192x192.png" alt="misarroces" width="52" height="52">
+    </div>
+    <h1>Sin conexión a internet</h1>
+    <p>
+      Parece que te has quedado sin cobertura. Revisa tu señal para seguir descubriendo y compartiendo recetas.
+    </p>
+    <button class="btn" onclick="window.location.reload()">
+      Reintentar conexión
+    </button>
+    <div class="brand">
+      mis<span>arroces</span>
+    </div>
+  </div>
+</body>
+</html>

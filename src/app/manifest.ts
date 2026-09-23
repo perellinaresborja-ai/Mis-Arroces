@@ -7,18 +7,26 @@ export default function manifest(): MetadataRoute.Manifest {
     description: 'La red social de los arroces. Descubre, guarda y comparte las mejores recetas de arroces y paellas.',
     start_url: '/',
     display: 'standalone',
-    background_color: '#ffffff',
-    theme_color: '#ffffff',
+    background_color: '#F7F2E8',
+    theme_color: '#F7F2E8',
     icons: [
       {
-        src: '/logopaellaicono.png',
+        src: '/icons/icon-192x192.png',
         sizes: '192x192',
         type: 'image/png',
+        purpose: 'any',
       },
       {
-        src: '/logopaellaicono.png',
+        src: '/icons/icon-512x512.png',
         sizes: '512x512',
         type: 'image/png',
+        purpose: 'any',
+      },
+      {
+        src: '/icons/icon-maskable-512x512.png',
+        sizes: '512x512',
+        type: 'image/png',
+        purpose: 'maskable',
       },
     ],
   }
