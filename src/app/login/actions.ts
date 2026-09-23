@@ -29,6 +29,15 @@ export async function login(formData: FormData) {
   // After login, check if user has a profile
   const { data: { user } } = await supabase.auth.getUser()
   if (user) {
+    const { cookies } = await import("next/headers")
+    const cookieStore = await cookies()
+    cookieStore.set("ma_has_account", "1", {
+      path: "/",
+      maxAge: 60 * 60 * 24 * 730,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production"
+    })
+
     const { data: profile } = await supabase
       .from("profiles")
       .select("username")
@@ -89,6 +98,15 @@ export async function signup(formData: FormData) {
   }
 
   if (data.user) {
+    const { cookies } = await import("next/headers")
+    const cookieStore = await cookies()
+    cookieStore.set("ma_has_account", "1", {
+      path: "/",
+      maxAge: 60 * 60 * 24 * 730,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production"
+    })
+
     // Generate a guaranteed unique automatic username & provisional display_name
     const autoUsername = await generateAvailableUsername(supabase, "arrocero")
     

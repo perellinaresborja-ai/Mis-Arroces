@@ -93,6 +93,12 @@ export function UserSessionProvider({
       activeUserIdRef.current = currentUserId
 
       if (currentUser) {
+        if (typeof window !== "undefined") {
+          try {
+            localStorage.setItem("ma_has_account", "1")
+            document.cookie = "ma_has_account=1; path=/; max-age=63072000; SameSite=Lax"
+          } catch {}
+        }
         // Only query profile/avatar if the user actually changed or a force refresh was requested
         if (userChanged || forceRefetch) {
           await fetchAvatarForUser(currentUser.id, currentReq)

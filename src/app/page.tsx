@@ -1,5 +1,5 @@
-import { NotificationBell } from "@/components/domain/NotificationBell";
 import { createClient } from "@/lib/supabase/server"
+import { cookies } from "next/headers"
 import Link from "next/link"
 import Image from "next/image"
 import { buttonVariants } from "@/components/ui/button"
@@ -10,12 +10,15 @@ import { FeedList } from "@/components/domain/FeedList"
 import { StoriesBar } from "@/components/domain/StoriesBar"
 import { fetchActiveStories } from "@/app/actions/stories"
 import { LandingContent } from "@/components/domain/LandingContent"
+import { HomeDeviceSignalGate } from "@/components/domain/HomeDeviceSignalGate"
 
 export default async function Home() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  
+  const cookieStore = await cookies()
+  const hasAccountSignal = cookieStore.get("ma_has_account")?.value === "1"
+  const showFeed = Boolean(user || hasAccountSignal)
 
   let currentUserProfile: any = null;
 
@@ -41,23 +44,27 @@ export default async function Home() {
     }
   }
 
-  // Only fetch feed and stories if user is authenticated
-  const feed = user ? await fetchFeedPage(0) : []
-  const activeStories = user ? await fetchActiveStories() : []
+  // Fetch feed and stories if user is authenticated or has returning account signal
+  const feed = showFeed ? await fetchFeedPage(0) : []
+  const activeStories = showFeed ? await fetchActiveStories() : []
 
   return (
     <div className="min-h-screen bg-background flex flex-col pb-24 md:pb-8">
-      {/* Anonymous Welcome Header */}
-      {!user && (
+      <HomeDeviceSignalGate showFeed={showFeed} />
+
+      {/* Anonymous Landing Presentation - ONLY for new visitors without account signal */}
+      {!showFeed && (
         <LandingContent isHome={true} />
       )}
 
-      {/* Main Feed Content - ONLY IF AUTHENTICATED */}
-      {user && (
+      {/* Main Feed Content - For users with active session OR returning users with device signal */}
+      {showFeed && (
         <div className="flex-1 w-full max-w-2xl mx-auto space-y-4 pt-4 px-2 sm:px-0">
           
           {/* Stories Bar */}
-          <StoriesBar groupedStories={activeStories} currentUser={currentUserProfile || user} />
+          {(activeStories.length > 0 || user) && (
+            <StoriesBar groupedStories={activeStories} currentUser={currentUserProfile || user} />
+          )}
 
           {feed.length === 0 && (
             <div className="text-center p-12 bg-card rounded-3xl border border-border mt-8">
@@ -72,7 +79,7 @@ export default async function Home() {
             </div>
           )}
 
-          <FeedList initialItems={feed} currentUserId={user.id} />
+          <FeedList initialItems={feed} currentUserId={user ? user.id : null} />
 
         </div>
       )}

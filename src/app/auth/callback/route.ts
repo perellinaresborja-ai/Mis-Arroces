@@ -52,7 +52,14 @@ export async function GET(request: Request) {
           // No bloqueante
         }
       }
-      return NextResponse.redirect(`${origin}${next}`)
+      const response = NextResponse.redirect(`${origin}${next}`)
+      response.cookies.set("ma_has_account", "1", {
+        path: "/",
+        maxAge: 60 * 60 * 24 * 730,
+        sameSite: "lax",
+        secure: process.env.NODE_ENV === "production"
+      })
+      return response
     }
   }
 
