@@ -3,10 +3,9 @@ import Link from "next/link"
 import Image from "next/image"
 import { ArrowRight, Lock } from "lucide-react"
 
-export const revalidate = 60
-
 export default async function FundadoresPage() {
   const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
   
   // Comprobar únicamente si el cupo ya está completado
   let isClosed = false
@@ -18,6 +17,10 @@ export default async function FundadoresPage() {
   } catch {
     isClosed = false
   }
+
+  const ctaHref = user 
+    ? "/create/recipe" 
+    : "/login?mode=signup&redirect=%2Fcreate%2Frecipe"
 
   return (
     <div className="min-h-[100dvh] bg-[#F7F5F0] text-[#18181B] selection:bg-[#EA580C] selection:text-white flex flex-col items-center justify-center px-4 py-16 md:py-24 relative overflow-hidden">
@@ -65,7 +68,7 @@ export default async function FundadoresPage() {
                 Para formar parte de Los 100, regístrate y publica tu primera receta mientras haya plazas disponibles. Cuando se alcancen los 100 miembros, el acceso se cerrará de forma automática y definitiva.
               </p>
               <Link 
-                href="/create/recipe"
+                href={ctaHref}
                 className="w-full flex items-center justify-center gap-2 bg-[#EA580C] hover:bg-[#EA580C]/90 text-white font-extrabold py-4 px-6 rounded-2xl transition-all shadow-lg shadow-[#EA580C]/20 hover:shadow-[#EA580C]/40 active:scale-[0.98] uppercase tracking-wide text-sm"
               >
                 QUIERO FORMAR PARTE <ArrowRight className="w-4 h-4" />
