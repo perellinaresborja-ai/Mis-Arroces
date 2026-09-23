@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { usePwa } from "@/components/providers/PwaProvider"
-import { Share, PlusSquare, Sparkles, X } from "lucide-react"
+import { X } from "lucide-react"
 import Image from "next/image"
 
 const DISMISS_KEY = "misarroces_pwa_dismissed_until"
@@ -35,7 +35,7 @@ export function InstallPrompt() {
       return
     }
 
-    // Mostrar tras unos segundos de uso (6 segundos) para que sea una experiencia agradable y no intrusiva
+    // Mostrar tras 6 segundos de uso
     const timer = setTimeout(() => {
       setIsVisible(true)
     }, 6000)
@@ -63,7 +63,6 @@ export function InstallPrompt() {
       if (accepted) {
         setIsVisible(false)
       } else {
-        // Si el usuario canceló el diálogo nativo de Chrome, guardamos el descarte por 30 días
         handleDismiss()
       }
     }
@@ -76,104 +75,122 @@ export function InstallPrompt() {
   return (
     <div
       role="dialog"
-      aria-label="Instalar misarroces"
-      className="fixed z-50 left-4 right-4 bottom-20 md:bottom-6 max-w-md mx-auto animate-in fade-in slide-in-from-bottom-5 duration-300 pointer-events-auto"
+      aria-label="Instala misarroces"
+      className="fixed z-50 left-3.5 right-3.5 bottom-20 md:bottom-6 max-w-md mx-auto animate-in fade-in slide-in-from-bottom-5 duration-300 pointer-events-auto"
     >
-      <div className="bg-card/95 backdrop-blur-md border border-border rounded-3xl p-5 shadow-2xl relative">
-        {/* Botón cerrar sutil */}
+      <div className="bg-[#FAF8F5]/98 dark:bg-[#1C1A17]/98 backdrop-blur-md border border-[#EAE5D9] dark:border-[#2C2822] rounded-3xl p-5 shadow-2xl relative">
+        {/* Botón cerrar discreto */}
         <button
           type="button"
           onClick={handleDismiss}
-          className="absolute top-4 right-4 p-1.5 rounded-full hover:bg-muted text-muted-foreground transition-colors"
-          aria-label="Cerrar aviso"
+          className="absolute top-3.5 right-3.5 p-1.5 rounded-full hover:bg-black/5 dark:hover:bg-white/5 text-muted-foreground transition-colors"
+          aria-label="Cerrar"
         >
           <X className="w-4 h-4" />
         </button>
 
         {!showIosGuide ? (
           <div>
-            <div className="flex items-start gap-3.5 mb-4">
-              <div className="w-12 h-12 rounded-2xl bg-[#FAF8F5] border border-border/80 flex items-center justify-center p-1 shrink-0 shadow-sm">
+            {/* Cabecera con logo integrado */}
+            <div className="flex items-start gap-3.5 mb-4 pr-6">
+              <div className="w-12 h-12 rounded-2xl bg-white dark:bg-[#25221E] border border-[#EAE5D9] dark:border-[#2C2822] flex items-center justify-center p-2 shrink-0 shadow-xs">
                 <Image
                   src="/icons/icon-192x192.png"
                   alt="misarroces"
-                  width={44}
-                  height={44}
-                  className="rounded-xl object-contain"
+                  width={36}
+                  height={36}
+                  className="rounded-lg object-contain"
                 />
               </div>
-              <div className="pr-6">
-                <div className="flex items-center gap-1.5">
-                  <h3 className="font-bold text-base text-foreground">Instalar misarroces</h3>
-                  <Sparkles className="w-3.5 h-3.5 text-primary" />
-                </div>
+              <div>
+                <h3 className="font-bold text-base text-foreground tracking-tight">
+                  Instala misarroces
+                </h3>
                 <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
-                  Acceso directo desde tu pantalla de inicio, a pantalla completa y con la mejor experiencia.
+                  Añade la app a tu pantalla de inicio para una experiencia más rápida y a pantalla completa.
                 </p>
               </div>
             </div>
 
-            <div className="flex items-center gap-2.5 pt-1">
+            {/* Acciones */}
+            <div className="flex items-center gap-2 pt-1">
               <button
                 type="button"
                 onClick={handleDismiss}
-                className="flex-1 py-2.5 px-3 rounded-2xl text-xs sm:text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors text-center"
+                className="py-2.5 px-3.5 rounded-2xl text-xs sm:text-sm font-semibold text-muted-foreground hover:text-foreground hover:bg-black/5 dark:hover:bg-white/5 transition-colors text-center"
               >
                 Ahora no
               </button>
               <button
                 type="button"
                 onClick={handleInstallClick}
-                className="flex-[1.5] py-2.5 px-4 rounded-2xl text-xs sm:text-sm font-bold bg-primary text-primary-foreground hover:opacity-90 transition-opacity text-center shadow-sm"
+                className="flex-1 py-2.5 px-4 rounded-2xl text-xs sm:text-sm font-bold bg-primary text-primary-foreground hover:opacity-90 active:scale-[0.98] transition-all text-center shadow-sm"
               >
                 Instalar misarroces
               </button>
             </div>
           </div>
         ) : (
-          <div className="space-y-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-[#FAF8F5] border border-border flex items-center justify-center p-1 shrink-0">
+          <div>
+            {/* Cabecera iOS */}
+            <div className="flex items-start gap-3.5 mb-4 pr-6">
+              <div className="w-11 h-11 rounded-2xl bg-white dark:bg-[#25221E] border border-[#EAE5D9] dark:border-[#2C2822] flex items-center justify-center p-2 shrink-0 shadow-xs">
                 <Image
                   src="/icons/icon-192x192.png"
                   alt="misarroces"
-                  width={36}
-                  height={36}
-                  className="rounded-xl object-contain"
+                  width={32}
+                  height={32}
+                  className="rounded-lg object-contain"
                 />
               </div>
               <div>
-                <h3 className="font-bold text-sm text-foreground">Cómo instalar en tu iPhone</h3>
-                <p className="text-xs text-muted-foreground">Sigue estos sencillos pasos en Safari:</p>
+                <h3 className="font-bold text-base text-foreground tracking-tight">
+                  Instala misarroces
+                </h3>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Añade la app a tu pantalla de inicio en 2 pasos:
+                </p>
               </div>
             </div>
 
-            <div className="bg-muted/40 p-3.5 rounded-2xl border border-border text-xs sm:text-sm space-y-2.5">
+            {/* Pasos visuales claros para iPhone / iPad con iconos SVG dedicados */}
+            <div className="bg-white/70 dark:bg-card/60 border border-[#EAE5D9] dark:border-[#2C2822] rounded-2xl p-3.5 space-y-3 mb-4">
               <div className="flex items-center gap-3">
-                <div className="w-7 h-7 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                  <Share className="w-4 h-4" />
+                <div className="w-8 h-8 rounded-xl bg-[#007AFF]/10 text-[#007AFF] dark:text-[#0A84FF] flex items-center justify-center shrink-0">
+                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M4 12v7a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7" />
+                    <polyline points="16 6 12 2 8 6" />
+                    <line x1="12" y1="2" x2="12" y2="15" />
+                  </svg>
                 </div>
-                <span className="text-foreground leading-tight">
-                  1. Pulsa el botón <strong>Compartir</strong> en la barra inferior de Safari.
-                </span>
+                <p className="text-xs sm:text-sm text-foreground leading-snug">
+                  1. Pulsa el botón <strong className="font-semibold text-foreground">Compartir</strong> en la barra inferior de Safari.
+                </p>
               </div>
 
+              <div className="h-px bg-border/60 ml-11" />
+
               <div className="flex items-center gap-3">
-                <div className="w-7 h-7 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                  <PlusSquare className="w-4 h-4" />
+                <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="3" y="3" width="18" height="18" rx="4.5" />
+                    <line x1="12" y1="8" x2="12" y2="16" />
+                    <line x1="8" y1="12" x2="16" y2="12" />
+                  </svg>
                 </div>
-                <span className="text-foreground leading-tight">
-                  2. Baja y selecciona <strong>“Añadir a pantalla de inicio”</strong>.
-                </span>
+                <p className="text-xs sm:text-sm text-foreground leading-snug">
+                  2. Selecciona <strong className="font-semibold text-foreground">Añadir a pantalla de inicio</strong>.
+                </p>
               </div>
             </div>
 
+            {/* Botón de cierre */}
             <button
               type="button"
               onClick={handleDismiss}
-              className="w-full py-2.5 rounded-2xl bg-primary text-primary-foreground font-bold text-xs sm:text-sm hover:opacity-90 transition-opacity"
+              className="w-full py-2.5 rounded-2xl bg-primary text-primary-foreground font-bold text-xs sm:text-sm hover:opacity-90 active:scale-[0.98] transition-all text-center shadow-sm"
             >
-              ¡Entendido!
+              Entendido
             </button>
           </div>
         )}
