@@ -80,7 +80,7 @@ export default function LinksPage() {
         
         {/* 1. Ir a misarroces */}
         <button 
-          onClick={() => handleAction('Ir a misarroces', '/', false)}
+          onClick={() => handleAction('Ir a misarroces', '/feed', false)}
           className="w-full flex items-center justify-center relative bg-card border border-border hover:border-primary/50 text-foreground font-semibold py-4 px-6 rounded-3xl shadow-sm transition-all"
         >
           <Home className="w-5 h-5 absolute left-6 text-muted-foreground" />
