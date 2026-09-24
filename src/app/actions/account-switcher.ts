@@ -139,18 +139,43 @@ export async function syncCurrentSessionToVaultAction(): Promise<AccountPublicPr
 }
 
 /**
+ * Limpia únicamente las cookies de sesión activa de Supabase del navegador.
+ * IMPORTANTE: No se debe llamar a supabase.auth.signOut(), ya que revocaría
+ * el refresh_token en los servidores de Supabase Auth impidiendo conmutar de vuelta.
+ */
+async function clearActiveSessionCookies() {
+  const cookieStore = await cookies()
+  const allCookies = cookieStore.getAll()
+  for (const c of allCookies) {
+    if (
+      c.name.includes("auth-token") ||
+      (c.name.startsWith("sb-") && (c.name.endsWith("-token") || c.name.includes("-code-verifier")))
+    ) {
+      cookieStore.set(c.name, "", {
+        path: "/",
+        maxAge: 0,
+        sameSite: "lax",
+        secure: process.env.NODE_ENV === "production",
+      })
+    }
+  }
+}
+
+/**
  * Conmuta la sesión activa de Supabase a la cuenta destino utilizando su refresh_token almacenado en la bóveda cifrada.
  */
 export async function switchAccountSessionAction(targetUserId: string): Promise<{
   success: boolean
   username?: string
   error?: string
+  isExpired?: boolean
+  email?: string
 }> {
   try {
     const supabase = await createClient()
     const vault = await getVaultFromCookies()
 
-    // 1. Guardar la sesión actual activa antes de conmutar
+    // 1. Guardar la sesión actual activa antes de conmutar (si hay una)
     const { data: currentSessionData } = await supabase.auth.getSession()
     if (currentSessionData?.session?.user) {
       const currentId = currentSessionData.session.user.id
@@ -162,27 +187,39 @@ export async function switchAccountSessionAction(targetUserId: string): Promise<
     }
 
     // 2. Buscar la cuenta destino en la bóveda
-    const targetAccount = vault.accounts.find((a) => a.userId === targetUserId)
-    if (!targetAccount) {
+    const targetIndex = vault.accounts.findIndex((a) => a.userId === targetUserId)
+    if (targetIndex < 0) {
       return { success: false, error: "La cuenta solicitada no se encuentra en este dispositivo." }
     }
+    const targetAccount = vault.accounts[targetIndex]
 
-    // 3. Establecer la sesión en Supabase con los tokens descifrados
-    const { data: newSessionData, error: setSessionError } = await supabase.auth.setSession({
+    // 3. Limpiar previamente las cookies de sesión activa para evitar fragmentos residuales (chunks)
+    await clearActiveSessionCookies()
+
+    // 4. Establecer la sesión en Supabase con los tokens descifrados
+    const switchSupabase = await createClient()
+    const { data: newSessionData, error: setSessionError } = await switchSupabase.auth.setSession({
       access_token: targetAccount.accessToken || "",
       refresh_token: targetAccount.refreshToken,
     })
 
     if (setSessionError) {
       console.error("Error cambiando de cuenta en Supabase:", setSessionError.message)
-      // Si el refresh_token expiró o fue revocado, se actualiza la bóveda
+      // Si el refresh_token expiró o fue revocado, retiramos la sesión inválida de la bóveda
+      // para evitar que el usuario quede en un bucle zombi
+      vault.accounts.splice(targetIndex, 1)
+      await saveVaultToCookies(vault)
+
       return {
         success: false,
-        error: `La sesión de @${targetAccount.username} ha caducado. Inicia sesión de nuevo para reactivarla.`,
+        isExpired: true,
+        email: targetAccount.email,
+        username: targetAccount.username,
+        error: `La sesión de @${targetAccount.username} ha caducado.`,
       }
     }
 
-    // 4. Actualizar tokens frescos y marca temporal de última actividad
+    // 5. Actualizar tokens frescos y marca temporal de última actividad
     if (newSessionData?.session) {
       targetAccount.refreshToken = newSessionData.session.refresh_token
       targetAccount.accessToken = newSessionData.session.access_token
@@ -213,13 +250,12 @@ export async function switchAccountSessionAction(targetUserId: string): Promise<
  */
 export async function prepareAddAccountAction(): Promise<{ success: boolean }> {
   try {
-    const supabase = await createClient()
-
     // 1. Asegurar sesión actual en la bóveda
     await syncCurrentSessionToVaultAction()
 
-    // 2. Cerrar sesión activa en Supabase (elimina cookies de sesión activa pero deja ma_vault intacta)
-    await supabase.auth.signOut()
+    // 2. Limpiar ÚNICAMENTE las cookies del navegador.
+    // NUNCA llamar a supabase.auth.signOut(), porque revocaría el refresh token en Supabase.
+    await clearActiveSessionCookies()
 
     revalidatePath("/", "layout")
     return { success: true }
@@ -249,15 +285,10 @@ export async function removeAccountFromVaultAction(userId: string): Promise<{
     if (isActiveUser) {
       if (vault.accounts.length > 0) {
         // Conmutar a la siguiente cuenta disponible
-        const nextAccount = vault.accounts[0]
-        await supabase.auth.setSession({
-          access_token: nextAccount.accessToken || "",
-          refresh_token: nextAccount.refreshToken,
-        })
-        nextAccount.lastActiveAt = Date.now()
         await saveVaultToCookies(vault)
-        revalidatePath("/", "layout")
-        return { success: true, switchedToRemaining: true }
+        const nextId = vault.accounts[0].userId
+        const switchRes = await switchAccountSessionAction(nextId)
+        return { success: switchRes.success, switchedToRemaining: true }
       } else {
         // No quedan cuentas: cerrar sesión completa
         await supabase.auth.signOut()
@@ -276,3 +307,4 @@ export async function removeAccountFromVaultAction(userId: string): Promise<{
     return { success: false }
   }
 }
+

@@ -6,15 +6,21 @@ import Link from "next/link"
 import { login, signup } from "./actions"
 import { useFormStatus } from "react-dom"
 
-export function LoginForm({ initialMode = "login", error, message, redirectTo }: { initialMode?: "login" | "signup", error?: string, message?: string, redirectTo?: string }) {
+export function LoginForm({ initialMode = "login", initialEmail = "", error, message, redirectTo }: { initialMode?: "login" | "signup", initialEmail?: string, error?: string, message?: string, redirectTo?: string }) {
   const [mode, setMode] = useState<"login" | "signup">(initialMode)
   useEffect(() => {
     if (initialMode) setMode(initialMode)
   }, [initialMode])
   const [showPassword, setShowPassword] = useState(false)
   const [acqData, setAcqData] = useState("")
-  const [email, setEmail] = useState("")
+  const [email, setEmail] = useState(initialEmail)
   const [password, setPassword] = useState("")
+
+  useEffect(() => {
+    if (initialEmail) {
+      setEmail(initialEmail)
+    }
+  }, [initialEmail])
 
   useEffect(() => {
     if (typeof window !== 'undefined') {

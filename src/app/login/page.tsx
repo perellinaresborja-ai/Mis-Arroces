@@ -6,10 +6,11 @@ export const dynamic = "force-dynamic"
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string, message?: string, mode?: string, redirect?: string }>
+  searchParams: Promise<{ error?: string, message?: string, mode?: string, redirect?: string, email?: string }>
 }) {
   const resolvedParams = await searchParams
   const initialMode = resolvedParams.mode === "signup" || resolvedParams.mode === "register" ? "signup" : "login"
+  const initialEmail = resolvedParams.email || ""
   
   const covers = [
     {
@@ -88,7 +89,7 @@ export default async function LoginPage({
           </div>
         </div>
 
-        <LoginForm initialMode={initialMode} error={resolvedParams.error} message={resolvedParams.message} redirectTo={resolvedParams.redirect} />
+        <LoginForm initialMode={initialMode} initialEmail={initialEmail} error={resolvedParams.error} message={resolvedParams.message} redirectTo={resolvedParams.redirect} />
         
         {/* Mobile slogan fallback (very discreet) */}
         <div className="lg:hidden mt-12 text-center px-4">

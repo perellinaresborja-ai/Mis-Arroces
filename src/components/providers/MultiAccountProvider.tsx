@@ -158,11 +158,23 @@ export function MultiAccountProvider({ children }: { children: React.ReactNode }
       const res = await switchAccountSessionAction(targetUserId)
 
       if (!res.success) {
-        alert(res.error || "No se ha podido cambiar de cuenta en este momento.")
         setIsSwitching(false)
         setSwitchingTargetUsername(null)
-        // Actualizar lista por si la sesión caducada fue retirada
         await refreshAccounts()
+
+        if (res.isExpired) {
+          const shouldRelogin = window.confirm(
+            `La sesión de @${res.username || targetAccount.username} ha caducado o fue cerrada en el servidor.\n\n¿Deseas iniciar sesión para reactivarla ahora?`
+          )
+          if (shouldRelogin) {
+            setIsSwitcherOpen(false)
+            const emailParam = res.email ? `&email=${encodeURIComponent(res.email)}` : ""
+            window.location.href = `/login?mode=add_account${emailParam}`
+          }
+          return false
+        }
+
+        alert(res.error || "No se ha podido cambiar de cuenta en este momento.")
         return false
       }
 
