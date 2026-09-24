@@ -283,3 +283,103 @@ export async function sendAdminEmail(to: string) {
     }),
   })
 }
+
+export async function sendFounderInvitationEmail({
+  to,
+  inviterName,
+  referralUrl,
+}: {
+  to: string
+  inviterName: string
+  referralUrl: string
+}) {
+  const resend = getResend()
+  const subject = 'Una invitación para formar parte de Los 100'
+
+  const html = `
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${subject}</title>
+</head>
+<body style="margin:0;padding:0;background-color:#F7F5F0;">
+  <div style="background-color:#F7F5F0;padding:28px 12px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+    <div style="max-width:460px;margin:0 auto;background:#FFFFFF;border-radius:24px;border:1px solid #EAE7E0;box-shadow:0 4px 20px rgba(0,0,0,0.06);padding:32px 24px 28px 24px;text-align:center;">
+
+      <!-- 1. Logo oficial misarroces arriba -->
+      <a href="https://www.misarroces.es" target="_blank" style="text-decoration:none;display:inline-block;">
+        <img
+          src="https://www.misarroces.es/logover.png"
+          alt="misarroces"
+          width="150"
+          style="display:block;margin:0 auto 24px auto;max-width:100%;height:auto;border:0;"
+        />
+      </a>
+
+      <!-- Píldora distintiva -->
+      <div style="display:inline-block;background:#FAF8F5;border:1px solid #EA580C;border-radius:100px;padding:3px 12px;font-size:9px;font-weight:800;color:#EA580C;letter-spacing:0.18em;margin-bottom:18px;text-transform:uppercase;">
+        LOS 100 ARROCEROS FUNDADORES
+      </div>
+
+      <!-- 2. Título -->
+      <h2 style="color:#18181B;font-size:20px;font-weight:900;margin:0 0 18px 0;letter-spacing:-0.02em;line-height:1.3;">
+        Una invitación para formar parte de Los 100
+      </h2>
+
+      <!-- 3. Contenido -->
+      <div style="color:#3F3F46;font-size:14.5px;line-height:24px;text-align:left;margin:0 0 24px 0;">
+        <p style="margin:0 0 14px 0;">
+          Hola,
+        </p>
+        <p style="margin:0 0 14px 0;">
+          <strong>${inviterName}</strong> quiere invitarte a conocer Los 100 Arroceros Fundadores de misarroces.
+        </p>
+        <p style="margin:0 0 14px 0;color:#52525B;">
+          Los 100 reúnen a los primeros arroceros que forman parte del proyecto y publican su primera receta mientras el acceso permanece abierto.
+        </p>
+        <p style="margin:0;color:#52525B;">
+          Una vez completadas las plazas, el acceso se cerrará de forma automática y definitiva.
+        </p>
+      </div>
+
+      <!-- 4. Botón naranja principal -->
+      <div style="margin:26px 0 14px 0;">
+        <a
+          href="${referralUrl}"
+          target="_blank"
+          style="display:inline-block;background-color:#EA580C;color:#FFFFFF;font-size:14px;font-weight:900;letter-spacing:0.04em;text-decoration:none;padding:14px 34px;border-radius:14px;box-shadow:0 4px 14px rgba(234,88,12,0.28);text-transform:uppercase;"
+        >
+          CONOCER LOS 100
+        </a>
+      </div>
+
+      <!-- 5. Nota discreta debajo del botón -->
+      <p style="color:#A1A1AA;font-size:11.5px;line-height:17px;margin:12px 0 24px 0;max-width:380px;display:inline-block;">
+        Esta invitación no reserva ni garantiza una plaza. El acceso se obtiene al cumplir las condiciones mientras permanezca abierto.
+      </p>
+
+      <!-- 6. Separador y Firma / pie -->
+      <div style="border-top:1px solid #F4F4F5;margin-top:16px;padding-top:18px;text-align:center;">
+        <p style="color:#18181B;font-size:13px;font-weight:900;margin:0 0 2px 0;letter-spacing:-0.01em;">
+          misarroces
+        </p>
+        <p style="color:#71717A;font-size:11.5px;margin:0;font-weight:500;">
+          La red social de los arroces
+        </p>
+      </div>
+
+    </div>
+  </div>
+</body>
+</html>
+`
+
+  return await resend.emails.send({
+    from: 'misarroces <info@misarroces.es>',
+    to,
+    subject,
+    html,
+  })
+}

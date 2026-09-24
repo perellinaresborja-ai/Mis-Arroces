@@ -1,7 +1,34 @@
+import type { Metadata } from "next"
 import { createClient } from "@/lib/supabase/server"
 import Image from "next/image"
 import { Lock } from "lucide-react"
 import { FundadoresCTA } from "./FundadoresCTA"
+
+export const metadata: Metadata = {
+  title: "Los 100 Arroceros Fundadores | misarroces",
+  description: "Una invitación para formar parte del inicio de misarroces.",
+  openGraph: {
+    title: "Los 100 Arroceros Fundadores | misarroces",
+    description: "Una invitación para formar parte del inicio de misarroces.",
+    url: "/fundadores",
+    siteName: "misarroces",
+    images: [
+      {
+        url: "/logover.png",
+        width: 1200,
+        height: 630,
+        alt: "Los 100 Arroceros Fundadores | misarroces",
+      },
+    ],
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Los 100 Arroceros Fundadores | misarroces",
+    description: "Una invitación para formar parte del inicio de misarroces.",
+    images: ["/logover.png"],
+  },
+}
 
 export const dynamic = "force-dynamic"
 

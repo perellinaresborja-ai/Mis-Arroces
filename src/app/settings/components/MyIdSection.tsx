@@ -20,6 +20,7 @@ import {
   ChevronDown,
   ChevronUp
 } from "lucide-react"
+import { InviteFounderModal } from "@/components/domain/InviteFounderModal"
 
 export interface UserActivityItem {
   id: string
@@ -64,43 +65,10 @@ export function MyIdSection({
   publicCode,
   activities = [],
 }: MyIdSectionProps) {
-  const [copied, setCopied] = useState(false)
+  const [isInviteOpen, setIsInviteOpen] = useState(false)
   const [isActivityOpen, setIsActivityOpen] = useState(false)
 
   const formattedFounderNumber = founderNumber !== null ? String(founderNumber).padStart(3, "0") : null
-  const baseUrl = typeof window !== "undefined" && window.location.origin
-    ? window.location.origin
-    : (process.env.NEXT_PUBLIC_SITE_URL || "https://www.misarroces.es")
-
-  const referralUrl = publicCode ? `${baseUrl}/fundadores/r/${publicCode}` : `${baseUrl}/fundadores`
-
-  const handleShareInvite = async () => {
-    const text = `Te recomiendo para formar parte de Los 100 Arroceros Fundadores de misarroces.\n\nSolo existirán 100. Cuando se completen, se cerrará para siempre.`
-
-    if (typeof navigator !== "undefined" && navigator.share) {
-      try {
-        await navigator.share({
-          title: "Los 100 Arroceros Fundadores",
-          text,
-          url: referralUrl,
-        })
-        return
-      } catch (err: any) {
-        if (err?.name === "AbortError") return
-      }
-    }
-
-    // Fallback portapapeles si no hay navigator.share disponible
-    if (typeof navigator !== "undefined" && navigator.clipboard) {
-      try {
-        await navigator.clipboard.writeText(`${text}\n\n${referralUrl}`)
-        setCopied(true)
-        setTimeout(() => setCopied(false), 2500)
-      } catch (err) {
-        console.error("Error al copiar enlace", err)
-      }
-    }
-  }
 
   return (
     <div className="bg-card rounded-3xl border border-border overflow-hidden shadow-sm">
@@ -149,26 +117,17 @@ export function MyIdSection({
                   <span className="font-bold text-sm text-foreground">Recomendar Fundador</span>
                 </div>
                 <p className="text-xs text-muted-foreground mt-1 max-w-md">
-                  Recomienda a alguien para formar parte de Los 100 Arroceros Fundadores con tu enlace personal.
+                  Invita a otro arrocero a conocer Los 100 Arroceros Fundadores con tu enlace personal.
                 </p>
               </div>
 
               <button
                 type="button"
-                onClick={handleShareInvite}
+                onClick={() => setIsInviteOpen(true)}
                 className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl bg-[#EA580C] hover:bg-[#EA580C]/90 text-white font-bold text-xs uppercase tracking-wider transition shadow-sm shrink-0 self-start sm:self-auto cursor-pointer active:scale-95"
               >
-                {copied ? (
-                  <>
-                    <Check className="w-3.5 h-3.5" />
-                    <span>Enlace copiado</span>
-                  </>
-                ) : (
-                  <>
-                    <Share2 className="w-3.5 h-3.5" />
-                    <span>Invitar a un arrocero</span>
-                  </>
-                )}
+                <Share2 className="w-3.5 h-3.5" />
+                <span>Invitar a un arrocero</span>
               </button>
             </div>
 
@@ -176,6 +135,13 @@ export function MyIdSection({
               La invitación no reserva plaza, no altera el orden de asignación y no garantiza ser Fundador.
             </p>
           </div>
+
+          <InviteFounderModal
+            isOpen={isInviteOpen}
+            onClose={() => setIsInviteOpen(false)}
+            publicCode={publicCode}
+            founderNumber={founderNumber}
+          />
         </>
       )}
 

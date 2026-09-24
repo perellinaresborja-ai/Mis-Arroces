@@ -5,6 +5,7 @@ import { createPortal } from "react-dom"
 import { Shield, X, Share2, Copy, Check } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useShare } from "@/lib/platform"
+import { InviteFounderModal } from "@/components/domain/InviteFounderModal"
 
 interface FounderCardModalProps {
   username: string
@@ -22,6 +23,7 @@ export function FounderCardModal({
   publicCode
 }: FounderCardModalProps) {
   const [isOpen, setIsOpen] = useState(false)
+  const [isInviteOpen, setIsInviteOpen] = useState(false)
   const [copied, setCopied] = useState(false)
   const [isMounted, setIsMounted] = useState(false)
   const { share } = useShare()
@@ -220,15 +222,15 @@ Solo existirán 100. Cuando se completen, se cerrará para siempre.`
                 </p>
                 <div className="grid grid-cols-2 gap-2">
                   <Button
-                    onClick={handleShareReferral}
-                    className="w-full bg-[#18181B] hover:bg-black text-white font-bold rounded-xl text-xs h-8"
+                    onClick={() => setIsInviteOpen(true)}
+                    className="w-full bg-[#18181B] hover:bg-black text-white font-bold rounded-xl text-xs h-8 cursor-pointer"
                   >
                     <Share2 className="w-3 h-3 mr-1.5 text-[#EA580C]" /> Recomendar
                   </Button>
                   <Button
                     onClick={handleCopyReferral}
                     variant="outline"
-                    className="w-full bg-white hover:bg-zinc-50 text-[#18181B] border-[#E8E2D9] font-bold rounded-xl text-xs h-8"
+                    className="w-full bg-white hover:bg-zinc-50 text-[#18181B] border-[#E8E2D9] font-bold rounded-xl text-xs h-8 cursor-pointer"
                   >
                     {copiedReferral ? <Check className="w-3 h-3 mr-1.5 text-green-600" /> : <Copy className="w-3 h-3 mr-1.5" />}
                     {copiedReferral ? "¡Copiado!" : "Copiar enlace"}
@@ -239,6 +241,16 @@ Solo existirán 100. Cuando se completen, se cerrará para siempre.`
           </div>
         </div>,
         document.body
+      )}
+
+      {/* Modal de Invitación a un arrocero */}
+      {isSelf && (
+        <InviteFounderModal
+          isOpen={isInviteOpen}
+          onClose={() => setIsInviteOpen(false)}
+          publicCode={publicCode || null}
+          founderNumber={founderNumber}
+        />
       )}
     </>
   )
