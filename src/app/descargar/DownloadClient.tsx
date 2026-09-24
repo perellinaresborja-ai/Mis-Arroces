@@ -56,8 +56,8 @@ export default function DownloadClient() {
     if (typeof navigator !== "undefined" && navigator.share) {
       try {
         await navigator.share({
-          title: "Descarga Mis Arroces",
-          text: "Instala la app de Mis Arroces en tu móvil: recetas, calculadora de arroz y comunidad arrocera.",
+          title: "Descarga misarroces",
+          text: "Instala la app de misarroces en tu móvil: recetas, calculadora de arroz y comunidad arrocera.",
           url: "https://www.misarroces.es/descargar",
         })
       } catch {
@@ -91,7 +91,7 @@ export default function DownloadClient() {
             <div className="relative w-24 h-24 rounded-3xl overflow-hidden shadow-md border border-border/80 bg-sand/40 p-2 flex items-center justify-center">
               <Image
                 src="/logopaellaicono.png"
-                alt="Mis Arroces App"
+                alt="misarroces"
                 width={80}
                 height={80}
                 className="object-contain"
@@ -104,7 +104,7 @@ export default function DownloadClient() {
                 <Sparkles className="w-3.5 h-3.5" /> App Oficial
               </span>
               <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-foreground">
-                Descarga Mis Arroces
+                Descarga misarroces
               </h1>
               <p className="text-sm text-muted-foreground max-w-xs mx-auto">
                 Recetas, cálculo de arroz milimétrico, bitácora y comunidad en la palma de tu mano.
@@ -246,7 +246,7 @@ export default function DownloadClient() {
                 href="/"
                 className="w-full flex items-center justify-center gap-2 py-3.5 px-4 rounded-2xl bg-primary text-primary-foreground font-bold text-sm shadow-sm hover:opacity-95 transition"
               >
-                Abrir Mis Arroces ahora
+                Abrir misarroces ahora
                 <ArrowRight className="w-4 h-4" />
               </Link>
             </div>
@@ -375,7 +375,7 @@ export default function DownloadClient() {
                 href="/"
                 className="w-full flex items-center justify-center gap-2 py-3.5 px-4 rounded-2xl bg-primary text-primary-foreground font-bold text-sm shadow-sm hover:opacity-95 transition"
               >
-                Abrir Mis Arroces ahora
+                Abrir misarroces ahora
                 <ArrowRight className="w-4 h-4" />
               </Link>
             </div>

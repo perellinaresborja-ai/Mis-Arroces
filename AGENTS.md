@@ -8,7 +8,10 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 <!-- END:nextjs-agent-rules -->
 
-## Línea Gráfica de Mis Arroces
+## Identidad de Marca y Naming
+- El nombre de la marca y de la aplicación es estrictamente en minúsculas y todo junto: **`misarroces`** (nunca "Mis Arroces", ni "MisArroces", ni "Mis arroces"). Debe escribirse siempre como `misarroces` tanto en código, textos visibles, títulos, metadatos y comunicaciones.
+
+## Línea Gráfica de misarroces
 - Todas las tarjetas, contenedores de feed, modales y barras de contenido deben tener bordes redondeados (`rounded-2xl` o `rounded-3xl`), fondo `bg-card` y un borde `border border-border`. Sin excepciones.
 - No usar diseños de bloque a sangre (flush sin bordes ni redondeo) para los contenedores principales (por ejemplo, barra de historias, publicaciones).
 
