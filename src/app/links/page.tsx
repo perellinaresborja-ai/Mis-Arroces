@@ -6,7 +6,7 @@ import Image from "next/image"
 import Link from "next/link"
 import { trackClickAction } from "@/app/actions/tracking"
 import { sendGAEvent } from "@/lib/analytics/ga4"
-import { Home, Smartphone, Info, BookOpen, Share2, Copy, Check, X } from "lucide-react"
+import { Home, Smartphone, Info, BookOpen, Share2, Copy, Check, X, Download } from "lucide-react"
 import { useUserSession } from "@/components/providers/UserSessionProvider"
 import { Button } from "@/components/ui/button"
 
@@ -84,6 +84,17 @@ export default function LinksPage() {
       {/* Botones */}
       <div className="w-full max-w-sm space-y-4 flex flex-col items-stretch pb-16">
         
+        {/* 0. Descargar la app */}
+        <Link 
+          href={getHref('/descargar', false)}
+          onClick={() => handleTracking('Descargar la app', '/descargar', false)}
+          className="w-full grid grid-cols-[3rem_1fr_3rem] items-center bg-primary hover:bg-primary/90 text-primary-foreground font-bold py-4 px-2 rounded-3xl shadow-md transition-all active:scale-[0.99]"
+        >
+          <div className="flex justify-center"><Download className="w-5 h-5 shrink-0 stroke-[2.5]" /></div>
+          <span className="text-center leading-tight">Descargar la app</span>
+          <div />
+        </Link>
+
         {/* 1. Ir a misarroces */}
         <Link 
           href={getHref('/feed', false)}
