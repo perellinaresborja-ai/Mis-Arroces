@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import Link from "next/link"
-import { AlertCircle, CheckCircle2, KeyRound, Loader2, Send, ShieldCheck, Trash2 } from "lucide-react"
+import { AlertCircle, Loader2, Send, ShieldCheck, Trash2 } from "lucide-react"
 import { requestAccountDeletionAction, confirmAccountDeletionAction } from "@/app/actions/legal"
 
 export default function DeleteAccountClientForm() {
@@ -84,9 +84,8 @@ export default function DeleteAccountClientForm() {
       {step === "request" && (
         <form onSubmit={handleRequestSubmit} className="space-y-5">
           <div className="space-y-1">
-            <h3 className="text-xl font-bold text-foreground flex items-center gap-2">
-              <Trash2 className="w-5 h-5 text-red-500" />
-              <span>Formulario de Solicitud de Supresión</span>
+            <h3 className="text-xl font-bold text-foreground">
+              Formulario de Solicitud de Supresión
             </h3>
             <p className="text-xs sm:text-sm text-muted-foreground">
               Completa este formulario si ya no dispones de la app en tu teléfono o no puedes acceder a Ajustes.
@@ -95,7 +94,7 @@ export default function DeleteAccountClientForm() {
 
           {errorMessage && (
             <div className="p-3.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-400 text-xs sm:text-sm flex items-start gap-2.5">
-              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" aria-hidden="true" focusable="false" />
               <span>{errorMessage}</span>
             </div>
           )}
@@ -167,12 +166,12 @@ export default function DeleteAccountClientForm() {
           >
             {loading ? (
               <>
-                <Loader2 className="w-4 h-4 animate-spin" />
+                <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" focusable="false" />
                 <span>Procesando solicitud...</span>
               </>
             ) : (
               <>
-                <Send className="w-4 h-4" />
+                <Send className="w-4 h-4" aria-hidden="true" focusable="false" />
                 <span>Solicitar código de eliminación</span>
               </>
             )}
@@ -183,9 +182,8 @@ export default function DeleteAccountClientForm() {
       {step === "verify" && (
         <form onSubmit={handleVerifySubmit} className="space-y-5">
           <div className="space-y-1">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-orange-500/10 text-orange-600 dark:text-orange-400 text-xs font-bold uppercase tracking-wider mb-2">
-              <KeyRound className="w-3.5 h-3.5" />
-              <span>Paso 2: Verificación de Identidad</span>
+            <div className="inline-flex items-center px-3 py-1 rounded-full bg-orange-500/10 text-orange-600 dark:text-orange-400 text-xs font-bold uppercase tracking-wider mb-2">
+              Paso 2: Verificación de Identidad
             </div>
             <h3 className="text-xl font-bold text-foreground">
               Introduce el código de verificación
@@ -197,7 +195,7 @@ export default function DeleteAccountClientForm() {
 
           {errorMessage && (
             <div className="p-3.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-400 text-xs sm:text-sm flex items-start gap-2.5">
-              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" aria-hidden="true" focusable="false" />
               <span>{errorMessage}</span>
             </div>
           )}
@@ -236,12 +234,12 @@ export default function DeleteAccountClientForm() {
             >
               {loading ? (
                 <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" focusable="false" />
                   <span>Eliminando cuenta...</span>
                 </>
               ) : (
                 <>
-                  <Trash2 className="w-4 h-4" />
+                  <Trash2 className="w-4 h-4" aria-hidden="true" focusable="false" />
                   <span>Confirmar y Eliminar Cuenta</span>
                 </>
               )}
@@ -253,7 +251,7 @@ export default function DeleteAccountClientForm() {
       {step === "done" && (
         <div className="py-6 text-center space-y-4">
           <div className="w-14 h-14 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 mx-auto flex items-center justify-center">
-            <ShieldCheck className="w-8 h-8" />
+            <ShieldCheck className="w-8 h-8" aria-hidden="true" focusable="false" />
           </div>
           <div className="space-y-1.5">
             <h3 className="text-xl sm:text-2xl font-black text-foreground">
