@@ -40,7 +40,8 @@ export default async function FundadoresPage() {
         </div>
 
         <h1 className="text-4xl md:text-5xl font-black tracking-tight mb-4 text-balance">
-          Los 100 Arroceros <span className="text-[#EA580C]">Fundadores</span>
+          Los 100 <br />
+          Arroceros <span className="text-[#EA580C]">Fundadores</span>
         </h1>
 
         <p className="text-base md:text-lg text-[#52525B] mb-8 text-balance max-w-xl leading-relaxed">
