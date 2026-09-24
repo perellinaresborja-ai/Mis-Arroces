@@ -75,6 +75,8 @@ export const viewport: Viewport = {
 
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import { UserSessionProvider } from "@/components/providers/UserSessionProvider";
+import { MultiAccountProvider } from "@/components/providers/MultiAccountProvider";
+import { AccountSwitcherSheet } from "@/components/domain/AccountSwitcherSheet";
 import { CookieConsentBanner } from "@/components/domain/CookieConsentBanner";
 import { AcquisitionProvider } from "@/components/providers/AcquisitionProvider";
 import { GA4Loader } from "@/components/domain/GA4Loader";
@@ -113,34 +115,38 @@ export default async function RootLayout({
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
           <AppSplashScreen />
           <UserSessionProvider initialAvatarUrl={avatarUrl} initialUsername={initialUsername}>
-            <PwaProvider>
-              <AuthPromptProvider>
-                <Suspense fallback={null}>
-                  <GA4Loader />
-                  <AcquisitionProvider />
-                </Suspense>
-                <LegalConsentGate pendingLegal={pendingLegal} />
-                <CookieConsentBanner />
-                {/* Desktop Header */}
-                <DesktopNav />
-                {/* Mobile Header */}
-                <MobileHeader />
-                
-                {/* Responsive global container */}
-                <div className="flex min-h-[100dvh] md:min-h-[calc(100vh-64px)] w-full flex-col bg-background relative max-w-7xl mx-auto px-0 md:px-8">
-                  <main className="flex-1 w-full pb-16 md:pb-0 pt-0">
-                    {children}
-                  </main>
-                </div>
-                
-                {/* Mobile Navigation */}
-                <BottomNav />
-                <SpeedInsights />
-              </AuthPromptProvider>
-            </PwaProvider>
+            <MultiAccountProvider>
+              <PwaProvider>
+                <AuthPromptProvider>
+                  <Suspense fallback={null}>
+                    <GA4Loader />
+                    <AcquisitionProvider />
+                  </Suspense>
+                  <LegalConsentGate pendingLegal={pendingLegal} />
+                  <CookieConsentBanner />
+                  {/* Desktop Header */}
+                  <DesktopNav />
+                  {/* Mobile Header */}
+                  <MobileHeader />
+                  
+                  {/* Responsive global container */}
+                  <div className="flex min-h-[100dvh] md:min-h-[calc(100vh-64px)] w-full flex-col bg-background relative max-w-7xl mx-auto px-0 md:px-8">
+                    <main className="flex-1 w-full pb-16 md:pb-0 pt-0">
+                      {children}
+                    </main>
+                  </div>
+                  
+                  {/* Mobile Navigation */}
+                  <BottomNav />
+                  <AccountSwitcherSheet />
+                  <SpeedInsights />
+                </AuthPromptProvider>
+              </PwaProvider>
+            </MultiAccountProvider>
           </UserSessionProvider>
         </ThemeProvider>
       </body>
     </html>
   );
 }
+

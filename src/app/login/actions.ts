@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/server"
 import { sendWelcomeEmail } from "@/lib/email"
 import { generateAvailableUsername } from "@/lib/username"
 import { normalizeEmail, getFriendlyAuthErrorMessage } from "@/lib/auth-messages"
+import { syncCurrentSessionToVaultAction } from "@/app/actions/account-switcher"
 
 export async function login(formData: FormData) {
   const supabase = await createClient()
@@ -55,6 +56,9 @@ export async function login(formData: FormData) {
         privacy_level: 'PUBLIC'
       })
     }
+
+    // Asegurar la cuenta recién iniciada en la bóveda multicuenta
+    await syncCurrentSessionToVaultAction()
   }
 
   const returnCookie = cookieStore.get("misarroces_return_to")?.value

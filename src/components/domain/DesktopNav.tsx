@@ -13,9 +13,12 @@ import { useUserSession } from "@/components/providers/UserSessionProvider"
 import { fetchUserActiveStories } from "@/app/actions/stories"
 import { StoriesViewer } from "@/components/domain/StoriesViewer"
 
+import { useMultiAccount } from "@/components/providers/MultiAccountProvider"
+
 export function DesktopNav() {
   const pathname = usePathname()
   const { user, avatarUrl, username } = useUserSession()
+  const { quickSwitchLastAccount, openSwitcher } = useMultiAccount()
   const displayAvatar = avatarUrl
   const cleanUsername = username ? username.replace(/^@+/, '') : null
   const profileHref = cleanUsername ? `/@${cleanUsername}` : "/me"
@@ -158,9 +161,17 @@ export function DesktopNav() {
                 <Link 
                   href={profileHref} 
                   prefetch={true}
+                  onDoubleClick={(e) => {
+                    e.preventDefault()
+                    quickSwitchLastAccount()
+                  }}
+                  onContextMenu={(e) => {
+                    e.preventDefault()
+                    openSwitcher()
+                  }}
                   className={cn("transition-colors hover:opacity-80 shrink-0", isProfileActive ? "opacity-100" : "opacity-80")}
-                  title="Ver mi perfil"
-                  aria-label="Ver mi perfil"
+                  title="Ver perfil (Doble clic: cambiar cuenta / Clic dcho: selector)"
+                  aria-label="Ver mi perfil y gestionar cuentas"
                 >
                   {displayAvatar ? (
                     <div className={cn(
