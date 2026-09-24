@@ -1,7 +1,7 @@
 import Image from "next/image"
 import Link from "next/link"
 import { buttonVariants } from "@/components/ui/button"
-import { Flame, Users, BookOpen, Compass, ShoppingCart, Calculator, Coins, Leaf, ChefHat, Mic, Link as LinkIcon, Smartphone, Bookmark, Share2 } from "lucide-react"
+import { Flame, Users, BookOpen, Compass, ShoppingCart, Calculator, Coins, Leaf, ChefHat, Mic, Link as LinkIcon, Smartphone, Bookmark, Share2, Download } from "lucide-react"
 import { InstagramCTA } from "@/app/sobre-misarroces/InstagramCTA"
 
 export function LandingContent({ isHome = false }: { isHome?: boolean }) {
@@ -10,7 +10,7 @@ export function LandingContent({ isHome = false }: { isHome?: boolean }) {
       {/* Hero Section */}
       <header className="text-center space-y-6 pt-8">
         <div className="relative w-48 h-32 md:w-64 md:h-48 mx-auto mb-6">
-          <Image src="/logover.png" alt="Mis Arroces Logo" fill sizes="400px" className="object-contain" priority />
+          <Image src="/logover.png" alt="misarroces" fill sizes="400px" className="object-contain" priority />
         </div>
         {isHome ? (
           <h1 className="sr-only">misarroces</h1>
@@ -33,8 +33,9 @@ export function LandingContent({ isHome = false }: { isHome?: boolean }) {
               </Link>
             </div>
           ) : (
-            <Link href="/login?mode=signup" className={buttonVariants({ size: "lg", className: "rounded-xl font-bold text-lg px-10 h-14" })}>
-              Unirse a misarroces.es
+            <Link href="/descargar" className={buttonVariants({ size: "lg", className: "rounded-2xl font-bold text-lg px-10 h-14 inline-flex items-center gap-2.5 shadow-md" })}>
+              <Download className="w-5 h-5" />
+              Descargar la app
             </Link>
           )}
         </div>
@@ -139,9 +140,15 @@ export function LandingContent({ isHome = false }: { isHome?: boolean }) {
               Crear cuenta
             </Link>
           ) : (
-            <Link href="/login?mode=signup" className={buttonVariants({ size: "lg", className: "rounded-xl font-bold text-lg px-10 h-14" })}>
-              Crear mi cuenta
-            </Link>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+              <Link href="/descargar" className={buttonVariants({ size: "lg", className: "rounded-2xl font-bold text-lg px-10 h-14 inline-flex items-center gap-2.5 shadow-md w-full sm:w-auto" })}>
+                <Download className="w-5 h-5" />
+                Descargar la app
+              </Link>
+              <Link href="/login?mode=signup" className={buttonVariants({ variant: "outline", size: "lg", className: "rounded-2xl font-bold text-lg px-10 h-14 w-full sm:w-auto" })}>
+                Crear mi cuenta
+              </Link>
+            </div>
           )}
         </div>
       </section>
