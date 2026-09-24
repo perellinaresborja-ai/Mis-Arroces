@@ -123,12 +123,12 @@ ${text}`
   )
 
   if (!res.ok) {
-    throw new Error(`Gemini API respondió con estado ${res.status}`)
+    throw new Error(`El servicio de extracción respondió con estado ${res.status}`)
   }
 
   const json = await res.json()
   const rawResponseText = json.candidates?.[0]?.content?.parts?.[0]?.text
-  if (!rawResponseText) throw new Error("Respuesta vacía de Gemini")
+  if (!rawResponseText) throw new Error("Respuesta vacía al procesar el texto")
 
   const parsed = JSON.parse(rawResponseText)
   const validated = ExtractedRecipeAiSchema.parse(parsed)
@@ -173,11 +173,11 @@ ${text}`
     })
   })
 
-  if (!res.ok) throw new Error(`OpenAI respondió con ${res.status}`)
+  if (!res.ok) throw new Error(`El servicio de extracción respondió con estado ${res.status}`)
 
   const json = await res.json()
   const content = json.choices?.[0]?.message?.content
-  if (!content) throw new Error("Respuesta vacía de OpenAI")
+  if (!content) throw new Error("Respuesta vacía al procesar el texto")
 
   const parsed = JSON.parse(content)
   const validated = ExtractedRecipeAiSchema.parse(parsed)

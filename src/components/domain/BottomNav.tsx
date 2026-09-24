@@ -34,6 +34,17 @@ export function BottomNav() {
     const touch = e.touches[0]
     touchStartPos.current = { x: touch.clientX, y: touch.clientY }
 
+    const now = Date.now()
+    // Si este contacto ocurre dentro del intervalo de doble toque (<250ms), cancelamos
+    // INMEDIATAMENTE la navegación del primer toque para evitar cualquier flash del perfil
+    if (now - lastTapRef.current < 250 && singleTapTimerRef.current) {
+      clearTimeout(singleTapTimerRef.current)
+      singleTapTimerRef.current = null
+    }
+
+    // Precargar la ruta del perfil en segundo plano desde el primer contacto táctil
+    router.prefetch(profileHref)
+
     // Pulsación prolongada (400ms)
     longPressTimerRef.current = setTimeout(() => {
       isLongPressRef.current = true
@@ -87,15 +98,22 @@ export function BottomNav() {
       lastTapRef.current = 0
       quickSwitchLastAccount()
     } else {
-      // PRIMER TOQUE: esperar 250ms para diferenciar de doble toque
+      // PRIMER TOQUE:
+      // Esperar brevemente (190ms) mientras el prefetch completa la caché en memoria.
+      // Si llega un segundo toque antes de 190ms, touchStart/touchEnd abortan router.push,
+      // garantizando CERO parpadeo/flash del perfil actual y cambio limpio de cuenta.
       lastTapRef.current = now
+      if (singleTapTimerRef.current) {
+        clearTimeout(singleTapTimerRef.current)
+      }
       singleTapTimerRef.current = setTimeout(() => {
+        singleTapTimerRef.current = null
         if (isAvatarActive) {
           window.scrollTo({ top: 0, behavior: 'smooth' })
         } else {
           router.push(profileHref)
         }
-      }, 250)
+      }, 190)
     }
   }
 
@@ -104,10 +122,29 @@ export function BottomNav() {
     if (isTouchDeviceRef.current) {
       return
     }
-    if (isAvatarActive) {
-      window.scrollTo({ top: 0, behavior: 'smooth' })
+    const now = Date.now()
+    const diff = now - lastTapRef.current
+
+    if (diff < 250) {
+      if (singleTapTimerRef.current) {
+        clearTimeout(singleTapTimerRef.current)
+        singleTapTimerRef.current = null
+      }
+      lastTapRef.current = 0
+      quickSwitchLastAccount()
     } else {
-      router.push(profileHref)
+      lastTapRef.current = now
+      if (singleTapTimerRef.current) {
+        clearTimeout(singleTapTimerRef.current)
+      }
+      singleTapTimerRef.current = setTimeout(() => {
+        singleTapTimerRef.current = null
+        if (isAvatarActive) {
+          window.scrollTo({ top: 0, behavior: 'smooth' })
+        } else {
+          router.push(profileHref)
+        }
+      }, 190)
     }
   }
 
@@ -180,6 +217,7 @@ export function BottomNav() {
                 onTouchStart={handleAvatarTouchStart}
                 onTouchMove={handleAvatarTouchMove}
                 onTouchEnd={(e) => handleAvatarTouchEnd(e, isActive)}
+                onMouseEnter={() => router.prefetch(profileHref)}
                 onContextMenu={handleAvatarContextMenu}
                 onClick={(e) => handleAvatarClick(e, isActive)}
                 className={cn(

@@ -11,7 +11,7 @@ export async function parseRecipeFreeText(text: string, mediaBase64?: string, mi
     return { error: "El texto es muy corto para extraer una receta." }
   }
 
-  const systemPrompt = `Eres un asistente que extrae datos técnicos de recetas de cocina para la base de datos "Mis Arroces".
+  const systemPrompt = `Eres un extractor técnico de datos de recetas de cocina para la base de datos "misarroces".
 La receta suele ser de arroz o paella, pero puede ser de cualquier cosa.
 
 REGLAS OBLIGATORIAS:
@@ -28,7 +28,7 @@ REGLAS OBLIGATORIAS:
    - Paso X+1: "Bajar a fuego medio-bajo y continuar la cocción." -> duration_minutes: 9
    - Paso X+2: "Apagar y dejar reposar." -> duration_minutes: 5
    Reposos con tiempo siempre van en su propio paso. Cada cambio de fuego/acción que lleve tiempo es un paso distinto con su propio \`duration_minutes\`.
-7. Fusiona inteligentemente el texto escrito y el audio/vídeo (si se adjunta). El texto y el audio se complementan. NO dupliques ingredientes y combina los pasos en orden cronológico real.
+7. Combina de forma organizada el texto escrito y el audio/vídeo (si se adjunta). El texto y el audio se complementan. NO dupliques ingredientes y combina los pasos en orden cronológico real.
 8. Responde ÚNICAMENTE con un JSON válido.`
 
   const baseSchema = {
@@ -96,7 +96,7 @@ REGLAS OBLIGATORIAS:
 
   try {
     const rawKey = process.env.GEMINI_API_KEY;
-    if (!rawKey) return { error: "No hay clave de API configurada para Gemini." };
+    if (!rawKey) return { error: "El servicio de procesamiento no está disponible temporalmente." };
     const key = rawKey.trim().replace(/['"]/g, '');
     
     let lastError = null;
@@ -137,7 +137,7 @@ REGLAS OBLIGATORIAS:
           const status = res.status;
           const err = await res.text();
           if ([429, 500, 502, 503, 504].includes(status)) {
-            lastError = `Gemini temp error ${status}`;
+            lastError = `Error temporal de procesamiento (${status})`;
             if (i < 3) {
               if (currentModelIndex < fallbackModels.length - 1) {
                 currentModelIndex++; // Fallback to next model
@@ -147,40 +147,38 @@ REGLAS OBLIGATORIAS:
               continue;
             }
           }
-          let cleanErr = err;
-          try { cleanErr = JSON.parse(err).error.message; } catch(e) {}
-          return { error: `Gemini (${status}) con modelo ${model}: ${cleanErr}` };
+          return { error: "No se pudo procesar la receta en este momento. Inténtalo de nuevo más tarde." };
         }
         
         const json = await res.json();
         const str = json.candidates?.[0]?.content?.parts?.[0]?.text;
-        if (!str) return { error: "Respuesta vacía de la IA." };
+        if (!str) return { error: "No se pudieron extraer datos del texto proporcionado." };
         
         const cleanedStr = str.replace(/^```json\s*/, '').replace(/```\s*$/, '').trim();
         parsedData = JSON.parse(cleanedStr);
         break;
       } catch (err: any) {
         if (err.name === 'AbortError') {
-          lastError = "Timeout de Gemini superado";
+          lastError = "Tiempo de espera superado al procesar la receta";
           if (i < 3) {
             if (currentModelIndex < fallbackModels.length - 1) {
               currentModelIndex++; // Fallback to next model
             }
             continue;
           }
-          return { error: "La IA tardó demasiado en responder (timeout). Inténtalo de nuevo." };
+          return { error: "El procesamiento tardó demasiado tiempo. Inténtalo de nuevo." };
         }
-        console.error("Gemini fetch exception:", err);
-        return { error: "Fallo inesperado de red al conectar con IA." };
+        console.error("Recipe parse fetch exception:", err);
+        return { error: "Fallo de conexión al procesar la receta. Revisa tu conexión." };
       }
     }
     
-    if (!parsedData) return { error: "La IA está ocupada en este momento. Inténtalo de nuevo en unos segundos." };
+    if (!parsedData) return { error: "El servicio está ocupado en este momento. Inténtalo de nuevo en unos segundos." };
     
     return { data: parsedData };
   } catch (err: any) {
-    console.error("Gemini failed:", err);
-    return { error: "Fallo inesperado al procesar la receta con IA." };
+    console.error("Recipe parse failed:", err);
+    return { error: "Fallo inesperado al procesar la receta automáticamente." };
   }
 }
 
@@ -191,9 +189,9 @@ export async function createAiRecipeDraft(text: string, mediaBase64?: string, mi
     if (!user) return { error: "Debes iniciar sesión para usar esta función." }
 
     const { data: aiData, error: aiError } = await parseRecipeFreeText(text, mediaBase64, mimeType)
-    if (aiError || !aiData) return { error: aiError || "No se pudo procesar la receta con IA." }
+    if (aiError || !aiData) return { error: aiError || "No se pudo procesar la receta automáticamente." }
 
-    const slug = "receta-ia-" + Date.now()
+    const slug = "receta-auto-" + Date.now()
 
     // 1. Fetch catalogs for proper matching
     const catalogs = await getCatalogs();

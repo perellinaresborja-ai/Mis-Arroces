@@ -3,10 +3,10 @@ import ImportInstagramClient from "./ImportInstagramClient"
 
 export const metadata: Metadata = {
   title: "Trae tus recetas de Instagram | misarroces",
-  description: "Convierte cualquier post o reel de Instagram en una receta estructurada en misarroces. Ingredientes, pasos y cálculo de raciones automático.",
+  description: "Importa recetas desde publicaciones o Reels de Instagram o desde cualquier web a tu recetario en misarroces. Ingredientes, cantidades y pasos estructurados.",
   openGraph: {
     title: "Trae tus recetas de Instagram | misarroces",
-    description: "Importa recetas de Instagram directamente a tu recetario digital de misarroces.",
+    description: "Importa recetas desde Instagram o desde cualquier web directamente a tu recetario digital de misarroces.",
     images: ["/logopaellaicono.png"],
   },
 }

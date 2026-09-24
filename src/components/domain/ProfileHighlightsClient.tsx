@@ -31,11 +31,16 @@ export function ProfileHighlightsClient({
   const [selectedHighlight, setSelectedHighlight] = useState<HighlightData | null>(null)
   const [editingHighlight, setEditingHighlight] = useState<HighlightData | null>(null)
 
+  // Filtrar solo destacados con historias válidas
+  const visibleHighlights = (highlights || []).filter(
+    (h: HighlightData) => h.stories && h.stories.length > 0
+  );
+
   return (
     <div className="w-full max-w-[672px] mx-auto px-4 mb-6">
       <div className="flex items-center justify-between mb-3">
         <h3 className="font-bold text-sm">Destacadas</h3>
-        {isMe && highlights.length > 1 && (
+        {isMe && visibleHighlights.length > 1 && (
           <button
             type="button"
             onClick={() => setShowReorder(true)}
@@ -60,7 +65,7 @@ export function ProfileHighlightsClient({
           </div>
         )}
 
-        {highlights.map((h: HighlightData) => (
+        {visibleHighlights.map((h: HighlightData) => (
           <div 
             key={h.id} 
             className="flex flex-col items-center gap-1 cursor-pointer shrink-0 group" 
@@ -120,7 +125,7 @@ export function ProfileHighlightsClient({
 
       {showReorder && (
         <ReorderHighlightsModal
-          highlights={highlights}
+          highlights={visibleHighlights}
           onClose={() => setShowReorder(false)}
         />
       )}

@@ -223,7 +223,7 @@ export default function CreateRecipeOptions({ createManualAction }: { createManu
       }
       router.push(`/recipes/${res.recipeId}/edit`)
     } catch (err: any) {
-      setError(err.message || "Error procesando la receta con IA.")
+      setError(err.message || "Error al procesar la receta.")
       setIsLoading(false)
     }
   }
@@ -298,7 +298,7 @@ export default function CreateRecipeOptions({ createManualAction }: { createManu
         <div className="space-y-2">
           <h1 className="text-2xl font-bold flex items-center gap-2">
             <Wand2 className="w-6 h-6 text-orange-500" />
-            Crear con IA
+            Escribir receta
           </h1>
           <p className="text-muted-foreground">
             Pega o escribe tu receta aquí. Extraeremos automáticamente los ingredientes, caldo, arroz, cantidades y pasos para que no tengas que introducirlos a mano.

@@ -51,7 +51,7 @@ export function DiscoverClient({
       else params.delete(key)
     })
 
-    router.push(`/discover?${params.toString()}`)
+    router.replace(`/discover?${params.toString()}`, { scroll: false })
   }
 
   const tabs = [

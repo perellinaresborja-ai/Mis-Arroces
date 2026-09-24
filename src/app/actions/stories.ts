@@ -397,25 +397,250 @@ export async function fetchStoryViewers(storyId: string) {
 export async function deleteStory(storyId: string) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error("Unauthorized")
+  if (!user) throw new Error("Unauthorized: Inicia sesión para continuar.")
 
-  // Check ownership
-  const { data: story, error: fetchError } = await supabase.from("stories").select("owner_id, story_media(media:media_assets(storage_path))").eq("id", storyId).single()
-  if (!story || story.owner_id !== user.id) throw new Error("Not authorized or not found. " + (fetchError?.message || ""))
+  // 1. STRICT OWNERSHIP CHECK: Must be performed using normal authenticated user session (RLS)
+  // BEFORE any administrative client is initialized or used.
+  const { data: story, error: fetchError } = await supabase
+    .from("stories")
+    .select(`
+      id,
+      owner_id,
+      story_media(media_id, media:media_assets(id, owner_id, storage_path)),
+      recipe:recipes(recipe_media(media:media_assets(storage_path))),
+      session:cooking_sessions(session_media(media:media_assets(storage_path)))
+    `)
+    .eq("id", storyId)
+    .single();
 
-  // Delete media from storage if it exists in story_media bucket
-  if (story.story_media && story.story_media.length > 0) {
-    const paths = story.story_media.map((sm: {media?: {storage_path?: string}}) => sm.media?.storage_path).filter(Boolean)
-    if (paths.length > 0) {
-      await supabase.storage.from("recipe_media").remove(paths as string[])
+  if (fetchError || !story || story.owner_id !== user.id) {
+    throw new Error("Unauthorized: no eres propietario de esta historia o no existe.");
+  }
+
+  // Collect all media paths belonging to this story (for user highlight cover checking)
+  const storyPaths: string[] = [];
+  if (story.story_media) {
+    for (const sm of (story.story_media as any[])) {
+      if (sm.media?.storage_path) storyPaths.push(sm.media.storage_path);
+    }
+  }
+  if (story.recipe?.recipe_media) {
+    for (const rm of (story.recipe.recipe_media as any[])) {
+      if (rm.media?.storage_path) storyPaths.push(rm.media.storage_path);
+    }
+  }
+  if (story.session?.session_media) {
+    for (const sm of (story.session.session_media as any[])) {
+      if (sm.media?.storage_path) storyPaths.push(sm.media.storage_path);
     }
   }
 
-  const { error } = await supabase.from("stories").delete().eq("id", storyId)
-  if (error) throw new Error("Failed to delete story: " + error.message)
+  // 2. Determine which storage files can safely be removed.
+  // A file in Storage may ONLY be removed if:
+  // a) The media asset is owned by this user (media.owner_id === user.id)
+  // b) The media asset is NOT referenced by any other story, recipe, cooking session, or post
+  const filesToDeleteFromStorage: string[] = [];
+  const mediaAssetIdsToDelete: string[] = [];
+
+  if (story.story_media && Array.isArray(story.story_media)) {
+    for (const sm of (story.story_media as any[])) {
+      const media = sm.media;
+      const mediaId = sm.media_id;
+      if (!media || !media.storage_path) continue;
+
+      // Check media ownership - never delete media owned by another account
+      if (media.owner_id !== user.id) {
+        continue;
+      }
+
+      // Check if media is referenced elsewhere
+      const { count: recipeRefCount } = await supabase
+        .from("recipe_media")
+        .select("id", { count: "exact", head: true })
+        .eq("media_id", mediaId);
+
+      const { count: sessionRefCount } = await supabase
+        .from("session_media")
+        .select("id", { count: "exact", head: true })
+        .eq("media_id", mediaId);
+
+      const { count: postRefCount } = await supabase
+        .from("post_media")
+        .select("id", { count: "exact", head: true })
+        .eq("media_id", mediaId);
+
+      const { count: otherStoryRefCount } = await supabase
+        .from("story_media")
+        .select("story_id", { count: "exact", head: true })
+        .eq("media_id", mediaId)
+        .neq("story_id", storyId);
+
+      const isReferencedElsewhere =
+        (recipeRefCount || 0) > 0 ||
+        (sessionRefCount || 0) > 0 ||
+        (postRefCount || 0) > 0 ||
+        (otherStoryRefCount || 0) > 0;
+
+      if (!isReferencedElsewhere) {
+        filesToDeleteFromStorage.push(media.storage_path);
+        if (media.id) mediaAssetIdsToDelete.push(media.id);
+      }
+    }
+  }
+
+  // 3. Highlight references cleanup (strictly scoped to the user's highlights)
+  const { data: userHighlights } = await supabase
+    .from("story_highlights")
+    .select("id, cover_url")
+    .eq("user_id", user.id);
+
+  const userHighlightIds = new Set((userHighlights || []).map((h: any) => h.id));
+
+  const { data: hsRows } = await supabase
+    .from("highlight_stories")
+    .select("highlight_id")
+    .eq("story_id", storyId);
+
+  const affectedHighlightIds = new Set<string>(
+    (hsRows || [])
+      .map((r: any) => r.highlight_id)
+      .filter((hid: string) => userHighlightIds.has(hid))
+  );
+
+  for (const uh of (userHighlights || [])) {
+    const cover = uh.cover_url;
+    if (cover) {
+      const matchesDeleted = storyPaths.some(p => {
+        const fn = p.split("/").pop();
+        return cover.includes(p) || (fn ? cover.includes(fn) : false);
+      });
+      if (matchesDeleted) {
+        affectedHighlightIds.add(uh.id);
+      }
+    }
+  }
+
+  // 4. Server-only admin client used ONLY for final authorized storage and DB cleanup
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const adminSupabase = serviceKey
+    ? createAdminClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://zvesoygqssyyojqyswwm.supabase.co',
+        serviceKey
+      )
+    : null;
+  const dbClient = adminSupabase || supabase;
+
+  // Process each affected highlight: remove story and update cover or delete if empty
+  for (const highlightId of affectedHighlightIds) {
+    // Delete the relation for this story
+    await dbClient
+      .from("highlight_stories")
+      .delete()
+      .match({ highlight_id: highlightId, story_id: storyId });
+
+    // Fetch remaining stories in this highlight
+    const { data: remainingHS } = await dbClient
+      .from("highlight_stories")
+      .select(`
+        display_order,
+        stories (
+          id,
+          story_media(media:media_assets(storage_path)),
+          recipe:recipes(recipe_media(media:media_assets(storage_path))),
+          session:cooking_sessions(session_media(media:media_assets(storage_path)))
+        )
+      `)
+      .eq("highlight_id", highlightId)
+      .order("display_order", { ascending: true });
+
+    const remainingStories = (remainingHS || [])
+      .map((r: any) => r.stories)
+      .filter((s: any) => s && s.id !== storyId && !s.deleted_at);
+
+    if (remainingStories.length === 0) {
+      // Si el destacado se queda sin Stories válidas, eliminarlo por completo
+      await dbClient.from("story_highlights").delete().eq("id", highlightId);
+    } else {
+      // Si el destacado aún tiene Stories válidas, comprobar si hay que recalcular la portada
+      const uh = (userHighlights || []).find((h: any) => h.id === highlightId);
+      const currentCover = uh?.cover_url;
+      let needsNewCover = false;
+
+      if (!currentCover) {
+        needsNewCover = true;
+      } else {
+        const coverMatchesDeleted = storyPaths.some(p => {
+          const fn = p.split("/").pop();
+          return currentCover.includes(p) || (fn ? currentCover.includes(fn) : false);
+        });
+        if (coverMatchesDeleted) {
+          needsNewCover = true;
+        } else {
+          // Check if cover matches any of the remaining valid stories
+          const remainingPaths: string[] = [];
+          for (const rs of remainingStories) {
+            if (rs.story_media) for (const sm of rs.story_media) if (sm.media?.storage_path) remainingPaths.push(sm.media.storage_path);
+            if (rs.recipe?.recipe_media) for (const rm of rs.recipe.recipe_media) if (rm.media?.storage_path) remainingPaths.push(rm.media.storage_path);
+            if (rs.session?.session_media) for (const sm of rs.session.session_media) if (sm.media?.storage_path) remainingPaths.push(sm.media.storage_path);
+          }
+          const matchesRemaining = remainingPaths.some(p => {
+            const fn = p.split("/").pop();
+            return currentCover.includes(p) || (fn ? currentCover.includes(fn) : false);
+          });
+          if (!matchesRemaining) {
+            needsNewCover = true;
+          }
+        }
+      }
+
+      if (needsNewCover) {
+        let newCoverUrl: string | null = null;
+        for (const rs of remainingStories) {
+          const p = rs.story_media?.[0]?.media?.storage_path ||
+                    rs.recipe?.recipe_media?.[0]?.media?.storage_path ||
+                    rs.session?.session_media?.[0]?.media?.storage_path;
+          if (p) {
+            newCoverUrl = p.startsWith("http")
+              ? p
+              : `https://zvesoygqssyyojqyswwm.supabase.co/storage/v1/object/public/recipe_media/${p}`;
+            break;
+          }
+        }
+        await dbClient.from("story_highlights").update({ cover_url: newCoverUrl }).eq("id", highlightId);
+      }
+    }
+  }
+
+  // 5. Delete safe media files from storage (guaranteed server-side)
+  if (filesToDeleteFromStorage.length > 0) {
+    const buckets = ["recipe_media", "story_media"];
+    for (const bucket of buckets) {
+      await dbClient.storage.from(bucket).remove(filesToDeleteFromStorage);
+    }
+  }
+
+  // 6. Delete orphaned media_assets records if any
+  if (mediaAssetIdsToDelete.length > 0) {
+    await dbClient.from("media_assets").delete().in("id", mediaAssetIdsToDelete);
+  }
+
+  // 7. Delete story record
+  const { error } = await dbClient.from("stories").delete().eq("id", storyId);
+  if (error) throw new Error("Failed to delete story: " + error.message);
   
-  await trackEvent("STORY_DELETED", "STORY", storyId, user.id)
-  revalidatePath("/")
+  await trackEvent("STORY_DELETED", "STORY", storyId, user.id);
+
+  // 8. Invalidate caches for all relevant routes
+  const { data: profile } = await dbClient.from("profiles").select("username").eq("id", user.id).single();
+  revalidatePath("/");
+  revalidatePath("/me");
+  if (profile?.username) {
+    revalidatePath(`/@${profile.username}`);
+    revalidatePath(`/${profile.username}`);
+  }
+  revalidatePath("/[userParam]", "page");
+  revalidatePath("/profile/story-archive");
+  revalidatePath("/", "layout");
 }
 
 
@@ -839,20 +1064,42 @@ export async function getStoryInsights(storyId: string) {
 export async function updateHighlight(highlightId: string, name: string, coverUrl?: string) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Unauthorized");
   const { data: h } = await supabase.from('story_highlights').select('user_id').eq('id', highlightId).single();
-  if (h?.user_id !== user?.id) throw new Error("Unauthorized");
+  if (h?.user_id !== user.id) throw new Error("Unauthorized");
   
   await supabase.from('story_highlights').update({ name, cover_url: coverUrl }).eq('id', highlightId);
+
+  const { data: profile } = await supabase.from('profiles').select('username').eq('id', user.id).single();
+  revalidatePath('/');
+  revalidatePath('/me');
+  if (profile?.username) {
+    revalidatePath(`/@${profile.username}`);
+    revalidatePath(`/${profile.username}`);
+  }
+  revalidatePath('/[userParam]', 'page');
+  revalidatePath('/', 'layout');
   return true;
 }
 
 export async function deleteHighlight(highlightId: string) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Unauthorized");
   const { data: h } = await supabase.from('story_highlights').select('user_id').eq('id', highlightId).single();
-  if (h?.user_id !== user?.id) throw new Error("Unauthorized");
+  if (h?.user_id !== user.id) throw new Error("Unauthorized");
   
   await supabase.from('story_highlights').delete().eq('id', highlightId);
+
+  const { data: profile } = await supabase.from('profiles').select('username').eq('id', user.id).single();
+  revalidatePath('/');
+  revalidatePath('/me');
+  if (profile?.username) {
+    revalidatePath(`/@${profile.username}`);
+    revalidatePath(`/${profile.username}`);
+  }
+  revalidatePath('/[userParam]', 'page');
+  revalidatePath('/', 'layout');
   return true;
 }
 

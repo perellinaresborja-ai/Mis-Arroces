@@ -88,18 +88,20 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  let user: any = null;
   let pendingLegal = false;
   let avatarUrl: string | null = null;
   let initialUsername: string | null = null;
   try {
     const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (user) {
-      pendingLegal = await checkPendingLegal(user.id);
+    const { data: { user: authUser } } = await supabase.auth.getUser();
+    if (authUser) {
+      user = authUser;
+      pendingLegal = await checkPendingLegal(authUser.id);
       
       const { data } = await supabase.from('profiles')
         .select(`username, avatar:media_assets!fk_profiles_avatar(storage_path)`)
-        .eq('id', user.id)
+        .eq('id', authUser.id)
         .single();
       
       initialUsername = data?.username || null;
@@ -114,7 +116,7 @@ export default async function RootLayout({
       <body className={`${inter.className} antialiased bg-background text-foreground safe-area-pt safe-area-pb overflow-x-hidden`}>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
           <AppSplashScreen />
-          <UserSessionProvider initialAvatarUrl={avatarUrl} initialUsername={initialUsername}>
+          <UserSessionProvider initialUser={user} initialAvatarUrl={avatarUrl} initialUsername={initialUsername}>
             <MultiAccountProvider>
               <PwaProvider>
                 <AuthPromptProvider>

@@ -28,7 +28,7 @@ export default function ImportInstagramClient() {
     if (user) {
       window.location.href = `/create/recipe#import`
     } else {
-      showAuthPrompt("Únete a misarroces para importar tus recetas de Instagram y guardarlas en tu recetario digital.")
+      showAuthPrompt("Únete a misarroces para traer tus recetas y guardarlas en tu recetario digital.")
     }
   }
 
@@ -36,7 +36,7 @@ export default function ImportInstagramClient() {
     if (user) {
       window.location.href = `/create/recipe#import`
     } else {
-      showAuthPrompt("Únete a misarroces para importar tus recetas de Instagram y guardarlas en tu recetario digital.")
+      showAuthPrompt("Únete a misarroces para traer tus recetas y guardarlas en tu recetario digital.")
     }
   }
 
@@ -53,15 +53,15 @@ export default function ImportInstagramClient() {
               </svg>
             </div>
 
-            <div className="space-y-1.5">
+            <div className="space-y-2">
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider bg-primary/10 text-primary border border-primary/20">
-                <Sparkles className="w-3.5 h-3.5" /> Función Exclusiva
+                <Sparkles className="w-3.5 h-3.5" aria-hidden="true" /> Función Exclusiva
               </span>
               <h1 className="text-2xl sm:text-4xl font-black tracking-tight text-foreground">
                 Trae tus recetas de Instagram
               </h1>
-              <p className="text-sm sm:text-base text-muted-foreground max-w-lg mx-auto">
-                Pega el enlace de cualquier reel o publicación. misarroces extrae ingredientes, medidas y pasos para integrarlos en tu recetario.
+              <p className="text-sm sm:text-base text-muted-foreground max-w-lg mx-auto leading-relaxed">
+                Pega el enlace de un Reel, una publicación de Instagram o una receta de cualquier web. misarroces organiza ingredientes, cantidades y pasos para integrarlos en tu recetario.
               </p>
             </div>
           </div>
@@ -73,7 +73,7 @@ export default function ImportInstagramClient() {
                 type="url"
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
-                placeholder="https://www.instagram.com/p/... o reel"
+                placeholder="Enlace de Instagram o de una página web..."
                 className="w-full h-14 pl-4 pr-32 rounded-2xl border border-border bg-background/80 text-foreground text-sm focus:ring-2 focus:ring-primary outline-none shadow-xs transition"
               />
               <button
@@ -86,7 +86,7 @@ export default function ImportInstagramClient() {
             </div>
 
             <p className="text-[11px] text-muted-foreground text-center">
-              Funciona con vídeos, reels y fotos de Instagram que contengan texto de elaboración.
+              Funciona con publicaciones y Reels de Instagram y con enlaces de recetas de páginas web.
             </p>
           </form>
         </div>
@@ -103,9 +103,9 @@ export default function ImportInstagramClient() {
               <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary font-black text-xs flex items-center justify-center">
                 1
               </div>
-              <h3 className="font-bold text-sm text-foreground">Copia el link</h3>
+              <h3 className="font-bold text-sm text-foreground">Copia el enlace</h3>
               <p className="text-xs text-muted-foreground leading-relaxed">
-                Entra en Instagram, pulsa compartir en cualquier receta que te guste y copia su enlace.
+                Copia el enlace de la receta desde Instagram o desde cualquier página web compatible.
               </p>
             </div>
 
@@ -173,7 +173,7 @@ export default function ImportInstagramClient() {
               ¿Listo para guardar tus recetas favoritas?
             </h3>
             <p className="text-xs sm:text-sm text-muted-foreground max-w-md mx-auto">
-              Únete a misarroces gratis y empieza a importar recetas de Instagram en tu recetario digital.
+              Únete a misarroces gratis y empieza a traer recetas a tu recetario digital.
             </p>
           </div>
 

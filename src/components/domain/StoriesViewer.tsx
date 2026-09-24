@@ -284,6 +284,31 @@ export function StoriesViewer({ groupedStories: _groupedStories, initialGroupInd
     return () => window.removeEventListener("keydown", handleKeyDown)
   }, [groupIndex, storyIndex])
 
+  // Precarga ligera en segundo plano de la siguiente Story para transición instantánea
+  useEffect(() => {
+    let nextStoryObj: any = null
+    if (currentGroup && storyIndex < currentGroup.stories.length - 1) {
+      nextStoryObj = currentGroup.stories[storyIndex + 1]
+    } else if (groupIndex < groupedStories.length - 1) {
+      nextStoryObj = groupedStories[groupIndex + 1]?.stories?.[0]
+    }
+
+    if (nextStoryObj) {
+      const fbRecipe = nextStoryObj.recipe?.recipe_media?.[0]?.media
+      const fbSession = nextStoryObj.session?.session_media?.[0]?.media
+      const rawMedia = nextStoryObj.story_media?.[0]
+      const mObj = rawMedia?.media || fbRecipe || fbSession
+      const mPath = mObj?.storage_path || rawMedia?.storage_path
+      const isNextVideo = mPath?.match(/\.(mp4|webm|ogg)$/i)
+      const nextUrl = mObj?.signed_url || (mPath ? (mPath.startsWith('http') ? mPath : `https://zvesoygqssyyojqyswwm.supabase.co/storage/v1/object/public/recipe_media/${mPath}`) : null)
+
+      if (nextUrl && !isNextVideo && typeof window !== "undefined") {
+        const img = new Image()
+        img.src = nextUrl
+      }
+    }
+  }, [groupIndex, storyIndex, groupedStories, currentGroup])
+
   if (!currentStory) return null
 
   const fallbackRecipeMediaObj = currentStory.recipe?.recipe_media?.[0]?.media;
@@ -588,7 +613,10 @@ export function StoriesViewer({ groupedStories: _groupedStories, initialGroupInd
             <StoryOwnerMenu 
               storyId={currentStory.id} 
               onClose={() => { setOwnerMenuOpen(false); setIsPaused(false); }} 
-              onDeleted={onClose}
+              onDeleted={() => {
+                onClose();
+                window.location.reload();
+              }}
               onOpenInsights={() => { setInsightsOpen(true); }}
               onOpenHighlight={() => { setHighlightModalOpen(true); }}
               onOpenShare={() => { setShowShare(true); }}

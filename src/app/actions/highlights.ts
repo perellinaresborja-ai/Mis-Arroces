@@ -4,6 +4,41 @@ import { createClient } from "@/lib/supabase/server"
 import { createClient as createAdminClient } from "@supabase/supabase-js"
 import { revalidatePath } from "next/cache"
 
+function extractStoryMediaPaths(story: any): string[] {
+  if (!story) return [];
+  const paths: string[] = [];
+  if (story.story_media && Array.isArray(story.story_media)) {
+    for (const sm of story.story_media) {
+      const p = sm.media?.storage_path || sm.storage_path;
+      if (p) paths.push(p);
+    }
+  }
+  if (story.recipe?.recipe_media && Array.isArray(story.recipe.recipe_media)) {
+    for (const rm of story.recipe.recipe_media) {
+      const p = rm.media?.storage_path || rm.storage_path;
+      if (p) paths.push(p);
+    }
+  }
+  if (story.session?.session_media && Array.isArray(story.session.session_media)) {
+    for (const sm of story.session.session_media) {
+      const p = sm.media?.storage_path || sm.storage_path;
+      if (p) paths.push(p);
+    }
+  }
+  return paths;
+}
+
+function resolveStoryCoverUrl(story: any): string | null {
+  if (!story) return null;
+  const paths = extractStoryMediaPaths(story);
+  if (paths.length > 0) {
+    const firstPath = paths[0];
+    if (firstPath.startsWith('http')) return firstPath;
+    return `https://zvesoygqssyyojqyswwm.supabase.co/storage/v1/object/public/recipe_media/${firstPath}`;
+  }
+  return null;
+}
+
 export async function getProfileHighlights(userId: string) {
   const supabase = await createClient()
   
@@ -32,14 +67,18 @@ export async function getProfileHighlights(userId: string) {
     return [];
   }
 
+  if (!data || data.length === 0) return [];
+
   // Generate signed URLs for highlight stories media using SERVICE_ROLE
-  // Ensures older stories (even expired from active feed) always have guaranteed media access
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (serviceKey && data) {
-    const adminSupabase = createAdminClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://zvesoygqssyyojqyswwm.supabase.co',
-      serviceKey
-    );
+  const adminSupabase = serviceKey
+    ? createAdminClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://zvesoygqssyyojqyswwm.supabase.co',
+        serviceKey
+      )
+    : null;
+
+  if (adminSupabase) {
     for (const h of data) {
       for (const hs of (h.highlight_stories || [])) {
         const story = hs.stories;
@@ -75,17 +114,66 @@ export async function getProfileHighlights(userId: string) {
     }
   }
 
-  return data.map(h => {
-    const sortedHS = (h.highlight_stories || []).sort((a: any, b: any) => a.display_order - b.display_order);
-    return {
+  const cleanedHighlights = [];
+  const dbClient = adminSupabase || supabase;
+
+  for (const h of data) {
+    // 1. Filtrar solo historias que existan realmente (no eliminadas)
+    const validHS = (h.highlight_stories || [])
+      .filter((hs: any) => hs && hs.stories && !hs.stories.deleted_at)
+      .sort((a: any, b: any) => a.display_order - b.display_order);
+
+    const validStories = validHS.map((hs: any) => hs.stories);
+
+    // 2. Si no quedan historias válidas, eliminar el destacado huérfano de la BD y no mostrarlo
+    if (validStories.length === 0) {
+      await dbClient.from('story_highlights').delete().eq('id', h.id);
+      continue;
+    }
+
+    // 3. Comprobar si la portada actual corresponde a alguna historia válida existente
+    const allValidPaths = validStories.flatMap(extractStoryMediaPaths);
+    let isCoverValid = false;
+
+    if (h.cover_url) {
+      for (const p of allValidPaths) {
+        const fn = p.split('/').pop();
+        if (h.cover_url.includes(p) || (fn && h.cover_url.includes(fn))) {
+          isCoverValid = true;
+          break;
+        }
+      }
+    }
+
+    // 4. Si la portada era de una Story eliminada (o es inválida), recalcularla automáticamente
+    let effectiveCoverUrl = h.cover_url;
+    if (!isCoverValid) {
+      let newCoverUrl: string | null = null;
+      for (const st of validStories) {
+        newCoverUrl = resolveStoryCoverUrl(st);
+        if (newCoverUrl) break;
+      }
+
+      effectiveCoverUrl = newCoverUrl;
+
+      // Autosanar en base de datos para que quede arreglado definitivamente
+      await dbClient
+        .from('story_highlights')
+        .update({ cover_url: newCoverUrl })
+        .eq('id', h.id);
+    }
+
+    cleanedHighlights.push({
       id: h.id,
       name: h.name,
-      cover_url: h.cover_url,
+      cover_url: effectiveCoverUrl,
       user_id: h.user_id,
       sort_order: h.sort_order ?? 0,
-      stories: sortedHS.map((hs: any) => hs.stories).filter(Boolean)
-    };
-  });
+      stories: validStories
+    });
+  }
+
+  return cleanedHighlights;
 }
 
 export async function getHighlightStories(highlightId: string) {
@@ -281,6 +369,24 @@ export async function editStoryHighlight(highlightId: string, name: string, stor
     throw new Error("Unauthorized: highlight not found or not owned");
   }
 
+  // Si no quedan historias seleccionadas, eliminar el destacado
+  if (storyIds.length === 0) {
+    await supabase
+      .from('story_highlights')
+      .delete()
+      .eq('id', highlightId);
+
+    const { data: profile } = await supabase.from('profiles').select('username').eq('id', user.id).single();
+    revalidatePath('/', 'layout');
+    revalidatePath('/me');
+    if (profile?.username) {
+      revalidatePath(`/@${profile.username}`);
+      revalidatePath(`/${profile.username}`);
+    }
+    revalidatePath('/[userParam]', 'page');
+    return true;
+  }
+
   // 1. Update highlight name and cover_url
   const updateData: { name: string; cover_url?: string } = { name };
   if (coverUrl) updateData.cover_url = coverUrl;
@@ -297,18 +403,23 @@ export async function editStoryHighlight(highlightId: string, name: string, stor
     .delete()
     .eq('highlight_id', highlightId);
 
-  if (storyIds.length > 0) {
-    const newRelations = storyIds.map((storyId, idx) => ({
-      highlight_id: highlightId,
-      story_id: storyId,
-      display_order: idx
-    }));
-    const { error: insertError } = await supabase
-      .from('highlight_stories')
-      .insert(newRelations);
-    if (insertError) throw insertError;
-  }
+  const newRelations = storyIds.map((storyId, idx) => ({
+    highlight_id: highlightId,
+    story_id: storyId,
+    display_order: idx
+  }));
+  const { error: insertError } = await supabase
+    .from('highlight_stories')
+    .insert(newRelations);
+  if (insertError) throw insertError;
 
+  const { data: profile } = await supabase.from('profiles').select('username').eq('id', user.id).single();
   revalidatePath('/', 'layout');
+  revalidatePath('/me');
+  if (profile?.username) {
+    revalidatePath(`/@${profile.username}`);
+    revalidatePath(`/${profile.username}`);
+  }
+  revalidatePath('/[userParam]', 'page');
   return true;
 }

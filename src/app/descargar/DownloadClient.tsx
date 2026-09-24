@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useState, useEffect } from "react"
+import Link from "next/link"
 import Image from "next/image"
 import { usePwa } from "@/components/providers/PwaProvider"
 import { APP_STORE_CONFIG } from "@/lib/constants/app-stores"
@@ -83,11 +84,11 @@ export default function DownloadClient() {
   }
 
   return (
-    <div className="min-h-screen bg-sand/30 text-foreground py-8 px-4 sm:px-6 flex flex-col items-center justify-center">
-      <div className="w-full max-w-md mx-auto space-y-6">
+    <div className="min-h-screen bg-sand/30 text-foreground py-8 px-4 sm:px-6 flex flex-col items-center">
+      <div className="w-full max-w-2xl mx-auto space-y-6">
         
         {/* CABECERA / HERO */}
-        <div className="bg-card border border-border rounded-3xl p-6 sm:p-8 shadow-sm text-center relative overflow-hidden">
+        <div className="bg-card border border-border rounded-3xl p-6 sm:p-10 shadow-sm text-center relative overflow-hidden space-y-4">
           <div className="flex flex-col items-center space-y-3">
             <div className="relative w-36 h-40 sm:w-44 sm:h-48 mx-auto">
               <Image
@@ -100,14 +101,14 @@ export default function DownloadClient() {
               />
             </div>
             
-            <div className="space-y-1.5">
+            <div className="space-y-2">
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider bg-primary/10 text-primary border border-primary/20">
                 <Sparkles className="w-3.5 h-3.5" aria-hidden="true" /> App Oficial
               </span>
-              <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-foreground">
+              <h1 className="text-2xl sm:text-4xl font-black tracking-tight text-foreground">
                 Descarga misarroces
               </h1>
-              <p className="text-sm text-muted-foreground max-w-sm mx-auto leading-relaxed">
+              <p className="text-sm sm:text-base text-muted-foreground max-w-lg mx-auto leading-relaxed">
                 Recetas, cálculo de arroz milimétrico, bitácora y comunidad en la palma de tu mano.
               </p>
             </div>
@@ -151,16 +152,16 @@ export default function DownloadClient() {
 
         {/* CONTENIDO IPHONE (iOS) */}
         {platform === "ios" && (
-          <div className="bg-card border border-border rounded-3xl p-6 sm:p-7 shadow-sm space-y-5">
+          <div className="bg-card border border-border rounded-3xl p-6 sm:p-8 shadow-sm space-y-5">
             <div className="flex items-center gap-3 pb-3 border-b border-border/60">
               <div className="w-10 h-10 rounded-2xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
                 <Smartphone className="w-5 h-5" aria-hidden="true" />
               </div>
               <div>
-                <h2 className="font-bold text-base text-foreground">
+                <h2 className="font-bold text-base sm:text-lg text-foreground">
                   {hasAppStore ? "Descarga para iPhone" : "Instalar en iPhone"}
                 </h2>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs sm:text-sm text-muted-foreground">
                   {hasAppStore ? "Disponible en el App Store oficial" : "Instalación en 3 toques desde Safari, sin descargas pesadas."}
                 </p>
               </div>
@@ -247,16 +248,16 @@ export default function DownloadClient() {
 
         {/* CONTENIDO ANDROID */}
         {platform === "android" && (
-          <div className="bg-card border border-border rounded-3xl p-6 sm:p-7 shadow-sm space-y-5">
+          <div className="bg-card border border-border rounded-3xl p-6 sm:p-8 shadow-sm space-y-5">
             <div className="flex items-center gap-3 pb-3 border-b border-border/60">
               <div className="w-10 h-10 rounded-2xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
                 <Download className="w-5 h-5" aria-hidden="true" />
               </div>
               <div>
-                <h2 className="font-bold text-base text-foreground">
+                <h2 className="font-bold text-base sm:text-lg text-foreground">
                   {hasGooglePlay ? "Descarga para Android" : "Instalar en Android"}
                 </h2>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs sm:text-sm text-muted-foreground">
                   {hasGooglePlay ? "Disponible en Google Play Store oficial" : "Instalación directa en tu móvil a pantalla completa."}
                 </p>
               </div>
@@ -342,10 +343,10 @@ export default function DownloadClient() {
         )}
 
         {/* COMPARTIR EL ENLACE DE INSTALACIÓN */}
-        <div className="bg-card border border-border rounded-3xl p-5 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
+        <div className="bg-card border border-border rounded-3xl p-6 sm:p-8 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
           <div>
-            <p className="font-bold text-sm text-foreground">¿Quieres pasárselo a un amigo?</p>
-            <p className="text-xs text-muted-foreground">
+            <p className="font-bold text-sm sm:text-base text-foreground">¿Quieres pasárselo a un amigo?</p>
+            <p className="text-xs sm:text-sm text-muted-foreground">
               Comparte este enlace para que ellos lo instalen en iPhone o Android.
             </p>
           </div>
@@ -354,7 +355,7 @@ export default function DownloadClient() {
             <button
               type="button"
               onClick={handleShare}
-              className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-muted/80 hover:bg-muted text-foreground text-xs font-bold transition"
+              className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-5 py-3 rounded-xl bg-muted/80 hover:bg-muted text-foreground text-xs sm:text-sm font-bold transition"
             >
               <Share className="w-3.5 h-3.5" aria-hidden="true" />
               Compartir
@@ -363,7 +364,7 @@ export default function DownloadClient() {
             <button
               type="button"
               onClick={handleCopyLink}
-              className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl border border-border hover:bg-muted/50 text-foreground text-xs font-bold transition"
+              className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-5 py-3 rounded-xl border border-border hover:bg-muted/50 text-foreground text-xs sm:text-sm font-bold transition"
             >
               {copied ? (
                 <>
@@ -378,6 +379,13 @@ export default function DownloadClient() {
               )}
             </button>
           </div>
+        </div>
+
+        {/* VOLVER A ENLACES */}
+        <div className="text-center text-xs text-muted-foreground pb-8">
+          <Link href="/links" className="hover:underline font-semibold">
+            Volver a enlaces
+          </Link>
         </div>
 
       </div>

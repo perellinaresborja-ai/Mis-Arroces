@@ -27,21 +27,23 @@ export function useUserSession() {
 
 export function UserSessionProvider({
   children,
+  initialUser = null,
   initialAvatarUrl = null,
   initialUsername = null,
 }: {
   children: React.ReactNode
+  initialUser?: User | null
   initialAvatarUrl?: string | null
   initialUsername?: string | null
 }) {
   const pathname = usePathname()
-  const [user, setUser] = useState<User | null>(null)
+  const [user, setUser] = useState<User | null>(initialUser)
   const [avatarUrl, setAvatarUrl] = useState<string | null>(initialAvatarUrl)
   const [username, setUsername] = useState<string | null>(initialUsername)
-  const [isLoading, setIsLoading] = useState(true)
+  const [isLoading, setIsLoading] = useState(false)
 
   // Track active user ID and request sequence to prevent redundant calls and race conditions
-  const activeUserIdRef = useRef<string | null>(null)
+  const activeUserIdRef = useRef<string | null>(initialUser ? initialUser.id : null)
   const previousPathnameRef = useRef<string>(pathname)
   const requestIdRef = useRef(0)
 

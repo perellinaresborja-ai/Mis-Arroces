@@ -82,14 +82,14 @@ export default function CreateRecipeDemoClient() {
               <ChefHat className="w-5 h-5 text-primary" aria-hidden="true" />
               ¿Cómo funciona?
             </h2>
-            <div className="inline-flex items-center gap-1.5 text-[11px] font-black text-primary uppercase tracking-wider bg-primary/10 py-1.5 px-3.5 rounded-full border border-primary/20 w-fit">
-              <span>Crea</span>
-              <ArrowRight className="w-3 h-3 text-primary/70" aria-hidden="true" />
-              <span>Organiza</span>
-              <ArrowRight className="w-3 h-3 text-primary/70" aria-hidden="true" />
-              <span>Cocina</span>
-              <ArrowRight className="w-3 h-3 text-primary/70" aria-hidden="true" />
-              <span>Comparte</span>
+            <div className="inline-flex items-center justify-center max-w-full gap-1 sm:gap-1.5 text-[9px] min-[360px]:text-[10px] sm:text-[11px] font-black text-primary uppercase tracking-normal sm:tracking-wider bg-primary/10 py-1 sm:py-1.5 px-2.5 sm:px-3.5 rounded-full border border-primary/20 w-fit shrink-0">
+              <span className="shrink-0">Crea</span>
+              <ArrowRight className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-primary/70 shrink-0" aria-hidden="true" />
+              <span className="shrink-0">Organiza</span>
+              <ArrowRight className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-primary/70 shrink-0" aria-hidden="true" />
+              <span className="shrink-0">Cocina</span>
+              <ArrowRight className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-primary/70 shrink-0" aria-hidden="true" />
+              <span className="shrink-0">Comparte</span>
             </div>
           </div>
 

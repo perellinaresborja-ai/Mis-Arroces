@@ -15,7 +15,7 @@ export default async function SettingsPage() {
   const { data: { user }, error: authError } = await supabase.auth.getUser()
   
   if (authError || !user) {
-    redirect("/auth")
+    redirect("/login")
   }
 
   const { data: profile } = await supabase
@@ -25,7 +25,7 @@ export default async function SettingsPage() {
     .single()
 
   if (!profile) {
-    redirect("/auth")
+    redirect("/login")
   }
 
   const isPrivate = profile.privacy_level === "PRIVATE"
