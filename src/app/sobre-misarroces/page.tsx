@@ -1,16 +1,12 @@
 import type { Metadata } from "next"
-import { LandingContent } from "@/components/domain/LandingContent"
+import SobreMisArrocesClient from "./SobreMisArrocesClient"
 
 export const metadata: Metadata = {
-  title: "¿Qué es misarroces.es?",
-  description: "Conoce qué es misarroces.es. Somos una plataforma digital y red social especializada en arroz, recetas y comunidad. No somos un servicio de restaurante ni catering.",
+  title: "¿Qué es misarroces? | misarroces",
+  description: "La comunidad y el recetario digital para los apasionados del arroz. Descubre, crea, organiza y comparte tus arroces en un solo lugar.",
 }
 
 export default function SobreMisArroces() {
-  return (
-    <div className="min-h-screen bg-background flex flex-col">
-      <LandingContent isHome={false} />
-    </div>
-  )
+  return <SobreMisArrocesClient />
 }
 

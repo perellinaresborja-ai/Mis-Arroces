@@ -186,74 +186,28 @@ export default function CreateRecipeDemoClient() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                <div>
-                  <label className="block text-xs font-bold text-muted-foreground mb-1">Estilo de arroz</label>
-                  <div onClick={handleActionClick} className="p-3 rounded-2xl border border-border bg-background/60 text-xs font-semibold text-foreground cursor-pointer flex items-center justify-between">
-                    <span>Arroz seco en paella</span>
-                    <Lock className="w-3.5 h-3.5 text-muted-foreground/60" aria-hidden="true" />
-                  </div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                <div onClick={handleActionClick} className="p-3 rounded-2xl border border-border bg-background/60 cursor-pointer hover:border-primary/40 transition">
+                  <span className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Variedad</span>
+                  <span className="text-xs sm:text-sm font-bold text-foreground">Arroz Albufera</span>
                 </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-muted-foreground mb-1">Variedad de arroz</label>
-                  <div onClick={handleActionClick} className="p-3 rounded-2xl border border-border bg-background/60 text-xs font-semibold text-foreground cursor-pointer flex items-center justify-between">
-                    <span>Arroz Albufera</span>
-                    <Lock className="w-3.5 h-3.5 text-muted-foreground/60" aria-hidden="true" />
-                  </div>
+                <div onClick={handleActionClick} className="p-3 rounded-2xl border border-border bg-background/60 cursor-pointer hover:border-primary/40 transition">
+                  <span className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Estilo</span>
+                  <span className="text-xs sm:text-sm font-bold text-foreground">Seco en paella</span>
                 </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-muted-foreground mb-1">Fuente de calor</label>
-                  <div onClick={handleActionClick} className="p-3 rounded-2xl border border-border bg-background/60 text-xs font-semibold text-foreground cursor-pointer flex items-center justify-between">
-                    <span>Gas (Paellero)</span>
-                    <Lock className="w-3.5 h-3.5 text-muted-foreground/60" aria-hidden="true" />
-                  </div>
+                <div onClick={handleActionClick} className="p-3 rounded-2xl border border-border bg-background/60 cursor-pointer hover:border-primary/40 transition">
+                  <span className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Raciones</span>
+                  <span className="text-xs sm:text-sm font-bold text-foreground">4 personas</span>
+                </div>
+                <div onClick={handleActionClick} className="p-3 rounded-2xl border border-border bg-background/60 cursor-pointer hover:border-primary/40 transition">
+                  <span className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Caldo</span>
+                  <span className="text-xs sm:text-sm font-bold text-foreground">1.200 ml (1:3)</span>
                 </div>
               </div>
             </div>
           </section>
 
-          {/* CANTIDADES Y PROPORCIONES */}
-          <section className="bg-card border border-border rounded-3xl p-6 sm:p-8 shadow-sm space-y-4">
-            <div className="flex items-center gap-2.5 pb-3 border-b border-border/60">
-              <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center" aria-hidden="true">
-                <Scale className="w-4 h-4" aria-hidden="true" />
-              </div>
-              <div>
-                <h3 className="font-bold text-base text-foreground">Cantidades y Proporciones</h3>
-                <p className="text-xs text-muted-foreground">Cálculo exacto de gramaje y líquidos.</p>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-2.5">
-              <div onClick={handleActionClick} className="p-3.5 rounded-2xl bg-background/60 border border-border text-center cursor-pointer hover:border-primary/40 transition">
-                <Users className="w-4 h-4 text-primary mx-auto mb-1" aria-hidden="true" />
-                <span className="text-[10px] text-muted-foreground uppercase font-bold block">Raciones</span>
-                <span className="text-sm sm:text-base font-black text-foreground">4 personas</span>
-              </div>
-
-              <div onClick={handleActionClick} className="p-3.5 rounded-2xl bg-background/60 border border-border text-center cursor-pointer hover:border-primary/40 transition">
-                <ChefHat className="w-4 h-4 text-primary mx-auto mb-1" aria-hidden="true" />
-                <span className="text-[10px] text-muted-foreground uppercase font-bold block">Arroz</span>
-                <span className="text-sm sm:text-base font-black text-foreground">400 gramos</span>
-              </div>
-
-              <div onClick={handleActionClick} className="p-3.5 rounded-2xl bg-background/60 border border-border text-center cursor-pointer hover:border-primary/40 transition">
-                <Flame className="w-4 h-4 text-primary mx-auto mb-1" aria-hidden="true" />
-                <span className="text-[10px] text-muted-foreground uppercase font-bold block">Caldo</span>
-                <span className="text-sm sm:text-base font-black text-foreground">1.200 ml (1:3)</span>
-              </div>
-
-              <div onClick={handleActionClick} className="p-3.5 rounded-2xl bg-background/60 border border-border text-center cursor-pointer hover:border-primary/40 transition">
-                <Clock className="w-4 h-4 text-primary mx-auto mb-1" aria-hidden="true" />
-                <span className="text-[10px] text-muted-foreground uppercase font-bold block">Cocción</span>
-                <span className="text-sm sm:text-base font-black text-foreground">18 min + 5 rep.</span>
-              </div>
-            </div>
-          </section>
-
-          {/* INGREDIENTES ESTRUCTURADOS */}
+          {/* INGREDIENTES ESTRUCTURADOS (MÁXIMO 3) */}
           <section className="bg-card border border-border rounded-3xl p-6 sm:p-8 shadow-sm space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-border/60">
               <h3 className="font-bold text-base text-foreground">Ingredientes estructurados</h3>
@@ -271,11 +225,6 @@ export default function CreateRecipeDemoClient() {
                 { qty: "400 g", name: "Arroz Albufera" },
                 { qty: "1.200 ml", name: "Caldo de pescado y morralla" },
                 { qty: "250 g", name: "Calamar limpio troceado" },
-                { qty: "200 g", name: "Gamba pelada fresca" },
-                { qty: "200 g", name: "Rape limpio en dados" },
-                { qty: "2 cdas", name: "Salmorreta alicantina" },
-                { qty: "80 ml", name: "Aceite de oliva virgen extra" },
-                { qty: "4 hebras", name: "Azafrán en hebra" },
               ].map((ing, i) => (
                 <div
                   key={i}
@@ -292,7 +241,7 @@ export default function CreateRecipeDemoClient() {
             </div>
           </section>
 
-          {/* ELABORACIÓN PASO A PASO */}
+          {/* ELABORACIÓN PASO A PASO (MÁXIMO 2) */}
           <section className="bg-card border border-border rounded-3xl p-6 sm:p-8 shadow-sm space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-border/60">
               <h3 className="font-bold text-base text-foreground">Elaboración paso a paso</h3>
@@ -305,45 +254,48 @@ export default function CreateRecipeDemoClient() {
               </button>
             </div>
 
-            <div className="space-y-3">
+            <div className="space-y-2.5">
               {[
                 {
                   num: 1,
-                  title: "Marcar el marisco",
-                  desc: "Sofreír el rape y los calamares con el aceite a fuego medio durante 4-5 minutos hasta dorar. Retirar y reservar.",
+                  title: "Marcar los ingredientes",
+                  desc: "Dorar el calamar a fuego vivo durante 4 minutos hasta sellar y reservar.",
                 },
                 {
                   num: 2,
-                  title: "Nacarar el arroz con la salmorreta",
-                  desc: "Añadir la salmorreta al centro de la paella, remover con el aceite residual e incorporar el arroz para nacararlo durante 2 minutos.",
-                },
-                {
-                  num: 3,
-                  title: "Cocción y socarrat",
-                  desc: "Verter el caldo hirviendo con el azafrán disuelto. Cocinar 8 min a fuego vivo y 10 min a fuego suave. En los últimos 3 minutos buscar el socarrat.",
+                  title: "Cocción y reposo",
+                  desc: "Añadir arroz y caldo hirviendo: 8 min a fuego fuerte, 10 min a fuego suave y 5 min de reposo.",
                 },
               ].map((step) => (
                 <div
                   key={step.num}
                   onClick={handleActionClick}
-                  className="p-4 rounded-2xl bg-background/60 border border-border space-y-1.5 cursor-pointer hover:border-primary/30 transition"
+                  className="p-3.5 rounded-2xl bg-background/60 border border-border space-y-1 cursor-pointer hover:border-primary/30 transition"
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <span className="w-6 h-6 rounded-lg bg-primary/10 text-primary font-black text-xs flex items-center justify-center">
+                      <span className="w-5 h-5 rounded-md bg-primary/10 text-primary font-black text-xs flex items-center justify-center">
                         {step.num}
                       </span>
-                      <h4 className="font-bold text-sm text-foreground">{step.title}</h4>
+                      <h4 className="font-bold text-xs sm:text-sm text-foreground">{step.title}</h4>
                     </div>
                     <Lock className="w-3.5 h-3.5 text-muted-foreground/40" aria-hidden="true" />
                   </div>
-                  <p className="text-xs text-muted-foreground leading-relaxed pl-8">
+                  <p className="text-xs text-muted-foreground leading-relaxed pl-7">
                     {step.desc}
                   </p>
                 </div>
               ))}
             </div>
           </section>
+
+          {/* FRASE DE CIERRE DE LA DEMO */}
+          <div className="text-center py-1">
+            <p className="text-xs sm:text-sm font-semibold text-muted-foreground flex items-center justify-center gap-1.5">
+              <Sparkles className="w-3.5 h-3.5 text-primary shrink-0" aria-hidden="true" />
+              <span>Y todo lo que necesites para documentar tu arroz.</span>
+            </p>
+          </div>
         </div>
 
         {/* 4. CTA FINAL */}
