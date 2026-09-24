@@ -14,6 +14,47 @@ export type Database = {
   }
   public: {
     Tables: {
+      push_subscriptions: {
+        Row: {
+          auth: string
+          created_at: string
+          endpoint: string
+          id: string
+          p256dh: string
+          updated_at: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          auth: string
+          created_at?: string
+          endpoint: string
+          id?: string
+          p256dh: string
+          updated_at?: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          auth?: string
+          created_at?: string
+          endpoint?: string
+          id?: string
+          p256dh?: string
+          updated_at?: string
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "push_subscriptions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       allergens: {
         Row: {
           icon: string | null
@@ -3571,6 +3612,7 @@ get_trending_recipes: {
         | "COOKED_RECIPE"
         | "PUBLISHED_RESULT"
         | "NEW_MESSAGE"
+        | "SYSTEM"
       privacy_level_enum: "PUBLIC" | "PRIVATE"
       professional_type_enum:
         | "CHEF"
@@ -3725,6 +3767,7 @@ export const Constants = {
         "COOKED_RECIPE",
         "PUBLISHED_RESULT",
         "NEW_MESSAGE",
+        "SYSTEM",
       ],
       privacy_level_enum: ["PUBLIC", "PRIVATE"],
       professional_type_enum: [

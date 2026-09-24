@@ -1,7 +1,8 @@
-﻿'use client';
+'use client';
 
 import { useState } from "react"
 import { updateNotificationPreferences } from "@/app/actions/settings"
+import { DevicePushToggle } from "./DevicePushToggle"
 
 export default function NotificationsForm({ initialPrefs }: { initialPrefs: any }) {
   const [prefs, setPrefs] = useState({
@@ -36,29 +37,38 @@ export default function NotificationsForm({ initialPrefs }: { initialPrefs: any 
     { key: 'comments', label: 'Comentarios', description: 'Cuando alguien comente en tus publicaciones' },
     { key: 'mentions', label: 'Menciones', description: 'Cuando alguien te mencione en un comentario o publicación' },
     { key: 'messages', label: 'Mensajes directos', description: 'Cuando recibas un nuevo mensaje privado' },
-    { key: 'system', label: 'Alertas del sistema', description: 'Novedades de Mis Arroces y actualizaciones de cuenta' },
+    { key: 'system', label: 'Alertas del sistema', description: 'Novedades de misarroces y actualizaciones de cuenta' },
   ]
 
   return (
-    <div className="space-y-6">
-      {items.map((item, i) => (
-        <div key={item.key} className={"flex items-center justify-between "}>
-          <div className="pr-4">
-            <h3 className="font-medium">{item.label}</h3>
-            <p className="text-sm text-muted-foreground mt-1">{item.description}</p>
-          </div>
-          <label className="relative inline-flex items-center cursor-pointer flex-shrink-0">
-            <input 
-              type="checkbox" 
-              className="sr-only peer" 
-              checked={prefs[item.key as keyof typeof prefs]}
-              disabled={saving}
-              onChange={(e) => handleChange(item.key, e.target.checked)}
-            />
-            <div className="w-11 h-6 bg-muted peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-border after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
-          </label>
+    <div>
+      <DevicePushToggle />
+
+      <div className="border-t border-border pt-6">
+        <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">
+          Preferencias de contenido
+        </h4>
+        <div className="space-y-6">
+          {items.map((item) => (
+            <div key={item.key} className="flex items-center justify-between">
+              <div className="pr-4">
+                <h3 className="font-medium">{item.label}</h3>
+                <p className="text-sm text-muted-foreground mt-1">{item.description}</p>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer flex-shrink-0">
+                <input 
+                  type="checkbox" 
+                  className="sr-only peer" 
+                  checked={prefs[item.key as keyof typeof prefs]}
+                  disabled={saving}
+                  onChange={(e) => handleChange(item.key, e.target.checked)}
+                />
+                <div className="w-11 h-6 bg-muted peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-border after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+              </label>
+            </div>
+          ))}
         </div>
-      ))}
+      </div>
     </div>
   )
 }

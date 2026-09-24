@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client"
 import { NotificationPanel } from "./NotificationPanel"
 import { cn } from "@/lib/utils"
 import { useUserSession } from "@/components/providers/UserSessionProvider"
+import { updateAppBadge } from "@/lib/badge"
 
 export function NotificationBell({ className }: { className?: string }) {
   const [unreadCount, setUnreadCount] = useState(0)
@@ -23,7 +24,9 @@ export function NotificationBell({ className }: { className?: string }) {
       .eq("recipient_id", user.id)
       .eq("is_read", false)
     
-    setUnreadCount(count || 0)
+    const finalCount = count || 0
+    setUnreadCount(finalCount)
+    updateAppBadge(finalCount)
   }
 
   const [refreshKey, setRefreshKey] = useState(0)

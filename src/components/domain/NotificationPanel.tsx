@@ -5,9 +5,10 @@ import { formatRelativeTime } from "@/lib/utils"
 import { ProfileAvatar } from "@/components/domain/ProfileAvatar"
 import { fetchNotifications, markNotificationRead, markAllNotificationsRead } from "@/app/actions/notifications"
 import { acceptFollowRequest, rejectFollowRequest } from "@/app/actions/social"
-import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Check, X } from "lucide-react"
+import { clearAppBadge } from "@/lib/badge"
+import { useRouter } from "next/navigation"
 
 export function NotificationPanel({ onClose, onRead, refreshKey = 0 }: { onClose: () => void, onRead: () => void, refreshKey?: number }) {
   const [notifications, setNotifications] = useState<any[]>([])
@@ -26,6 +27,7 @@ export function NotificationPanel({ onClose, onRead, refreshKey = 0 }: { onClose
   }
 
   const handleMarkAllRead = async () => {
+    clearAppBadge()
     await markAllNotificationsRead()
     setNotifications(notifications.map(n => ({ ...n, is_read: true })))
     onRead()

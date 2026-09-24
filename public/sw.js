@@ -81,3 +81,86 @@ self.addEventListener('fetch', (event) => {
 
   // Todo lo demás: pasar directamente por la red sin interferir
 });
+
+// 4. Recepción de Notificaciones Push (Web Push API)
+self.addEventListener('push', (event) => {
+  let data = {};
+  if (event.data) {
+    try {
+      data = event.data.json();
+    } catch {
+      data = { body: event.data.text() };
+    }
+  }
+
+  const title = data.title || 'misarroces';
+  const options = {
+    body: data.body || 'Tienes una nueva interacción en misarroces',
+    icon: data.icon || '/icons/icon-192x192.png',
+    badge: data.badge || '/icons/icon-192x192.png',
+    data: {
+      url: data.url || '/',
+      unreadCount: data.unreadCount,
+      ...data.data,
+    },
+    tag: data.tag || 'misarroces-notification',
+    renotify: true,
+  };
+
+  const tasks = [self.registration.showNotification(title, options)];
+
+  // Sincronizar App Badging API en segundo plano con el conteo real
+  if ('setAppBadge' in navigator) {
+    const unread = typeof data.unreadCount === 'number' ? data.unreadCount : 1;
+    if (unread > 0) {
+      tasks.push(navigator.setAppBadge(unread).catch(() => {}));
+    } else {
+      tasks.push(navigator.clearAppBadge().catch(() => {}));
+    }
+  }
+
+  event.waitUntil(Promise.all(tasks));
+});
+
+// 5. Interacción del usuario al pulsar la notificación
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+
+  const targetUrl = event.notification.data?.url || '/';
+
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
+      // Si ya hay una pestaña abierta de misarroces, enfocarla y navegar a la URL
+      for (const client of windowClients) {
+        if ('focus' in client) {
+          if ('navigate' in client) {
+            client.navigate(targetUrl);
+          }
+          return client.focus();
+        }
+      }
+      // Si la app/navegador estaba cerrada o sin ventana abierta, abrir nueva ventana
+      if (clients.openWindow) {
+        return clients.openWindow(targetUrl);
+      }
+    })
+  );
+});
+
+// 6. Mensajes internos desde el cliente para sincronizar el Badge en caliente
+self.addEventListener('message', (event) => {
+  if (event.data?.type === 'SET_BADGE') {
+    if ('setAppBadge' in navigator) {
+      const count = event.data.count || 0;
+      if (count > 0) {
+        navigator.setAppBadge(count).catch(() => {});
+      } else {
+        navigator.clearAppBadge().catch(() => {});
+      }
+    }
+  } else if (event.data?.type === 'CLEAR_BADGE') {
+    if ('clearAppBadge' in navigator) {
+      navigator.clearAppBadge().catch(() => {});
+    }
+  }
+});
