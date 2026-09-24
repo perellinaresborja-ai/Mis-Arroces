@@ -20,7 +20,10 @@ export function normalizeUsername(raw: string): string {
  * - 3 to 30 characters
  * - lowercase letters, digits, underscores, or dots
  */
-export function validateUsernameFormat(username: string): { valid: boolean; error?: string } {
+export function validateUsernameFormat(
+  username: string,
+  options?: { isAuthorizedAdmin?: boolean }
+): { valid: boolean; error?: string } {
   const normalized = normalizeUsername(username)
   if (!normalized || normalized.length < 3) {
     return { valid: false, error: "El nombre de usuario debe tener al menos 3 caracteres." }
@@ -48,6 +51,10 @@ export function validateUsernameFormat(username: string): { valid: boolean; erro
     "system",
   ]
   if (reservedNames.includes(normalized)) {
+    // Si la cuenta cuenta con autorización de administrador server-side / admin_roles, se le permite @misarroces
+    if (normalized === "misarroces" && options?.isAuthorizedAdmin) {
+      return { valid: true }
+    }
     return { valid: false, error: "Este nombre de usuario no está disponible." }
   }
 

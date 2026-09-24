@@ -11,33 +11,33 @@ export function AppSplashScreen() {
     if (typeof window === "undefined") return
 
     try {
+      // Solo mostrar en modo preview explícito mediante ?splash en la URL
       const isSplashPreview = new URLSearchParams(window.location.search).has("splash")
-      const alreadyShown = sessionStorage.getItem("misarroces_splash_shown")
-      if (alreadyShown && !isSplashPreview) {
+      if (!isSplashPreview) {
+        // En arranque normal (PWA o navegador), el splash nativo del sistema operativo
+        // o el primer renderizado SSR directo es el flujo óptimo sin bloquear ni añadir esperas artificiales.
+        try {
+          sessionStorage.setItem("misarroces_splash_shown", "1")
+        } catch {}
         return
+      }
+
+      setVisible(true)
+
+      const fadeTimer = setTimeout(() => {
+        setFading(true)
+      }, 150)
+
+      const removeTimer = setTimeout(() => {
+        setVisible(false)
+      }, 350)
+
+      return () => {
+        clearTimeout(fadeTimer)
+        clearTimeout(removeTimer)
       }
     } catch {
       // Ignorar restricciones de almacenamiento en modo incógnito estricto
-    }
-
-    setVisible(true)
-
-    // Microanimación de entrada y permanencia breve elegante (sin retrasos artificiales)
-    const fadeTimer = setTimeout(() => {
-      setFading(true)
-    }, 600)
-
-    // Transición suave hacia la aplicación y desmontaje del DOM
-    const removeTimer = setTimeout(() => {
-      setVisible(false)
-      try {
-        sessionStorage.setItem("misarroces_splash_shown", "1")
-      } catch {}
-    }, 900)
-
-    return () => {
-      clearTimeout(fadeTimer)
-      clearTimeout(removeTimer)
     }
   }, [])
 
@@ -45,12 +45,12 @@ export function AppSplashScreen() {
 
   return (
     <div 
-      className={`fixed inset-0 z-[999999] flex flex-col items-center justify-center bg-[#F7F2E8] transition-opacity duration-300 ease-out select-none pointer-events-none ${
+      className={`fixed inset-0 z-[999999] flex flex-col items-center justify-center bg-[#F7F5F0] transition-opacity duration-200 ease-out select-none pointer-events-none ${
         fading ? "opacity-0" : "opacity-100"
       }`}
       aria-hidden="true"
     >
-      <div className="flex flex-col items-center justify-center animate-in fade-in zoom-in-95 duration-200 ease-out">
+      <div className="flex flex-col items-center justify-center animate-in fade-in zoom-in-95 duration-150 ease-out">
         {/* Logo completo oficial con transparencia y proporciones intactas */}
         <div className="relative w-44 h-48 sm:w-52 sm:h-56">
           <Image

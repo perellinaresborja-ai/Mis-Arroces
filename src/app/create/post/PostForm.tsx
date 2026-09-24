@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { MediaUploader, SelectedMedia } from "@/components/domain/MediaUploader"
@@ -9,6 +10,7 @@ import { createPost } from "@/app/actions/social"
 import { v4 as uuidv4 } from "uuid"
 
 export function PostForm({ recipes }: { recipes: { id: string, name: string }[] }) {
+  const router = useRouter()
   const [selectedMedia, setSelectedMedia] = useState<SelectedMedia[]>([])
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
@@ -34,8 +36,19 @@ export function PostForm({ recipes }: { recipes: { id: string, name: string }[] 
         formData.append("media_ids", JSON.stringify(uploadedIds))
       }
 
-      await createPost(formData)
+      const res = await createPost(formData)
+      if (res?.success) {
+        router.push("/")
+        router.refresh()
+        return
+      }
+
+      setIsSubmitting(false)
+      setErrorMsg("Error al publicar. Inténtalo de nuevo.")
     } catch (err: any) {
+      if (err?.digest?.startsWith?.("NEXT_REDIRECT")) {
+        return
+      }
       console.error(err)
       setIsSubmitting(false)
       setErrorMsg(err.message || "Error al publicar. Inténtalo de nuevo.")

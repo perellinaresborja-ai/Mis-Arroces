@@ -1,5 +1,4 @@
 import { createClient } from "@/lib/supabase/server"
-import { cookies } from "next/headers"
 import Link from "next/link"
 import { buttonVariants } from "@/components/ui/button"
 import Script from "next/script"
@@ -8,57 +7,14 @@ import { fetchFeedPage } from "@/app/actions/feed"
 import { FeedList } from "@/components/domain/FeedList"
 import { StoriesBar } from "@/components/domain/StoriesBar"
 import { fetchActiveStories } from "@/app/actions/stories"
-import { LandingContent } from "@/components/domain/LandingContent"
-import { HomeDeviceSignalGate } from "@/components/domain/HomeDeviceSignalGate"
 
 export default async function Home() {
   const supabase = await createClient()
 
-  // 1. Obtener usuario y cookies en paralelo
-  const [authRes, cookieStore] = await Promise.all([
-    supabase.auth.getUser(),
-    cookies()
-  ])
-  const user = authRes.data.user
-  const hasAccountSignal = cookieStore.get("ma_has_account")?.value === "1"
-  const showFeed = Boolean(user || hasAccountSignal)
+  // 1. Obtener usuario de la sesión activa
+  const { data: { user } } = await supabase.auth.getUser()
 
-  // Si no hay señal de cuenta ni usuario, mostrar inmediatamente la landing sin consultas adicionales a la BD
-  if (!showFeed) {
-    return (
-      <div className="min-h-screen bg-background flex flex-col pb-24 md:pb-8">
-        <HomeDeviceSignalGate showFeed={false} />
-        <LandingContent isHome={true} />
-        <Script
-          id="schema-org"
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{
-            __html: JSON.stringify({
-              "@context": "https://schema.org",
-              "@graph": [
-                {
-                  "@type": "WebSite",
-                  "name": "misarroces",
-                  "alternateName": "misarroces.es",
-                  "url": "https://www.misarroces.es"
-                },
-                {
-                  "@type": "Organization",
-                  "name": "misarroces",
-                  "url": "https://www.misarroces.es",
-                  "logo": "https://www.misarroces.es/logopaellaicono.png",
-                  "description": "Plataforma y red social especializada en arroz, recetas y comunidad.",
-                  "slogan": "La red social de los arroces"
-                }
-              ]
-            })
-          }}
-        />
-      </div>
-    )
-  }
-
-  // 2. Si hay que mostrar el Feed, ejecutamos el perfil, el feed y las historias TODO EN PARALELO
+  // 2. Cargar perfil (si está autenticado), feed e historias TODO EN PARALELO
   const [profileRes, feed, activeStories] = await Promise.all([
     user
       ? supabase
@@ -86,9 +42,7 @@ export default async function Home() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col pb-24 md:pb-8">
-      <HomeDeviceSignalGate showFeed={showFeed} />
-
-      {/* Main Feed Content - For users with active session OR returning users with device signal */}
+      {/* Main Feed Content - Feed público para anónimos, feed personalizado para usuarios con sesión */}
       <div className="flex-1 w-full max-w-2xl mx-auto space-y-4 pt-4 px-2 sm:px-0">
         
         {/* Stories Bar */}

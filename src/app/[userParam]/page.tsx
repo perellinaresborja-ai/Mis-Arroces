@@ -26,7 +26,7 @@ const getProfileData = cache(async (username: string) => {
     const { data: profile } = await supabase
       .from("profiles")
       .select(`*, avatar:media_assets!fk_profiles_avatar(storage_path), cover:media_assets!fk_profiles_cover(storage_path)`)
-      .eq("username", cleanUser)
+      .ilike("username", cleanUser)
       .maybeSingle()
 
     if (profile) {
@@ -37,7 +37,7 @@ const getProfileData = cache(async (username: string) => {
     const { data: alias } = await supabase
       .from("username_aliases" as any)
       .select("profile_id, profiles(username)")
-      .eq("username", cleanUser)
+      .ilike("username", cleanUser)
       .maybeSingle()
 
     if (alias && (alias as any).profiles?.username) {

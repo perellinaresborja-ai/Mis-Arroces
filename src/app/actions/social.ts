@@ -5,7 +5,6 @@ import { createClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
 import { trackEvent } from "@/app/actions/analytics"
 import { createNotification } from "@/app/actions/notifications"
-import { redirect } from "next/navigation"
 
 export async function createPost(formData: FormData) {
   const supabase = await createClient()
@@ -53,7 +52,7 @@ export async function createPost(formData: FormData) {
 
   revalidatePath("/")
   revalidatePath("/discover")
-  redirect("/")
+  return { success: true, id }
 }
 
 export async function toggleSave(recipeId: string, currentStatus: boolean) {

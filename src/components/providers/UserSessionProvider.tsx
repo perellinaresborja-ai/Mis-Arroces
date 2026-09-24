@@ -137,11 +137,10 @@ export function UserSessionProvider({
     const prevPath = previousPathnameRef.current
     previousPathnameRef.current = pathname
 
-    const wasAuthRoute = prevPath === "/login" || prevPath === "/forgot-password"
-    const isAnonymous = activeUserIdRef.current === null
+    const wasAuthRoute = prevPath === "/login" || prevPath === "/forgot-password" || prevPath === "/update-password"
 
-    // If navigating from auth routes or if we don't have an active user, check if session changed
-    if (wasAuthRoute || isAnonymous) {
+    // Solo consultar auth al navegar desde rutas de autenticación
+    if (wasAuthRoute) {
       syncAuth()
     }
   }, [pathname])
@@ -150,8 +149,10 @@ export function UserSessionProvider({
   useEffect(() => {
     const supabase = createClient()
 
-    // Initial sync on mount
-    syncAuth()
+    // Solo sincronizar en mount inicial si no vino un usuario resuelto por SSR
+    if (!activeUserIdRef.current) {
+      syncAuth()
+    }
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       const currentReq = ++requestIdRef.current

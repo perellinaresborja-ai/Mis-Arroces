@@ -26,13 +26,19 @@ export function MediaCarousel({ items, bucket = "recipe_media", href, priority =
   const toggleMute = (e?: React.MouseEvent) => {
     e?.preventDefault()
     e?.stopPropagation()
-    setIsMuted(!isMuted)
+    const nextMuted = !isMuted
+    setIsMuted(nextMuted)
+    const currentVideo = videoRefs.current[currentIndex]
+    if (currentVideo) {
+      currentVideo.muted = nextMuted
+    }
   }
 
   // Play current video, pause others
   useEffect(() => {
     Object.entries(videoRefs.current).forEach(([index, videoEl]) => {
       if (!videoEl) return
+      videoEl.muted = isMuted
       if (parseInt(index) === currentIndex) {
         videoEl.play().catch(() => {})
       } else {
@@ -40,7 +46,12 @@ export function MediaCarousel({ items, bucket = "recipe_media", href, priority =
         videoEl.currentTime = 0
       }
     })
-  }, [currentIndex])
+  }, [currentIndex, isMuted])
+
+  const currentItem = items[currentIndex]
+  const isCurrentVideo = Boolean(
+    currentItem && (currentItem.media_type === 'VIDEO' || currentItem.storage_path.match(/\.(mp4|webm|mov)$/i))
+  )
 
   const renderMedia = (item: MediaItem, index: number) => {
     const isVideo = item.media_type === 'VIDEO' || item.storage_path.match(/\.(mp4|webm|mov)$/i)
@@ -58,14 +69,6 @@ export function MediaCarousel({ items, bucket = "recipe_media", href, priority =
             loop
             playsInline
           />
-          {index === currentIndex && (
-            <button
-              onClick={toggleMute}
-              className="absolute bottom-3 right-3 bg-black/60 text-white rounded-full p-2 hover:bg-black/80 transition z-10"
-            >
-              {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
-            </button>
-          )}
         </div>
       )
     }
@@ -100,6 +103,17 @@ export function MediaCarousel({ items, bucket = "recipe_media", href, priority =
             </div>
           ))}
         </div>
+      )}
+
+      {isCurrentVideo && (
+        <button
+          type="button"
+          onClick={toggleMute}
+          aria-label={isMuted ? "Activar sonido" : "Silenciar"}
+          className="absolute bottom-3 right-3 bg-black/60 text-white rounded-full p-2 hover:bg-black/80 transition z-10"
+        >
+          {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+        </button>
       )}
 
       {items.length > 1 && (

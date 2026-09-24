@@ -170,6 +170,8 @@ export async function switchAccountSessionAction(targetUserId: string): Promise<
   error?: string
   isExpired?: boolean
   email?: string
+  accessToken?: string
+  refreshToken?: string
 }> {
   try {
     const supabase = await createClient()
@@ -236,9 +238,12 @@ export async function switchAccountSessionAction(targetUserId: string): Promise<
       secure: process.env.NODE_ENV === "production",
     })
 
-    revalidatePath("/", "layout")
-
-    return { success: true, username: targetAccount.username }
+    return {
+      success: true,
+      username: targetAccount.username,
+      accessToken: newSessionData?.session?.access_token || targetAccount.accessToken,
+      refreshToken: newSessionData?.session?.refresh_token || targetAccount.refreshToken,
+    }
   } catch (err: any) {
     console.error("Fallo inesperado conmutando cuenta:", err)
     return { success: false, error: "Fallo inesperado al sincronizar la cuenta." }

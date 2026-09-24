@@ -13,14 +13,22 @@ import {
   validateDisplayNameFormat,
   isDisplayNameAvailable,
 } from "@/lib/identity"
+import { isAuthorizedOfficialAccount } from "@/lib/admin/auth"
 
 export async function checkUsernameAvailabilityAction(username: string) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { available: false, error: "No autorizado" }
 
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("username")
+    .eq("id", user.id)
+    .maybeSingle()
+
   const clean = normalizeUsername(username)
-  const validation = validateUsernameFormat(clean)
+  const isAuthorizedAdmin = await isAuthorizedOfficialAccount(user.id, user.email, profile?.username)
+  const validation = validateUsernameFormat(clean, { isAuthorizedAdmin })
   if (!validation.valid) {
     return { available: false, error: validation.error }
   }
@@ -68,7 +76,8 @@ export async function updateOnboardingProfile({ username, displayName }: { usern
   if (!user) return { error: "No autorizado" }
 
   const cleanUsername = normalizeUsername(username)
-  const validation = validateUsernameFormat(cleanUsername)
+  const isAuthorizedAdmin = await isAuthorizedOfficialAccount(user.id, user.email)
+  const validation = validateUsernameFormat(cleanUsername, { isAuthorizedAdmin })
   if (!validation.valid) {
     return { error: validation.error }
   }

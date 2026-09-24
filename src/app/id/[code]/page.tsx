@@ -63,7 +63,7 @@ export default async function MemberIdPage({
       formattedFounderNumber = "099";
       displayName = "Borja";
       username = "perellinares";
-      isOwner = Boolean(user && (user.email?.includes("perellinares") || user.id === "d5e0c178-49d0-4160-b122-d518f5d46036"));
+      isOwner = Boolean(user && user.email?.includes("perellinares"));
     } else {
       return (
         <main className="min-h-screen bg-[#F7F5F0] flex items-center justify-center p-4">

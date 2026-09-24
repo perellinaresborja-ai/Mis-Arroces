@@ -1,16 +1,18 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { MediaUploader, SelectedMedia } from "@/components/domain/MediaUploader"
 import { uploadMedia } from "@/services/media/client"
 import { updateProfile } from "@/app/actions/profile"
-import { checkDisplayNameAvailabilityAction } from "@/app/onboarding/actions"
+import { checkDisplayNameAvailabilityAction, checkUsernameAvailabilityAction } from "@/app/onboarding/actions"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Save, Loader2, Check } from "lucide-react"
 
 export function EditProfileForm({ initialProfile }: { initialProfile: any }) {
+  const router = useRouter()
   const [selectedMedia, setSelectedMedia] = useState<SelectedMedia[]>([])
   const [selectedCover, setSelectedCover] = useState<SelectedMedia[]>([])
   const [removeCover, setRemoveCover] = useState(false)
@@ -22,6 +24,11 @@ export function EditProfileForm({ initialProfile }: { initialProfile: any }) {
   const [displayName, setDisplayName] = useState(initialProfile.display_name || "")
   const [checkingDisplayName, setCheckingDisplayName] = useState(false)
   const [displayNameStatus, setDisplayNameStatus] = useState<{ available?: boolean; message?: string } | null>(null)
+
+  // Real-time username check
+  const [username, setUsername] = useState(initialProfile.username || "")
+  const [checkingUsername, setCheckingUsername] = useState(false)
+  const [usernameStatus, setUsernameStatus] = useState<{ available?: boolean; message?: string } | null>(null)
 
   useEffect(() => {
     const trimmed = (displayName || "").trim()
@@ -54,6 +61,37 @@ export function EditProfileForm({ initialProfile }: { initialProfile: any }) {
     return () => clearTimeout(timer)
   }, [displayName, initialProfile.display_name])
 
+  useEffect(() => {
+    const clean = (username || "").trim().toLowerCase().replace(/^@+/, "")
+    if (!clean || clean === (initialProfile.username || "").trim().toLowerCase()) {
+      setUsernameStatus(null)
+      return
+    }
+
+    if (clean.length < 3) {
+      setUsernameStatus({ available: false, message: "Mínimo 3 caracteres" })
+      return
+    }
+
+    setCheckingUsername(true)
+    const timer = setTimeout(async () => {
+      try {
+        const res = await checkUsernameAvailabilityAction(clean)
+        if (res.available) {
+          setUsernameStatus({ available: true, message: "Nombre de usuario disponible" })
+        } else {
+          setUsernameStatus({ available: false, message: res.error || "Este nombre de usuario ya está en uso." })
+        }
+      } catch {
+        setUsernameStatus(null)
+      } finally {
+        setCheckingUsername(false)
+      }
+    }, 400)
+
+    return () => clearTimeout(timer)
+  }, [username, initialProfile.username])
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     if (isSubmitting) return
@@ -78,14 +116,25 @@ export function EditProfileForm({ initialProfile }: { initialProfile: any }) {
         formData.append("cover_media_id", coverId)
       }
 
-      await updateProfile(formData)
-    } catch (err: any) {
-      console.error(err)
-      setIsSubmitting(false)
-      if (err.message === 'NEXT_REDIRECT') {
+      const res = await updateProfile(formData)
+      if (res?.success) {
+        router.push(`/@${res.username}`)
+        router.refresh()
         return
       }
-      setErrorMsg(err.message || "Error al guardar el perfil.")
+
+      setIsSubmitting(false)
+      setErrorMsg(res?.error || "Error al guardar el perfil.")
+    } catch (err: any) {
+      console.error("Fallo inesperado al guardar perfil:", err)
+      setIsSubmitting(false)
+      if (err?.digest?.startsWith?.("NEXT_REDIRECT") || err?.message === "NEXT_REDIRECT") {
+        return
+      }
+      const msg = typeof err?.message === "string" && !err.message.includes("Minified React error")
+        ? err.message
+        : "Error al guardar el perfil. Comprueba los campos e inténtalo de nuevo."
+      setErrorMsg(msg)
     }
   }
 
@@ -205,20 +254,41 @@ export function EditProfileForm({ initialProfile }: { initialProfile: any }) {
 
         <div className="space-y-2">
           <Label htmlFor="username">Nombre de usuario</Label>
-          <div className="flex items-center">
+          <div className="relative flex items-center">
             <span className="h-12 flex items-center justify-center px-3 bg-muted border border-r-0 border-input rounded-l-xl text-muted-foreground font-medium">@</span>
             <Input 
               id="username" 
               name="username" 
-              defaultValue={initialProfile.username} 
+              value={username} 
+              onChange={e => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_.]/g, ''))}
               required 
               placeholder="pere"
               pattern="^[a-z0-9_.]{3,30}$"
               title="Solo minúsculas, números, guiones bajos y puntos."
-              className="h-12 rounded-l-none"
+              className={`h-12 rounded-l-none pr-10 ${
+                usernameStatus?.available === false
+                  ? "border-destructive focus-visible:ring-destructive"
+                  : usernameStatus?.available === true
+                  ? "border-green-600 focus-visible:ring-green-600"
+                  : ""
+              }`}
             />
+            <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+              {checkingUsername ? (
+                <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+              ) : usernameStatus?.available === true ? (
+                <Check className="w-4 h-4 text-green-600" />
+              ) : null}
+            </div>
           </div>
-          <p className="text-xs text-muted-foreground">Tu identidad en Mis Arroces. Único y sin espacios.</p>
+          {usernameStatus?.message && (
+            <p className={`text-xs mt-1.5 font-medium ${
+              usernameStatus.available === true ? "text-green-600" : "text-destructive"
+            }`}>
+              {usernameStatus.message}
+            </p>
+          )}
+          <p className="text-xs text-muted-foreground">Tu identidad en misarroces. Único y sin espacios.</p>
           {hasCooldown && (
             <p className="text-xs text-destructive">Has cambiado tu usuario recientemente. Faltan días para volver a cambiarlo.</p>
           )}

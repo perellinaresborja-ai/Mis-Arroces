@@ -35,9 +35,9 @@ export function BottomNav() {
     touchStartPos.current = { x: touch.clientX, y: touch.clientY }
 
     const now = Date.now()
-    // Si este contacto ocurre dentro del intervalo de doble toque (<250ms), cancelamos
+    // Si este contacto ocurre dentro del intervalo de doble toque (<280ms), cancelamos
     // INMEDIATAMENTE la navegación del primer toque para evitar cualquier flash del perfil
-    if (now - lastTapRef.current < 250 && singleTapTimerRef.current) {
+    if (now - lastTapRef.current < 280 && singleTapTimerRef.current) {
       clearTimeout(singleTapTimerRef.current)
       singleTapTimerRef.current = null
     }
@@ -87,8 +87,8 @@ export function BottomNav() {
     const now = Date.now()
     const diff = now - lastTapRef.current
 
-    if (diff < 250) {
-      // DOBLE TOQUE RÁPIDO (< 250ms) -> Conmutar a la última cuenta usada
+    if (diff < 280) {
+      // DOBLE TOQUE RÁPIDO (< 280ms) -> Conmutar a la última cuenta usada
       e.preventDefault()
       e.stopPropagation()
       if (singleTapTimerRef.current) {
@@ -99,8 +99,8 @@ export function BottomNav() {
       quickSwitchLastAccount()
     } else {
       // PRIMER TOQUE:
-      // Esperar brevemente (190ms) mientras el prefetch completa la caché en memoria.
-      // Si llega un segundo toque antes de 190ms, touchStart/touchEnd abortan router.push,
+      // Esperar brevemente (280ms) mientras el prefetch completa la caché en memoria.
+      // Si llega un segundo toque antes de 280ms, touchStart/touchEnd abortan router.push,
       // garantizando CERO parpadeo/flash del perfil actual y cambio limpio de cuenta.
       lastTapRef.current = now
       if (singleTapTimerRef.current) {
@@ -113,7 +113,7 @@ export function BottomNav() {
         } else {
           router.push(profileHref)
         }
-      }, 190)
+      }, 280)
     }
   }
 

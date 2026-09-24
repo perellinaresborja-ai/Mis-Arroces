@@ -178,16 +178,39 @@ export function MultiAccountProvider({ children }: { children: React.ReactNode }
         return false
       }
 
-      // 2. Limpieza de cachés efímeras del usuario anterior en el navegador
+      // 2. Sincronizar la sesión en el cliente de Supabase
+      if (res.accessToken && res.refreshToken) {
+        try {
+          const supabase = createClient()
+          await supabase.auth.setSession({
+            access_token: res.accessToken,
+            refresh_token: res.refreshToken,
+          })
+        } catch (e) {
+          console.warn("Aviso sincronizando sesión cliente:", e)
+        }
+      }
+
+      // Asegurar que no se dispare el splash ni se limpien flags de arranque
       try {
-        sessionStorage.clear()
+        sessionStorage.setItem("misarroces_splash_shown", "1")
       } catch {}
 
       setActiveAccountId(targetUserId)
       setIsSwitcherOpen(false)
 
-      // 3. Recarga limpia para renderizar completamente los Server Components con las nuevas cookies de sesión
-      window.location.href = "/"
+      // 3. Determinar destino limpio: si estábamos en el perfil del usuario anterior, ir al nuevo perfil.
+      // En cualquier otro caso, mantener la ruta actual (recetario, inicio, receta, etc.)
+      let targetHref = window.location.pathname + window.location.search
+      const currentPath = window.location.pathname
+      const oldAccount = activeAccountId ? accountsRef.current.find((a) => a.userId === activeAccountId) : null
+      const oldUsername = oldAccount?.username
+      const newUsername = res.username || targetAccount.username
+      if (oldUsername && (currentPath === `/@${oldUsername}` || currentPath === `/${oldUsername}`)) {
+        targetHref = `/@${newUsername}`
+      }
+
+      window.location.href = targetHref
       return true
     } catch (err: any) {
       console.error("Fallo general conmutando cuenta:", err)

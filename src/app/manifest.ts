@@ -7,8 +7,8 @@ export default function manifest(): MetadataRoute.Manifest {
     description: 'La red social de los arroces. Descubre, guarda y comparte las mejores recetas de arroces y paellas.',
     start_url: '/',
     display: 'standalone',
-    background_color: '#F7F2E8',
-    theme_color: '#F7F2E8',
+    background_color: '#F7F5F0',
+    theme_color: '#F7F5F0',
     icons: [
       {
         src: '/icons/icon-192x192.png',

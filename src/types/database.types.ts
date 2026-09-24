@@ -14,6 +14,79 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_roles: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          role: "SUPER_ADMIN" | "ADMIN" | "MODERATOR"
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          role?: "SUPER_ADMIN" | "ADMIN" | "MODERATOR"
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          role?: "SUPER_ADMIN" | "ADMIN" | "MODERATOR"
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_roles_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      admin_audit_logs: {
+        Row: {
+          action: string
+          admin_id: string
+          created_at: string
+          details: Json | null
+          id: string
+          ip_address: string | null
+          target_id: string | null
+          target_type: string | null
+        }
+        Insert: {
+          action: string
+          admin_id: string
+          created_at?: string
+          details?: Json | null
+          id?: string
+          ip_address?: string | null
+          target_id?: string | null
+          target_type?: string | null
+        }
+        Update: {
+          action?: string
+          admin_id?: string
+          created_at?: string
+          details?: Json | null
+          id?: string
+          ip_address?: string | null
+          target_id?: string | null
+          target_type?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_audit_logs_admin_id_fkey"
+            columns: ["admin_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       push_subscriptions: {
         Row: {
           auth: string
@@ -3595,6 +3668,7 @@ get_trending_recipes: {
       }
     }
     Enums: {
+      admin_role_enum: "SUPER_ADMIN" | "ADMIN" | "MODERATOR"
       account_status_enum: "ACTIVE" | "SUSPENDED" | "DELETED"
       base_account_type_enum: "PERSONAL" | "PROFESSIONAL"
       difficulty_level_enum: "EASY" | "MEDIUM" | "HARD"
@@ -3750,6 +3824,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      admin_role_enum: ["SUPER_ADMIN", "ADMIN", "MODERATOR"],
       account_status_enum: ["ACTIVE", "SUSPENDED", "DELETED"],
       base_account_type_enum: ["PERSONAL", "PROFESSIONAL"],
       difficulty_level_enum: ["EASY", "MEDIUM", "HARD"],
