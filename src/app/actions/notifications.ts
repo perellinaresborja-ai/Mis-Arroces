@@ -163,13 +163,17 @@ export async function createNotification(
         .update({ is_read: false, created_at: new Date().toISOString() })
         .eq('id', existing.id)
 
-      // Send push notification asynchronously in background
-      sendPushToUser(recipient_id, {
-        title: pushTitle,
-        body: pushBody,
-        url: pushUrl,
-        tag: `notif-${type}-${entity_id}`,
-      }).catch((err) => console.warn("[Push Dispatch Error]", err?.message || err))
+      // Send push notification immediately before server action terminates
+      try {
+        await sendPushToUser(recipient_id, {
+          title: pushTitle,
+          body: pushBody,
+          url: pushUrl,
+          tag: `notif-${type}-${payload?.message_id || entity_id}-${Date.now()}`,
+        })
+      } catch (err: any) {
+        console.warn("[Push Dispatch Error]", err?.message || err)
+      }
 
       return
     }
@@ -184,13 +188,17 @@ export async function createNotification(
     payload
   })
 
-  // Send push notification asynchronously in background
-  sendPushToUser(recipient_id, {
-    title: pushTitle,
-    body: pushBody,
-    url: pushUrl,
-    tag: `notif-${type}-${entity_id}`,
-  }).catch((err) => console.warn("[Push Dispatch Error]", err?.message || err))
+  // Send push notification immediately before server action terminates
+  try {
+    await sendPushToUser(recipient_id, {
+      title: pushTitle,
+      body: pushBody,
+      url: pushUrl,
+      tag: `notif-${type}-${payload?.message_id || entity_id}-${Date.now()}`,
+    })
+  } catch (err: any) {
+    console.warn("[Push Dispatch Error]", err?.message || err)
+  }
 }
 
 export async function markNotificationRead(notificationId: string) {

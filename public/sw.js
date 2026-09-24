@@ -1,5 +1,5 @@
 // Service Worker ligero para misarroces PWA
-const CACHE_NAME = 'misarroces-v2';
+const CACHE_NAME = 'misarroces-v3';
 const OFFLINE_URL = '/offline.html';
 
 const STATIC_ASSETS = [
@@ -94,16 +94,19 @@ self.addEventListener('push', (event) => {
   }
 
   const title = data.title || 'misarroces';
+  const unread = typeof data.unreadCount === 'number' && data.unreadCount > 0 ? data.unreadCount : 1;
+  const uniqueTag = data.tag || `misarroces-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+
   const options = {
     body: data.body || 'Tienes una nueva interacción en misarroces',
     icon: data.icon || '/icons/icon-192x192.png',
     badge: data.badge || '/icons/icon-192x192.png',
     data: {
       url: data.url || '/',
-      unreadCount: data.unreadCount,
+      unreadCount: unread,
       ...data.data,
     },
-    tag: data.tag || 'misarroces-notification',
+    tag: uniqueTag,
     renotify: true,
   };
 
@@ -111,12 +114,7 @@ self.addEventListener('push', (event) => {
 
   // Sincronizar App Badging API en segundo plano con el conteo real
   if ('setAppBadge' in navigator) {
-    const unread = typeof data.unreadCount === 'number' ? data.unreadCount : 1;
-    if (unread > 0) {
-      tasks.push(navigator.setAppBadge(unread).catch(() => {}));
-    } else {
-      tasks.push(navigator.clearAppBadge().catch(() => {}));
-    }
+    tasks.push(navigator.setAppBadge(unread).catch(() => {}));
   }
 
   event.waitUntil(Promise.all(tasks));
