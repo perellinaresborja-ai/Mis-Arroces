@@ -34,7 +34,7 @@ export function LandingContent({ isHome = false }: { isHome?: boolean }) {
             </div>
           ) : (
             <Link href="/descargar" className={buttonVariants({ size: "lg", className: "rounded-2xl font-bold text-lg px-10 h-14 inline-flex items-center gap-2.5 shadow-md" })}>
-              <Download className="w-5 h-5" />
+              <Download className="w-5 h-5" aria-hidden="true" />
               Descargar la app
             </Link>
           )}
@@ -67,7 +67,7 @@ export function LandingContent({ isHome = false }: { isHome?: boolean }) {
           />
           <FeatureCard 
             icon={<Mic className="w-6 h-6" />} 
-            title="Creación Inteligente" 
+            title="Escribe o usa tu voz" 
             desc="Añade recetas escribiéndolas paso a paso o simplemente cuéntaselo a la app usando tu voz."
           />
           <FeatureCard 
@@ -116,7 +116,7 @@ export function LandingContent({ isHome = false }: { isHome?: boolean }) {
       {/* Instagram Highlight */}
       <section className="bg-gradient-to-br from-[#FFF5ED] to-[#FFE8D6] dark:from-orange-950/40 dark:to-orange-900/20 border border-orange-200 dark:border-orange-900/50 rounded-3xl p-8 md:p-12 text-center flex flex-col items-center gap-6 shadow-sm my-12">
         <div className="w-20 h-20 shrink-0 bg-white dark:bg-black rounded-3xl flex items-center justify-center shadow-md">
-          <Smartphone className="w-10 h-10 text-orange-600 dark:text-orange-500" />
+          <Smartphone className="w-10 h-10 text-orange-600 dark:text-orange-500" aria-hidden="true" />
         </div>
         <div className="max-w-2xl space-y-4 text-center">
           <h3 className="text-2xl md:text-3xl font-bold text-foreground">¿Ya publicas tus arroces en Instagram?</h3>
@@ -129,27 +129,34 @@ export function LandingContent({ isHome = false }: { isHome?: boolean }) {
 
       {/* Final CTA */}
       <section className="bg-card border border-border rounded-3xl p-8 md:p-14 text-center space-y-6 shadow-sm">
-        <Flame className="w-14 h-14 text-orange-500 mx-auto" />
-        <h2 className="text-3xl md:text-4xl font-bold">Empieza a cocinar con nosotros</h2>
+        <Flame className="w-14 h-14 text-orange-500 mx-auto" aria-hidden="true" />
+        <h2 className="text-3xl md:text-4xl font-bold text-foreground">Lleva misarroces contigo</h2>
         <p className="text-muted-foreground max-w-xl mx-auto text-lg">
-          Únete a una comunidad creada para quienes disfrutan cocinando, compartiendo y aprendiendo sobre arroz.
+          Tu recetario, tus arroces y toda la comunidad siempre a mano.
         </p>
         <div className="pt-6">
-          {isHome ? (
-            <Link href="/login?mode=signup" className={buttonVariants({ size: "lg", className: "rounded-xl font-bold text-lg px-10 h-14" })}>
-              Crear cuenta
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <Link 
+              href="/descargar" 
+              className={buttonVariants({ 
+                size: "lg", 
+                className: "rounded-2xl font-bold text-lg px-10 h-14 inline-flex items-center justify-center gap-2.5 shadow-md w-full sm:w-auto bg-primary hover:bg-primary/90 text-primary-foreground" 
+              })}
+            >
+              <Download className="w-5 h-5" aria-hidden="true" />
+              Descargar la app
             </Link>
-          ) : (
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <Link href="/descargar" className={buttonVariants({ size: "lg", className: "rounded-2xl font-bold text-lg px-10 h-14 inline-flex items-center gap-2.5 shadow-md w-full sm:w-auto" })}>
-                <Download className="w-5 h-5" />
-                Descargar la app
-              </Link>
-              <Link href="/login?mode=signup" className={buttonVariants({ variant: "outline", size: "lg", className: "rounded-2xl font-bold text-lg px-10 h-14 w-full sm:w-auto" })}>
-                Crear mi cuenta
-              </Link>
-            </div>
-          )}
+            <Link 
+              href="/login?mode=signup" 
+              className={buttonVariants({ 
+                variant: "outline", 
+                size: "lg", 
+                className: "rounded-2xl font-bold text-lg px-10 h-14 w-full sm:w-auto" 
+              })}
+            >
+              Crear mi cuenta
+            </Link>
+          </div>
         </div>
       </section>
 
@@ -168,11 +175,11 @@ export function LandingContent({ isHome = false }: { isHome?: boolean }) {
 function FeatureCard({ icon, title, desc }: { icon: React.ReactNode, title: string, desc: string }) {
   return (
     <div className="bg-card border border-border rounded-2xl sm:rounded-3xl p-4 sm:p-6 flex flex-col space-y-3 sm:space-y-4 hover:border-orange-500/30 hover:shadow-md transition-all duration-300">
-      <div className="w-10 h-10 sm:w-12 sm:h-12 bg-orange-100 dark:bg-orange-950/50 rounded-xl sm:rounded-2xl flex items-center justify-center text-orange-600 dark:text-orange-500 shrink-0">
+      <div className="w-10 h-10 sm:w-12 sm:h-12 bg-orange-100 dark:bg-orange-950/50 rounded-xl sm:rounded-2xl flex items-center justify-center text-orange-600 dark:text-orange-500 shrink-0" aria-hidden="true">
         {icon}
       </div>
       <div>
-        <h3 className="font-bold text-base sm:text-lg mb-1.5 sm:mb-2">{title}</h3>
+        <h3 className="font-bold text-base sm:text-lg mb-1.5 sm:mb-2 text-foreground">{title}</h3>
         <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">{desc}</p>
       </div>
     </div>

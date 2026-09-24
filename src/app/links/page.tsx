@@ -72,54 +72,24 @@ export default function LinksPage() {
 
   return (
     <div className="min-h-[100dvh] bg-background flex flex-col items-center pt-12 md:pt-24 px-6 relative w-full">
-      {/* Logo */}
-      <div className="relative w-[118px] h-[118px] mb-4">
-        <Image src="/logopaellaicono.png" alt="misarroces Icono" fill sizes="200px" className="object-contain" priority />
+      {/* Logo Oficial misarroces */}
+      <div className="relative w-44 h-48 sm:w-52 sm:h-56 mb-8">
+        <Image
+          src="/logopngver.png"
+          alt="misarroces"
+          fill
+          sizes="(max-width: 640px) 176px, 208px"
+          className="object-contain"
+          priority
+        />
       </div>
-      
-      {/* Títulos */}
-      <h1 className="text-2xl font-bold text-foreground mb-1 text-center">misarroces.es</h1>
-      <p className="text-muted-foreground text-center mb-10">La red social de los arroces</p>
 
       {/* Botones */}
       <div className="w-full max-w-sm space-y-4 flex flex-col items-stretch pb-16">
         
-        {/* 0. Descargar la app */}
+        {/* 1. ¿Qué es misarroces? */}
         <Link 
-          href={getHref('/descargar', false)}
-          onClick={() => handleTracking('Descargar la app', '/descargar', false)}
-          className="w-full grid grid-cols-[3rem_1fr_3rem] items-center bg-primary hover:bg-primary/90 text-primary-foreground font-bold py-4 px-2 rounded-3xl shadow-md transition-all active:scale-[0.99]"
-        >
-          <div className="flex justify-center"><Download className="w-5 h-5 shrink-0 stroke-[2.5]" /></div>
-          <span className="text-center leading-tight">Descargar la app</span>
-          <div />
-        </Link>
-
-        {/* 1. Ir a misarroces */}
-        <Link 
-          href={getHref('/feed', false)}
-          onClick={() => handleTracking('Ir a misarroces', '/feed', false)}
-          className="w-full grid grid-cols-[3rem_1fr_3rem] items-center bg-card border border-border hover:border-primary/50 text-foreground font-semibold py-4 px-2 rounded-3xl shadow-sm transition-all"
-        >
-          <div className="flex justify-center"><Home className="w-5 h-5 text-muted-foreground shrink-0" /></div>
-          <span className="text-center leading-tight">Ir a misarroces</span>
-          <div />
-        </Link>
-
-        {/* 2. Trae tus recetas de Instagram */}
-        <Link 
-          href={getHref('/create/recipe#import', true)}
-          onClick={() => handleTracking('Trae tus recetas de Instagram', '/create/recipe#import', true)}
-          className="w-full grid grid-cols-[3rem_1fr_3rem] items-center bg-primary hover:bg-primary/90 text-primary-foreground font-semibold py-4 px-2 rounded-3xl shadow-sm transition-all"
-        >
-          <div className="flex justify-center"><Smartphone className="w-5 h-5 opacity-80 shrink-0" /></div>
-          <span className="text-center leading-tight">Trae tus recetas de Instagram</span>
-          <div />
-        </Link>
-
-        {/* 3. ¿Qué es misarroces? */}
-        <Link 
-          href={getHref('/sobre-misarroces', false)}
+          href="/sobre-misarroces"
           onClick={() => handleTracking('¿Qué es misarroces?', '/sobre-misarroces', false)}
           className="w-full grid grid-cols-[3rem_1fr_3rem] items-center bg-card border border-border hover:border-primary/50 text-foreground font-semibold py-4 px-2 rounded-3xl shadow-sm transition-all"
         >
@@ -128,14 +98,36 @@ export default function LinksPage() {
           <div />
         </Link>
 
-        {/* 4. Crea tu recetario */}
+        {/* 2. Trae tus recetas de Instagram */}
         <Link 
-          href={getHref('/cookbook', true)}
-          onClick={() => handleTracking('Crea tu recetario', '/cookbook', true)}
+          href="/importar-instagram"
+          onClick={() => handleTracking('Trae tus recetas de Instagram', '/importar-instagram', false)}
+          className="w-full grid grid-cols-[3rem_1fr_3rem] items-center bg-card border border-border hover:border-primary/50 text-foreground font-semibold py-4 px-2 rounded-3xl shadow-sm transition-all"
+        >
+          <div className="flex justify-center"><Smartphone className="w-5 h-5 text-muted-foreground shrink-0" /></div>
+          <span className="text-center leading-tight">Trae tus recetas de Instagram</span>
+          <div />
+        </Link>
+
+        {/* 3. Crea tu recetario */}
+        <Link 
+          href="/crear-receta"
+          onClick={() => handleTracking('Crea tu recetario', '/crear-receta', false)}
           className="w-full grid grid-cols-[3rem_1fr_3rem] items-center bg-card border border-border hover:border-primary/50 text-foreground font-semibold py-4 px-2 rounded-3xl shadow-sm transition-all"
         >
           <div className="flex justify-center"><BookOpen className="w-5 h-5 text-muted-foreground shrink-0" /></div>
           <span className="text-center leading-tight">Crea tu recetario</span>
+          <div />
+        </Link>
+
+        {/* 4. Descargar la app (CTA final destacado en naranja) */}
+        <Link 
+          href="/descargar"
+          onClick={() => handleTracking('Descargar la app', '/descargar', false)}
+          className="w-full grid grid-cols-[3rem_1fr_3rem] items-center bg-primary hover:bg-primary/90 text-primary-foreground font-bold py-4 px-2 rounded-3xl shadow-md transition-all active:scale-[0.99]"
+        >
+          <div className="flex justify-center"><Download className="w-5 h-5 shrink-0 stroke-[2.5]" /></div>
+          <span className="text-center leading-tight">Descargar la app</span>
           <div />
         </Link>
 
