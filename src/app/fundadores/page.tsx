@@ -63,7 +63,7 @@ export default async function FundadoresPage() {
           ) : (
             <div className="flex flex-col items-center text-center">
               <p className="text-sm text-[#52525B] leading-relaxed mb-6">
-                Para formar parte de Los 100, regístrate y publica tu primera receta mientras haya plazas disponibles. Cuando se alcancen los 100 miembros, el acceso se cerrará de forma automática y definitiva.
+                Para formar parte de Los 100, regístrate y publica tu primera receta mientras el acceso siga abierto. Una vez completadas las plazas, se cerrará de forma automática y definitiva.
               </p>
               <FundadoresCTA />
             </div>
