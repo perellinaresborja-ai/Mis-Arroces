@@ -383,3 +383,102 @@ export async function sendFounderInvitationEmail({
     html,
   })
 }
+
+export async function sendAccountDeletionVerificationEmail({
+  to,
+  username,
+  verificationCode,
+}: {
+  to: string
+  username?: string
+  verificationCode: string
+}) {
+  const resend = getResend()
+  const subject = 'Confirmación de solicitud de eliminación de cuenta - misarroces'
+
+  const html = `
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${subject}</title>
+</head>
+<body style="margin:0;padding:0;background-color:#F7F5F0;">
+  <div style="background-color:#F7F5F0;padding:28px 12px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+    <div style="max-width:480px;margin:0 auto;background:#FFFFFF;border-radius:24px;border:1px solid #EAE7E0;box-shadow:0 4px 20px rgba(0,0,0,0.06);padding:32px 24px 28px 24px;text-align:center;">
+
+      <!-- 1. Logo oficial misarroces -->
+      <a href="https://www.misarroces.es" target="_blank" style="text-decoration:none;display:inline-block;">
+        <img
+          src="https://www.misarroces.es/logover.png"
+          alt="misarroces"
+          width="140"
+          style="display:block;margin:0 auto 20px auto;max-width:100%;height:auto;border:0;"
+        />
+      </a>
+
+      <!-- 2. Píldora de aviso de seguridad -->
+      <div style="display:inline-block;background:#FEF2F2;border:1px solid #FCA5A5;border-radius:100px;padding:3px 12px;font-size:10px;font-weight:800;color:#DC2626;letter-spacing:0.12em;margin-bottom:16px;text-transform:uppercase;">
+        SEGURIDAD Y PRIVACIDAD
+      </div>
+
+      <!-- 3. Título -->
+      <h2 style="color:#18181B;font-size:19px;font-weight:900;margin:0 0 16px 0;letter-spacing:-0.02em;line-height:1.3;">
+        Solicitud de eliminación de cuenta
+      </h2>
+
+      <!-- 4. Contenido -->
+      <div style="color:#3F3F46;font-size:14px;line-height:23px;text-align:left;margin:0 0 20px 0;">
+        <p style="margin:0 0 12px 0;">
+          Hola${username ? ` <strong>${username}</strong>` : ''},
+        </p>
+        <p style="margin:0 0 12px 0;">
+          Hemos recibido una solicitud para eliminar permanentemente tu cuenta y todos los datos asociados en <strong>misarroces</strong>.
+        </p>
+        <p style="margin:0 0 12px 0;color:#52525B;">
+          Esta acción es <strong>irreversible</strong> y destruirá tu perfil, fotos de recetas, historial de cocinado, comentarios y mensajes privados.
+        </p>
+        <p style="margin:0 0 8px 0;color:#52525B;">
+          Para verificar tu identidad y confirmar que eres el titular legítimo, utiliza el siguiente código de confirmación o responde directamente a este correo desde tu dirección:
+        </p>
+      </div>
+
+      <!-- 5. Código de verificación -->
+      <div style="background:#FAF8F5;border:1.5px dashed #EA580C;border-radius:16px;padding:16px;margin:20px 0;text-align:center;">
+        <div style="font-size:11px;font-weight:700;color:#71717A;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:6px;">
+          Código de confirmación
+        </div>
+        <div style="font-size:28px;font-weight:900;letter-spacing:6px;color:#18181B;font-family:monospace;">
+          ${verificationCode}
+        </div>
+      </div>
+
+      <!-- 6. Advertencia de seguridad -->
+      <p style="color:#A1A1AA;font-size:12px;line-height:18px;margin:16px 0 20px 0;text-align:left;">
+        Si tú no has solicitado eliminar tu cuenta, puedes ignorar este correo de forma segura. Tu cuenta y datos seguirán protegidos y nadie podrá eliminarlos sin tu confirmación.
+      </p>
+
+      <!-- 7. Separador y Pie -->
+      <div style="border-top:1px solid #F4F4F5;margin-top:20px;padding-top:16px;text-align:center;">
+        <p style="color:#18181B;font-size:12px;font-weight:800;margin:0 0 2px 0;">
+          misarroces
+        </p>
+        <p style="color:#A1A1AA;font-size:11px;margin:0;">
+          Celler Naziha S.L. · <a href="https://www.misarroces.es/legal/privacy" style="color:#EA580C;text-decoration:none;">Política de Privacidad</a>
+        </p>
+      </div>
+
+    </div>
+  </div>
+</body>
+</html>
+`
+
+  return await resend.emails.send({
+    from: 'misarroces <info@misarroces.es>',
+    to,
+    subject,
+    html,
+  })
+}

@@ -70,7 +70,7 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  themeColor: "#F7F2E8", // Cream background
+  themeColor: "#F7F5F0", // Fondo crema oficial
 };
 
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
@@ -78,6 +78,7 @@ import { UserSessionProvider } from "@/components/providers/UserSessionProvider"
 import { CookieConsentBanner } from "@/components/domain/CookieConsentBanner";
 import { AcquisitionProvider } from "@/components/providers/AcquisitionProvider";
 import { GA4Loader } from "@/components/domain/GA4Loader";
+import { AppSplashScreen } from "@/components/domain/AppSplashScreen";
 import { Suspense } from "react";
 
 export default async function RootLayout({
@@ -110,6 +111,7 @@ export default async function RootLayout({
     <html lang="es" suppressHydrationWarning>
       <body className={`${inter.className} antialiased bg-background text-foreground safe-area-pt safe-area-pb overflow-x-hidden`}>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+          <AppSplashScreen />
           <UserSessionProvider initialAvatarUrl={avatarUrl} initialUsername={initialUsername}>
             <PwaProvider>
               <AuthPromptProvider>

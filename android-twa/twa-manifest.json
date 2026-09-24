@@ -1,0 +1,58 @@
+{
+  "packageId": "es.misarroces.app",
+  "host": "www.misarroces.es",
+  "name": "misarroces",
+  "launcherName": "misarroces",
+  "themeColor": "#F7F5F0",
+  "themeColorDark": "#18181B",
+  "navigationColor": "#F7F5F0",
+  "navigationColorDark": "#18181B",
+  "navigationDividerColor": "#00000000",
+  "navigationDividerColorDark": "#00000000",
+  "backgroundColor": "#F7F5F0",
+  "enableNotifications": true,
+  "startUrl": "/",
+  "iconUrl": "https://www.misarroces.es/icons/icon-512x512.png",
+  "maskableIconUrl": "https://www.misarroces.es/icons/icon-maskable-512x512.png",
+  "appVersionName": "1.0.0",
+  "appVersionCode": 1,
+  "signingKey": {
+    "path": "./misarroces-release-key.keystore",
+    "alias": "misarroces"
+  },
+  "splashScreenFadeOutDuration": 300,
+  "enableSiteSettingsShortcut": true,
+  "isChromeOSOnly": false,
+  "fullScopeUrl": "https://www.misarroces.es/",
+  "minSdkVersion": 21,
+  "targetSdkVersion": 36,
+  "orientation": "portrait",
+  "shortcuts": [
+    {
+      "name": "Recetario",
+      "shortName": "Recetas",
+      "url": "https://www.misarroces.es/cookbook",
+      "icon": "https://www.misarroces.es/icons/icon-192x192.png"
+    },
+    {
+      "name": "Descubrir",
+      "shortName": "Descubrir",
+      "url": "https://www.misarroces.es/discover",
+      "icon": "https://www.misarroces.es/icons/icon-192x192.png"
+    }
+  ],
+  "generatorApp": "bubblewrap-cli",
+  "webManifestUrl": "https://www.misarroces.es/manifest.webmanifest",
+  "fallbackType": "customtabs",
+  "features": {
+    "locationDelegation": {
+      "enabled": true
+    },
+    "playBilling": {
+      "enabled": false
+    }
+  },
+  "alphaDependencies": {
+    "enabled": false
+  }
+}
