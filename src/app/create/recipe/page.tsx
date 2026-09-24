@@ -9,14 +9,14 @@ export default async function CreateRecipePage() {
   const { data: { user } } = await supabase.auth.getUser();
   
   if (!user) {
-    redirect("/login");
+    redirect("/login?mode=signup&redirect=%2Fcreate%2Frecipe");
   }
 
   async function createManualAction() {
     "use server"
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) redirect("/login");
+    if (!user) redirect("/login?mode=signup&redirect=%2Fcreate%2Frecipe");
 
     // Look for an existing empty draft to reuse
     const { data: existingEmpty } = await supabase

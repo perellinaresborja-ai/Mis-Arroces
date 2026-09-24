@@ -96,12 +96,25 @@ export async function signup(formData: FormData) {
     redirect(`/login?error=${encodeURIComponent("La contraseña debe tener al menos 6 caracteres.")}`)
   }
 
+  const { cookies } = await import("next/headers")
+  const cookieStore = await cookies()
+  const returnCookie = cookieStore.get("misarroces_return_to")?.value
+  const formRedirect = formData.get("redirect") as string
+  const targetRedirect = formRedirect || returnCookie || ""
+
+  if (returnCookie) {
+    cookieStore.delete("misarroces_return_to")
+  }
+
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://www.misarroces.es";
+  const emailNext = (targetRedirect && targetRedirect.startsWith("/") && !targetRedirect.startsWith("//"))
+    ? targetRedirect
+    : "/create/recipe"
 
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
-    options: { emailRedirectTo: `${baseUrl}/auth/callback?next=/` }
+    options: { emailRedirectTo: `${baseUrl}/auth/callback?next=${encodeURIComponent(emailNext)}` }
   })
 
   if (error) {
@@ -110,8 +123,6 @@ export async function signup(formData: FormData) {
   }
 
   if (data.user) {
-    const { cookies } = await import("next/headers")
-    const cookieStore = await cookies()
     cookieStore.set("ma_has_account", "1", {
       path: "/",
       maxAge: 60 * 60 * 24 * 730,
@@ -164,9 +175,13 @@ export async function signup(formData: FormData) {
 
   revalidatePath("/", "layout")
   if (data.session) {
-    redirect("/?signup=success")
+    if (targetRedirect && targetRedirect.startsWith("/") && !targetRedirect.startsWith("//")) {
+      redirect(targetRedirect)
+    } else {
+      redirect("/create/recipe")
+    }
   } else {
-    redirect("/login?message=Cuenta creada. Revisa tu correo para confirmar tu cuenta.&signup=success")
+    redirect(`/login?message=${encodeURIComponent("Cuenta creada. Revisa tu correo para confirmar tu cuenta.")}&signup=success`)
   }
 }
 

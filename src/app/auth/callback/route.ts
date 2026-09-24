@@ -7,7 +7,13 @@ export async function GET(request: Request) {
   const code = searchParams.get('code')
   
   // The next query param is for redirecting after successful sign in
-  const next = searchParams.get('next') ?? '/cookbook'
+  const { cookies } = await import('next/headers')
+  const cookieStore = await cookies()
+  const returnCookie = cookieStore.get('misarroces_return_to')?.value
+  if (returnCookie) {
+    cookieStore.delete('misarroces_return_to')
+  }
+  const next = searchParams.get('next') || returnCookie || '/create/recipe'
 
   if (code) {
     const supabase = await createClient()
