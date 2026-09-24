@@ -149,6 +149,7 @@ export function BottomNav() {
     pathname === "/login" ||
     pathname === "/forgot-password" ||
     pathname === "/links" ||
+    pathname === "/descargar" ||
     pathname.startsWith("/messages/") ||
     pathname.includes("/edit") ||
     pathname.includes("/create")

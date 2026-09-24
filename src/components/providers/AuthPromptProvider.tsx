@@ -59,17 +59,17 @@ export function AuthPromptProvider({ children }: { children: ReactNode }) {
         </div>
         
         <div className="mb-8">
-          <h2 className="text-xl font-bold font-serif mb-2 text-foreground">Únete a la comunidad</h2>
+          <h2 className="text-xl font-bold mb-2 text-foreground">Únete a misarroces</h2>
           <p className="text-muted-foreground text-sm font-medium">
             {message}
           </p>
         </div>
 
         <div className="space-y-3">
-          <Button onClick={() => handleAction("/login")} className="w-full font-bold rounded-xl bg-olive hover:bg-olive/90 text-white" size="lg">
+          <Button onClick={() => handleAction("/login?mode=signup")} className="w-full font-bold rounded-2xl bg-primary hover:bg-primary/90 text-primary-foreground" size="lg">
             Crear cuenta
           </Button>
-          <Button onClick={() => handleAction("/login")} variant="outline" className="w-full font-bold rounded-xl" size="lg">
+          <Button onClick={() => handleAction("/login?mode=login")} variant="outline" className="w-full font-bold rounded-2xl" size="lg">
             Iniciar sesión
           </Button>
         </div>

@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from "react"
 import Image from "next/image"
-import Link from "next/link"
 import { usePwa } from "@/components/providers/PwaProvider"
 import { APP_STORE_CONFIG } from "@/lib/constants/app-stores"
 import {
@@ -13,20 +12,16 @@ import {
   Download,
   Check,
   Copy,
-  ArrowRight,
   Sparkles,
-  Layers,
-  ChevronDown,
 } from "lucide-react"
 
 export default function DownloadClient() {
-  const { isInstalled, canInstall, isIos: detectedIos, promptInstall } = usePwa()
+  const { isInstalled, canInstall, promptInstall } = usePwa()
   const [platform, setPlatform] = useState<"ios" | "android">("android")
   const [copied, setCopied] = useState(false)
   const [installing, setInstalling] = useState(false)
-  const [showWebAlternative, setShowWebAlternative] = useState(false)
 
-  // Enlaces oficiales configurados (vacíos por defecto mientras esperamos verificación de tiendas)
+  // Enlaces oficiales configurados (vacíos mientras se completa la publicación en tiendas)
   const hasGooglePlay = Boolean(APP_STORE_CONFIG.googlePlayUrl)
   const hasAppStore = Boolean(APP_STORE_CONFIG.appStoreUrl)
 
@@ -57,7 +52,7 @@ export default function DownloadClient() {
       try {
         await navigator.share({
           title: "Descarga misarroces",
-          text: "Instala la app de misarroces en tu móvil: recetas, calculadora de arroz y comunidad arrocera.",
+          text: "Recetas, cálculo de arroz milimétrico, bitácora y comunidad en la palma de tu mano.",
           url: "https://www.misarroces.es/descargar",
         })
       } catch {
@@ -71,14 +66,20 @@ export default function DownloadClient() {
   const handleAndroidInstallClick = async () => {
     setInstalling(true)
     try {
-      const accepted = await promptInstall()
-      if (!accepted) {
-        const el = document.getElementById("android-steps")
-        if (el) el.scrollIntoView({ behavior: "smooth" })
+      if (canInstall) {
+        const accepted = await promptInstall()
+        if (accepted) return
       }
+      const el = document.getElementById("android-steps")
+      if (el) el.scrollIntoView({ behavior: "smooth" })
     } finally {
       setInstalling(false)
     }
+  }
+
+  const handleIosInstallClick = () => {
+    const el = document.getElementById("ios-steps")
+    if (el) el.scrollIntoView({ behavior: "smooth" })
   }
 
   return (
@@ -88,25 +89,25 @@ export default function DownloadClient() {
         {/* CABECERA / HERO */}
         <div className="bg-card border border-border rounded-3xl p-6 sm:p-8 shadow-sm text-center relative overflow-hidden">
           <div className="flex flex-col items-center space-y-3">
-            <div className="relative w-24 h-24 rounded-3xl overflow-hidden shadow-md border border-border/80 bg-sand/40 p-2 flex items-center justify-center">
+            <div className="relative w-36 h-40 sm:w-44 sm:h-48 mx-auto">
               <Image
-                src="/logopaellaicono.png"
+                src="/logopngver.png"
                 alt="misarroces"
-                width={80}
-                height={80}
+                fill
+                sizes="(max-width: 640px) 144px, 176px"
                 className="object-contain"
                 priority
               />
             </div>
             
-            <div className="space-y-1">
+            <div className="space-y-1.5">
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider bg-primary/10 text-primary border border-primary/20">
-                <Sparkles className="w-3.5 h-3.5" /> App Oficial
+                <Sparkles className="w-3.5 h-3.5" aria-hidden="true" /> App Oficial
               </span>
               <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-foreground">
                 Descarga misarroces
               </h1>
-              <p className="text-sm text-muted-foreground max-w-xs mx-auto">
+              <p className="text-sm text-muted-foreground max-w-sm mx-auto leading-relaxed">
                 Recetas, cálculo de arroz milimétrico, bitácora y comunidad en la palma de tu mano.
               </p>
             </div>
@@ -150,244 +151,202 @@ export default function DownloadClient() {
 
         {/* CONTENIDO IPHONE (iOS) */}
         {platform === "ios" && (
-          <div className="bg-card border border-border rounded-3xl p-6 sm:p-7 shadow-sm space-y-6">
+          <div className="bg-card border border-border rounded-3xl p-6 sm:p-7 shadow-sm space-y-5">
             <div className="flex items-center gap-3 pb-3 border-b border-border/60">
               <div className="w-10 h-10 rounded-2xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                <Smartphone className="w-5 h-5" />
+                <Smartphone className="w-5 h-5" aria-hidden="true" />
               </div>
               <div>
                 <h2 className="font-bold text-base text-foreground">
-                  {hasAppStore ? "Descarga para iPhone" : "Instalación en iPhone"}
+                  {hasAppStore ? "Descarga para iPhone" : "Instalar en iPhone"}
                 </h2>
                 <p className="text-xs text-muted-foreground">
-                  {hasAppStore ? "Disponible en el App Store oficial" : "Solo toma 3 toques en Safari (sin descargas pesadas)."}
+                  {hasAppStore ? "Disponible en el App Store oficial" : "Instalación en 3 toques desde Safari, sin descargas pesadas."}
                 </p>
               </div>
             </div>
 
             {/* BOTÓN OFICIAL APP STORE (CUANDO EXISTA URL) */}
-            {hasAppStore && (
-              <div className="space-y-3">
-                <a
-                  href={APP_STORE_CONFIG.appStoreUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-full flex items-center justify-center gap-3 py-3.5 px-5 rounded-2xl bg-foreground text-background font-black text-sm shadow-md hover:opacity-90 active:scale-[0.99] transition"
-                >
-                  <svg className="w-5 h-5 fill-current" viewBox="0 0 170 170" aria-hidden="true">
-                    <path d="M150.37 130.25c-2.45 5.66-5.35 10.87-8.71 15.66-4.58 6.53-8.33 11.05-11.22 13.56-4.48 4.12-9.28 6.23-14.42 6.35-3.69 0-8.14-1.05-13.32-3.18-5.19-2.12-9.97-3.17-14.34-3.17-4.58 0-9.49 1.05-14.74 3.17-5.26 2.13-9.5 3.24-12.74 3.35-4.35.13-9.16-1.9-14.42-6.08-3.69-3.08-7.7-7.98-12.03-14.7-6.02-9.24-10.74-19.81-14.15-31.73-3.41-11.91-5.12-23.1-5.12-33.56 0-15.01 3.8-27.42 11.39-37.22 7.6-9.8 17.06-14.83 28.4-15.09 5.03 0 10.59 1.34 16.68 4.02 6.09 2.68 10.15 4.08 12.18 4.2 1.83 0 6.04-1.47 12.63-4.41 6.59-2.94 12.35-4.29 17.27-4.05 13.06.84 23.33 5.48 30.82 13.92-11.51 6.96-17.15 16.58-16.92 28.87.23 9.71 3.96 17.7 11.19 23.97 7.23 6.27 15.7 9.87 25.4 10.8-2.35 7.18-4.78 13.8-7.29 19.86zM119.22 33.16c0-6.96 2.5-13.62 7.5-19.98 5-6.36 11.16-10.74 18.49-13.14-.11 1.25-.17 2.4-.17 3.44 0 6.96-2.58 13.66-7.75 20.1-5.17 6.44-11.33 10.7-18.49 12.78-.11-1.04-.17-2.1-.17-3.2z" />
-                  </svg>
-                  <span>Descargar en App Store</span>
-                </a>
-
+            {hasAppStore ? (
+              <a
+                href={APP_STORE_CONFIG.appStoreUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full flex items-center justify-center gap-3 py-4 px-6 rounded-2xl bg-foreground text-background font-black text-sm shadow-md hover:opacity-90 active:scale-[0.99] transition"
+              >
+                <svg className="w-5 h-5 fill-current" viewBox="0 0 170 170" aria-hidden="true">
+                  <path d="M150.37 130.25c-2.45 5.66-5.35 10.87-8.71 15.66-4.58 6.53-8.33 11.05-11.22 13.56-4.48 4.12-9.28 6.23-14.42 6.35-3.69 0-8.14-1.05-13.32-3.18-5.19-2.12-9.97-3.17-14.34-3.17-4.58 0-9.49 1.05-14.74 3.17-5.26 2.13-9.5 3.24-12.74 3.35-4.35.13-9.16-1.9-14.42-6.08-3.69-3.08-7.7-7.98-12.03-14.7-6.02-9.24-10.74-19.81-14.15-31.73-3.41-11.91-5.12-23.1-5.12-33.56 0-15.01 3.8-27.42 11.39-37.22 7.6-9.8 17.06-14.83 28.4-15.09 5.03 0 10.59 1.34 16.68 4.02 6.09 2.68 10.15 4.08 12.18 4.2 1.83 0 6.04-1.47 12.63-4.41 6.59-2.94 12.35-4.29 17.27-4.05 13.06.84 23.33 5.48 30.82 13.92-11.51 6.96-17.15 16.58-16.92 28.87.23 9.71 3.96 17.7 11.19 23.97 7.23 6.27 15.7 9.87 25.4 10.8-2.35 7.18-4.78 13.8-7.29 19.86zM119.22 33.16c0-6.96 2.5-13.62 7.5-19.98 5-6.36 11.16-10.74 18.49-13.14-.11 1.25-.17 2.4-.17 3.44 0 6.96-2.58 13.66-7.75 20.1-5.17 6.44-11.33 10.7-18.49 12.78-.11-1.04-.17-2.1-.17-3.2z" />
+                </svg>
+                <span>Descargar en App Store</span>
+              </a>
+            ) : (
+              <div className="space-y-2">
                 <button
                   type="button"
-                  onClick={() => setShowWebAlternative(!showWebAlternative)}
-                  className="w-full flex items-center justify-center gap-1.5 py-2 text-xs font-semibold text-muted-foreground hover:text-foreground transition"
+                  onClick={handleIosInstallClick}
+                  className="w-full flex items-center justify-center gap-2.5 py-4 px-6 rounded-2xl bg-primary text-primary-foreground font-black text-sm sm:text-base shadow-md hover:opacity-95 active:scale-[0.99] transition"
                 >
-                  <span>O añade la versión Web/PWA desde Safari</span>
-                  <ChevronDown className={`w-3.5 h-3.5 transition-transform ${showWebAlternative ? "rotate-180" : ""}`} />
+                  <PlusSquare className="w-5 h-5 stroke-[2.5]" aria-hidden="true" />
+                  Añadir misarroces al iPhone
                 </button>
+                <p className="text-[11px] text-muted-foreground/70 text-center">
+                  Publicación en App Store en proceso.
+                </p>
               </div>
             )}
 
-            {/* PASOS SAFARI (SIEMPRE VISIBLE SI NO HAY APP STORE O SI EL USUARIO PIDE LA VERSIÓN WEB) */}
-            {(!hasAppStore || showWebAlternative) && (
-              <div className="space-y-4">
-                {/* Paso 1 */}
-                <div className="flex items-start gap-3.5 p-3.5 rounded-2xl bg-background/60 border border-border/80">
-                  <div className="w-7 h-7 rounded-xl bg-primary/10 text-primary font-black text-xs flex items-center justify-center shrink-0 mt-0.5">
-                    1
-                  </div>
-                  <div className="text-xs space-y-0.5">
-                    <p className="font-bold text-foreground">Abre en Safari</p>
-                    <p className="text-muted-foreground">
-                      Abre este enlace directamente en el navegador <strong>Safari</strong> de tu iPhone.
-                    </p>
-                  </div>
+            {/* PASOS SAFARI */}
+            <div id="ios-steps" className="space-y-3 pt-1">
+              {/* Paso 1 */}
+              <div className="flex items-start gap-3.5 p-3.5 rounded-2xl bg-background/60 border border-border/80">
+                <div className="w-7 h-7 rounded-xl bg-primary/10 text-primary font-black text-xs flex items-center justify-center shrink-0 mt-0.5" aria-hidden="true">
+                  1
                 </div>
-
-                {/* Paso 2 */}
-                <div className="flex items-start gap-3.5 p-3.5 rounded-2xl bg-background/60 border border-border/80">
-                  <div className="w-7 h-7 rounded-xl bg-primary/10 text-primary font-black text-xs flex items-center justify-center shrink-0 mt-0.5">
-                    2
-                  </div>
-                  <div className="text-xs space-y-1">
-                    <p className="font-bold text-foreground flex items-center gap-1.5">
-                      Toca Compartir
-                      <Share className="w-3.5 h-3.5 text-primary" />
-                    </p>
-                    <p className="text-muted-foreground">
-                      En la barra inferior de Safari, pulsa el botón central de <strong>Compartir</strong> (icono del recuadro con flecha arriba).
-                    </p>
-                  </div>
-                </div>
-
-                {/* Paso 3 */}
-                <div className="flex items-start gap-3.5 p-3.5 rounded-2xl bg-background/60 border border-border/80">
-                  <div className="w-7 h-7 rounded-xl bg-primary/10 text-primary font-black text-xs flex items-center justify-center shrink-0 mt-0.5">
-                    3
-                  </div>
-                  <div className="text-xs space-y-1">
-                    <p className="font-bold text-foreground flex items-center gap-1.5">
-                      "Añadir a pantalla de inicio"
-                      <PlusSquare className="w-3.5 h-3.5 text-primary" />
-                    </p>
-                    <p className="text-muted-foreground">
-                      Desliza un poco hacia abajo en el menú y selecciona <strong>Añadir a pantalla de inicio</strong>. Pulsa <strong>Añadir</strong> arriba a la derecha.
-                    </p>
-                  </div>
+                <div className="text-xs space-y-0.5">
+                  <p className="font-bold text-foreground">Abre en Safari</p>
+                  <p className="text-muted-foreground">
+                    Abre este enlace directamente en el navegador <strong>Safari</strong> de tu iPhone.
+                  </p>
                 </div>
               </div>
-            )}
 
-            <div className="pt-2">
-              <Link
-                href="/"
-                className="w-full flex items-center justify-center gap-2 py-3.5 px-4 rounded-2xl bg-primary text-primary-foreground font-bold text-sm shadow-sm hover:opacity-95 transition"
-              >
-                Abrir misarroces ahora
-                <ArrowRight className="w-4 h-4" />
-              </Link>
+              {/* Paso 2 */}
+              <div className="flex items-start gap-3.5 p-3.5 rounded-2xl bg-background/60 border border-border/80">
+                <div className="w-7 h-7 rounded-xl bg-primary/10 text-primary font-black text-xs flex items-center justify-center shrink-0 mt-0.5" aria-hidden="true">
+                  2
+                </div>
+                <div className="text-xs space-y-1">
+                  <p className="font-bold text-foreground flex items-center gap-1.5">
+                    Toca Compartir
+                    <Share className="w-3.5 h-3.5 text-primary" aria-hidden="true" />
+                  </p>
+                  <p className="text-muted-foreground">
+                    En la barra inferior de Safari, pulsa el botón central de <strong>Compartir</strong> (icono del recuadro con flecha arriba).
+                  </p>
+                </div>
+              </div>
+
+              {/* Paso 3 */}
+              <div className="flex items-start gap-3.5 p-3.5 rounded-2xl bg-background/60 border border-border/80">
+                <div className="w-7 h-7 rounded-xl bg-primary/10 text-primary font-black text-xs flex items-center justify-center shrink-0 mt-0.5" aria-hidden="true">
+                  3
+                </div>
+                <div className="text-xs space-y-1">
+                  <p className="font-bold text-foreground flex items-center gap-1.5">
+                    "Añadir a pantalla de inicio"
+                    <PlusSquare className="w-3.5 h-3.5 text-primary" aria-hidden="true" />
+                  </p>
+                  <p className="text-muted-foreground">
+                    Desliza hacia abajo en el menú y selecciona <strong>Añadir a pantalla de inicio</strong>. Pulsa <strong>Añadir</strong> arriba a la derecha.
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
         )}
 
         {/* CONTENIDO ANDROID */}
         {platform === "android" && (
-          <div className="bg-card border border-border rounded-3xl p-6 sm:p-7 shadow-sm space-y-6">
+          <div className="bg-card border border-border rounded-3xl p-6 sm:p-7 shadow-sm space-y-5">
             <div className="flex items-center gap-3 pb-3 border-b border-border/60">
               <div className="w-10 h-10 rounded-2xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                <Download className="w-5 h-5" />
+                <Download className="w-5 h-5" aria-hidden="true" />
               </div>
               <div>
                 <h2 className="font-bold text-base text-foreground">
-                  {hasGooglePlay ? "Descarga para Android" : "Instalación en Android"}
+                  {hasGooglePlay ? "Descarga para Android" : "Instalar en Android"}
                 </h2>
                 <p className="text-xs text-muted-foreground">
-                  {hasGooglePlay ? "Disponible en Google Play Store oficial" : "Instalación inmediata a pantalla completa con soporte offline."}
+                  {hasGooglePlay ? "Disponible en Google Play Store oficial" : "Instalación directa en tu móvil a pantalla completa."}
                 </p>
               </div>
             </div>
 
             {/* BOTÓN OFICIAL GOOGLE PLAY (CUANDO EXISTA URL) */}
-            {hasGooglePlay && (
-              <div className="space-y-3">
-                <a
-                  href={APP_STORE_CONFIG.googlePlayUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-full flex items-center justify-center gap-3 py-3.5 px-5 rounded-2xl bg-foreground text-background font-black text-sm shadow-md hover:opacity-90 active:scale-[0.99] transition"
-                >
-                  <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24" aria-hidden="true">
-                    <path d="M3.609 1.814L13.793 12 3.61 22.186a2.38 2.38 0 0 1-.61-.937V2.751c.14-.38.358-.707.61-.937zm11.242 11.244l2.455 2.455-10.98 6.223 8.525-8.678zm2.455-2.116L14.85 8.487l-8.525-8.68 10.98 6.225 2.455 2.455a1.5 1.5 0 0 1 0 2.456zm1.058-1.058l3.155 1.787a1.498 1.498 0 0 1 0 2.628l-3.155 1.787-2.197-2.197 2.197-2.205z" />
-                  </svg>
-                  <span>Descargar en Google Play</span>
-                </a>
-
+            {hasGooglePlay ? (
+              <a
+                href={APP_STORE_CONFIG.googlePlayUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full flex items-center justify-center gap-3 py-4 px-6 rounded-2xl bg-foreground text-background font-black text-sm shadow-md hover:opacity-90 active:scale-[0.99] transition"
+              >
+                <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M3.609 1.814L13.793 12 3.61 22.186a2.38 2.38 0 0 1-.61-.937V2.751c.14-.38.358-.707.61-.937zm11.242 11.244l2.455 2.455-10.98 6.223 8.525-8.678zm2.455-2.116L14.85 8.487l-8.525-8.68 10.98 6.225 2.455 2.455a1.5 1.5 0 0 1 0 2.456zm1.058-1.058l3.155 1.787a1.498 1.498 0 0 1 0 2.628l-3.155 1.787-2.197-2.197 2.197-2.205z" />
+                </svg>
+                <span>Descargar en Google Play</span>
+              </a>
+            ) : (
+              <div className="space-y-2">
                 <button
                   type="button"
-                  onClick={() => setShowWebAlternative(!showWebAlternative)}
-                  className="w-full flex items-center justify-center gap-1.5 py-2 text-xs font-semibold text-muted-foreground hover:text-foreground transition"
+                  onClick={handleAndroidInstallClick}
+                  disabled={installing}
+                  className="w-full flex items-center justify-center gap-2.5 py-4 px-6 rounded-2xl bg-primary text-primary-foreground font-black text-sm sm:text-base shadow-md hover:opacity-95 active:scale-[0.99] transition"
                 >
-                  <span>O instala la versión Web/PWA directamente</span>
-                  <ChevronDown className={`w-3.5 h-3.5 transition-transform ${showWebAlternative ? "rotate-180" : ""}`} />
+                  <Download className="w-5 h-5 stroke-[2.5]" aria-hidden="true" />
+                  {installing ? "Instalando..." : "Instalar misarroces"}
                 </button>
+                <p className="text-[11px] text-muted-foreground/70 text-center">
+                  Publicación en Google Play Store en proceso.
+                </p>
               </div>
-            )}
-
-            {/* BOTÓN INSTALACIÓN PWA DIRECTA (SI NO HAY GOOGLE PLAY O SI EL USUARIO PIDE LA VERSIÓN WEB) */}
-            {(!hasGooglePlay || showWebAlternative) && canInstall && !isInstalled && (
-              <button
-                type="button"
-                onClick={handleAndroidInstallClick}
-                disabled={installing}
-                className="w-full flex items-center justify-center gap-2 py-3.5 px-4 rounded-2xl bg-primary text-primary-foreground font-black text-sm shadow-md hover:opacity-95 active:scale-[0.99] transition"
-              >
-                <Download className="w-4 h-4 stroke-[2.5]" />
-                {installing ? "Instalando..." : "Instalar en este dispositivo"}
-              </button>
             )}
 
             {/* PASOS CHROME */}
-            {(!hasGooglePlay || showWebAlternative) && (
-              <div id="android-steps" className="space-y-4">
-                {/* Paso 1 */}
-                <div className="flex items-start gap-3.5 p-3.5 rounded-2xl bg-background/60 border border-border/80">
-                  <div className="w-7 h-7 rounded-xl bg-primary/10 text-primary font-black text-xs flex items-center justify-center shrink-0 mt-0.5">
-                    1
-                  </div>
-                  <div className="text-xs space-y-0.5">
-                    <p className="font-bold text-foreground">Abre en Google Chrome</p>
-                    <p className="text-muted-foreground">
-                      Abre este enlace en tu navegador <strong>Chrome</strong> en Android.
-                    </p>
-                  </div>
+            <div id="android-steps" className="space-y-3 pt-1">
+              {/* Paso 1 */}
+              <div className="flex items-start gap-3.5 p-3.5 rounded-2xl bg-background/60 border border-border/80">
+                <div className="w-7 h-7 rounded-xl bg-primary/10 text-primary font-black text-xs flex items-center justify-center shrink-0 mt-0.5" aria-hidden="true">
+                  1
                 </div>
-
-                {/* Paso 2 */}
-                <div className="flex items-start gap-3.5 p-3.5 rounded-2xl bg-background/60 border border-border/80">
-                  <div className="w-7 h-7 rounded-xl bg-primary/10 text-primary font-black text-xs flex items-center justify-center shrink-0 mt-0.5">
-                    2
-                  </div>
-                  <div className="text-xs space-y-1">
-                    <p className="font-bold text-foreground flex items-center gap-1.5">
-                      Menú de opciones
-                      <MoreVertical className="w-3.5 h-3.5 text-primary" />
-                    </p>
-                    <p className="text-muted-foreground">
-                      Toca en el menú de los <strong>3 puntos (⋮)</strong> arriba a la derecha de Chrome (o en el banner de "Instalar" si te aparece abajo).
-                    </p>
-                  </div>
-                </div>
-
-                {/* Paso 3 */}
-                <div className="flex items-start gap-3.5 p-3.5 rounded-2xl bg-background/60 border border-border/80">
-                  <div className="w-7 h-7 rounded-xl bg-primary/10 text-primary font-black text-xs flex items-center justify-center shrink-0 mt-0.5">
-                    3
-                  </div>
-                  <div className="text-xs space-y-1">
-                    <p className="font-bold text-foreground">
-                      "Instalar aplicación" o "Añadir a pantalla de inicio"
-                    </p>
-                    <p className="text-muted-foreground">
-                      Selecciona <strong>Instalar aplicación</strong>. Se creará el acceso directo con el icono oficial y abrirá a pantalla completa.
-                    </p>
-                  </div>
+                <div className="text-xs space-y-0.5">
+                  <p className="font-bold text-foreground">Abre en Google Chrome</p>
+                  <p className="text-muted-foreground">
+                    Abre este enlace en tu navegador <strong>Chrome</strong> en Android.
+                  </p>
                 </div>
               </div>
-            )}
 
-            {!hasGooglePlay && (
-              <div className="p-3.5 rounded-2xl bg-primary/5 border border-primary/20 text-xs text-muted-foreground space-y-1">
-                <p className="font-bold text-foreground flex items-center gap-1.5">
-                  <Layers className="w-3.5 h-3.5 text-primary" />
-                  Google Play Store
-                </p>
-                <p>
-                  Estamos completando la verificación en Google Play para publicar también la ficha en la tienda. Esta versión web/PWA es la oficial y cuenta con todas las funciones activas.
-                </p>
+              {/* Paso 2 */}
+              <div className="flex items-start gap-3.5 p-3.5 rounded-2xl bg-background/60 border border-border/80">
+                <div className="w-7 h-7 rounded-xl bg-primary/10 text-primary font-black text-xs flex items-center justify-center shrink-0 mt-0.5" aria-hidden="true">
+                  2
+                </div>
+                <div className="text-xs space-y-1">
+                  <p className="font-bold text-foreground flex items-center gap-1.5">
+                    Menú de opciones
+                    <MoreVertical className="w-3.5 h-3.5 text-primary" aria-hidden="true" />
+                  </p>
+                  <p className="text-muted-foreground">
+                    Toca en el menú de los <strong>3 puntos (⋮)</strong> arriba a la derecha de Chrome (o en el banner de "Instalar" si te aparece abajo).
+                  </p>
+                </div>
               </div>
-            )}
 
-            <div className="pt-2">
-              <Link
-                href="/"
-                className="w-full flex items-center justify-center gap-2 py-3.5 px-4 rounded-2xl bg-primary text-primary-foreground font-bold text-sm shadow-sm hover:opacity-95 transition"
-              >
-                Abrir misarroces ahora
-                <ArrowRight className="w-4 h-4" />
-              </Link>
+              {/* Paso 3 */}
+              <div className="flex items-start gap-3.5 p-3.5 rounded-2xl bg-background/60 border border-border/80">
+                <div className="w-7 h-7 rounded-xl bg-primary/10 text-primary font-black text-xs flex items-center justify-center shrink-0 mt-0.5" aria-hidden="true">
+                  3
+                </div>
+                <div className="text-xs space-y-1">
+                  <p className="font-bold text-foreground">
+                    "Instalar aplicación" o "Añadir a pantalla de inicio"
+                  </p>
+                  <p className="text-muted-foreground">
+                    Selecciona <strong>Instalar aplicación</strong>. Se creará el acceso directo con el icono oficial y abrirá a pantalla completa.
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
         )}
 
-        {/* BOTÓN PARA COMPARTIR EL LINK CON AMIGOS */}
+        {/* COMPARTIR EL ENLACE DE INSTALACIÓN */}
         <div className="bg-card border border-border rounded-3xl p-5 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
           <div>
             <p className="font-bold text-sm text-foreground">¿Quieres pasárselo a un amigo?</p>
             <p className="text-xs text-muted-foreground">
-              Comparte este enlace para que ellos elijan iPhone o Android.
+              Comparte este enlace para que ellos lo instalen en iPhone o Android.
             </p>
           </div>
 
@@ -397,7 +356,7 @@ export default function DownloadClient() {
               onClick={handleShare}
               className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-muted/80 hover:bg-muted text-foreground text-xs font-bold transition"
             >
-              <Share className="w-3.5 h-3.5" />
+              <Share className="w-3.5 h-3.5" aria-hidden="true" />
               Compartir
             </button>
 
@@ -408,24 +367,17 @@ export default function DownloadClient() {
             >
               {copied ? (
                 <>
-                  <Check className="w-3.5 h-3.5 text-green-600" />
+                  <Check className="w-3.5 h-3.5 text-green-600" aria-hidden="true" />
                   Copiado
                 </>
               ) : (
                 <>
-                  <Copy className="w-3.5 h-3.5" />
+                  <Copy className="w-3.5 h-3.5" aria-hidden="true" />
                   Copiar
                 </>
               )}
             </button>
           </div>
-        </div>
-
-        {/* PIE DISCRETO */}
-        <div className="text-center text-xs text-muted-foreground">
-          <Link href="/" className="hover:underline font-semibold">
-            Volver a misarroces.es
-          </Link>
         </div>
 
       </div>

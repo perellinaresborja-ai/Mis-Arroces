@@ -134,29 +134,17 @@ export function LandingContent({ isHome = false }: { isHome?: boolean }) {
         <p className="text-muted-foreground max-w-xl mx-auto text-lg">
           Tu recetario, tus arroces y toda la comunidad siempre a mano.
         </p>
-        <div className="pt-6">
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Link 
-              href="/descargar" 
-              className={buttonVariants({ 
-                size: "lg", 
-                className: "rounded-2xl font-bold text-lg px-10 h-14 inline-flex items-center justify-center gap-2.5 shadow-md w-full sm:w-auto bg-primary hover:bg-primary/90 text-primary-foreground" 
-              })}
-            >
-              <Download className="w-5 h-5" aria-hidden="true" />
-              Descargar la app
-            </Link>
-            <Link 
-              href="/login?mode=signup" 
-              className={buttonVariants({ 
-                variant: "outline", 
-                size: "lg", 
-                className: "rounded-2xl font-bold text-lg px-10 h-14 w-full sm:w-auto" 
-              })}
-            >
-              Crear mi cuenta
-            </Link>
-          </div>
+        <div className="pt-6 flex justify-center">
+          <Link 
+            href="/descargar" 
+            className={buttonVariants({ 
+              size: "lg", 
+              className: "rounded-2xl font-bold text-lg px-10 h-14 inline-flex items-center justify-center gap-2.5 shadow-md w-full sm:w-auto bg-primary hover:bg-primary/90 text-primary-foreground" 
+            })}
+          >
+            <Download className="w-5 h-5" aria-hidden="true" />
+            Descargar la app
+          </Link>
         </div>
       </section>
 

@@ -74,7 +74,7 @@ export function DesktopNav() {
     },
   ]
 
-  if (pathname === "/login" || pathname === "/forgot-password" || pathname === "/links") return null
+  if (pathname === "/login" || pathname === "/forgot-password" || pathname === "/links" || pathname === "/descargar") return null
 
   return (
     <>

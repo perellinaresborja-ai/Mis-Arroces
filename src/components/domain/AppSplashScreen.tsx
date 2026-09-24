@@ -8,12 +8,12 @@ export function AppSplashScreen() {
   const [fading, setFading] = useState(false)
 
   useEffect(() => {
-    // Solo mostrar una vez por sesión para máxima agilidad de navegación
     if (typeof window === "undefined") return
 
     try {
+      const isSplashPreview = new URLSearchParams(window.location.search).has("splash")
       const alreadyShown = sessionStorage.getItem("misarroces_splash_shown")
-      if (alreadyShown) {
+      if (alreadyShown && !isSplashPreview) {
         return
       }
     } catch {
@@ -22,18 +22,18 @@ export function AppSplashScreen() {
 
     setVisible(true)
 
-    // Iniciar desvanecimiento suave inmediatamente tras la hidratación
+    // Microanimación de entrada y permanencia breve elegante (sin retrasos artificiales)
     const fadeTimer = setTimeout(() => {
       setFading(true)
-    }, 220)
+    }, 600)
 
-    // Eliminar completamente del DOM tras la animación de salida
+    // Transición suave hacia la aplicación y desmontaje del DOM
     const removeTimer = setTimeout(() => {
       setVisible(false)
       try {
         sessionStorage.setItem("misarroces_splash_shown", "1")
       } catch {}
-    }, 520)
+    }, 900)
 
     return () => {
       clearTimeout(fadeTimer)
@@ -45,28 +45,22 @@ export function AppSplashScreen() {
 
   return (
     <div 
-      className={`fixed inset-0 z-[999999] flex flex-col items-center justify-center bg-[#F7F5F0] transition-opacity duration-300 ease-out select-none pointer-events-none ${
+      className={`fixed inset-0 z-[999999] flex flex-col items-center justify-center bg-[#F7F2E8] transition-opacity duration-300 ease-out select-none pointer-events-none ${
         fading ? "opacity-0" : "opacity-100"
       }`}
       aria-hidden="true"
     >
-      <div className="flex flex-col items-center justify-center animate-in zoom-in-95 duration-250 ease-out">
-        {/* Paella con la 'm' oficial */}
-        <div className="relative w-28 h-28 sm:w-32 sm:h-32 drop-shadow-sm">
+      <div className="flex flex-col items-center justify-center animate-in fade-in zoom-in-95 duration-200 ease-out">
+        {/* Logo completo oficial con transparencia y proporciones intactas */}
+        <div className="relative w-44 h-48 sm:w-52 sm:h-56">
           <Image
-            src="/icons/icon-512x512.png"
+            src="/logopngver.png"
             alt="misarroces"
             fill
             priority
+            sizes="(max-width: 640px) 176px, 208px"
             className="object-contain"
           />
-        </div>
-
-        {/* Micro-marca sutil */}
-        <div className="mt-4 text-center">
-          <span className="text-[17px] font-black tracking-tight text-[#18181B]">
-            mis<span className="text-[#EA580C]">arroces</span>
-          </span>
         </div>
       </div>
     </div>

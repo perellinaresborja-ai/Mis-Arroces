@@ -2,11 +2,11 @@ import { Metadata } from "next"
 import CreateRecipeDemoClient from "./CreateRecipeDemoClient"
 
 export const metadata: Metadata = {
-  title: "Crea tu recetario | misarroces",
-  description: "Descubre el editor de recetas de misarroces. Organiza tus ingredientes, proporciones de caldo y pasos de cocina en tu recetario digital.",
+  title: "Crea tu recetario de arroces | misarroces",
+  description: "Todos tus arroces, organizados en un único lugar. Guarda cantidades, ingredientes, elaboración, fotos y todos los datos necesarios para volver a cocinarlos siempre que quieras.",
   openGraph: {
-    title: "Crea tu recetario | misarroces",
-    description: "Crea y organiza tu propio recetario de arroces de forma estructurada y profesional en misarroces.",
+    title: "Crea tu recetario de arroces | misarroces",
+    description: "Todos tus arroces, organizados en un único lugar. Guarda cantidades, ingredientes, elaboración, fotos y todos los datos necesarios para volver a cocinarlos siempre que quieras.",
     images: ["/logopaellaicono.png"],
   },
 }
