@@ -10,7 +10,7 @@ import { globalStoryDraftUrl, globalStoryDraftType, globalStoryDraftFile, global
 import { SharedStoryRenderer, renderOverlayContent } from './SharedStoryRenderer';
 import { DraggableOverlay } from './stories/DraggableOverlay';
 import { MentionPicker, RecipePicker, IngredientPicker, LocationPicker, StickerPicker, LinkPicker, QuestionPicker, PollPicker, ProfilePicker, SliderPicker, HashtagPicker, CountdownPicker, cleanIngredientName } from './stories/StickerPickers';
-import { Camera, User, ChefHat, MapPin, AlignLeft, AlignCenter, AlignRight, Apple, Image as ImageIcon, Trash2, Paintbrush, Sparkles, Link as LinkIcon, HelpCircle, BarChart2, Music, Volume2, Video, X, Undo2, Globe, Users, AtSign, Smile, Hash, Timer } from 'lucide-react';
+import { Camera, User, ChefHat, MapPin, AlignLeft, AlignCenter, AlignRight, Apple, Image as ImageIcon, Trash2, Paintbrush, Sparkles, Link as LinkIcon, HelpCircle, BarChart2, Music, Volume2, Video, X, Undo2, Globe, Users, AtSign, Smile, Hash, Timer, Play, Pause } from 'lucide-react';
 import { StoryMusicSelector } from './StoryMusicSelector';
 import { useModalHistory } from '@/hooks/useModalHistory';
 
@@ -89,6 +89,152 @@ export function StoryCreator({
     }
   }, [mode]);
   const videoRef = useRef<HTMLVideoElement>(null);
+  
+  // Video playback & timeline state
+  const [isPlaying, setIsPlaying] = useState(true);
+  const [showPlayOverlay, setShowPlayOverlay] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const isScrubbingRef = useRef(false);
+  const wasPlayingBeforeScrubRef = useRef(false);
+  const hidePlayOverlayTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const timelineRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const vid = videoRef.current;
+    if (!vid || draftMediaType !== 'VIDEO') return;
+
+    const syncMetadata = () => {
+      if (vid.duration && !isNaN(vid.duration)) {
+        setDuration(vid.duration);
+      }
+      setIsPlaying(!vid.paused);
+    };
+
+    const handleTime = () => {
+      if (!isScrubbingRef.current) {
+        setCurrentTime(vid.currentTime);
+      }
+    };
+
+    const handlePlay = () => {
+      setIsPlaying(true);
+    };
+
+    const handlePause = () => {
+      setIsPlaying(false);
+      setShowPlayOverlay(true);
+    };
+
+    syncMetadata();
+
+    vid.addEventListener('timeupdate', handleTime);
+    vid.addEventListener('loadedmetadata', syncMetadata);
+    vid.addEventListener('durationchange', syncMetadata);
+    vid.addEventListener('play', handlePlay);
+    vid.addEventListener('pause', handlePause);
+
+    return () => {
+      vid.removeEventListener('timeupdate', handleTime);
+      vid.removeEventListener('loadedmetadata', syncMetadata);
+      vid.removeEventListener('durationchange', syncMetadata);
+      vid.removeEventListener('play', handlePlay);
+      vid.removeEventListener('pause', handlePause);
+      if (hidePlayOverlayTimeoutRef.current) {
+        clearTimeout(hidePlayOverlayTimeoutRef.current);
+      }
+    };
+  }, [draftMediaUrl, draftMediaType]);
+
+  const formatTime = (seconds: number) => {
+    if (isNaN(seconds) || seconds < 0) return '0:00';
+    const m = Math.floor(seconds / 60);
+    const s = Math.floor(seconds % 60);
+    return `${m}:${s < 10 ? '0' : ''}${s}`;
+  };
+
+  const toggleVideoPlayback = (e?: React.MouseEvent | React.TouchEvent) => {
+    if (e) e.stopPropagation();
+    const vid = videoRef.current;
+    if (!vid) return;
+
+    if (vid.paused) {
+      vid.play().then(() => {
+        setIsPlaying(true);
+        if (hidePlayOverlayTimeoutRef.current) clearTimeout(hidePlayOverlayTimeoutRef.current);
+        hidePlayOverlayTimeoutRef.current = setTimeout(() => {
+          setShowPlayOverlay(false);
+        }, 300);
+      }).catch(err => console.warn('Play error:', err));
+    } else {
+      vid.pause();
+      setIsPlaying(false);
+      setShowPlayOverlay(true);
+    }
+  };
+
+  const handleVideoTap = () => {
+    if (!showPlayOverlay) {
+      setShowPlayOverlay(true);
+      if (isPlaying) {
+        if (hidePlayOverlayTimeoutRef.current) clearTimeout(hidePlayOverlayTimeoutRef.current);
+        hidePlayOverlayTimeoutRef.current = setTimeout(() => {
+          setShowPlayOverlay(false);
+        }, 2500);
+      }
+    } else {
+      toggleVideoPlayback();
+    }
+  };
+
+  const handleTimelineSeek = (clientX: number) => {
+    if (!timelineRef.current || !videoRef.current) return;
+    const rect = timelineRef.current.getBoundingClientRect();
+    const dur = videoRef.current.duration;
+    if (!dur || isNaN(dur) || rect.width <= 0) return;
+
+    const clickX = Math.max(0, Math.min(rect.width, clientX - rect.left));
+    const fraction = clickX / rect.width;
+    const newTime = fraction * dur;
+    videoRef.current.currentTime = newTime;
+    setCurrentTime(newTime);
+  };
+
+  const handleTimelinePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    e.stopPropagation();
+    e.preventDefault();
+    isScrubbingRef.current = true;
+    try {
+      (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    } catch {}
+
+    if (videoRef.current) {
+      wasPlayingBeforeScrubRef.current = !videoRef.current.paused;
+      videoRef.current.pause();
+    }
+    handleTimelineSeek(e.clientX);
+  };
+
+  const handleTimelinePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!isScrubbingRef.current) return;
+    e.stopPropagation();
+    e.preventDefault();
+    handleTimelineSeek(e.clientX);
+  };
+
+  const handleTimelinePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!isScrubbingRef.current) return;
+    e.stopPropagation();
+    e.preventDefault();
+    isScrubbingRef.current = false;
+    try {
+      (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
+    } catch {}
+
+    if (wasPlayingBeforeScrubRef.current && videoRef.current) {
+      videoRef.current.play().catch(() => {});
+    }
+  };
   
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -624,7 +770,15 @@ export function StoryCreator({
         {...bindBackgroundGestures()} 
         className="relative w-full h-[100dvh] max-w-[calc(100dvh*9/16)] md:h-[92vh] md:max-w-[calc(92vh*9/16)] bg-zinc-950 md:rounded-3xl overflow-hidden shadow-2xl flex flex-col justify-between"
         style={{ aspectRatio: '9/16' }}
-        onClick={() => setSelectedOverlayId(null)}
+        onClick={(e) => {
+          setSelectedOverlayId(null);
+          if ((e.target as HTMLElement).closest('.draggable-overlay') || (e.target as HTMLElement).closest('button') || (e.target as HTMLElement).closest('input') || (e.target as HTMLElement).closest('label')) {
+            return;
+          }
+          if (draftMediaType === 'VIDEO' && draftMediaUrl && mode === 'EDIT') {
+            handleVideoTap();
+          }
+        }}
       >
         {/* Top Floating Controls Bar (Overlaid on canvas) */}
         {mode === 'EDIT' && (
@@ -804,6 +958,23 @@ export function StoryCreator({
           </div>
         )}
 
+        {/* Center Play/Pause Button for Video */}
+        {mode === 'EDIT' && draftMediaType === 'VIDEO' && draftMediaUrl && showPlayOverlay && (
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-30">
+            <button
+              type="button"
+              onClick={toggleVideoPlayback}
+              className="w-20 h-20 sm:w-24 sm:h-24 bg-black/45 hover:bg-black/65 backdrop-blur-md rounded-full flex items-center justify-center text-white border border-white/20 transition-all active:scale-90 cursor-pointer shadow-2xl pointer-events-auto animate-in fade-in zoom-in-95 duration-150"
+              aria-label={isPlaying ? "Pausar vídeo" : "Reproducir vídeo"}
+            >
+              {isPlaying ? (
+                <Pause size={38} className="text-white drop-shadow-md" />
+              ) : (
+                <Play size={38} className="text-white drop-shadow-md ml-1" />
+              )}
+            </button>
+          </div>
+        )}
 
         {/* Drawing Canvas */}
         <canvas 
@@ -938,7 +1109,41 @@ export function StoryCreator({
 
         {/* Bottom Floating Bar (Overlaid on canvas) */}
         {mode === 'EDIT' && (
-          <div className="absolute bottom-0 inset-x-0 z-[120] flex items-center justify-between p-4 pb-[max(env(safe-area-inset-bottom),1rem)] bg-gradient-to-t from-black/80 via-black/40 to-transparent pointer-events-none">
+          <div className="absolute bottom-0 inset-x-0 z-[120] flex flex-col p-4 pb-[max(env(safe-area-inset-bottom),1rem)] bg-gradient-to-t from-black/80 via-black/40 to-transparent pointer-events-none gap-2">
+            {/* Video Timeline & Progress Bar */}
+            {draftMediaType === 'VIDEO' && draftMediaUrl && (
+              <div className="w-full flex flex-col gap-1 pointer-events-auto select-none mb-0.5">
+                {/* Time Display */}
+                <div className="flex items-center justify-between text-[11px] font-mono font-medium text-white/80 select-none px-0.5">
+                  <span>{formatTime(currentTime)}</span>
+                  <span>{formatTime(duration)}</span>
+                </div>
+                {/* Progress Bar / Scrubbing Track */}
+                <div 
+                  ref={timelineRef}
+                  onPointerDown={handleTimelinePointerDown}
+                  onPointerMove={handleTimelinePointerMove}
+                  onPointerUp={handleTimelinePointerUp}
+                  className="relative w-full h-5 flex items-center cursor-pointer touch-none group"
+                >
+                  {/* Background track */}
+                  <div className="w-full h-1.5 bg-white/25 rounded-full overflow-hidden backdrop-blur-sm">
+                    <div 
+                      className="h-full bg-white rounded-full transition-none"
+                      style={{ width: `${duration > 0 ? (currentTime / duration) * 100 : 0}%` }}
+                    />
+                  </div>
+                  {/* Thumb / Draggable scrubber handle */}
+                  <div 
+                    className="absolute w-3.5 h-3.5 bg-white rounded-full shadow-md -translate-x-1/2 transition-transform group-hover:scale-125"
+                    style={{ left: `${duration > 0 ? (currentTime / duration) * 100 : 0}%` }}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Bottom Controls Row: Privacy pill & Publish button */}
+            <div className="flex items-center justify-between w-full">
             {/* Left: Privacy toggle pill */}
             <button 
               type="button"
@@ -967,6 +1172,7 @@ export function StoryCreator({
                 </>
               )}
             </button>
+            </div>
           </div>
         )}
 
