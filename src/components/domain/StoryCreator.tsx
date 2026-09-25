@@ -94,6 +94,7 @@ export function StoryCreator({
     if (!file) return;
     setGlobalStoryDraft(file);
     const url = URL.createObjectURL(file);
+    userHasInteractedRef.current = false;
     setDraftMediaUrl(url);
     setDraftMediaSize(file.size);
     if (file.type.startsWith("video/")) {
@@ -130,6 +131,7 @@ export function StoryCreator({
   }, []);
 
   const mediaTransformRef = useRef({ translateX: 0, translateY: 0, scale: 1, rotation: 0 });
+  const userHasInteractedRef = useRef(false);
   
   useEffect(() => {
     mediaTransformRef.current = { ...mediaTransform };
@@ -143,10 +145,46 @@ export function StoryCreator({
     if (bg) bg.style.transform = tStr;
   };
 
+  useEffect(() => {
+    if (!draftMediaUrl) return;
+    let isCancelled = false;
+
+    const applyAspectScale = (w: number, h: number) => {
+      if (isCancelled || userHasInteractedRef.current) return;
+      if (!w || !h) return;
+      const aspect = w / h;
+      const containerAspect = 9 / 16;
+      const fillScale = Math.max(aspect / containerAspect, containerAspect / aspect);
+      const initScale = Math.max(1, Number(fillScale.toFixed(3)));
+      setMediaTransform({ translateX: 0, translateY: 0, scale: initScale, rotation: 0 });
+      mediaTransformRef.current = { translateX: 0, translateY: 0, scale: initScale, rotation: 0 };
+      updateDOMTransform({ translateX: 0, translateY: 0, scale: initScale, rotation: 0 });
+    };
+
+    if (draftMediaType === 'VIDEO') {
+      const vid = document.createElement('video');
+      vid.src = draftMediaUrl;
+      vid.onloadedmetadata = () => {
+        applyAspectScale(vid.videoWidth, vid.videoHeight);
+      };
+    } else {
+      const img = new window.Image();
+      img.src = draftMediaUrl;
+      img.onload = () => {
+        applyAspectScale(img.naturalWidth, img.naturalHeight);
+      };
+    }
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [draftMediaUrl, draftMediaType]);
+
   const bindBackgroundGestures = useGesture({
     onDrag: ({ offset: [x, y], target, event, last }) => {
       if (event && typeof event.preventDefault === 'function') event.preventDefault();
       if ((target as HTMLElement).closest('.draggable-overlay')) return;
+      userHasInteractedRef.current = true;
       mediaTransformRef.current.translateX = x;
       mediaTransformRef.current.translateY = y;
       updateDOMTransform(mediaTransformRef.current);
@@ -155,6 +193,7 @@ export function StoryCreator({
     onPinch: ({ offset: [d, a], target, event, last }) => {
       if (event && typeof event.preventDefault === 'function') event.preventDefault();
       if ((target as HTMLElement).closest('.draggable-overlay')) return;
+      userHasInteractedRef.current = true;
       mediaTransformRef.current.scale = d;
       mediaTransformRef.current.rotation = a;
       updateDOMTransform(mediaTransformRef.current);
@@ -231,6 +270,7 @@ export function StoryCreator({
         };
       }
       if (newOverlay) {
+        userHasInteractedRef.current = false;
         if (extractedCoverUrl) {
            setDraftMediaUrl(extractedCoverUrl);
            const isVid = initialPost ? (initialPost.mediaType === 'VIDEO' || Boolean(initialPost.coverUrl && (/\.(mp4|webm|mov)(\?.*)?$/i.test(initialPost.coverUrl) || initialPost.coverUrl.includes('video/')))) : false;
