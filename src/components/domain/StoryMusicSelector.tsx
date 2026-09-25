@@ -102,6 +102,8 @@ export function StoryMusicSelector({
     fixedEndMs: number
     durationMs: number
     trackDurMs: number
+    currentStartMs: number
+    currentEndMs: number
     rect: DOMRect | null
   }>({
     active: null,
@@ -111,8 +113,11 @@ export function StoryMusicSelector({
     fixedEndMs: 0,
     durationMs: 0,
     trackDurMs: 180000,
+    currentStartMs: 0,
+    currentEndMs: 0,
     rect: null
   })
+  const isSeekingRef = useRef<boolean>(false)
 
   // Load catalog on mount
   useEffect(() => {
@@ -174,30 +179,41 @@ export function StoryMusicSelector({
   // Single audio instance management
   const getOrCreateAudio = useCallback(() => {
     if (!audioRef.current) {
-      audioRef.current = new Audio()
+      const audio = new Audio()
+      audio.addEventListener('seeked', () => {
+        isSeekingRef.current = false
+      })
+      audioRef.current = audio
     }
     return audioRef.current
   }, [])
 
-  // Precise 60fps Loop & Live Playhead update using requestAnimationFrame
+  // Precise Loop & Live Playhead update using requestAnimationFrame
   useEffect(() => {
     let animId: number
     const tick = () => {
       const audio = audioRef.current
-      if (audio && !audio.paused) {
-        const curMs = audio.currentTime * 1000
-        setCurrentPlaybackTimeMs(curMs)
+      if (audio && !audio.paused && !dragRef.current.active) {
+        if (!audio.seeking && !isSeekingRef.current) {
+          const curSec = audio.currentTime
+          const curMs = curSec * 1000
+          const startSec = selectionStartMs / 1000
+          const endSec = selectionEndMs / 1000
 
-        const startSec = selectionStartMs / 1000
-        const endSec = selectionEndMs / 1000
-
-        // Strict loop inside selected fragment
-        if (audio.currentTime >= endSec || audio.currentTime < startSec - 0.2) {
-          audio.currentTime = startSec
-          setCurrentPlaybackTimeMs(selectionStartMs)
-          if (videoRef?.current) {
-            videoRef.current.currentTime = 0
-            videoRef.current.play().catch(() => {})
+          if (curSec >= startSec - 0.1 && curSec < endSec) {
+            setCurrentPlaybackTimeMs(curMs)
+          } else {
+            // Reached end of fragment or drifted out: loop seamlessly
+            isSeekingRef.current = true
+            audio.currentTime = startSec
+            setCurrentPlaybackTimeMs(selectionStartMs)
+            if (videoRef?.current) {
+              videoRef.current.currentTime = 0
+              videoRef.current.play().catch(() => {})
+            }
+            setTimeout(() => {
+              isSeekingRef.current = false
+            }, 150)
           }
         }
       }
@@ -225,6 +241,7 @@ export function StoryMusicSelector({
       audio.src = selectedTrack.audio_url
     }
 
+    isSeekingRef.current = true
     audio.currentTime = startMs / 1000
     audio.play().then(() => {
       setIsPlaying(true)
@@ -238,11 +255,38 @@ export function StoryMusicSelector({
         videoRef.current.currentTime = 0
         videoRef.current.play().catch(() => {})
       }
+      setTimeout(() => {
+        isSeekingRef.current = false
+      }, 150)
     }).catch(err => {
       console.log("Audio play prevented:", err)
       setIsPlaying(false)
+      isSeekingRef.current = false
     })
   }, [selectedTrack, getOrCreateAudio, volume, originalVolume, videoRef])
+
+  // Safely seek audio and sync video when selection changes (tap, drag release, nudge)
+  const seekAudioTo = useCallback((targetStartMs: number) => {
+    const audio = audioRef.current
+    if (!audio || !selectedTrack) return
+
+    isSeekingRef.current = true
+    const targetSec = targetStartMs / 1000
+    audio.currentTime = targetSec
+    setCurrentPlaybackTimeMs(targetStartMs)
+
+    if (isPlaying) {
+      audio.play().catch(() => {})
+      if (videoRef?.current) {
+        videoRef.current.currentTime = 0
+        videoRef.current.play().catch(() => {})
+      }
+    }
+
+    setTimeout(() => {
+      isSeekingRef.current = false
+    }, 150)
+  }, [selectedTrack, isPlaying, videoRef])
 
   // Stop preview
   const stopPreview = useCallback(() => {
@@ -300,33 +344,26 @@ export function StoryMusicSelector({
     return Math.round(ratio * trackDurMs)
   }
 
-  // Updates selection interval and updates audio/video sync in real-time
-  const updateSelectionTimes = useCallback((newStart: number, newEnd: number) => {
+  // Handler: Nudge start time forward or backward
+  const handleNudge = (deltaMs: number) => {
+    if (!selectedTrack) return
+    const trackDur = Math.max(1000, selectedTrack.duration_ms)
+    const curDur = selectionEndMs - selectionStartMs
+    const maxStart = Math.max(0, trackDur - curDur)
+
+    const newStart = Math.max(0, Math.min(maxStart, selectionStartMs + deltaMs))
+    const newEnd = newStart + curDur
+
     setSelectionStartMs(newStart)
     setSelectionEndMs(newEnd)
-
-    const audio = audioRef.current
-    if (audio) {
-      if (isPlaying) {
-        const curSec = audio.currentTime
-        if (curSec < newStart / 1000 || curSec >= newEnd / 1000) {
-          audio.currentTime = newStart / 1000
-          setCurrentPlaybackTimeMs(newStart)
-        }
-      } else {
-        audio.currentTime = newStart / 1000
-        setCurrentPlaybackTimeMs(newStart)
-      }
-    } else {
-      setCurrentPlaybackTimeMs(newStart)
-    }
-  }, [isPlaying])
+    seekAudioTo(newStart)
+  }
 
   // Drag start
   const handleStartDrag = (
     type: 'left' | 'right' | 'center',
     clientX: number,
-    e?: React.SyntheticEvent,
+    e?: React.SyntheticEvent | Event,
     overrideStart?: number,
     overrideEnd?: number
   ) => {
@@ -354,13 +391,16 @@ export function StoryMusicSelector({
       fixedEndMs: curEnd,
       durationMs: curDur,
       trackDurMs: trackDur,
+      currentStartMs: curStart,
+      currentEndMs: curEnd,
       rect
     }
   }
 
-  // Tap anywhere on timeline background to jump fragment to that second
+  // Tap anywhere on timeline background to jump fragment to that position & enable continuous scrub
   const handleTimelinePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     if (!selectedTrack || !timelineRef.current) return
+    e.stopPropagation()
     const rect = timelineRef.current.getBoundingClientRect()
     const trackDur = Math.max(1000, selectedTrack.duration_ms)
     const pointerMs = getTimeFromPointer(e.clientX, rect, trackDur)
@@ -370,7 +410,10 @@ export function StoryMusicSelector({
     const newStart = Math.max(0, Math.min(trackDur - curDur, pointerMs - halfDur))
     const newEnd = newStart + curDur
 
-    updateSelectionTimes(newStart, newEnd)
+    setSelectionStartMs(newStart)
+    setSelectionEndMs(newEnd)
+    setCurrentPlaybackTimeMs(newStart)
+
     handleStartDrag('center', e.clientX, e, newStart, newEnd)
   }
 
@@ -388,18 +431,26 @@ export function StoryMusicSelector({
         const minAllowed = Math.max(0, drag.fixedEndMs - effectiveMaxDurMs)
         const maxAllowed = drag.fixedEndMs - minDurMs
         const newStart = Math.max(minAllowed, Math.min(maxAllowed, pointerMs))
-        updateSelectionTimes(newStart, drag.fixedEndMs)
+        drag.currentStartMs = newStart
+        setSelectionStartMs(newStart)
+        setCurrentPlaybackTimeMs(newStart)
       } else if (drag.active === 'right') {
         const minAllowed = drag.fixedStartMs + minDurMs
         const maxAllowed = Math.min(trackDurMs, drag.fixedStartMs + effectiveMaxDurMs)
         const newEnd = Math.max(minAllowed, Math.min(maxAllowed, pointerMs))
-        updateSelectionTimes(drag.fixedStartMs, newEnd)
+        drag.currentEndMs = newEnd
+        setSelectionEndMs(newEnd)
       } else if (drag.active === 'center') {
         const deltaMs = pointerMs - drag.pointerStartTimeMs
         let newStart = drag.initialStartMs + deltaMs
         const maxStart = Math.max(0, trackDurMs - drag.durationMs)
         newStart = Math.max(0, Math.min(maxStart, newStart))
-        updateSelectionTimes(newStart, newStart + drag.durationMs)
+        const newEnd = newStart + drag.durationMs
+        drag.currentStartMs = newStart
+        drag.currentEndMs = newEnd
+        setSelectionStartMs(newStart)
+        setSelectionEndMs(newEnd)
+        setCurrentPlaybackTimeMs(newStart)
       }
     }
 
@@ -422,17 +473,11 @@ export function StoryMusicSelector({
 
     const onEnd = () => {
       if (!dragRef.current.active) return
+      const finalStart = dragRef.current.currentStartMs
       dragRef.current.active = null
 
-      const audio = audioRef.current
-      if (audio && selectedTrack) {
-        setSelectionStartMs(start => {
-          if (audio) {
-            audio.currentTime = start / 1000
-            setCurrentPlaybackTimeMs(start)
-          }
-          return start
-        })
+      if (audioRef.current && selectedTrack) {
+        seekAudioTo(finalStart)
       }
     }
 
@@ -451,7 +496,7 @@ export function StoryMusicSelector({
       window.removeEventListener('touchend', onEnd)
       window.removeEventListener('touchcancel', onEnd)
     }
-  }, [selectedTrack, effectiveMaxDurMs, minDurMs, updateSelectionTimes])
+  }, [selectedTrack, effectiveMaxDurMs, minDurMs, seekAudioTo])
 
   // Volume slider handlers
   const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -712,8 +757,17 @@ export function StoryMusicSelector({
               </button>
             </div>
 
-            {/* Time interval pill with Live advancing clock */}
-            <div className="flex justify-center shrink-0">
+            {/* Time interval pill with Live advancing clock & -5s / +5s nudge buttons */}
+            <div className="flex items-center justify-center gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={() => handleNudge(-5000)}
+                className="px-2.5 py-1 rounded-xl bg-muted/80 hover:bg-muted active:scale-95 text-[11px] font-semibold text-muted-foreground hover:text-foreground border border-border/50 transition-all cursor-pointer"
+                title="Retroceder 5 segundos"
+              >
+                -5s
+              </button>
+
               <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary font-mono text-xs font-bold shadow-sm">
                 <span className="text-foreground bg-background/80 px-2 py-0.5 rounded-md border border-border/50 min-w-[38px] text-center">
                   {formatTime(currentPlaybackTimeMs)}
@@ -725,6 +779,15 @@ export function StoryMusicSelector({
                 <span className="opacity-40">·</span>
                 <span className="text-foreground font-sans font-semibold">{Math.round(durationMs / 1000)} s</span>
               </div>
+
+              <button
+                type="button"
+                onClick={() => handleNudge(5000)}
+                className="px-2.5 py-1 rounded-xl bg-muted/80 hover:bg-muted active:scale-95 text-[11px] font-semibold text-muted-foreground hover:text-foreground border border-border/50 transition-all cursor-pointer"
+                title="Avanzar 5 segundos"
+              >
+                +5s
+              </button>
             </div>
 
             {/* Waveform & Timeline Area */}
@@ -733,6 +796,7 @@ export function StoryMusicSelector({
                 ref={timelineRef}
                 onPointerDown={handleTimelinePointerDown}
                 className="relative w-full h-16 bg-muted/40 rounded-2xl overflow-visible select-none touch-none flex items-center px-1 border border-border/40 cursor-pointer"
+                style={{ touchAction: 'none' }}
               >
                 {/* Background Waveform Bars (Representing the full song, clipped to rounded container) */}
                 <div className="absolute inset-0 rounded-2xl overflow-hidden pointer-events-none flex items-center justify-between px-2">
@@ -747,7 +811,7 @@ export function StoryMusicSelector({
 
                 {/* Orange Selection Window (Visual background and border) */}
                 <div
-                  className="absolute top-1 bottom-1 rounded-xl border-2 border-primary bg-primary/15 shadow-sm touch-none z-10 pointer-events-none"
+                  className="absolute top-1 bottom-1 rounded-xl border-2 border-primary bg-primary/20 shadow-sm pointer-events-none z-10"
                   style={{
                     left: `${leftPct}%`,
                     width: `${widthPct}%`
@@ -764,7 +828,7 @@ export function StoryMusicSelector({
 
                 {/* Center Drag Area (moves entire fragment preserving duration) */}
                 <div
-                  className="absolute top-0 bottom-0 rounded-xl cursor-grab active:cursor-grabbing touch-none z-20"
+                  className="absolute top-0 bottom-0 rounded-xl cursor-grab active:cursor-grabbing z-20"
                   style={{
                     left: `${leftPct}%`,
                     width: `${widthPct}%`,
@@ -774,35 +838,35 @@ export function StoryMusicSelector({
                   title="Arrastrar fragmento"
                 />
 
-                {/* Left Handle (hitbox 48px, touch-none, z-30) */}
+                {/* Left Handle (hitbox 32px centered on left boundary, z-30) */}
                 <div
-                  className="absolute top-0 bottom-0 w-12 flex items-center justify-end cursor-ew-resize touch-none z-30 select-none group pr-1.5"
+                  className="absolute top-0 bottom-0 w-8 flex items-center justify-center cursor-ew-resize z-30 select-none group"
                   style={{
                     left: `${leftPct}%`,
-                    transform: 'translateX(-75%)',
+                    transform: 'translateX(-50%)',
                     touchAction: 'none'
                   }}
                   onPointerDown={(e) => handleStartDrag('left', e.clientX, e)}
                   title="Ajustar inicio"
                 >
-                  <div className="w-2 h-8 bg-white border-2 border-primary rounded-full shadow-md group-hover:scale-110 transition-transform pointer-events-none flex items-center justify-center">
-                    <div className="w-0.5 h-3.5 bg-primary/70 rounded-full" />
+                  <div className="w-2.5 h-9 bg-white border-2 border-primary rounded-full shadow-md group-hover:scale-110 active:scale-110 transition-transform pointer-events-none flex items-center justify-center">
+                    <div className="w-0.5 h-4 bg-primary/70 rounded-full" />
                   </div>
                 </div>
 
-                {/* Right Handle (hitbox 48px, touch-none, z-30) */}
+                {/* Right Handle (hitbox 32px centered on right boundary, z-30) */}
                 <div
-                  className="absolute top-0 bottom-0 w-12 flex items-center justify-start cursor-ew-resize touch-none z-30 select-none group pl-1.5"
+                  className="absolute top-0 bottom-0 w-8 flex items-center justify-center cursor-ew-resize z-30 select-none group"
                   style={{
                     left: `${rightPct}%`,
-                    transform: 'translateX(-25%)',
+                    transform: 'translateX(-50%)',
                     touchAction: 'none'
                   }}
                   onPointerDown={(e) => handleStartDrag('right', e.clientX, e)}
                   title="Ajustar duración"
                 >
-                  <div className="w-2 h-8 bg-white border-2 border-primary rounded-full shadow-md group-hover:scale-110 transition-transform pointer-events-none flex items-center justify-center">
-                    <div className="w-0.5 h-3.5 bg-primary/70 rounded-full" />
+                  <div className="w-2.5 h-9 bg-white border-2 border-primary rounded-full shadow-md group-hover:scale-110 active:scale-110 transition-transform pointer-events-none flex items-center justify-center">
+                    <div className="w-0.5 h-4 bg-primary/70 rounded-full" />
                   </div>
                 </div>
               </div>
