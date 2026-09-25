@@ -42,6 +42,7 @@ export function StoryCreator({
   const [videoHasAudio, setVideoHasAudio] = useState(true);
   const [draftMediaSize, setDraftMediaSize] = useState<number | null>(null);
   const [mediaTransform, setMediaTransform] = useState({ translateX: 0, translateY: 0, scale: 1, rotation: 0 });
+  const stickerTouchStartY = useRef<number | null>(null);
 
   useEffect(() => {
     if (globalStoryDraftUrl && !initialMedia && globalStoryDraftFresh) {
@@ -858,50 +859,107 @@ export function StoryCreator({
             onClick={() => { setActiveStickerType(null); setMode('EDIT'); }}
           >
             <div 
-              className="w-full bg-card border-t border-border rounded-t-3xl max-h-[75vh] flex flex-col overflow-hidden pb-[max(env(safe-area-inset-bottom),1rem)] shadow-2xl animate-in slide-in-from-bottom duration-200"
+              className="w-full max-w-lg mx-auto bg-card border-t border-border/70 rounded-t-3xl shadow-2xl flex flex-col overflow-hidden pb-[max(env(safe-area-inset-bottom),0.75rem)] animate-in slide-in-from-bottom duration-200"
               onClick={e => e.stopPropagation()}
             >
-              <div className="w-12 h-1.5 bg-muted-foreground/30 rounded-full mx-auto my-3" />
+              {/* Drag Pill / Handle with swipe down to close */}
+              <div 
+                className="w-full pt-2.5 pb-1 flex flex-col items-center cursor-grab active:cursor-grabbing touch-none shrink-0"
+                onTouchStart={(e) => {
+                  stickerTouchStartY.current = e.touches[0].clientY;
+                }}
+                onTouchMove={(e) => {
+                  if (stickerTouchStartY.current !== null) {
+                    const deltaY = e.touches[0].clientY - stickerTouchStartY.current;
+                    if (deltaY > 50) {
+                      stickerTouchStartY.current = null;
+                      if (!activeStickerType) {
+                        setMode('EDIT');
+                      }
+                    }
+                  }
+                }}
+                onTouchEnd={() => {
+                  stickerTouchStartY.current = null;
+                }}
+                onClick={() => {
+                  if (!activeStickerType) setMode('EDIT');
+                }}
+                title="Deslizar o pulsar para cerrar"
+              >
+                <div className="w-9 h-1 bg-muted-foreground/30 rounded-full" />
+              </div>
               
               {!activeStickerType ? (
-                <div className="p-4 pt-1 flex flex-col gap-3 overflow-y-auto">
-                  <div className="flex items-center justify-between pb-1 border-b border-border">
-                    <span className="text-sm font-bold text-foreground">Stickers e interacción</span>
-                    <button onClick={() => setMode('EDIT')} className="text-xs font-semibold text-muted-foreground hover:text-foreground cursor-pointer">Cerrar</button>
+                <div className="px-3.5 pb-2 flex flex-col gap-2 overflow-y-auto">
+                  <div className="flex items-center justify-between px-1">
+                    <span className="text-xs font-semibold text-foreground/80 tracking-tight">Stickers e interacción</span>
+                    <button 
+                      onClick={() => setMode('EDIT')} 
+                      className="w-7 h-7 flex items-center justify-center text-muted-foreground hover:text-foreground rounded-full hover:bg-muted/50 transition-colors cursor-pointer"
+                      title="Cerrar"
+                      aria-label="Cerrar"
+                    >
+                      <X size={15} />
+                    </button>
                   </div>
                   
-                  <div className="grid grid-cols-4 gap-2.5 pt-2">
-                    <button onClick={() => setActiveStickerType('MENTION')} className="flex flex-col items-center justify-center gap-1.5 p-3 bg-muted hover:bg-muted/80 rounded-2xl transition-transform active:scale-95 text-foreground border border-border cursor-pointer">
-                      <User size={22} className="text-primary"/>
-                      <span className="text-[10px] font-bold">Mención</span>
+                  <div className="grid grid-cols-4 gap-2">
+                    <button 
+                      onClick={() => setActiveStickerType('MENTION')} 
+                      className="flex flex-col items-center justify-center gap-1.5 py-2.5 px-1 bg-muted/30 hover:bg-muted/60 active:bg-primary/10 rounded-2xl border border-border/40 hover:border-primary/30 text-foreground transition-all active:scale-95 cursor-pointer touch-manipulation group"
+                    >
+                      <User size={21} className="text-primary group-hover:scale-110 transition-transform"/>
+                      <span className="text-[10px] font-medium text-foreground/85 tracking-tight">Mención</span>
                     </button>
-                    <button onClick={() => setActiveStickerType('LOCATION')} className="flex flex-col items-center justify-center gap-1.5 p-3 bg-muted hover:bg-muted/80 rounded-2xl transition-transform active:scale-95 text-foreground border border-border cursor-pointer">
-                      <MapPin size={22} className="text-primary"/>
-                      <span className="text-[10px] font-bold">Ubicación</span>
+                    <button 
+                      onClick={() => setActiveStickerType('LOCATION')} 
+                      className="flex flex-col items-center justify-center gap-1.5 py-2.5 px-1 bg-muted/30 hover:bg-muted/60 active:bg-primary/10 rounded-2xl border border-border/40 hover:border-primary/30 text-foreground transition-all active:scale-95 cursor-pointer touch-manipulation group"
+                    >
+                      <MapPin size={21} className="text-primary group-hover:scale-110 transition-transform"/>
+                      <span className="text-[10px] font-medium text-foreground/85 tracking-tight">Ubicación</span>
                     </button>
-                    <button onClick={() => setActiveStickerType('POLL')} className="flex flex-col items-center justify-center gap-1.5 p-3 bg-muted hover:bg-muted/80 rounded-2xl transition-transform active:scale-95 text-foreground border border-border cursor-pointer">
-                      <BarChart2 size={22} className="text-primary"/>
-                      <span className="text-[10px] font-bold">Votación</span>
+                    <button 
+                      onClick={() => setActiveStickerType('POLL')} 
+                      className="flex flex-col items-center justify-center gap-1.5 py-2.5 px-1 bg-muted/30 hover:bg-muted/60 active:bg-primary/10 rounded-2xl border border-border/40 hover:border-primary/30 text-foreground transition-all active:scale-95 cursor-pointer touch-manipulation group"
+                    >
+                      <BarChart2 size={21} className="text-primary group-hover:scale-110 transition-transform"/>
+                      <span className="text-[10px] font-medium text-foreground/85 tracking-tight">Votación</span>
                     </button>
-                    <button onClick={() => setActiveStickerType('QUESTION')} className="flex flex-col items-center justify-center gap-1.5 p-3 bg-muted hover:bg-muted/80 rounded-2xl transition-transform active:scale-95 text-foreground border border-border cursor-pointer">
-                      <HelpCircle size={22} className="text-primary"/>
-                      <span className="text-[10px] font-bold">Pregunta</span>
+                    <button 
+                      onClick={() => setActiveStickerType('QUESTION')} 
+                      className="flex flex-col items-center justify-center gap-1.5 py-2.5 px-1 bg-muted/30 hover:bg-muted/60 active:bg-primary/10 rounded-2xl border border-border/40 hover:border-primary/30 text-foreground transition-all active:scale-95 cursor-pointer touch-manipulation group"
+                    >
+                      <HelpCircle size={21} className="text-primary group-hover:scale-110 transition-transform"/>
+                      <span className="text-[10px] font-medium text-foreground/85 tracking-tight">Pregunta</span>
                     </button>
-                    <button onClick={() => setActiveStickerType('RECIPE')} className="flex flex-col items-center justify-center gap-1.5 p-3 bg-muted hover:bg-muted/80 rounded-2xl transition-transform active:scale-95 text-foreground border border-border cursor-pointer">
-                      <ChefHat size={22} className="text-primary"/>
-                      <span className="text-[10px] font-bold">Receta</span>
+                    <button 
+                      onClick={() => setActiveStickerType('RECIPE')} 
+                      className="flex flex-col items-center justify-center gap-1.5 py-2.5 px-1 bg-muted/30 hover:bg-muted/60 active:bg-primary/10 rounded-2xl border border-border/40 hover:border-primary/30 text-foreground transition-all active:scale-95 cursor-pointer touch-manipulation group"
+                    >
+                      <ChefHat size={21} className="text-primary group-hover:scale-110 transition-transform"/>
+                      <span className="text-[10px] font-medium text-foreground/85 tracking-tight">Receta</span>
                     </button>
-                    <button onClick={() => setActiveStickerType('INGREDIENT')} className="flex flex-col items-center justify-center gap-1.5 p-3 bg-muted hover:bg-muted/80 rounded-2xl transition-transform active:scale-95 text-foreground border border-border cursor-pointer">
-                      <Apple size={22} className="text-primary"/>
-                      <span className="text-[10px] font-bold">Ingrediente</span>
+                    <button 
+                      onClick={() => setActiveStickerType('INGREDIENT')} 
+                      className="flex flex-col items-center justify-center gap-1.5 py-2.5 px-1 bg-muted/30 hover:bg-muted/60 active:bg-primary/10 rounded-2xl border border-border/40 hover:border-primary/30 text-foreground transition-all active:scale-95 cursor-pointer touch-manipulation group"
+                    >
+                      <Apple size={21} className="text-primary group-hover:scale-110 transition-transform"/>
+                      <span className="text-[10px] font-medium text-foreground/85 tracking-tight">Ingrediente</span>
                     </button>
-                    <button onClick={() => setActiveStickerType('LINK')} className="flex flex-col items-center justify-center gap-1.5 p-3 bg-muted hover:bg-muted/80 rounded-2xl transition-transform active:scale-95 text-foreground border border-border cursor-pointer">
-                      <LinkIcon size={22} className="text-primary"/>
-                      <span className="text-[10px] font-bold">Enlace</span>
+                    <button 
+                      onClick={() => setActiveStickerType('LINK')} 
+                      className="flex flex-col items-center justify-center gap-1.5 py-2.5 px-1 bg-muted/30 hover:bg-muted/60 active:bg-primary/10 rounded-2xl border border-border/40 hover:border-primary/30 text-foreground transition-all active:scale-95 cursor-pointer touch-manipulation group"
+                    >
+                      <LinkIcon size={21} className="text-primary group-hover:scale-110 transition-transform"/>
+                      <span className="text-[10px] font-medium text-foreground/85 tracking-tight">Enlace</span>
                     </button>
-                    <button onClick={() => setActiveStickerType('GIF')} className="flex flex-col items-center justify-center gap-1.5 p-3 bg-muted hover:bg-muted/80 rounded-2xl transition-transform active:scale-95 text-foreground border border-border cursor-pointer">
-                      <Sparkles size={22} className="text-primary"/>
-                      <span className="text-[10px] font-bold">GIFs</span>
+                    <button 
+                      onClick={() => setActiveStickerType('GIF')} 
+                      className="flex flex-col items-center justify-center gap-1.5 py-2.5 px-1 bg-muted/30 hover:bg-muted/60 active:bg-primary/10 rounded-2xl border border-border/40 hover:border-primary/30 text-foreground transition-all active:scale-95 cursor-pointer touch-manipulation group"
+                    >
+                      <Sparkles size={21} className="text-primary group-hover:scale-110 transition-transform"/>
+                      <span className="text-[10px] font-medium text-foreground/85 tracking-tight">GIFs</span>
                     </button>
                   </div>
                 </div>
