@@ -590,8 +590,8 @@ export function StoryCreator({
                 className="w-10 h-10 bg-black/45 hover:bg-black/65 backdrop-blur-md rounded-full flex items-center justify-center text-white border border-white/15 transition-transform active:scale-90 relative shadow-sm cursor-pointer"
                 title="Música"
               >
-                <Music size={18} className={musicConfig ? "text-primary" : "text-white"} />
-                {musicConfig && <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-primary rounded-full border-2 border-zinc-950" />}
+                <Music size={18} className={musicConfig?.track_id ? "text-primary" : "text-white"} />
+                {musicConfig?.track_id && <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-primary rounded-full border-2 border-zinc-950" />}
               </button>
 
               {/* 5. Stickers */}

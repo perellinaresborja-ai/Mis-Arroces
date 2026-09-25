@@ -27,16 +27,20 @@ export async function createStory(data: {
     if (!validateMusicConfig(data.musicConfig)) {
       throw new Error("Invalid music configuration");
     }
-    // Check if track exists and is active
-    const { data: track } = await (supabase as any).from('story_music_tracks').select('id, duration_ms, active').eq('id', data.musicConfig.track_id).single();
-    if (!track || !track.active) {
-      throw new Error("Invalid or inactive music track");
+    if (data.musicConfig.track_id) {
+      // Check if track exists and is active
+      const { data: track } = await (supabase as any).from('story_music_tracks').select('id, duration_ms, active').eq('id', data.musicConfig.track_id).single();
+      if (!track || !track.active) {
+        throw new Error("Invalid or inactive music track");
+      }
+      // Check boundaries
+      if (data.musicConfig.start_time_ms + data.musicConfig.duration_ms > track.duration_ms) {
+        throw new Error("Music fragment exceeds track duration");
+      }
+      validMusicConfig = data.musicConfig;
+    } else if (data.musicConfig.original_audio_volume !== undefined) {
+      validMusicConfig = { original_audio_volume: data.musicConfig.original_audio_volume };
     }
-    // Check boundaries
-    if (data.musicConfig.start_time_ms + data.musicConfig.duration_ms > track.duration_ms) {
-      throw new Error("Music fragment exceeds track duration");
-    }
-    validMusicConfig = data.musicConfig;
   }
 
   const { data: story, error } = await supabase.from("stories").insert({

@@ -194,15 +194,18 @@ export function validateOverlay(overlay: any): boolean {
 }
 
 export interface MusicConfig {
-  track_id: string;
-  start_time_ms: number;
-  duration_ms: number;
-  music_volume: number;
+  track_id?: string;
+  start_time_ms?: number;
+  duration_ms?: number;
+  music_volume?: number;
   original_audio_volume?: number;
 }
 
 export function validateMusicConfig(config: any): boolean {
   if (!config || typeof config !== 'object') return false;
+  if (!config.track_id && config.original_audio_volume !== undefined) {
+    return typeof config.original_audio_volume === 'number' && config.original_audio_volume >= 0 && config.original_audio_volume <= 1;
+  }
   if (typeof config.track_id !== 'string' || !config.track_id.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) return false;
   if (typeof config.start_time_ms !== 'number' || config.start_time_ms < 0) return false;
   if (typeof config.duration_ms !== 'number' || config.duration_ms <= 0) return false;

@@ -571,6 +571,9 @@ export function StoryMusicSelector({
     if (videoRef?.current) {
       videoRef.current.muted = val === 0
       videoRef.current.volume = Math.max(0, Math.min(1, val))
+      if (val > 0 && videoRef.current.paused) {
+        videoRef.current.play().catch(() => {})
+      }
     }
   }
 
@@ -578,17 +581,20 @@ export function StoryMusicSelector({
   const handleClose = () => {
     stopPreview()
     if (videoRef?.current) {
-      videoRef.current.volume = initialConfig?.original_audio_volume ?? 1
-      videoRef.current.muted = true
-      videoRef.current.pause()
+      const vol = initialConfig?.original_audio_volume ?? 1
+      videoRef.current.volume = vol
+      videoRef.current.muted = vol === 0
     }
     onClose()
   }
 
   // Confirm selection
   const handleConfirm = () => {
-    if (!selectedTrack) return
     stopPreview()
+    if (!selectedTrack) {
+      onSelect(isVideo ? { original_audio_volume: originalVolume } : null)
+      return
+    }
 
     let actualDuration = durationMs
     if (selectionStartMs + actualDuration > selectedTrack.duration_ms) {
@@ -608,7 +614,7 @@ export function StoryMusicSelector({
   // Remove music
   const handleRemoveMusic = () => {
     stopPreview()
-    onSelect(null)
+    onSelect(isVideo ? { original_audio_volume: originalVolume } : null)
   }
 
   return (
@@ -758,6 +764,33 @@ export function StoryMusicSelector({
                 </div>
               )}
             </div>
+
+            {/* When it's a video story, show Audio del vídeo control so user can adjust it even without music */}
+            {isVideo && (
+              <div className="p-3 border-t border-border/60 bg-muted/20 flex items-center justify-between gap-3 shrink-0">
+                <div className="flex-1 flex items-center gap-2 bg-card px-3 py-2 rounded-2xl border border-border/50">
+                  <Video className="w-3.5 h-3.5 text-primary shrink-0" />
+                  <span className="text-[11px] font-semibold text-muted-foreground shrink-0">Audio del vídeo</span>
+                  <input
+                    type="range"
+                    min={0}
+                    max={100}
+                    value={Math.round(originalVolume * 100)}
+                    onChange={handleOriginalVolumeChange}
+                    className="w-full accent-primary h-1 bg-muted rounded-full appearance-none cursor-pointer"
+                  />
+                  <span className="text-[10px] font-mono text-muted-foreground w-8 text-right shrink-0">
+                    {Math.round(originalVolume * 100)}%
+                  </span>
+                </div>
+                <button
+                  onClick={handleConfirm}
+                  className="px-4 py-2 bg-primary text-primary-foreground text-xs font-bold rounded-2xl shrink-0 cursor-pointer shadow-sm active:scale-95 transition-transform"
+                >
+                  Listo
+                </button>
+              </div>
+            )}
           </div>
         ) : (
           /* ---------------- STATE 2: INSTAGRAM-STYLE ADJUST FRAGMENT ---------------- */
@@ -983,7 +1016,7 @@ export function StoryMusicSelector({
               {isVideo && (
                 <div className="flex items-center gap-2 bg-muted/40 px-3 py-2 rounded-2xl border border-border/40">
                   <Video className="w-3.5 h-3.5 text-primary shrink-0" />
-                  <span className="text-[11px] font-semibold text-muted-foreground shrink-0">Audio vídeo</span>
+                  <span className="text-[11px] font-semibold text-muted-foreground shrink-0">Audio del vídeo</span>
                   <input
                     type="range"
                     min={0}

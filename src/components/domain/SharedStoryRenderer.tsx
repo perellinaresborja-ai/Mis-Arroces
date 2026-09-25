@@ -173,11 +173,14 @@ export function SharedStoryRenderer({
   }, [musicConfig, musicTrackUrl]);
 
   useEffect(() => {
-    if (videoRef && videoRef.current && musicConfig?.original_audio_volume !== undefined) {
-      videoRef.current.volume = Math.max(0, Math.min(1, musicConfig.original_audio_volume));
-      videoRef.current.muted = musicConfig.original_audio_volume === 0;
+    if (videoRef && videoRef.current) {
+      const vol = musicConfig?.original_audio_volume !== undefined 
+        ? Math.max(0, Math.min(1, musicConfig.original_audio_volume))
+        : 1;
+      videoRef.current.volume = vol;
+      videoRef.current.muted = vol === 0;
     }
-  }, [videoRef, musicConfig]);
+  }, [videoRef, musicConfig?.original_audio_volume]);
 
   // Clean up audio on unmount or track change
   useEffect(() => {
@@ -288,11 +291,20 @@ export function SharedStoryRenderer({
             onPause={onPause}
             onWaiting={onWaiting}
             onPlaying={onPlaying}
-            onLoadedMetadata={onLoadedMetadata}
+            onLoadedMetadata={() => {
+              if (videoRef?.current) {
+                const vol = musicConfig?.original_audio_volume !== undefined 
+                  ? Math.max(0, Math.min(1, musicConfig.original_audio_volume))
+                  : 1;
+                videoRef.current.volume = vol;
+                videoRef.current.muted = vol === 0;
+              }
+              if (onLoadedMetadata) onLoadedMetadata();
+            }}
             playsInline
             autoPlay
             loop={mode === 'EDITOR'}
-            muted={mode === 'EDITOR' ? (!musicConfig || musicConfig.original_audio_volume === 0) : false}
+            muted={musicConfig?.original_audio_volume === 0}
           />
         ) : (
           <img 
