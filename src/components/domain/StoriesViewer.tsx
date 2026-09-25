@@ -46,7 +46,10 @@ export function StoriesViewer({ groupedStories: _groupedStories, initialGroupInd
     router.push("/create/story");
     e.target.value = "";
   }
-  const [storyIndex, setStoryIndex] = useState(initialIndex || 0)
+  const initialUnseen = groupedStories[initialGroupIndex]?.stories?.findIndex((s: any) => !s.hasSeen);
+  const [storyIndex, setStoryIndex] = useState(
+    initialIndex !== undefined ? initialIndex : (initialUnseen !== undefined && initialUnseen !== -1 ? initialUnseen : 0)
+  )
   const [isPaused, setIsPaused] = useState(false)
   const [progress, setProgress] = useState(0) // 0 to 100 per story
 

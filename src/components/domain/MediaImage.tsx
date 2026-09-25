@@ -68,10 +68,12 @@ export function MediaImage({
   const isVideo = Boolean(src && (/\.(mp4|webm|mov)(\?.*)?$/i.test(src) || src.includes('video/')));
 
   if (isVideo && src) {
+    const posterUrl = src.includes('#t=') ? src : `${src}#t=0.001`;
     if (fill) {
       return (
         <video
           src={src}
+          poster={posterUrl}
           className={`absolute inset-0 w-full h-full object-cover pointer-events-none ${className}`}
           preload="auto"
           autoPlay
@@ -87,6 +89,7 @@ export function MediaImage({
     return (
       <video
         src={src}
+        poster={posterUrl}
         width={width}
         height={height}
         className={`pointer-events-none ${className}`}

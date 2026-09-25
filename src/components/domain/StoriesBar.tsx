@@ -44,8 +44,13 @@ export function StoriesBar({ groupedStories, currentUser }: { groupedStories: an
   // para que siempre salga el botón de crear.
   const hasMyStories = currentUser && groupedStories.some(g => g.author.id === currentUser.id)
   
+  const [initialStoryIndex, setInitialStoryIndex] = useState<number | undefined>(undefined);
+
   const handleOpenStories = (index: number) => {
-    setActiveGroupIndex(index)
+    const grp = groupedStories[index];
+    const unreadIdx = grp?.stories?.findIndex((s: any) => !s.hasSeen);
+    setInitialStoryIndex(unreadIdx !== -1 && unreadIdx !== undefined ? unreadIdx : 0);
+    setActiveGroupIndex(index);
   }
 
   const handleCloseViewer = () => {
@@ -78,6 +83,7 @@ export function StoriesBar({ groupedStories, currentUser }: { groupedStories: an
                       fill={true}
                       variant="avatar"
                       fallbackType="avatar"
+                      unoptimized={true}
                     />
                   ) : (
                     <div className="w-full h-full bg-primary/10 flex items-center justify-center text-primary/60 font-bold">
@@ -105,14 +111,42 @@ export function StoriesBar({ groupedStories, currentUser }: { groupedStories: an
           const isMe = currentUser?.id === group.author.id;
           const showCreate = isMe && group.allSeen;
           
-          const firstStory = group.stories[0];
-          const coverMedia = firstStory?.story_media?.[0]?.media?.storage_path || 
-                             firstStory?.recipe?.recipe_media?.[0]?.media?.storage_path || 
-                             firstStory?.session?.session_media?.[0]?.media?.storage_path;
-          const coverUrl = coverMedia ? `https://zvesoygqssyyojqyswwm.supabase.co/storage/v1/object/public/recipe_media/${coverMedia}` : null;
+          // Select active story: first unseen story, or the latest story, or fallback to first
+          const activeStory = group.stories?.find((s: any) => !s.hasSeen) || 
+                              group.stories?.[group.stories.length - 1] || 
+                              group.stories?.[0];
+
+          const rawMedia = activeStory?.story_media?.[0]?.media || activeStory?.story_media?.[0];
+          const postOverlay = activeStory?.overlays?.find((o: any) => o.type === 'POST');
+          const recipeMedia = activeStory?.recipe?.recipe_media?.[0]?.media;
+          const sessionMedia = activeStory?.session?.session_media?.[0]?.media;
+
+          const signedUrl = rawMedia?.signed_url;
+          const rawPath = rawMedia?.storage_path || 
+                          postOverlay?.payload?.coverUrl || 
+                          recipeMedia?.storage_path || 
+                          sessionMedia?.storage_path;
+
+          let coverUrl: string | null = null;
+          if (signedUrl) {
+            coverUrl = signedUrl;
+          } else if (rawPath) {
+            coverUrl = rawPath.startsWith('http') ? rawPath : `https://zvesoygqssyyojqyswwm.supabase.co/storage/v1/object/public/recipe_media/${rawPath}`;
+          }
+
+          // If active story has no media (e.g. text-only), fallback to another story in the group that has media
+          if (!coverUrl && group.stories?.length > 1) {
+            const storyWithMedia = group.stories.find((s: any) => s?.story_media?.[0]?.media?.storage_path || s?.overlays?.some((o: any) => o.type === 'POST' && o.payload?.coverUrl));
+            if (storyWithMedia) {
+              const sm = storyWithMedia.story_media?.[0]?.media || storyWithMedia.story_media?.[0];
+              const po = storyWithMedia.overlays?.find((o: any) => o.type === 'POST');
+              const p = sm?.storage_path || po?.payload?.coverUrl;
+              if (p) coverUrl = p.startsWith('http') ? p : `https://zvesoygqssyyojqyswwm.supabase.co/storage/v1/object/public/recipe_media/${p}`;
+            }
+          }
           
           const authorAvatarPath = group.author?.avatar?.storage_path || (Array.isArray(group.author?.avatar) ? group.author.avatar[0]?.storage_path : null);
-          const authorAvatarUrl = authorAvatarPath ? `https://zvesoygqssyyojqyswwm.supabase.co/storage/v1/object/public/recipe_media/${authorAvatarPath}` : null;
+          const authorAvatarUrl = authorAvatarPath ? (authorAvatarPath.startsWith('http') ? authorAvatarPath : `https://zvesoygqssyyojqyswwm.supabase.co/storage/v1/object/public/recipe_media/${authorAvatarPath}`) : null;
           
           return (
             <div 
@@ -130,6 +164,8 @@ export function StoriesBar({ groupedStories, currentUser }: { groupedStories: an
                         className="w-full h-full object-cover"
                         fill={true}
                         variant="story"
+                        unoptimized={true}
+                        fallbackType="avatar"
                       />
                     ) : authorAvatarUrl ? (
                       <MediaImage
@@ -139,6 +175,7 @@ export function StoriesBar({ groupedStories, currentUser }: { groupedStories: an
                         fill={true}
                         variant="avatar"
                         fallbackType="avatar"
+                        unoptimized={true}
                       />
                     ) : (
                       <div className="w-full h-full bg-primary/10 flex items-center justify-center text-primary/60 font-bold">
@@ -162,7 +199,7 @@ export function StoriesBar({ groupedStories, currentUser }: { groupedStories: an
                 )}
               </div>
 
-              <span className={`text-xs text-center truncate w-16 \${group.allSeen ? 'text-muted-foreground' : 'font-bold'}`}>
+              <span className={`text-xs text-center truncate w-16 ${group.allSeen ? 'text-muted-foreground' : 'font-bold'}`}>
                 {isMe ? "Tu historia" : group.author?.display_name?.split(" ")[0] || group.author?.username}
               </span>
             </div>
@@ -174,6 +211,7 @@ export function StoriesBar({ groupedStories, currentUser }: { groupedStories: an
         <StoriesViewer 
           groupedStories={groupedStories} 
           initialGroupIndex={activeGroupIndex} 
+          initialIndex={initialStoryIndex}
           onClose={handleCloseViewer}
           currentUser={currentUser}
         />
