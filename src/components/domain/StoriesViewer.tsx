@@ -151,7 +151,15 @@ export function StoriesViewer({ groupedStories: _groupedStories, initialGroupInd
   const currentGroup = groupedStories[groupIndex]
   const currentStory = currentGroup?.stories[storyIndex]
   const isMe = (currentUser?.id || currentUserId) === currentGroup?.author?.id || (currentUser?.id || currentUserId) === currentStory?.owner_id;
-  // console.log("DEBUG ISME", { isMe, currentUserId: currentUser?.id, authorId: currentGroup?.author?.id, ownerId: currentStory?.owner_id });
+
+  const fallbackRecipeMediaObj = currentStory?.recipe?.recipe_media?.[0]?.media;
+  const fallbackSessionMediaObj = currentStory?.session?.session_media?.[0]?.media;
+  const postOverlay = currentStory?.overlays?.find((o: any) => o.type === 'POST');
+  const rawStoryMedia = currentStory?.story_media?.[0];
+  const mediaObj = rawStoryMedia?.media || fallbackRecipeMediaObj || fallbackSessionMediaObj;
+  const mediaPath = mediaObj?.storage_path || rawStoryMedia?.storage_path || postOverlay?.payload?.coverUrl;
+  const isVideo = !!(mediaPath?.match(/\.(mp4|webm|ogg)(\?.*)?$/i) || postOverlay?.payload?.mediaType === 'VIDEO' || (mediaPath && (/\.(mp4|webm|mov)(\?.*)?$/i.test(mediaPath) || mediaPath.includes('video/'))));
+  const fullUrl = mediaObj?.signed_url || (mediaPath ? (mediaPath.startsWith('http') ? mediaPath : `https://zvesoygqssyyojqyswwm.supabase.co/storage/v1/object/public/recipe_media/${mediaPath}`) : "");
 
   // Navigate next/prev story
   const [showConfirm, setShowConfirm] = useState(false);
@@ -172,7 +180,59 @@ export function StoriesViewer({ groupedStories: _groupedStories, initialGroupInd
     } 
   };
 
+  const videoRef = useRef<HTMLVideoElement>(null)
+  const activeBarRef = useRef<HTMLDivElement>(null)
+  const rafIdRef = useRef<number | null>(null)
+
+  // Direct visual progress update via scaleX (hardware accelerated, zero layout reflows)
+  const updateVideoProgressBar = () => {
+    const video = videoRef.current
+    const bar = activeBarRef.current
+    if (!video || !bar) return
+
+    if (video.duration && !isNaN(video.duration) && video.duration > 0) {
+      const fraction = Math.max(0, Math.min(1, video.currentTime / video.duration))
+      bar.style.transform = `scaleX(${fraction})`
+    }
+  }
+
+  const stopVideoLoop = () => {
+    if (rafIdRef.current !== null) {
+      cancelAnimationFrame(rafIdRef.current)
+      rafIdRef.current = null
+    }
+  }
+
+  const startVideoLoop = () => {
+    stopVideoLoop()
+
+    const tick = () => {
+      const video = videoRef.current
+      if (!video) {
+        rafIdRef.current = null
+        return
+      }
+
+      if (video.duration && !isNaN(video.duration) && video.duration > 0) {
+        const fraction = Math.max(0, Math.min(1, video.currentTime / video.duration))
+        if (activeBarRef.current) {
+          activeBarRef.current.style.transform = `scaleX(${fraction})`
+        }
+      }
+
+      // Continue requestAnimationFrame only while video is actively playing
+      if (!video.paused && !video.ended) {
+        rafIdRef.current = requestAnimationFrame(tick)
+      } else {
+        rafIdRef.current = null
+      }
+    }
+
+    rafIdRef.current = requestAnimationFrame(tick)
+  }
+
   const nextStory = () => {
+    stopVideoLoop()
     if (!currentGroup) return
     if (storyIndex < currentGroup.stories.length - 1) {
       setStoryIndex((s: number) => s + 1)
@@ -185,6 +245,7 @@ export function StoriesViewer({ groupedStories: _groupedStories, initialGroupInd
   }
 
   const prevStory = () => {
+    stopVideoLoop()
     if (!currentGroup) return
     if (storyIndex > 0) {
       setStoryIndex((s: number) => s - 1)
@@ -192,68 +253,126 @@ export function StoriesViewer({ groupedStories: _groupedStories, initialGroupInd
       setGroupIndex((g: number) => g - 1)
       setStoryIndex(groupedStories[groupIndex - 1].stories.length - 1)
     } else {
-      // First story of first user -> close? Or do nothing?
-      // Do nothing or maybe close. Let's do nothing but reset progress.
+      // First story of first user -> reset progress
       setProgress(0)
+      if (videoRef.current) {
+        videoRef.current.currentTime = 0
+      }
+      if (activeBarRef.current) {
+        activeBarRef.current.style.transform = 'scaleX(0)'
+      }
     }
   }
 
-  // Handle Mark Viewed
+  // Handle Mark Viewed and reset bar
   useEffect(() => {
     if (currentStory && !isMe) {
-      // Ensure we don't spam if already marked, though action handles it
       markStoryViewed(currentStory.id)
     }
     setProgress(0)
+    if (activeBarRef.current) {
+      activeBarRef.current.style.transform = 'scaleX(0)'
+    }
     setIsPaused(false)
     setShowViewers(false)
-  }, [currentStory, isMe])
+  }, [currentStory?.id, isMe])
 
   // Handle fetching viewers for owner
   useEffect(() => {
     if (isMe && currentStory) {
       fetchStoryViewers(currentStory.id).then((v) => setViewers(v as any))
     }
-  }, [currentStory, isMe])
+  }, [currentStory?.id, isMe])
 
-  // Handle Progress Auto-advance
-  const videoRef = useRef<HTMLVideoElement>(null)
-
+  // Handle Photo Progress Auto-advance (Intact for images)
   useEffect(() => {
-    if (isPaused || showViewers || showMenu || ownerMenuOpen || showShare || highlightModalOpen || insightsOpen) return
+    const isAnyModalOpen = isPaused || showViewers || showMenu || ownerMenuOpen || showShare || highlightModalOpen || insightsOpen
+    if (isAnyModalOpen || isVideo || !currentStory) return
 
-    const isVideo = currentStory?.story_media?.[0]?.media?.storage_path?.match(/\.(mp4|webm|ogg)$/i)
-    let timer: NodeJS.Timeout
+    // Image: dynamic duration based on music or 5 seconds default
+    const duration = currentStory.music_config?.duration_ms || 5000
+    const interval = 50
     let step = 0
 
-    if (!isVideo) {
-      // Image: dynamic duration based on music or 5 seconds default
-      const duration = currentStory.music_config?.duration_ms || 5000
-      const interval = 50
-      timer = setInterval(() => {
-        step += (interval / duration) * 100
-        if (step >= 100) {
-          clearInterval(timer)
-          nextStory()
-        } else {
-          setProgress(step)
-        }
-      }, interval)
-    }
+    const timer = setInterval(() => {
+      step += (interval / duration) * 100
+      if (step >= 100) {
+        clearInterval(timer)
+        nextStory()
+      } else {
+        setProgress(step)
+      }
+    }, interval)
 
     return () => {
       if (timer) clearInterval(timer)
     }
-  }, [currentStory, isPaused, showViewers, showMenu, ownerMenuOpen, showShare, highlightModalOpen, insightsOpen]) // Dependencies
+  }, [currentStory?.id, isVideo, isPaused, showViewers, showMenu, ownerMenuOpen, showShare, highlightModalOpen, insightsOpen])
 
-  // Video progress
+  // Manage Video RAF lifecycle when pause state or story changes
+  useEffect(() => {
+    if (!isVideo) {
+      stopVideoLoop()
+      return
+    }
+
+    // Reset bar for the current story
+    if (activeBarRef.current) {
+      activeBarRef.current.style.transform = 'scaleX(0)'
+    }
+
+    const isAnyModalOpen = isPaused || showViewers || showMenu || ownerMenuOpen || showShare || highlightModalOpen || insightsOpen
+    const video = videoRef.current
+
+    if (video && !video.paused && !video.ended && !isAnyModalOpen) {
+      startVideoLoop()
+    } else {
+      stopVideoLoop()
+      updateVideoProgressBar()
+    }
+
+    return () => {
+      stopVideoLoop()
+    }
+  }, [currentStory?.id, isVideo, isPaused, showViewers, showMenu, ownerMenuOpen, showShare, highlightModalOpen, insightsOpen])
+
+  // Video event handlers for seamless real-time synchronization
+  const handleVideoPlay = () => {
+    startVideoLoop()
+  }
+
+  const handleVideoPlaying = () => {
+    startVideoLoop()
+  }
+
+  const handleVideoPause = () => {
+    stopVideoLoop()
+    updateVideoProgressBar()
+  }
+
+  const handleVideoWaiting = () => {
+    // Buffering: freeze bar at current playback time without advancing
+    stopVideoLoop()
+    updateVideoProgressBar()
+  }
+
+  const handleVideoLoadedMetadata = () => {
+    updateVideoProgressBar()
+  }
+
   const handleTimeUpdate = () => {
-    if (videoRef.current) {
-      const p = (videoRef.current.currentTime / videoRef.current.duration) * 100
-      setProgress(p)
+    updateVideoProgressBar()
+    const video = videoRef.current
+    if (video && !video.paused && !video.ended && rafIdRef.current === null) {
+      startVideoLoop()
     }
   }
+
   const handleVideoEnded = () => {
+    stopVideoLoop()
+    if (activeBarRef.current) {
+      activeBarRef.current.style.transform = 'scaleX(1)'
+    }
     nextStory()
   }
 
@@ -325,15 +444,6 @@ export function StoriesViewer({ groupedStories: _groupedStories, initialGroupInd
 
   if (!currentStory) return null
 
-  const fallbackRecipeMediaObj = currentStory.recipe?.recipe_media?.[0]?.media;
-  const fallbackSessionMediaObj = currentStory.session?.session_media?.[0]?.media;
-  const postOverlay = currentStory.overlays?.find((o: any) => o.type === 'POST');
-  const rawStoryMedia = currentStory.story_media?.[0];
-  const mediaObj = rawStoryMedia?.media || fallbackRecipeMediaObj || fallbackSessionMediaObj;
-  const mediaPath = mediaObj?.storage_path || rawStoryMedia?.storage_path || postOverlay?.payload?.coverUrl;
-  const isVideo = mediaPath?.match(/\.(mp4|webm|ogg)(\?.*)?$/i) || postOverlay?.payload?.mediaType === 'VIDEO' || (mediaPath && (/\.(mp4|webm|mov)(\?.*)?$/i.test(mediaPath) || mediaPath.includes('video/')));
-  const fullUrl = mediaObj?.signed_url || (mediaPath ? (mediaPath.startsWith('http') ? mediaPath : `${"https://zvesoygqssyyojqyswwm.supabase.co"}/storage/v1/object/public/recipe_media/${mediaPath}`) : "");
-
   const handlePointerDown = () => setIsPaused(true)
   const handlePointerUp = () => {
     if (showMenu || ownerMenuOpen || showShare || highlightModalOpen || insightsOpen) return;
@@ -349,13 +459,33 @@ export function StoriesViewer({ groupedStories: _groupedStories, initialGroupInd
         {/* Progress Bars */}
         <div className="absolute top-0 left-0 w-full z-50 flex gap-1 p-2 bg-gradient-to-b from-black/50 to-transparent pt-safe pointer-events-none">
           {currentGroup.stories.map((s: {id: string}, idx: number) => {
-            let width = "0%"
-            if (idx < storyIndex) width = "100%"
-            else if (idx === storyIndex) width = `${progress}%`
-            
+            const isPast = idx < storyIndex
+            const isCurrent = idx === storyIndex
+
             return (
-              <div key={idx} className="h-1 flex-1 bg-white/30 rounded-full overflow-hidden backdrop-blur-sm">
-                <div className="h-full bg-white transition-all duration-75 ease-linear" style={{ width }} />
+              <div key={s.id || idx} className="h-1 flex-1 bg-white/30 rounded-full overflow-hidden backdrop-blur-sm">
+                {isPast ? (
+                  <div className="h-full w-full bg-white" />
+                ) : isCurrent ? (
+                  isVideo ? (
+                    <div 
+                      ref={activeBarRef}
+                      className="h-full w-full bg-white will-change-transform"
+                      style={{
+                        transformOrigin: "left",
+                        transform: "scaleX(0)",
+                        transition: "none",
+                      }}
+                    />
+                  ) : (
+                    <div 
+                      className="h-full bg-white transition-all duration-75 ease-linear" 
+                      style={{ width: `${progress}%` }} 
+                    />
+                  )
+                ) : (
+                  <div className="h-full w-0 bg-white" />
+                )}
               </div>
             )
           })}
@@ -492,6 +622,11 @@ export function StoriesViewer({ groupedStories: _groupedStories, initialGroupInd
             musicConfig={currentStory.music_config}
             isVideo={!!isVideo}
             videoRef={videoRef}
+            onPlay={handleVideoPlay}
+            onPlaying={handleVideoPlaying}
+            onPause={handleVideoPause}
+            onWaiting={handleVideoWaiting}
+            onLoadedMetadata={handleVideoLoadedMetadata}
             onTimeUpdate={handleTimeUpdate}
             onEnded={handleVideoEnded}
             isPaused={isPaused}

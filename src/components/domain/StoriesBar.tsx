@@ -160,6 +160,7 @@ export function StoriesBar({ groupedStories, currentUser }: { groupedStories: an
                     {coverUrl ? (
                       <MediaImage
                         src={coverUrl}
+                        thumbnailPath={rawMedia?.thumbnail_path || (coverUrl.match(/\.(mp4|webm|mov)$/i) ? coverUrl.replace(/\.(mp4|webm|mov)$/i, '.thumb.webp') : null)}
                         alt="Historia"
                         className="w-full h-full object-cover"
                         fill={true}

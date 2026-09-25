@@ -52,7 +52,7 @@ export interface FeedCardProps {
   isPinned?: boolean
 
   // Media
-  media: { id: string, storage_path: string, media_type?: string }[]
+  media: { id: string, storage_path: string, media_type?: string, thumbnail_path?: string | null }[]
   priority?: boolean
 }
 

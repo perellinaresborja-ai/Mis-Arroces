@@ -57,6 +57,11 @@ interface SharedStoryRendererProps {
   videoRef?: React.RefObject<HTMLVideoElement | null>;
   onTimeUpdate?: () => void;
   onEnded?: () => void;
+  onPlay?: () => void;
+  onPause?: () => void;
+  onWaiting?: () => void;
+  onPlaying?: () => void;
+  onLoadedMetadata?: () => void;
   isPaused?: boolean;
   mediaUrl?: string | null;
   transform?: StoryTransform | null;
@@ -85,6 +90,11 @@ export function SharedStoryRenderer({
   videoRef,
   onTimeUpdate,
   onEnded,
+  onPlay,
+  onPause,
+  onWaiting,
+  onPlaying,
+  onLoadedMetadata,
   isPaused,
   onPauseRequest,
   onResumeRequest,
@@ -273,6 +283,11 @@ export function SharedStoryRenderer({
             style={actualMediaStyle}
             onTimeUpdate={onTimeUpdate}
             onEnded={onEnded}
+            onPlay={onPlay}
+            onPause={onPause}
+            onWaiting={onWaiting}
+            onPlaying={onPlaying}
+            onLoadedMetadata={onLoadedMetadata}
             playsInline
             autoPlay
             loop={mode === 'EDITOR'}

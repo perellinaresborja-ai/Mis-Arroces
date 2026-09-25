@@ -4,11 +4,13 @@ import { useState, useRef, useEffect } from "react"
 import Image from "next/image"
 import { ChevronLeft, ChevronRight, Volume2, VolumeX } from "lucide-react"
 import Link from "next/link";
+import { VideoThumbnail } from "./VideoThumbnail"
 
 interface MediaItem {
   id: string
   storage_path: string
   media_type?: string // 'IMAGE' or 'VIDEO'
+  thumbnail_path?: string | null
 }
 
 export function MediaCarousel({ items, bucket = "recipe_media", href, priority = false }: { items: MediaItem[], bucket?: string, href?: string, priority?: boolean }) {
@@ -34,8 +36,10 @@ export function MediaCarousel({ items, bucket = "recipe_media", href, priority =
     }
   }
 
-  // Play current video, pause others
+  // Play current video, pause others (SOLO en vista abierta sin href)
   useEffect(() => {
+    if (href) return
+
     Object.entries(videoRefs.current).forEach(([index, videoEl]) => {
       if (!videoEl) return
       videoEl.defaultMuted = true
@@ -67,10 +71,10 @@ export function MediaCarousel({ items, bucket = "recipe_media", href, priority =
         }
       })
     }
-  }, [currentIndex, isMuted])
+  }, [currentIndex, isMuted, href])
 
   const currentItem = items[currentIndex]
-  const isCurrentVideo = Boolean(
+  const isCurrentVideo = !href && Boolean(
     currentItem && (currentItem.media_type === 'VIDEO' || currentItem.storage_path.match(/\.(mp4|webm|mov)$/i))
   )
 
@@ -79,6 +83,23 @@ export function MediaCarousel({ items, bucket = "recipe_media", href, priority =
     const url = getMediaUrl(item.storage_path)
 
     if (isVideo) {
+      if (href) {
+        // En contexto de feed / lista / previsualización (cuando hay href para abrir el post):
+        // El vídeo DEBE ESTAR PARADO como miniatura estática.
+        return (
+          <VideoThumbnail
+            src={url}
+            thumbnailPath={item.thumbnail_path}
+            className="w-full h-full object-cover"
+            fill={true}
+            showBadge={true}
+            priority={priority && index === 0}
+          />
+        )
+      }
+
+      // En contexto abierto (/posts/[id] o detalle sin href):
+      // Aquí sí se reproduce el vídeo al abrirlo.
       return (
         <div className="absolute inset-0 w-full h-full bg-black/10">
           <video
