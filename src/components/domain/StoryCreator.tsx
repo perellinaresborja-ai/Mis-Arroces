@@ -686,22 +686,6 @@ export function StoryCreator({
           isPaused={mode !== 'EDIT'}
         />
 
-        {/* Empty State Prompt */}
-        {!draftMediaUrl && overlays.length === 0 && mode === 'EDIT' && (
-          <div className="absolute inset-0 z-50 flex flex-col items-center justify-center gap-4 pointer-events-none p-6 text-center">
-            <label className="bg-primary hover:bg-primary/90 text-primary-foreground px-6 py-4 rounded-full flex items-center gap-3 cursor-pointer pointer-events-auto transition-transform hover:scale-105 active:scale-95 shadow-2xl font-bold text-base">
-              <input type="file" className="sr-only" accept="image/*,video/*" onChange={handleFileChange} />
-              <Camera size={24} />
-              <span>Elegir foto o vídeo</span>
-            </label>
-            <button 
-              onClick={() => setMode('TEXT')} 
-              className="bg-black/60 hover:bg-black/80 backdrop-blur-md border border-white/20 text-white px-5 py-2.5 rounded-full pointer-events-auto font-semibold text-sm transition-transform active:scale-95 cursor-pointer"
-            >
-              Crear historia de texto
-            </button>
-          </div>
-        )}
 
         {/* Drawing Canvas */}
         <canvas 
