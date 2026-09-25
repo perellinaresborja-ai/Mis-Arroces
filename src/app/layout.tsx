@@ -30,6 +30,7 @@ export const metadata: Metadata = {
     statusBarStyle: "default",
     title: "misarroces",
   },
+  manifest: "/manifest.webmanifest",
   icons: {
     icon: "/icons/icon-192x192.png",
     apple: "/apple-touch-icon.png",
@@ -114,6 +115,27 @@ export default async function RootLayout({
   return (
     <html lang="es" suppressHydrationWarning>
       <body className={`${inter.className} antialiased bg-background text-foreground safe-area-pt safe-area-pb overflow-x-hidden`}>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+(function() {
+  window.__deferredPrompt = null;
+  window.addEventListener('beforeinstallprompt', function(e) {
+    e.preventDefault();
+    window.__deferredPrompt = e;
+    try { window.dispatchEvent(new CustomEvent('pwa-prompt-ready')); } catch(err){}
+  });
+  window.addEventListener('appinstalled', function() {
+    window.__deferredPrompt = null;
+    try {
+      localStorage.setItem('misarroces_pwa_installed', 'true');
+      window.dispatchEvent(new CustomEvent('pwa-installed'));
+    } catch(err){}
+  });
+})();
+`,
+          }}
+        />
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
           <AppSplashScreen />
           <UserSessionProvider initialUser={user} initialAvatarUrl={avatarUrl} initialUsername={initialUsername}>

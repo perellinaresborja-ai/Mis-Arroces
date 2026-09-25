@@ -1,6 +1,6 @@
 "use client"
 
-import { createContext, useContext, useEffect, useState, ReactNode } from "react"
+import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from "react"
 import { InstallPrompt } from "@/components/domain/InstallPrompt"
 
 interface PwaContextType {
@@ -32,7 +32,6 @@ export function PwaProvider({ children }: { children: ReactNode }) {
       navigator.serviceWorker
         .register("/sw.js")
         .then((reg) => {
-          // Verificar actualizaciones de service worker en segundo plano
           reg.update().catch(() => {})
         })
         .catch((err) => {
@@ -40,13 +39,39 @@ export function PwaProvider({ children }: { children: ReactNode }) {
         })
     }
 
-    // 2. Comprobar si ya está ejecutándose como PWA standalone instalada
-    const checkStandalone = () => {
+    // 2. Comprobar si ya está instalada (standalone, referrer de app nativa/TWA o flag persistente)
+    const checkInstalled = async () => {
+      if (typeof window === "undefined") return false
+
       const isStandaloneMedia = window.matchMedia("(display-mode: standalone)").matches
       const isStandaloneNavigator = (window.navigator as any).standalone === true
-      return isStandaloneMedia || isStandaloneNavigator
+      const isReferrerAndroidApp = document.referrer.includes("android-app://")
+
+      let localFlag = false
+      try {
+        localFlag = localStorage.getItem("misarroces_pwa_installed") === "true"
+      } catch {}
+
+      if (isStandaloneMedia || isStandaloneNavigator || isReferrerAndroidApp || localFlag) {
+        setIsInstalled(true)
+        return true
+      }
+
+      // Detección nativa de Chrome en Android (si ya se instaló la PWA relacionada)
+      if ("getInstalledRelatedApps" in navigator) {
+        try {
+          const related = await (navigator as any).getInstalledRelatedApps()
+          if (related && related.length > 0) {
+            setIsInstalled(true)
+            return true
+          }
+        } catch {}
+      }
+
+      return false
     }
-    setIsInstalled(checkStandalone())
+
+    checkInstalled()
 
     // 3. Detectar si el dispositivo es iOS (iPhone / iPad)
     const checkIos = () => {
@@ -55,38 +80,66 @@ export function PwaProvider({ children }: { children: ReactNode }) {
     }
     setIsIos(checkIos())
 
-    // 4. Capturar el evento nativo beforeinstallprompt para impedir que el navegador lance el popup cuando quiera
+    // 4. Capturar el prompt si el script temprano inline ya lo atrapó antes de hidratar
+    if (typeof window !== "undefined" && (window as any).__deferredPrompt) {
+      setDeferredPrompt((window as any).__deferredPrompt)
+    }
+
+    // 5. Manejadores de eventos de instalación
     const handleBeforeInstallPrompt = (e: Event) => {
-      e.preventDefault() // Evita el banner automático invasivo del navegador
+      e.preventDefault()
+      ;(window as any).__deferredPrompt = e
       setDeferredPrompt(e)
     }
 
-    // 5. Detectar cuando el usuario instala la aplicación
+    const handlePromptReady = () => {
+      if (typeof window !== "undefined" && (window as any).__deferredPrompt) {
+        setDeferredPrompt((window as any).__deferredPrompt)
+      }
+    }
+
     const handleAppInstalled = () => {
       setIsInstalled(true)
       setDeferredPrompt(null)
+      if (typeof window !== "undefined") {
+        ;(window as any).__deferredPrompt = null
+        try {
+          localStorage.setItem("misarroces_pwa_installed", "true")
+        } catch {}
+      }
     }
 
     window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt)
+    window.addEventListener("pwa-prompt-ready", handlePromptReady)
     window.addEventListener("appinstalled", handleAppInstalled)
+    window.addEventListener("pwa-installed", handleAppInstalled)
 
     return () => {
       window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt)
+      window.removeEventListener("pwa-prompt-ready", handlePromptReady)
       window.removeEventListener("appinstalled", handleAppInstalled)
+      window.removeEventListener("pwa-installed", handleAppInstalled)
     }
   }, [])
 
-  const promptInstall = async (): Promise<boolean> => {
-    if (!deferredPrompt) {
+  const promptInstall = useCallback(async (): Promise<boolean> => {
+    const prompt = deferredPrompt || (typeof window !== "undefined" ? (window as any).__deferredPrompt : null)
+    if (!prompt) {
       return false
     }
 
     try {
-      deferredPrompt.prompt()
-      const choiceResult = await deferredPrompt.userChoice
-      if (choiceResult.outcome === "accepted") {
+      prompt.prompt()
+      const choiceResult = await prompt.userChoice
+      if (choiceResult && choiceResult.outcome === "accepted") {
         setIsInstalled(true)
         setDeferredPrompt(null)
+        if (typeof window !== "undefined") {
+          ;(window as any).__deferredPrompt = null
+          try {
+            localStorage.setItem("misarroces_pwa_installed", "true")
+          } catch {}
+        }
         return true
       }
       return false
@@ -94,13 +147,15 @@ export function PwaProvider({ children }: { children: ReactNode }) {
       console.error("[PWA] Error al disparar instalador:", err)
       return false
     }
-  }
+  }, [deferredPrompt])
+
+  const hasInstallPrompt = !!deferredPrompt || (typeof window !== "undefined" && !!(window as any).__deferredPrompt)
 
   return (
     <PwaContext.Provider
       value={{
         isInstalled,
-        canInstall: !!deferredPrompt,
+        canInstall: hasInstallPrompt,
         isIos,
         promptInstall,
       }}

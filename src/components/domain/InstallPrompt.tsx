@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { usePathname } from "next/navigation"
 import { usePwa } from "@/components/providers/PwaProvider"
 import { X } from "lucide-react"
 import Image from "next/image"
@@ -9,13 +10,14 @@ const DISMISS_KEY = "misarroces_pwa_dismissed_until"
 const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000
 
 export function InstallPrompt() {
+  const pathname = usePathname()
   const { isInstalled, canInstall, isIos, promptInstall } = usePwa()
   const [isVisible, setIsVisible] = useState(false)
   const [showIosGuide, setShowIosGuide] = useState(false)
 
   useEffect(() => {
-    // Si ya está instalada o en standalone, no mostrar nunca
-    if (isInstalled) {
+    // Si ya está instalada o en standalone o en la propia página /descargar, no mostrar
+    if (isInstalled || pathname === "/descargar") {
       setIsVisible(false)
       return
     }

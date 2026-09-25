@@ -5,8 +5,11 @@ export default function manifest(): MetadataRoute.Manifest {
     name: 'misarroces',
     short_name: 'misarroces',
     description: 'La red social de los arroces. Descubre, guarda y comparte las mejores recetas de arroces y paellas.',
+    id: '/',
     start_url: '/',
+    scope: '/',
     display: 'standalone',
+    orientation: 'portrait',
     background_color: '#F7F5F0',
     theme_color: '#F7F5F0',
     icons: [
