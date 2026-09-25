@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useTransition } from "react"
+import { useState, useTransition, useRef, useEffect } from "react"
 import { PaellaIcon } from "@/components/icons/PaellaIcon"
 import { SmilePlus } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -41,13 +41,111 @@ export function ReactionButton({
   const [showReactionMenu, setShowReactionMenu] = useState(false)
   const [showReactionAnim, setShowReactionAnim] = useState(false)
 
+  const longPressTimerRef = useRef<NodeJS.Timeout | null>(null)
+  const isLongPressRef = useRef(false)
+  const touchStartPos = useRef<{ x: number; y: number }>({ x: 0, y: 0 })
+  const preventClickRef = useRef(false)
+
+  // Clear timer on unmount
+  useEffect(() => {
+    return () => {
+      if (longPressTimerRef.current) {
+        clearTimeout(longPressTimerRef.current)
+      }
+    }
+  }, [])
+
+  const clearTimer = () => {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current)
+      longPressTimerRef.current = null
+    }
+  }
+
+  const startLongPressTimer = () => {
+    clearTimer()
+    isLongPressRef.current = false
+    longPressTimerRef.current = setTimeout(() => {
+      isLongPressRef.current = true
+      preventClickRef.current = true
+      if (typeof window !== "undefined" && "vibrate" in navigator) {
+        try {
+          navigator.vibrate?.([30])
+        } catch {}
+      }
+      setShowReactionMenu(true)
+    }, 450)
+  }
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    const touch = e.touches[0]
+    touchStartPos.current = { x: touch.clientX, y: touch.clientY }
+    startLongPressTimer()
+  }
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    const touch = e.touches[0]
+    const diffX = Math.abs(touch.clientX - touchStartPos.current.x)
+    const diffY = Math.abs(touch.clientY - touchStartPos.current.y)
+    if (diffX > 10 || diffY > 10) {
+      clearTimer()
+    }
+  }
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    clearTimer()
+    if (isLongPressRef.current) {
+      e.preventDefault()
+      setTimeout(() => {
+        isLongPressRef.current = false
+        preventClickRef.current = false
+      }, 300)
+    }
+  }
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (e.button === 0) {
+      touchStartPos.current = { x: e.clientX, y: e.clientY }
+      startLongPressTimer()
+    }
+  }
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    const diffX = Math.abs(e.clientX - touchStartPos.current.x)
+    const diffY = Math.abs(e.clientY - touchStartPos.current.y)
+    if (diffX > 10 || diffY > 10) {
+      clearTimer()
+    }
+  }
+
+  const handleMouseUp = () => {
+    clearTimer()
+  }
+
+  const handleMouseLeave = () => {
+    clearTimer()
+  }
+
+  const handleClick = (e: React.MouseEvent) => {
+    if (isLongPressRef.current || preventClickRef.current) {
+      e.preventDefault()
+      e.stopPropagation()
+      isLongPressRef.current = false
+      preventClickRef.current = false
+      return
+    }
+
+    handleReact('🥘')
+  }
+
   const handleReact = (emoji: string) => {
     if (!currentUserId) {
       showAuthPrompt("Inicia sesión para reaccionar.")
       return
     }
     
-    if (emoji === '🥘') {
+    // Only celebrate with large animation when actively giving 🥘
+    if (emoji === '🥘' && myReaction !== '🥘') {
       setShowReactionAnim(true)
       setTimeout(() => setShowReactionAnim(false), 800)
     }
@@ -117,8 +215,25 @@ export function ReactionButton({
     <div className="relative inline-flex items-center gap-2">
       {/* ADD REACTION BUTTON */}
       <button 
-        onClick={() => setShowReactionMenu(!showReactionMenu)}
-        className={cn("flex items-center gap-1.5 hover:opacity-70 transition-opacity", className)}
+        type="button"
+        onClick={handleClick}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseLeave}
+        onContextMenu={(e) => {
+          e.preventDefault()
+          setShowReactionMenu(true)
+        }}
+        aria-label={myReaction ? `Reacción actual: ${myReaction}` : "Reaccionar con Me gusta"}
+        title={myReaction ? "Quitar reacción (mantén pulsado para más)" : "Me gusta (mantén pulsado para más)"}
+        className={cn(
+          "flex items-center gap-1.5 hover:opacity-70 transition-opacity select-none touch-manipulation", 
+          className
+        )}
       >
         <span 
           className={cn(
