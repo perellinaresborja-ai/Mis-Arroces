@@ -297,178 +297,97 @@ export function StoryMusicSelector({
     return Math.round(ratio * trackDurMs)
   }
 
-  // --- Left Handle Handlers ---
-  const handleLeftPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+  // Unified pointer down handler for handles and center
+  const handlePointerDown = (type: 'left' | 'right' | 'center', e: React.PointerEvent<HTMLDivElement>) => {
     e.preventDefault()
     e.stopPropagation()
     if (!selectedTrack || !timelineRef.current) return
 
-    try {
-      e.currentTarget.setPointerCapture(e.pointerId)
-    } catch {}
-
     const rect = timelineRef.current.getBoundingClientRect()
     const trackDur = Math.max(1000, selectedTrack.duration_ms)
+    const pointerMs = getTimeFromPointer(e.clientX, rect, trackDur)
 
     dragRef.current = {
-      active: 'left',
+      active: type,
       pointerId: e.pointerId,
       fixedStartMs: selectionStartMs,
       fixedEndMs: selectionEndMs,
-      pointerStartTimeMs: getTimeFromPointer(e.clientX, rect, trackDur),
+      pointerStartTimeMs: pointerMs,
       initialStartMs: selectionStartMs,
       durationMs: selectionEndMs - selectionStartMs,
       trackDurMs: trackDur,
       rect
     }
-  }
-
-  const handleLeftPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (dragRef.current.active !== 'left' || !dragRef.current.rect || !selectedTrack) return
-    e.preventDefault()
-    e.stopPropagation()
-
-    const { rect, trackDurMs, fixedEndMs } = dragRef.current
-    const pointerMs = getTimeFromPointer(e.clientX, rect, trackDurMs)
-
-    const minAllowed = Math.max(0, fixedEndMs - effectiveMaxDurMs)
-    const maxAllowed = fixedEndMs - minDurMs
-    const newStart = Math.max(minAllowed, Math.min(maxAllowed, pointerMs))
-
-    setSelectionStartMs(newStart)
-  }
-
-  const handleLeftPointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (dragRef.current.active !== 'left') return
-    e.preventDefault()
-    e.stopPropagation()
-
-    try {
-      e.currentTarget.releasePointerCapture(e.pointerId)
-    } catch {}
-    dragRef.current.active = null
-
-    if (audioRef.current && selectedTrack) {
-      audioRef.current.currentTime = selectionStartMs / 1000
-      setCurrentPlaybackTimeMs(selectionStartMs)
-    }
-  }
-
-  // --- Right Handle Handlers ---
-  const handleRightPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
-    e.preventDefault()
-    e.stopPropagation()
-    if (!selectedTrack || !timelineRef.current) return
 
     try {
       e.currentTarget.setPointerCapture(e.pointerId)
     } catch {}
+  }
 
-    const rect = timelineRef.current.getBoundingClientRect()
-    const trackDur = Math.max(1000, selectedTrack.duration_ms)
+  // Global listeners for smooth, uninterrupted dragging on mobile
+  useEffect(() => {
+    const onWindowPointerMove = (e: PointerEvent) => {
+      const drag = dragRef.current
+      if (!drag.active || !timelineRef.current || !selectedTrack) return
 
-    dragRef.current = {
-      active: 'right',
-      pointerId: e.pointerId,
-      fixedStartMs: selectionStartMs,
-      fixedEndMs: selectionEndMs,
-      pointerStartTimeMs: getTimeFromPointer(e.clientX, rect, trackDur),
-      initialStartMs: selectionStartMs,
-      durationMs: selectionEndMs - selectionStartMs,
-      trackDurMs: trackDur,
-      rect
+      e.preventDefault()
+      const rect = drag.rect || timelineRef.current.getBoundingClientRect()
+      const trackDurMs = Math.max(1000, selectedTrack.duration_ms)
+      const pointerMs = getTimeFromPointer(e.clientX, rect, trackDurMs)
+
+      if (drag.active === 'left') {
+        const minAllowed = Math.max(0, drag.fixedEndMs - effectiveMaxDurMs)
+        const maxAllowed = drag.fixedEndMs - minDurMs
+        const newStart = Math.max(minAllowed, Math.min(maxAllowed, pointerMs))
+        setSelectionStartMs(newStart)
+      } else if (drag.active === 'right') {
+        const minAllowed = drag.fixedStartMs + minDurMs
+        const maxAllowed = Math.min(trackDurMs, drag.fixedStartMs + effectiveMaxDurMs)
+        const newEnd = Math.max(minAllowed, Math.min(maxAllowed, pointerMs))
+        setSelectionEndMs(newEnd)
+      } else if (drag.active === 'center') {
+        const deltaMs = pointerMs - drag.pointerStartTimeMs
+        let newStart = drag.initialStartMs + deltaMs
+        const maxStart = Math.max(0, trackDurMs - drag.durationMs)
+        newStart = Math.max(0, Math.min(maxStart, newStart))
+        setSelectionStartMs(newStart)
+        setSelectionEndMs(newStart + drag.durationMs)
+      }
     }
-  }
 
-  const handleRightPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (dragRef.current.active !== 'right' || !dragRef.current.rect || !selectedTrack) return
-    e.preventDefault()
-    e.stopPropagation()
+    const onWindowPointerUp = () => {
+      if (!dragRef.current.active) return
+      dragRef.current.active = null
 
-    const { rect, trackDurMs, fixedStartMs } = dragRef.current
-    const pointerMs = getTimeFromPointer(e.clientX, rect, trackDurMs)
-
-    const minAllowed = fixedStartMs + minDurMs
-    const maxAllowed = Math.min(trackDurMs, fixedStartMs + effectiveMaxDurMs)
-    const newEnd = Math.max(minAllowed, Math.min(maxAllowed, pointerMs))
-
-    setSelectionEndMs(newEnd)
-  }
-
-  const handleRightPointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (dragRef.current.active !== 'right') return
-    e.preventDefault()
-    e.stopPropagation()
-
-    try {
-      e.currentTarget.releasePointerCapture(e.pointerId)
-    } catch {}
-    dragRef.current.active = null
-
-    if (audioRef.current && selectedTrack) {
-      audioRef.current.currentTime = selectionStartMs / 1000
-      setCurrentPlaybackTimeMs(selectionStartMs)
+      if (audioRef.current && selectedTrack) {
+        setSelectionStartMs(start => {
+          if (audioRef.current) {
+            audioRef.current.currentTime = start / 1000
+            setCurrentPlaybackTimeMs(start)
+          }
+          return start
+        })
+      }
     }
-  }
 
-  // --- Center Drag Handlers ---
-  const handleCenterPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
-    e.preventDefault()
-    e.stopPropagation()
-    if (!selectedTrack || !timelineRef.current) return
-
-    try {
-      e.currentTarget.setPointerCapture(e.pointerId)
-    } catch {}
-
-    const rect = timelineRef.current.getBoundingClientRect()
-    const trackDur = Math.max(1000, selectedTrack.duration_ms)
-
-    dragRef.current = {
-      active: 'center',
-      pointerId: e.pointerId,
-      fixedStartMs: selectionStartMs,
-      fixedEndMs: selectionEndMs,
-      pointerStartTimeMs: getTimeFromPointer(e.clientX, rect, trackDur),
-      initialStartMs: selectionStartMs,
-      durationMs: selectionEndMs - selectionStartMs,
-      trackDurMs: trackDur,
-      rect
+    const onTouchMove = (e: TouchEvent) => {
+      if (dragRef.current.active && e.cancelable) {
+        e.preventDefault()
+      }
     }
-  }
 
-  const handleCenterPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (dragRef.current.active !== 'center' || !dragRef.current.rect || !selectedTrack) return
-    e.preventDefault()
-    e.stopPropagation()
+    window.addEventListener('pointermove', onWindowPointerMove, { passive: false })
+    window.addEventListener('pointerup', onWindowPointerUp)
+    window.addEventListener('pointercancel', onWindowPointerUp)
+    window.addEventListener('touchmove', onTouchMove, { passive: false })
 
-    const { rect, trackDurMs, pointerStartTimeMs, initialStartMs, durationMs } = dragRef.current
-    const currentPointerMs = getTimeFromPointer(e.clientX, rect, trackDurMs)
-    const deltaMs = currentPointerMs - pointerStartTimeMs
-
-    let newStart = initialStartMs + deltaMs
-    const maxStart = Math.max(0, trackDurMs - durationMs)
-    newStart = Math.max(0, Math.min(maxStart, newStart))
-
-    setSelectionStartMs(newStart)
-    setSelectionEndMs(newStart + durationMs)
-  }
-
-  const handleCenterPointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (dragRef.current.active !== 'center') return
-    e.preventDefault()
-    e.stopPropagation()
-
-    try {
-      e.currentTarget.releasePointerCapture(e.pointerId)
-    } catch {}
-    dragRef.current.active = null
-
-    if (audioRef.current && selectedTrack) {
-      audioRef.current.currentTime = selectionStartMs / 1000
-      setCurrentPlaybackTimeMs(selectionStartMs)
+    return () => {
+      window.removeEventListener('pointermove', onWindowPointerMove)
+      window.removeEventListener('pointerup', onWindowPointerUp)
+      window.removeEventListener('pointercancel', onWindowPointerUp)
+      window.removeEventListener('touchmove', onTouchMove)
     }
-  }
+  }, [selectedTrack, effectiveMaxDurMs, minDurMs])
 
   // Volume slider handlers
   const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -741,10 +660,10 @@ export function StoryMusicSelector({
             <div className="flex flex-col gap-1.5 shrink-0 px-1">
               <div
                 ref={timelineRef}
-                className="relative w-full h-14 bg-muted/40 rounded-2xl overflow-hidden select-none touch-none flex items-center px-1 border border-border/40"
+                className="relative w-full h-14 bg-muted/40 rounded-2xl overflow-visible select-none touch-none flex items-center px-1 border border-border/40"
               >
-                {/* Background Waveform Bars (Representing the full song) */}
-                <div className="absolute inset-0 flex items-center justify-between px-2 pointer-events-none">
+                {/* Background Waveform Bars (Representing the full song, clipped to rounded container) */}
+                <div className="absolute inset-0 rounded-2xl overflow-hidden pointer-events-none flex items-center justify-between px-2">
                   {waveformBars.map((h, i) => (
                     <div
                       key={i}
@@ -776,36 +695,36 @@ export function StoryMusicSelector({
                   className="absolute top-1 bottom-1 rounded-xl cursor-grab active:cursor-grabbing touch-none z-20"
                   style={{
                     left: `${leftPct}%`,
-                    width: `${widthPct}%`
+                    width: `${widthPct}%`,
+                    touchAction: 'none'
                   }}
-                  onPointerDown={handleCenterPointerDown}
-                  onPointerMove={handleCenterPointerMove}
-                  onPointerUp={handleCenterPointerUp}
-                  onPointerCancel={handleCenterPointerUp}
+                  onPointerDown={(e) => handlePointerDown('center', e)}
                   title="Arrastrar fragmento"
                 />
 
-                {/* Left Handle (hitbox 44px, centered at left edge, z-30, touch-none) */}
+                {/* Left Handle (hitbox 44px, touch-none, z-30) */}
                 <div
-                  className="absolute top-0 bottom-0 w-11 flex items-center justify-center cursor-ew-resize touch-none z-30 -translate-x-1/2 group"
-                  style={{ left: `${leftPct}%` }}
-                  onPointerDown={handleLeftPointerDown}
-                  onPointerMove={handleLeftPointerMove}
-                  onPointerUp={handleLeftPointerUp}
-                  onPointerCancel={handleLeftPointerUp}
+                  className="absolute top-0 bottom-0 w-11 flex items-center justify-end cursor-ew-resize touch-none z-30 select-none group pr-1.5"
+                  style={{
+                    left: `${leftPct}%`,
+                    transform: 'translateX(-75%)',
+                    touchAction: 'none'
+                  }}
+                  onPointerDown={(e) => handlePointerDown('left', e)}
                   title="Ajustar inicio"
                 >
                   <div className="w-1.5 h-7 bg-white border border-primary rounded-full shadow-md group-hover:scale-110 transition-transform pointer-events-none" />
                 </div>
 
-                {/* Right Handle (hitbox 44px, centered at right edge, z-30, touch-none) */}
+                {/* Right Handle (hitbox 44px, touch-none, z-30) */}
                 <div
-                  className="absolute top-0 bottom-0 w-11 flex items-center justify-center cursor-ew-resize touch-none z-30 -translate-x-1/2 group"
-                  style={{ left: `${rightPct}%` }}
-                  onPointerDown={handleRightPointerDown}
-                  onPointerMove={handleRightPointerMove}
-                  onPointerUp={handleRightPointerUp}
-                  onPointerCancel={handleRightPointerUp}
+                  className="absolute top-0 bottom-0 w-11 flex items-center justify-start cursor-ew-resize touch-none z-30 select-none group pl-1.5"
+                  style={{
+                    left: `${rightPct}%`,
+                    transform: 'translateX(-25%)',
+                    touchAction: 'none'
+                  }}
+                  onPointerDown={(e) => handlePointerDown('right', e)}
                   title="Ajustar duración"
                 >
                   <div className="w-1.5 h-7 bg-white border border-primary rounded-full shadow-md group-hover:scale-110 transition-transform pointer-events-none" />

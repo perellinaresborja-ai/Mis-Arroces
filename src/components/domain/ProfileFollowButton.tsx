@@ -9,12 +9,14 @@ export function ProfileFollowButton({
   isAuthenticated, 
   followStatus: initialStatus, 
   targetId, 
-  isPrivate 
+  isPrivate,
+  className
 }: { 
   isAuthenticated: boolean, 
   followStatus: string | null, 
   targetId: string, 
-  isPrivate: boolean 
+  isPrivate: boolean,
+  className?: string
 }) {
   const { showAuthPrompt } = useAuthPrompt()
   const [status, setStatus] = useState<string | null>(initialStatus)
@@ -57,9 +59,9 @@ export function ProfileFollowButton({
       disabled={isPending}
       onClick={handleToggle}
       variant={status === 'ACCEPTED' ? 'outline' : status === 'PENDING' ? 'secondary' : 'default'} 
-      className="min-w-[120px] rounded-full font-bold shadow-sm transition-opacity disabled:opacity-50"
+      className={className || "min-w-[120px] rounded-full font-bold shadow-sm transition-opacity disabled:opacity-50"}
     >
-      {isPending ? 'Cargando...' : status === 'ACCEPTED' ? 'Siguiendo' : status === 'PENDING' ? 'Solicitud enviada' : 'Seguir'}
+      {status === 'ACCEPTED' ? 'Siguiendo' : status === 'PENDING' ? 'Solicitud enviada' : 'Seguir'}
     </Button>
   )
 }

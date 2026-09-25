@@ -5,6 +5,7 @@ import { DiscoverClient } from "./DiscoverClient"
 import { FeedCard } from "@/components/domain/FeedCard"
 import { Users, BookOpen, Flame, LayoutTemplate, Search } from "lucide-react"
 import { WhatDoIHaveContainer } from "./WhatDoIHaveContainer"
+import { ProfileFollowButton } from "@/components/domain/ProfileFollowButton"
 import type { Metadata } from "next"
 
 export const metadata: Metadata = {
@@ -129,7 +130,29 @@ export default async function DiscoverPage(props: { searchParams?: Promise<{ q?:
       if (q) reqProfiles = reqProfiles.or(`username.ilike.%${searchQ}%,display_name.ilike.%${searchQ}%`)
       else reqProfiles = reqProfiles.eq("privacy_level", "PUBLIC")
       const { data } = await reqProfiles
-      if (data) searchResults.users = data
+      if (data) {
+        if (user && data.length > 0) {
+          const profileIds = data.map((p: any) => p.id)
+          const { data: myFollows } = await supabase
+            .from("follows")
+            .select("following_id, status")
+            .eq("follower_id", user.id)
+            .in("following_id", profileIds)
+          const followMap = (myFollows || []).reduce((acc: any, f: any) => {
+            acc[f.following_id] = f.status
+            return acc
+          }, {})
+          searchResults.users = data.map((p: any) => ({
+            ...p,
+            followStatus: followMap[p.id] || null
+          }))
+        } else {
+          searchResults.users = data.map((p: any) => ({
+            ...p,
+            followStatus: null
+          }))
+        }
+      }
     }
 
     if (tab === "todo" || tab === "publicaciones") {
@@ -385,25 +408,36 @@ export default async function DiscoverPage(props: { searchParams?: Promise<{ q?:
                 {searchResults.users.map((u) => {
                   const avatar = getAvatarUrl(u.avatar?.storage_path)
                   return (
-                    <Link key={u.id} href={`/@${u.username}`} className="flex items-center gap-3 p-3 bg-card border border-border rounded-xl hover:bg-muted/50 transition">
-                      <div className="w-12 h-12 rounded-full bg-muted overflow-hidden shrink-0">
-                        {avatar ? (
-                          <img src={avatar} alt={u.username} className="w-full h-full object-cover" />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center bg-primary/10 text-primary font-bold">
-                            {u.username[0].toUpperCase()}
-                          </div>
-                        )}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-bold text-sm truncate flex items-center gap-2">
-                          {u.display_name} 
-                          {u.professional_type === 'CHEF' && <span className="text-[10px] bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded uppercase font-bold">Chef</span>}
-                          {u.professional_type === 'RESTAURANT' && <span className="text-[10px] bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded uppercase font-bold">Restaurante</span>}
-                        </p>
-                        <p className="text-xs text-muted-foreground truncate">@{u.username}</p>
-                      </div>
-                    </Link>
+                    <div key={u.id} className="flex items-center justify-between gap-3 p-3 bg-card border border-border rounded-2xl hover:bg-muted/30 transition">
+                      <Link href={`/@${u.username}`} className="flex items-center gap-3 min-w-0 flex-1 group">
+                        <div className="w-12 h-12 rounded-full bg-muted overflow-hidden shrink-0">
+                          {avatar ? (
+                            <img src={avatar} alt={u.username} className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center bg-primary/10 text-primary font-bold">
+                              {u.username[0].toUpperCase()}
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-bold text-sm truncate flex items-center gap-2 group-hover:text-primary transition-colors">
+                            {u.display_name} 
+                            {u.professional_type === 'CHEF' && <span className="text-[10px] bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded uppercase font-bold">Chef</span>}
+                            {u.professional_type === 'RESTAURANT' && <span className="text-[10px] bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded uppercase font-bold">Restaurante</span>}
+                          </p>
+                          <p className="text-xs text-muted-foreground truncate">@{u.username}</p>
+                        </div>
+                      </Link>
+                      {user?.id !== u.id && (
+                        <ProfileFollowButton
+                          isAuthenticated={Boolean(user)}
+                          followStatus={u.followStatus || null}
+                          targetId={u.id}
+                          isPrivate={u.privacy_level === 'PRIVATE'}
+                          className="h-8 px-4 text-xs font-bold rounded-full shrink-0"
+                        />
+                      )}
+                    </div>
                   )
                 })}
               </div>
