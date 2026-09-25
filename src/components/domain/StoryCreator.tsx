@@ -698,6 +698,20 @@ export function StoryCreator({
           isPaused={mode !== 'EDIT'}
         />
 
+        {/* Center Camera Upload Button (Visible only when no media and no shared content is loaded) */}
+        {mode === 'EDIT' && !draftMediaUrl && !initialRecipe && !initialSession && !initialPost && !overlays.some(o => ['POST', 'RECIPE', 'SESSION'].includes(o.type)) && (
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-30">
+            <label 
+              className="w-20 h-20 sm:w-24 sm:h-24 bg-black/45 hover:bg-black/65 backdrop-blur-md rounded-full flex items-center justify-center text-white border border-white/20 transition-transform active:scale-90 cursor-pointer shadow-2xl pointer-events-auto"
+              title="Añadir foto o vídeo"
+              aria-label="Añadir foto o vídeo"
+            >
+              <input type="file" className="sr-only" accept="image/*,video/*" onChange={handleFileChange} />
+              <Camera size={36} className="text-white drop-shadow-md" />
+            </label>
+          </div>
+        )}
+
 
         {/* Drawing Canvas */}
         <canvas 
