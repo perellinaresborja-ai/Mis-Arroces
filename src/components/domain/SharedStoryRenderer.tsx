@@ -174,7 +174,8 @@ export function SharedStoryRenderer({
 
   useEffect(() => {
     if (videoRef && videoRef.current && musicConfig?.original_audio_volume !== undefined) {
-      videoRef.current.volume = musicConfig.original_audio_volume;
+      videoRef.current.volume = Math.max(0, Math.min(1, musicConfig.original_audio_volume));
+      videoRef.current.muted = musicConfig.original_audio_volume === 0;
     }
   }, [videoRef, musicConfig]);
 
@@ -291,7 +292,7 @@ export function SharedStoryRenderer({
             playsInline
             autoPlay
             loop={mode === 'EDITOR'}
-            muted={mode === 'EDITOR'}
+            muted={mode === 'EDITOR' ? (!musicConfig || musicConfig.original_audio_volume === 0) : false}
           />
         ) : (
           <img 

@@ -1017,7 +1017,7 @@ export function StoryCreator({
       {/* Music Selector Modal */}
       {mode === 'MUSIC' && (
         <StoryMusicSelector
-          isVideo={draftMediaType === 'VIDEO' && videoHasAudio}
+          isVideo={draftMediaType === 'VIDEO'}
           maxDurationMs={draftMediaType === 'VIDEO' ? Math.max(3000, Math.min(15000, ((videoRef.current?.duration || 15) * 1000))) : 15000}
           initialConfig={musicConfig}
           videoRef={videoRef}
