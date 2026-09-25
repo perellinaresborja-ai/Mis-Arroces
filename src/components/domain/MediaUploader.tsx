@@ -20,6 +20,7 @@ interface MediaUploaderProps {
   onMediaChange: (media: SelectedMedia[]) => void
   className?: string
   emptyLabel?: string
+  emptySubLabel?: string
   variant?: 'default' | 'text'
   hidePreview?: boolean
 }
@@ -38,7 +39,7 @@ function VideoPreview({ src }: { src: string, fileType?: string }) {
   );
 }
 
-export function MediaUploader({ maxItems = 1, context, onMediaChange, className, emptyLabel, variant = 'default', hidePreview = false }: MediaUploaderProps) {
+export function MediaUploader({ maxItems = 1, context, onMediaChange, className, emptyLabel, emptySubLabel, variant = 'default', hidePreview = false }: MediaUploaderProps) {
   const [items, setItems] = useState<SelectedMedia[]>([])
   const [isOptimizing, setIsOptimizing] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -219,10 +220,15 @@ export function MediaUploader({ maxItems = 1, context, onMediaChange, className,
         <button 
           type="button" 
           onClick={() => inputRef.current?.click()}
-          className="flex flex-col items-center justify-center w-full h-32 rounded-xl border-2 border-dashed border-border hover:border-primary/50 text-muted-foreground hover:text-foreground transition bg-muted/30"
+          className="flex flex-col items-center justify-center w-full h-36 rounded-2xl border-2 border-dashed border-border hover:border-primary/50 text-muted-foreground hover:text-foreground transition bg-muted/20 hover:bg-muted/40 p-4 cursor-pointer group"
         >
-          <Camera className="w-8 h-8 mb-2" />
-          <span className="text-sm font-medium">{emptyLabel || `Añadir fotos (Máx ${maxItems})`}</span>
+          <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center mb-2 group-hover:scale-105 transition-transform">
+            <Camera className="w-5 h-5" />
+          </div>
+          <span className="text-sm font-semibold text-foreground">{emptyLabel || `Añadir fotos (Máx ${maxItems})`}</span>
+          {emptySubLabel && (
+            <span className="text-xs text-muted-foreground mt-0.5">{emptySubLabel}</span>
+          )}
         </button>
       )}
 

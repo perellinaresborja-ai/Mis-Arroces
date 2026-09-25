@@ -7,6 +7,7 @@ import { notFound, redirect } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { ProfileGridCard } from "@/components/domain/ProfileGridCard"
+import { ProfileTabsClient } from "@/components/domain/ProfileTabsClient"
 import { ProfileHighlightsClient } from "@/components/domain/ProfileHighlightsClient"
 import { FollowsModal } from "@/components/domain/FollowsModal"
 import { FeedCard } from "@/components/domain/FeedCard"
@@ -109,6 +110,51 @@ export async function generateMetadata({ params }: { params: Promise<{ userParam
   };
 }
 
+async function enrichWithCounts(supabase: any, items: any[]) {
+  if (!items || items.length === 0) return items;
+
+  const recipeIds = items.filter(i => i.entity_type === 'recipe').map(i => i.id);
+  const sessionIds = items.filter(i => i.entity_type === 'session').map(i => i.id);
+  const postIds = items.filter(i => i.entity_type === 'post').map(i => i.id);
+
+  const queries = [];
+  if (recipeIds.length > 0) {
+    queries.push(supabase.from("recipe_likes").select("recipe_id, emoji, user_id").in("recipe_id", recipeIds).then((r: any) => ({ type: 'recipe', likes: r.data || [] }), () => ({ type: 'recipe', likes: [] })));
+    queries.push(supabase.from("recipe_comments").select("recipe_id").eq("is_deleted", false).in("recipe_id", recipeIds).then((r: any) => ({ type: 'recipe', comments: r.data || [] }), () => ({ type: 'recipe', comments: [] })));
+  }
+  if (sessionIds.length > 0) {
+    queries.push(supabase.from("session_likes").select("session_id, emoji, user_id").in("session_id", sessionIds).then((r: any) => ({ type: 'session', likes: r.data || [] }), () => ({ type: 'session', likes: [] })));
+    queries.push(supabase.from("session_comments").select("session_id").eq("is_deleted", false).in("session_id", sessionIds).then((r: any) => ({ type: 'session', comments: r.data || [] }), () => ({ type: 'session', comments: [] })));
+  }
+  if (postIds.length > 0) {
+    queries.push(supabase.from("post_likes").select("post_id, emoji, user_id").in("post_id", postIds).then((r: any) => ({ type: 'post', likes: r.data || [] }), () => ({ type: 'post', likes: [] })));
+    queries.push(supabase.from("post_comments").select("post_id").eq("is_deleted", false).in("post_id", postIds).then((r: any) => ({ type: 'post', comments: r.data || [] }), () => ({ type: 'post', comments: [] })));
+  }
+
+  const results = await Promise.all(queries);
+  
+  const counts = { likes: {} as any, reactions: {} as any, comments: {} as any };
+  results.forEach((res: any) => {
+    if (res.likes) res.likes.forEach((l: any) => { 
+      const id = l.recipe_id || l.session_id || l.post_id; 
+      counts.likes[id] = (counts.likes[id] || 0) + 1;
+      if (!counts.reactions[id]) counts.reactions[id] = [];
+      counts.reactions[id].push({ emoji: l.emoji, user_id: l.user_id });
+    });
+    if (res.comments) res.comments.forEach((c: any) => { 
+      const id = c.recipe_id || c.session_id || c.post_id; 
+      counts.comments[id] = (counts.comments[id] || 0) + 1;
+    });
+  });
+
+  return items.map(item => ({
+    ...item,
+    reactions: counts.reactions[item.id] || [],
+    likeCount: counts.likes[item.id] || 0,
+    commentCount: counts.comments[item.id] || 0
+  }));
+}
+
 export default async function PublicProfilePage({ 
   params,
   searchParams
@@ -181,15 +227,15 @@ export default async function PublicProfilePage({
     fetchUserActiveStories(profile.id).then(r => r, () => null),
     // Recipes (if canViewImmediately)
     canViewImmediately
-      ? supabase.from("recipes").select(`*, author:profiles!recipes_owner_id_fkey(id, username, display_name, avatar:media_assets!fk_profiles_avatar(storage_path)), recipe_media(display_order, media:media_assets(id, storage_path, media_type))`).eq("owner_id", profile.id).eq("status", "PUBLISHED").in("visibility", visibilityFilter).then(r => r, () => ({ data: [] }))
+      ? supabase.from("recipes").select(`*, author:profiles!recipes_owner_id_fkey(id, username, display_name, avatar:media_assets!fk_profiles_avatar(storage_path)), recipe_media(display_order, media:media_assets(*))`).eq("owner_id", profile.id).eq("status", "PUBLISHED").in("visibility", visibilityFilter).then(r => r, () => ({ data: [] }))
       : Promise.resolve({ data: [] }),
     // Sessions (if canViewImmediately)
     canViewImmediately
-      ? supabase.from("cooking_sessions").select(`*, author:profiles!cooking_sessions_user_id_fkey(id, username, display_name, avatar:media_assets!fk_profiles_avatar(storage_path)), session_media(display_order, media:media_assets(id, storage_path, media_type)), recipe:recipes(id, name)`).eq("user_id", profile.id).eq("status", "PUBLISHED").in("visibility", visibilityFilter).then(r => r, () => ({ data: [] }))
+      ? supabase.from("cooking_sessions").select(`*, author:profiles!cooking_sessions_user_id_fkey(id, username, display_name, avatar:media_assets!fk_profiles_avatar(storage_path)), session_media(display_order, media:media_assets(*)), recipe:recipes(id, name)`).eq("user_id", profile.id).eq("status", "PUBLISHED").in("visibility", visibilityFilter).then(r => r, () => ({ data: [] }))
       : Promise.resolve({ data: [] }),
     // Posts (if canViewImmediately)
     canViewImmediately
-      ? supabase.from("social_posts").select(`*, author:profiles!social_posts_author_id_fkey(id, username, display_name, avatar:media_assets!fk_profiles_avatar(storage_path)), post_media(display_order, media:media_assets(id, storage_path, media_type)), recipe:recipes(id, name)`).eq("author_id", profile.id).in("visibility", visibilityFilter).then(r => r, () => ({ data: [] }))
+      ? supabase.from("social_posts").select(`*, author:profiles!social_posts_author_id_fkey(id, username, display_name, avatar:media_assets!fk_profiles_avatar(storage_path)), post_media(display_order, media:media_assets(*)), recipe:recipes(id, name)`).eq("author_id", profile.id).in("visibility", visibilityFilter).then(r => r, () => ({ data: [] }))
       : Promise.resolve({ data: [] })
   ])
 
@@ -215,9 +261,9 @@ export default async function PublicProfilePage({
   // If was private but followStatus is ACCEPTED, fetch entities now
   if (!canViewImmediately && canViewPrivate) {
     const [extraRec, extraSes, extraPost] = await Promise.all([
-      supabase.from("recipes").select(`*, author:profiles!recipes_owner_id_fkey(id, username, display_name, avatar:media_assets!fk_profiles_avatar(storage_path)), recipe_media(display_order, media:media_assets(id, storage_path, media_type))`).eq("owner_id", profile.id).eq("status", "PUBLISHED").in("visibility", visibilityFilter).then(r => r, () => ({ data: [] })),
-      supabase.from("cooking_sessions").select(`*, author:profiles!cooking_sessions_user_id_fkey(id, username, display_name, avatar:media_assets!fk_profiles_avatar(storage_path)), session_media(display_order, media:media_assets(id, storage_path, media_type)), recipe:recipes(id, name)`).eq("user_id", profile.id).eq("status", "PUBLISHED").in("visibility", visibilityFilter).then(r => r, () => ({ data: [] })),
-      supabase.from("social_posts").select(`*, author:profiles!social_posts_author_id_fkey(id, username, display_name, avatar:media_assets!fk_profiles_avatar(storage_path)), post_media(display_order, media:media_assets(id, storage_path, media_type)), recipe:recipes(id, name)`).eq("author_id", profile.id).in("visibility", visibilityFilter).then(r => r, () => ({ data: [] }))
+      supabase.from("recipes").select(`*, author:profiles!recipes_owner_id_fkey(id, username, display_name, avatar:media_assets!fk_profiles_avatar(storage_path)), recipe_media(display_order, media:media_assets(*))`).eq("owner_id", profile.id).eq("status", "PUBLISHED").in("visibility", visibilityFilter).then(r => r, () => ({ data: [] })),
+      supabase.from("cooking_sessions").select(`*, author:profiles!cooking_sessions_user_id_fkey(id, username, display_name, avatar:media_assets!fk_profiles_avatar(storage_path)), session_media(display_order, media:media_assets(*)), recipe:recipes(id, name)`).eq("user_id", profile.id).eq("status", "PUBLISHED").in("visibility", visibilityFilter).then(r => r, () => ({ data: [] })),
+      supabase.from("social_posts").select(`*, author:profiles!social_posts_author_id_fkey(id, username, display_name, avatar:media_assets!fk_profiles_avatar(storage_path)), post_media(display_order, media:media_assets(*)), recipe:recipes(id, name)`).eq("author_id", profile.id).in("visibility", visibilityFilter).then(r => r, () => ({ data: [] }))
     ])
     recData = extraRec.data || []
     sesData = extraSes.data || []
@@ -237,50 +283,90 @@ export default async function PublicProfilePage({
     })
 
     if (feedItems.length > 0) {
-      const recipeIds = feedItems.filter(i => i.entity_type === 'recipe').map(i => i.id)
-      const sessionIds = feedItems.filter(i => i.entity_type === 'session').map(i => i.id)
-      const postIds = feedItems.filter(i => i.entity_type === 'post').map(i => i.id)
-
-      const queries = []
-      if (recipeIds.length > 0) {
-        queries.push(supabase.from("recipe_likes").select("recipe_id, emoji, user_id").in("recipe_id", recipeIds).then(r => ({ type: 'recipe', likes: r.data || [] }), () => ({ type: 'recipe', likes: [] })))
-        queries.push(supabase.from("recipe_comments").select("recipe_id").eq("is_deleted", false).in("recipe_id", recipeIds).then(r => ({ type: 'recipe', comments: r.data || [] }), () => ({ type: 'recipe', comments: [] })))
-      }
-      if (sessionIds.length > 0) {
-        queries.push(supabase.from("session_likes").select("session_id, emoji, user_id").in("session_id", sessionIds).then(r => ({ type: 'session', likes: r.data || [] }), () => ({ type: 'session', likes: [] })))
-        queries.push(supabase.from("session_comments").select("session_id").eq("is_deleted", false).in("session_id", sessionIds).then(r => ({ type: 'session', comments: r.data || [] }), () => ({ type: 'session', comments: [] })))
-      }
-      if (postIds.length > 0) {
-        queries.push(supabase.from("post_likes").select("post_id, emoji, user_id").in("post_id", postIds).then(r => ({ type: 'post', likes: r.data || [] }), () => ({ type: 'post', likes: [] })))
-        queries.push(supabase.from("post_comments").select("post_id").eq("is_deleted", false).in("post_id", postIds).then(r => ({ type: 'post', comments: r.data || [] }), () => ({ type: 'post', comments: [] })))
-      }
-
-      const results = await Promise.all(queries)
-      
-      const counts = { likes: {} as any, reactions: {} as any, comments: {} as any }
-      results.forEach((res: any) => {
-        if (res.likes) res.likes.forEach((l: any) => { 
-          const id = l.recipe_id || l.session_id || l.post_id; 
-          counts.likes[id] = (counts.likes[id] || 0) + 1;
-          if (!counts.reactions[id]) counts.reactions[id] = [];
-          counts.reactions[id].push({ emoji: l.emoji, user_id: l.user_id })
-        })
-        if (res.comments) res.comments.forEach((c: any) => { const id = c.recipe_id || c.session_id || c.post_id; counts.comments[id] = (counts.comments[id] || 0) + 1 })
-      })
-
-      feedItems = feedItems.map(item => ({
-        ...item,
-        reactions: counts.reactions[item.id] || [],
-        likeCount: counts.likes[item.id] || 0,
-        commentCount: counts.comments[item.id] || 0
-      }))
+      feedItems = await enrichWithCounts(supabase, feedItems)
     }
   }
 
-  const videoItems = feedItems.filter(item => {
-    const mediaList = item.recipe_media || item.session_media || item.post_media || []
-    return mediaList.some((m: any) => m.media?.media_type === 'VIDEO' || m.media?.storage_path?.match(/\.(mp4|webm|mov)$/i))
-  })
+  const videoItems = feedItems
+    .filter(item => {
+      const mediaList = item.recipe_media || item.session_media || item.post_media || []
+      return mediaList.some((m: any) => m.media?.media_type === 'VIDEO' || m.media?.storage_path?.match(/\.(mp4|webm|mov)$/i))
+    })
+    .map(item => {
+      const mediaKey = item.recipe_media ? 'recipe_media' : item.session_media ? 'session_media' : 'post_media';
+      const list = item[mediaKey] || [];
+      const videoFirst = [...list].sort((a: any, b: any) => {
+        const aIsVideo = a.media?.media_type === 'VIDEO' || a.media?.storage_path?.match(/\.(mp4|webm|mov)$/i);
+        const bIsVideo = b.media?.media_type === 'VIDEO' || b.media?.storage_path?.match(/\.(mp4|webm|mov)$/i);
+        if (aIsVideo && !bIsVideo) return -1;
+        if (!aIsVideo && bIsVideo) return 1;
+        return (a.display_order || 0) - (b.display_order || 0);
+      });
+      return {
+        ...item,
+        [mediaKey]: videoFirst
+      };
+    });
+
+  let taggedItems: any[] = []
+  if (canViewPrivate) {
+    const [taggedRes, mentionsRes] = await Promise.all([
+      supabase
+        .from("tagged_users")
+        .select("entity_type, entity_id, author_id, created_at")
+        .eq("tagged_id", profile.id)
+        .neq("author_id", profile.id)
+        .then((r: any) => r, () => ({ data: [] })),
+      supabase
+        .from("mentions")
+        .select("entity_type, entity_id, actor_id, created_at")
+        .eq("mentioned_id", profile.id)
+        .neq("actor_id", profile.id)
+        .in("entity_type", ["recipe", "cooking_session", "social_post"])
+        .then((r: any) => r, () => ({ data: [] }))
+    ]);
+
+    const seenEntityKeys = new Set<string>();
+    const taggedRefs: { entity_type: string, entity_id: string }[] = [];
+
+    const addRef = (entityType: string, entityId: string) => {
+      const key = `${entityType}-${entityId}`;
+      if (!seenEntityKeys.has(key)) {
+        seenEntityKeys.add(key);
+        taggedRefs.push({ entity_type: entityType, entity_id: entityId });
+      }
+    };
+
+    (taggedRes?.data || []).forEach((t: any) => addRef(t.entity_type, t.entity_id));
+    (mentionsRes?.data || []).forEach((m: any) => addRef(m.entity_type, m.entity_id));
+
+    const taggedRecipeIds = taggedRefs.filter(r => r.entity_type === 'recipe').map(r => r.entity_id);
+    const taggedSessionIds = taggedRefs.filter(r => r.entity_type === 'cooking_session' || r.entity_type === 'session').map(r => r.entity_id);
+    const taggedPostIds = taggedRefs.filter(r => r.entity_type === 'social_post' || r.entity_type === 'post').map(r => r.entity_id);
+
+    if (taggedRecipeIds.length > 0 || taggedSessionIds.length > 0 || taggedPostIds.length > 0) {
+      const [tRecipesRes, tSessionsRes, tPostsRes] = await Promise.all([
+        taggedRecipeIds.length > 0
+          ? supabase.from("recipes").select(`*, author:profiles!recipes_owner_id_fkey(id, username, display_name, avatar:media_assets!fk_profiles_avatar(storage_path)), recipe_media(display_order, media:media_assets(*))`).in("id", taggedRecipeIds).eq("status", "PUBLISHED").in("visibility", visibilityFilter).then((r: any) => r, () => ({ data: [] }))
+          : Promise.resolve({ data: [] }),
+        taggedSessionIds.length > 0
+          ? supabase.from("cooking_sessions").select(`*, author:profiles!cooking_sessions_user_id_fkey(id, username, display_name, avatar:media_assets!fk_profiles_avatar(storage_path)), session_media(display_order, media:media_assets(*)), recipe:recipes(id, name)`).in("id", taggedSessionIds).eq("status", "PUBLISHED").in("visibility", visibilityFilter).then((r: any) => r, () => ({ data: [] }))
+          : Promise.resolve({ data: [] }),
+        taggedPostIds.length > 0
+          ? supabase.from("social_posts").select(`*, author:profiles!social_posts_author_id_fkey(id, username, display_name, avatar:media_assets!fk_profiles_avatar(storage_path)), post_media(display_order, media:media_assets(*)), recipe:recipes(id, name)`).in("id", taggedPostIds).in("visibility", visibilityFilter).then((r: any) => r, () => ({ data: [] }))
+          : Promise.resolve({ data: [] }),
+      ]);
+
+      const tRecipes = (tRecipesRes.data || []).map((r: any) => ({ ...r, entity_type: 'recipe', sort_date: new Date(r.created_at).getTime() }));
+      const tSessions = (tSessionsRes.data || []).map((s: any) => ({ ...s, entity_type: 'session', sort_date: new Date(s.date || s.created_at).getTime() }));
+      const tPosts = (tPostsRes.data || []).map((p: any) => ({ ...p, entity_type: 'post', sort_date: new Date(p.created_at).getTime() }));
+
+      taggedItems = [...tRecipes, ...tSessions, ...tPosts].sort((a, b) => b.sort_date - a.sort_date);
+      if (taggedItems.length > 0) {
+        taggedItems = await enrichWithCounts(supabase, taggedItems);
+      }
+    }
+  }
 
   const avatarUrl = profile.avatar?.storage_path 
     ? `${"https://zvesoygqssyyojqyswwm.supabase.co"}/storage/v1/object/public/recipe_media/${profile.avatar.storage_path}`
@@ -418,73 +504,22 @@ export default async function PublicProfilePage({
           </div>
         )}
         <div className="px-1 md:px-0 mx-auto pb-6 w-full">
-        <div className="flex justify-center border-t border-border mb-4">
-          <Link href="?tab=posts" scroll={false} className={`flex items-center gap-2 px-4 sm:px-6 py-4 text-xs font-bold uppercase tracking-widest transition-colors ${tab === 'posts' ? 'text-foreground border-t-[3px] border-primary -mt-[2px]' : 'text-muted-foreground hover:text-foreground border-t-[3px] border-transparent -mt-[2px]'}`}>
-            <Grid className="w-4 h-4 sm:w-5 sm:h-5" />
-            <span className="hidden sm:inline">Publicaciones</span>
-          </Link>
-          <Link href="?tab=videos" scroll={false} className={`flex items-center gap-2 px-4 sm:px-6 py-4 text-xs font-bold uppercase tracking-widest transition-colors ${tab === 'videos' ? 'text-foreground border-t-[3px] border-primary -mt-[2px]' : 'text-muted-foreground hover:text-foreground border-t-[3px] border-transparent -mt-[2px]'}`}>
-            <Clapperboard className="w-4 h-4 sm:w-5 sm:h-5" />
-            <span className="hidden sm:inline">Vídeos</span>
-          </Link>
-          <Link href="?tab=tagged" scroll={false} className={`flex items-center gap-2 px-4 sm:px-6 py-4 text-xs font-bold uppercase tracking-widest transition-colors ${tab === 'tagged' ? 'text-foreground border-t-[3px] border-primary -mt-[2px]' : 'text-muted-foreground hover:text-foreground border-t-[3px] border-transparent -mt-[2px]'}`}>
-            <UserSquare className="w-4 h-4 sm:w-5 sm:h-5" />
-            <span className="hidden sm:inline">Etiquetas</span>
-          </Link>
+          {!canViewPrivate && profile.privacy_level === "PRIVATE" ? (
+            <div className="text-center py-16 border border-border rounded-2xl bg-card mx-2">
+              <Lock className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+              <h2 className="text-xl font-bold mb-2">Esta cuenta es privada</h2>
+              <p className="text-sm text-muted-foreground max-w-xs mx-auto">Sigue a este usuario para ver sus elaboraciones.</p>
+            </div>
+          ) : (
+            <ProfileTabsClient
+              initialTab={tab}
+              postItems={feedItems}
+              videoItems={videoItems}
+              taggedItems={taggedItems}
+              currentUserId={user?.id || null}
+            />
+          )}
         </div>
-
-        {!canViewPrivate && profile.privacy_level === "PRIVATE" ? (
-          <div className="text-center py-16 border border-border rounded-2xl bg-card mx-2">
-            <Lock className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-            <h2 className="text-xl font-bold mb-2">Esta cuenta es privada</h2>
-            <p className="text-sm text-muted-foreground max-w-xs mx-auto">Sigue a este usuario para ver sus elaboraciones.</p>
-          </div>
-        ) : (
-          <div>
-            {tab === 'videos' && videoItems.length === 0 && (
-              <div className="text-center py-16 text-muted-foreground">
-                <p>No hay vídeos publicados todavía.</p>
-              </div>
-            )}
-
-            {tab === 'videos' && videoItems.length > 0 && (
-              <div className="grid grid-cols-3 gap-1 md:gap-4 mx-auto w-full">
-                {videoItems.map(item => (
-                  <ProfileGridCard 
-                    key={`${item.entity_type}-${item.id}`} 
-                    item={item} 
-                    currentUserId={user?.id || null}
-                  />
-                ))}
-              </div>
-            )}
-
-            {tab === 'tagged' && (
-              <div className="text-center py-16 text-muted-foreground">
-                <p>Próximamente: Aún no hay publicaciones etiquetadas.</p>
-              </div>
-            )}
-
-            {tab === 'posts' && feedItems.length === 0 && (
-              <div className="text-center py-16 text-muted-foreground">
-                <p>No hay elaboraciones publicadas todavía.</p>
-              </div>
-            )}
-
-            {tab === 'posts' && feedItems.length > 0 && (
-              <div className="grid grid-cols-3 gap-1 md:gap-4 mx-auto w-full">
-                {feedItems.map(item => (
-                  <ProfileGridCard 
-                    key={`${item.entity_type}-${item.id}`} 
-                    item={item} 
-                    currentUserId={user?.id || null}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-      </div>
     </div>
   )
 }

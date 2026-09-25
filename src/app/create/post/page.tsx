@@ -4,7 +4,7 @@ import { redirect } from "next/navigation"
 import { PostForm } from "./PostForm"
 
 export const metadata = {
-  title: "Nueva Publicación",
+  title: "Crear publicación | misarroces",
 }
 
 export default async function CreatePostPage() {
@@ -24,8 +24,11 @@ export default async function CreatePostPage() {
     .order('created_at', { ascending: false })
 
   return (
-    <div className="max-w-2xl mx-auto py-8 px-4">
-      <div className="flex items-center mb-8"><BackButton /><h1 className="text-2xl font-bold">Crear Publicación</h1></div>
+    <div className="max-w-xl mx-auto py-6 md:py-8 px-4">
+      <div className="flex items-center gap-3 mb-6">
+        <BackButton />
+        <h1 className="text-xl font-bold text-foreground">Crear publicación</h1>
+      </div>
       <PostForm recipes={recipes || []} />
     </div>
   )

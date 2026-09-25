@@ -1,7 +1,7 @@
 "use client"
 
-import React, { useState, useEffect, useRef, useMemo } from 'react'
-import { Music, Play, Pause, Search, X, Volume2, ArrowLeft, Video } from 'lucide-react'
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
+import { Music, Play, Pause, Search, X, Volume2, ArrowLeft, Video, Check, Trash2 } from 'lucide-react'
 import { getMusicCatalog } from '@/app/actions/stories'
 
 export interface MusicTrack {
@@ -11,248 +11,391 @@ export interface MusicTrack {
   audio_url: string
   duration_ms: number
   cover_url?: string
-  category: string
+  category?: string
 }
 
-export function StoryMusicSelector({ onSelect, onClose, maxDurationMs, isVideo = false, initialConfig, videoRef }: { onSelect: (config: any) => void, onClose: () => void, maxDurationMs: number, isVideo?: boolean, initialConfig?: any, videoRef?: React.RefObject<HTMLVideoElement | null> }) {
+export interface StoryMusicSelectorProps {
+  onSelect: (config: any) => void
+  onClose: () => void
+  maxDurationMs: number
+  isVideo?: boolean
+  initialConfig?: any
+  videoRef?: React.RefObject<HTMLVideoElement | null>
+}
+
+// Deterministic waveform generator based on track ID
+function generateWaveformBars(seedStr: string, count: number = 44): number[] {
+  let hash = 0
+  for (let i = 0; i < seedStr.length; i++) {
+    hash = (hash << 5) - hash + seedStr.charCodeAt(i)
+    hash |= 0
+  }
+  const bars: number[] = []
+  for (let i = 0; i < count; i++) {
+    // Pseudo-random height between 22% and 94%
+    const pseudo = Math.abs(Math.sin((hash + i * 997) * 0.15))
+    const pseudo2 = Math.abs(Math.cos((hash + i * 313) * 0.25))
+    const height = Math.round(22 + (pseudo * 0.6 + pseudo2 * 0.4) * 72)
+    bars.push(height)
+  }
+  return bars
+}
+
+function formatTime(ms: number): string {
+  const totalSeconds = Math.max(0, Math.floor(ms / 1000))
+  const minutes = Math.floor(totalSeconds / 60)
+  const seconds = totalSeconds % 60
+  return `${minutes}:${seconds.toString().padStart(2, '0')}`
+}
+
+export function StoryMusicSelector({
+  onSelect,
+  onClose,
+  maxDurationMs,
+  isVideo = false,
+  initialConfig,
+  videoRef
+}: StoryMusicSelectorProps) {
   const [tracks, setTracks] = useState<MusicTrack[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState("")
-  
+  const [selectedCategory, setSelectedCategory] = useState<string>("Todos")
+
+  // Selected track state
   const [selectedTrack, setSelectedTrack] = useState<MusicTrack | null>(initialConfig?._trackMeta || null)
-  const [startTimeMs, setStartTimeMs] = useState(initialConfig?.start_time_ms || 0)
-  const [fragmentDurationMs, setFragmentDurationMs] = useState(initialConfig?.duration_ms || Math.min(15000, maxDurationMs))
-  const [volume, setVolume] = useState(initialConfig?.music_volume ?? 1)
-  const [originalVolume, setOriginalVolume] = useState(initialConfig?.original_audio_volume ?? 1)
-  
-  const [durationInput, setDurationInput] = useState(Math.round((initialConfig?.duration_ms || Math.min(15000, maxDurationMs)) / 1000).toString())
-  
-  useEffect(() => {
-    setDurationInput(Math.round(fragmentDurationMs / 1000).toString())
-  }, [fragmentDurationMs])
-  
-  // Audio playback state
+
+  // Bounds
+  const effectiveMaxDurMs = Math.max(3000, Math.min(15000, maxDurationMs || 15000))
+  const minDurMs = 3000
+
+  // Interval state
+  const [startTimeMs, setStartTimeMs] = useState<number>(initialConfig?.start_time_ms || 0)
+  const [durationMs, setDurationMs] = useState<number>(() => {
+    if (initialConfig?.duration_ms) {
+      return Math.max(minDurMs, Math.min(effectiveMaxDurMs, initialConfig.duration_ms))
+    }
+    return effectiveMaxDurMs
+  })
+
+  // Volumes
+  const [volume, setVolume] = useState<number>(initialConfig?.music_volume ?? 1)
+  const [originalVolume, setOriginalVolume] = useState<number>(initialConfig?.original_audio_volume ?? 1)
+
+  // Audio Playback
   const audioRef = useRef<HTMLAudioElement | null>(null)
-  const [isPlaying, setIsPlaying] = useState(false)
-  const [playingId, setPlayingId] = useState<string | null>(null)
-  
-  // Waveform state
-  const containerRef = useRef<HTMLDivElement>(null)
-  const [containerWidth, setContainerWidth] = useState(300)
-  const scrollRef = useRef<HTMLDivElement>(null)
+  const [isPlaying, setIsPlaying] = useState<boolean>(false)
+  const [previewTrackId, setPreviewTrackId] = useState<string | null>(initialConfig?._trackMeta?.id || null)
+  const [currentPlaybackTimeMs, setCurrentPlaybackTimeMs] = useState<number>(startTimeMs)
 
-  useEffect(() => {
-    if (containerRef.current) {
-      setContainerWidth(containerRef.current.clientWidth)
-      const observer = new ResizeObserver(entries => {
-        setContainerWidth(entries[0].contentRect.width)
-      })
-      observer.observe(containerRef.current)
-      return () => observer.disconnect()
-    }
-  }, [selectedTrack])
+  // Timeline element measurements
+  const timelineRef = useRef<HTMLDivElement | null>(null)
+  const [timelineWidth, setTimelineWidth] = useState<number>(300)
 
-  const maxWindowWidth = Math.min(280, containerWidth - 40); 
-  const pixelsPerMs = maxWindowWidth / 15000;
-
-  const bars = useMemo(() => {
-    if (!selectedTrack) return []
-    const totalWidth = selectedTrack.duration_ms * pixelsPerMs;
-    const count = Math.max(20, Math.floor(totalWidth / 3)); // Dense bars for IG style
-    const arr = []
-    for (let i = 0; i < count; i++) {
-      // Create a nice looking wave using a mix of sine and noise
-      const base = Math.sin(i * 0.1) * 20 + 40;
-      arr.push(base + Math.random() * 40)
-    }
-    return arr
-  }, [selectedTrack, pixelsPerMs])
-
-  const dragState = useRef<{
-    type: 'left' | 'right' | 'center' | null, 
-    startX: number, 
-    initialDuration: number, 
-    initialStart: number,
-    pointerId: number,
-    target: HTMLElement | null
+  // Drag state
+  const dragRef = useRef<{
+    isDragging: boolean
+    type: 'left' | 'right' | 'center' | null
+    startX: number
+    initialStartMs: number
+    initialDurationMs: number
+    containerWidth: number
   }>({
-    type: null, startX: 0, initialDuration: 0, initialStart: 0, pointerId: 0, target: null
-  });
+    isDragging: false,
+    type: null,
+    startX: 0,
+    initialStartMs: 0,
+    initialDurationMs: 0,
+    containerWidth: 300
+  })
 
-  const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>, type: 'left' | 'right' | 'center') => {
-    e.preventDefault();
-    e.stopPropagation();
-    try {
-      e.currentTarget.setPointerCapture(e.pointerId);
-    } catch (err) {}
-    dragState.current = { 
-      type, 
-      startX: e.clientX, 
-      initialDuration: fragmentDurationMs, 
-      initialStart: startTimeMs,
-      pointerId: e.pointerId,
-      target: e.currentTarget
-    };
-  };
-
-  const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
-    e.stopPropagation();
-    if (!dragState.current.type || !selectedTrack) return;
-    
-    const { type, startX, initialDuration, initialStart } = dragState.current;
-    const deltaX = e.clientX - startX;
-    const deltaMs = deltaX / pixelsPerMs;
-    
-    const minDur = 1000;
-    const maxDur = Math.min(15000, maxDurationMs); 
-
-    if (type === 'right') {
-      let newDuration = initialDuration + deltaMs;
-      newDuration = Math.max(minDur, Math.min(maxDur, newDuration));
-      if (initialStart + newDuration > selectedTrack.duration_ms) {
-        newDuration = selectedTrack.duration_ms - initialStart;
-      }
-      setFragmentDurationMs(newDuration);
-    } 
-    else if (type === 'left') {
-      let newStart = initialStart + deltaMs;
-      let newDuration = initialDuration - deltaMs;
-      
-      if (newDuration < minDur) {
-        newStart = initialStart + initialDuration - minDur;
-        newDuration = minDur;
-      }
-      if (newDuration > maxDur) {
-        newStart = initialStart + initialDuration - maxDur;
-        newDuration = maxDur;
-      }
-      if (newStart < 0) {
-        newStart = 0;
-        newDuration = initialStart + initialDuration;
-      }
-      setFragmentDurationMs(newDuration);
-      setStartTimeMs(newStart);
-    }
-    else if (type === 'center') {
-      let newStart = initialStart + deltaMs;
-      if (newStart < 0) newStart = 0;
-      if (newStart + initialDuration > selectedTrack.duration_ms) {
-        newStart = selectedTrack.duration_ms - initialDuration;
-      }
-      setStartTimeMs(newStart);
-    }
-  };
-
-  const handlePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
-    e.stopPropagation();
-    if (dragState.current.type && dragState.current.target) {
-      try {
-        dragState.current.target.releasePointerCapture(dragState.current.pointerId);
-      } catch (err) {}
-      dragState.current.type = null;
-      dragState.current.target = null;
-      if (audioRef.current && playingId === selectedTrack?.id) {
-        audioRef.current.currentTime = startTimeMs / 1000;
-      }
-    }
-  };
-
+  // Load catalog on mount
   useEffect(() => {
-    getMusicCatalog().then(data => {
-      setTracks(data)
+    let isMounted = true
+    getMusicCatalog().then((data: MusicTrack[]) => {
+      if (!isMounted) return
+      setTracks(data || [])
       setLoading(false)
-    }).catch(console.error)
-    
+
+      // If initial config has track_id but not _trackMeta, find it
+      if (initialConfig?.track_id && !initialConfig?._trackMeta) {
+        const found = (data || []).find(t => t.id === initialConfig.track_id)
+        if (found) {
+          setSelectedTrack(found)
+          setPreviewTrackId(found.id)
+        }
+      }
+    }).catch(err => {
+      console.error("Error loading music catalog:", err)
+      if (isMounted) setLoading(false)
+    })
+
     return () => {
+      isMounted = false
       if (audioRef.current) {
         audioRef.current.pause()
+        audioRef.current.src = ""
         audioRef.current = null
       }
     }
+  }, [initialConfig])
+
+  // Track timeline container width with ResizeObserver
+  useEffect(() => {
+    const el = timelineRef.current
+    if (!el) return
+
+    setTimelineWidth(el.clientWidth)
+    const observer = new ResizeObserver((entries) => {
+      if (entries[0]?.contentRect?.width) {
+        setTimelineWidth(entries[0].contentRect.width)
+      }
+    })
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [selectedTrack])
+
+  // Categories list derived from real catalog data
+  const categories = useMemo(() => {
+    const set = new Set<string>()
+    tracks.forEach(t => {
+      if (t.category && t.category.trim()) {
+        set.add(t.category.trim())
+      }
+    })
+    return ['Todos', ...Array.from(set)]
+  }, [tracks])
+
+  // Filtered tracks
+  const filteredTracks = useMemo(() => {
+    const q = search.trim().toLowerCase()
+    return tracks.filter(t => {
+      const matchSearch = !q || t.title.toLowerCase().includes(q) || t.artist.toLowerCase().includes(q)
+      const matchCategory = selectedCategory === 'Todos' || t.category?.trim().toLowerCase() === selectedCategory.toLowerCase()
+      return matchSearch && matchCategory
+    })
+  }, [tracks, search, selectedCategory])
+
+  // Deterministic waveform bars for selected track
+  const waveformBars = useMemo(() => {
+    if (!selectedTrack) return []
+    return generateWaveformBars(selectedTrack.id + selectedTrack.title, 50)
+  }, [selectedTrack])
+
+  // Single audio instance management
+  const getOrCreateAudio = useCallback(() => {
+    if (!audioRef.current) {
+      audioRef.current = new Audio()
+    }
+    return audioRef.current
   }, [])
 
-  // Auto-scroll so the selected fragment is visible when start time changes
+  // Timeupdate listener for exact loop in adjust mode
   useEffect(() => {
-    if (scrollRef.current && !dragState.current.type) {
-      // scroll to keep the selection in view
-      const targetScroll = (startTimeMs * pixelsPerMs) - (containerWidth / 2) + ((fragmentDurationMs * pixelsPerMs)/2);
-      scrollRef.current.scrollLeft = Math.max(0, targetScroll);
-    }
-  }, [startTimeMs, pixelsPerMs, containerWidth, fragmentDurationMs]);
-
-  const handlePlayPause = (track: MusicTrack) => {
-    if (!audioRef.current) {
-      audioRef.current = new Audio(track.audio_url)
-    }
-
     const audio = audioRef.current
+    if (!audio || !selectedTrack) return
 
-    if (playingId === track.id && isPlaying) {
-      audio.pause()
+    const handleTimeUpdate = () => {
+      const currentSec = audio.currentTime
+      const currentMs = currentSec * 1000
+      setCurrentPlaybackTimeMs(currentMs)
+
+      const endSec = (startTimeMs + durationMs) / 1000
+      const startSec = startTimeMs / 1000
+
+      if (currentSec >= endSec || currentSec < startSec) {
+        audio.currentTime = startSec
+        setCurrentPlaybackTimeMs(startTimeMs)
+      }
+    }
+
+    const handleEnded = () => {
+      audio.currentTime = startTimeMs / 1000
+      audio.play().catch(() => {})
+    }
+
+    audio.addEventListener('timeupdate', handleTimeUpdate)
+    audio.addEventListener('ended', handleEnded)
+    return () => {
+      audio.removeEventListener('timeupdate', handleTimeUpdate)
+      audio.removeEventListener('ended', handleEnded)
+    }
+  }, [selectedTrack, startTimeMs, durationMs])
+
+  // Start playback of a specific track or fragment
+  const playTrackFragment = useCallback((track: MusicTrack, startMs: number, customVolume?: number) => {
+    const audio = getOrCreateAudio()
+    const vol = customVolume !== undefined ? customVolume : volume
+    audio.volume = Math.max(0, Math.min(1, vol))
+
+    if (audio.src !== track.audio_url) {
+      audio.src = track.audio_url
+    }
+
+    audio.currentTime = Math.max(0, startMs / 1000)
+    audio.play().then(() => {
+      setIsPlaying(true)
+      setPreviewTrackId(track.id)
+    }).catch(err => {
+      console.log("Audio play prevented:", err)
       setIsPlaying(false)
+    })
+  }, [getOrCreateAudio, volume])
+
+  // Stop playback
+  const stopPlayback = useCallback(() => {
+    if (audioRef.current) {
+      audioRef.current.pause()
+    }
+    setIsPlaying(false)
+  }, [])
+
+  // Handler: Tap track row to select it and enter fragment adjust view
+  const handleSelectTrack = (track: MusicTrack) => {
+    setSelectedTrack(track)
+    const initialStart = 0
+    const initialDur = Math.min(effectiveMaxDurMs, track.duration_ms)
+    setStartTimeMs(initialStart)
+    setDurationMs(initialDur)
+    playTrackFragment(track, initialStart)
+  }
+
+  // Handler: Toggle preview play/pause in track list
+  const handleTogglePreview = (e: React.MouseEvent, track: MusicTrack) => {
+    e.stopPropagation()
+    const audio = getOrCreateAudio()
+
+    if (previewTrackId === track.id && isPlaying) {
+      stopPlayback()
     } else {
-      if (playingId !== track.id) {
-        audio.src = track.audio_url
-      }
-      
-      if (selectedTrack && track.id === selectedTrack.id) {
-        audio.currentTime = startTimeMs / 1000;
-        audio.volume = volume;
-      }
-      
-      audio.play().then(() => {
-        setPlayingId(track.id);
-        setIsPlaying(true);
-        if (playingId !== track.id && track.id !== selectedTrack?.id) {
-           setSelectedTrack(track);
-           setStartTimeMs(0);
-           setFragmentDurationMs(Math.min(15000, maxDurationMs, track.duration_ms));
-        }
-      }).catch(e => {
-        console.error("Audio play failed:", e);
-      })
+      playTrackFragment(track, 0)
     }
   }
 
-  // Audio time update logic to keep it within the fragment
-  useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio || !isPlaying || !selectedTrack) return;
+  // Handler: Toggle playback in fragment adjust view
+  const handleToggleFragmentPlayback = () => {
+    if (!selectedTrack) return
+    if (isPlaying) {
+      stopPlayback()
+    } else {
+      playTrackFragment(selectedTrack, startTimeMs)
+    }
+  }
 
-    const onTimeUpdate = () => {
-      const endSecs = (startTimeMs + fragmentDurationMs) / 1000;
-      if (audio.currentTime >= endSecs) {
-        audio.currentTime = startTimeMs / 1000; // loop the fragment
+  // Timeline gestures
+  const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>, type: 'left' | 'right' | 'center') => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (!selectedTrack) return
+
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId)
+    } catch {}
+
+    const width = timelineRef.current?.clientWidth || 300
+    dragRef.current = {
+      isDragging: true,
+      type,
+      startX: e.clientX,
+      initialStartMs: startTimeMs,
+      initialDurationMs: durationMs,
+      containerWidth: width
+    }
+  }
+
+  const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!dragRef.current.isDragging || !selectedTrack) return
+    e.stopPropagation()
+
+    const { type, startX, initialStartMs, initialDurationMs, containerWidth } = dragRef.current
+    const deltaX = e.clientX - startX
+    const totalTrackMs = Math.max(1000, selectedTrack.duration_ms)
+    const msPerPixel = totalTrackMs / containerWidth
+    const deltaMs = deltaX * msPerPixel
+
+    const initialEndMs = initialStartMs + initialDurationMs
+    const maxDur = Math.min(effectiveMaxDurMs, totalTrackMs)
+    const minDur = Math.min(minDurMs, maxDur)
+
+    if (type === 'center') {
+      // Move entire block preserving duration
+      let newStart = initialStartMs + deltaMs
+      newStart = Math.max(0, Math.min(totalTrackMs - initialDurationMs, newStart))
+      setStartTimeMs(Math.round(newStart))
+    } else if (type === 'left') {
+      // Left handle: change start time, adjusting duration
+      let candidateStart = initialStartMs + deltaMs
+      const minAllowedStart = Math.max(0, initialEndMs - maxDur)
+      const maxAllowedStart = initialEndMs - minDur
+      const newStart = Math.max(minAllowedStart, Math.min(maxAllowedStart, candidateStart))
+      const newDuration = initialEndMs - newStart
+      setStartTimeMs(Math.round(newStart))
+      setDurationMs(Math.round(newDuration))
+    } else if (type === 'right') {
+      // Right handle: change end time, adjusting duration
+      let candidateEnd = initialEndMs + deltaMs
+      const minAllowedEnd = initialStartMs + minDur
+      const maxAllowedEnd = Math.min(totalTrackMs, initialStartMs + maxDur)
+      const newEnd = Math.max(minAllowedEnd, Math.min(maxAllowedEnd, candidateEnd))
+      const newDuration = newEnd - initialStartMs
+      setDurationMs(Math.round(newDuration))
+    }
+  }
+
+  const handlePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!dragRef.current.isDragging) return
+    e.stopPropagation()
+
+    dragRef.current.isDragging = false
+    dragRef.current.type = null
+
+    try {
+      e.currentTarget.releasePointerCapture(e.pointerId)
+    } catch {}
+
+    // Instantly jump playback to new start time
+    if (audioRef.current && selectedTrack) {
+      audioRef.current.currentTime = startTimeMs / 1000
+      setCurrentPlaybackTimeMs(startTimeMs)
+      if (!isPlaying) {
+        audioRef.current.play().then(() => setIsPlaying(true)).catch(() => {})
       }
-    };
-
-    audio.addEventListener('timeupdate', onTimeUpdate);
-    return () => audio.removeEventListener('timeupdate', onTimeUpdate);
-  }, [isPlaying, selectedTrack, startTimeMs, fragmentDurationMs]);
-
-  const formatTime = (ms: number) => {
-    const totalSeconds = Math.floor(ms / 1000)
-    const m = Math.floor(totalSeconds / 60)
-    const s = totalSeconds % 60
-    return `${m}:${s.toString().padStart(2, '0')}`
+    }
   }
 
-  const handleDurationBlur = () => {
-    let d = parseInt(durationInput)
-    if (isNaN(d)) d = 5;
-    d = Math.max(1, Math.min(Math.floor(maxDurationMs/1000), 15, d));
-    const newDurMs = d * 1000;
-    const finalDurMs = Math.min(newDurMs, (selectedTrack?.duration_ms || newDurMs) - startTimeMs);
-    setFragmentDurationMs(finalDurMs);
-    setDurationInput(Math.round(finalDurMs/1000).toString());
+  // Volume slider handlers
+  const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = Number(e.target.value) / 100
+    setVolume(val)
+    if (audioRef.current) {
+      audioRef.current.volume = Math.max(0, Math.min(1, val))
+    }
   }
 
+  const handleOriginalVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = Number(e.target.value) / 100
+    setOriginalVolume(val)
+    if (videoRef?.current) {
+      videoRef.current.volume = Math.max(0, Math.min(1, val))
+    }
+  }
+
+  // Close handler: reset video audio and invoke onClose
+  const handleClose = () => {
+    stopPlayback()
+    if (videoRef?.current) {
+      videoRef.current.volume = initialConfig?.original_audio_volume ?? 1
+    }
+    onClose()
+  }
+
+  // Confirm selection
   const handleConfirm = () => {
-    if (!selectedTrack) return;
-    
-    let actualDuration = fragmentDurationMs;
+    if (!selectedTrack) return
+    stopPlayback()
+
+    let actualDuration = durationMs
     if (startTimeMs + actualDuration > selectedTrack.duration_ms) {
-      actualDuration = selectedTrack.duration_ms - startTimeMs;
+      actualDuration = Math.max(minDurMs, selectedTrack.duration_ms - startTimeMs)
     }
 
     onSelect({
@@ -262,257 +405,374 @@ export function StoryMusicSelector({ onSelect, onClose, maxDurationMs, isVideo =
       music_volume: volume,
       original_audio_volume: isVideo ? originalVolume : undefined,
       _trackMeta: selectedTrack
-    });
+    })
   }
 
-  const filteredTracks = tracks.filter(t => 
-    t.title.toLowerCase().includes(search.toLowerCase()) || 
-    t.artist.toLowerCase().includes(search.toLowerCase())
-  )
+  // Remove music
+  const handleRemoveMusic = () => {
+    stopPlayback()
+    onSelect(null)
+  }
 
-  const handleClose = () => {
-    if (videoRef?.current) {
-      videoRef.current.volume = initialConfig?.original_audio_volume ?? 1;
-    }
-    onClose();
-  };
+  // Percentage calculations for timeline selection window
+  const totalTrackMs = Math.max(1, selectedTrack?.duration_ms || 180000)
+  const leftPct = Math.max(0, Math.min(100, (startTimeMs / totalTrackMs) * 100))
+  const widthPct = Math.max(2, Math.min(100 - leftPct, (durationMs / totalTrackMs) * 100))
+
+  // Playhead needle progress inside selection window (0% to 100%)
+  const playheadPct = useMemo(() => {
+    if (!durationMs || durationMs <= 0) return 0
+    const offsetMs = currentPlaybackTimeMs - startTimeMs
+    return Math.max(0, Math.min(100, (offsetMs / durationMs) * 100))
+  }, [currentPlaybackTimeMs, startTimeMs, durationMs])
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-end justify-center sm:items-center p-4 pointer-events-auto bg-black/60 backdrop-blur-sm" onClick={handleClose}>
-      
-      <div 
-        ref={containerRef}
-        className="bg-background w-full max-w-md h-[80vh] sm:h-[600px] rounded-3xl sm:rounded-3xl flex flex-col overflow-hidden shadow-2xl relative" 
-        onClick={e => e.stopPropagation()}
+    <div
+      className="fixed inset-0 z-[200] flex flex-col justify-end bg-black/55 backdrop-blur-[2px] pointer-events-auto"
+      onClick={handleClose}
+    >
+      <div
+        className="w-full max-w-lg mx-auto bg-card border-t border-border rounded-t-3xl shadow-2xl flex flex-col overflow-hidden animate-in slide-in-from-bottom duration-200"
+        style={{ maxHeight: selectedTrack ? '52vh' : '62vh' }}
+        onClick={(e) => e.stopPropagation()}
       >
+        {/* Subtle top drag pill */}
+        <div className="w-10 h-1 bg-muted-foreground/30 rounded-full mx-auto mt-2.5 mb-1 shrink-0" />
+
+        {/* ---------------- STATE 1: SEARCH TRACKS ---------------- */}
         {!selectedTrack ? (
-          <>
-            <div className="p-4 border-b border-border flex flex-col gap-4">
+          <div className="flex-1 flex flex-col min-h-0">
+            {/* Header & Search Bar */}
+            <div className="px-4 py-2 border-b border-border/60 flex flex-col gap-2 shrink-0">
               <div className="flex items-center justify-between">
-                <h3 className="text-lg font-bold text-foreground flex items-center gap-2">
-                  <Music className="w-5 h-5 text-orange-500" /> Buscar música
-                </h3>
-                <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleClose(); }} className="p-2 text-muted-foreground hover:text-foreground rounded-full hover:bg-muted transition-colors">
-                  <X className="w-5 h-5" />
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+                    <Music className="w-4 h-4" />
+                  </div>
+                  <span className="text-sm font-bold text-foreground">Música para tu historia</span>
+                </div>
+                <button
+                  onClick={handleClose}
+                  className="w-8 h-8 flex items-center justify-center text-muted-foreground hover:text-foreground rounded-full hover:bg-muted transition-colors cursor-pointer"
+                  title="Cerrar"
+                >
+                  <X className="w-4 h-4" />
                 </button>
               </div>
-              
-              <div className="relative">
-                <Search className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                <input 
-                  type="text" 
-                  placeholder="Buscar canciones o artistas..." 
+
+              {/* Search Input */}
+              <div className="relative flex items-center">
+                <Search className="w-4 h-4 absolute left-3 text-muted-foreground pointer-events-none" />
+                <input
+                  type="text"
+                  placeholder="Buscar canciones o artistas..."
                   value={search}
-                  onChange={e => setSearch(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 bg-muted rounded-xl outline-none focus:ring-2 focus:ring-orange-500 transition-all text-sm"
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="w-full pl-9 pr-8 py-2 bg-muted/70 hover:bg-muted focus:bg-background rounded-xl outline-none text-xs text-foreground placeholder:text-muted-foreground border border-border/50 focus:border-primary transition-all"
                 />
-              </div>
-            </div>
-
-            <div className="flex-1 overflow-y-auto p-2 no-scrollbar">
-              {loading ? (
-                <div className="flex justify-center p-8"><div className="w-8 h-8 rounded-full border-2 border-orange-500 border-t-transparent animate-spin" /></div>
-              ) : filteredTracks.length > 0 ? (
-                <div className="space-y-1">
-                  {filteredTracks.map(track => (
-                    <div 
-                      key={track.id} 
-                      className="w-full flex items-center p-2 rounded-xl hover:bg-muted transition-colors group cursor-pointer"
-                      onClick={() => {
-                        setSelectedTrack(track);
-                        setStartTimeMs(0);
-                        setFragmentDurationMs(Math.min(15000, maxDurationMs, track.duration_ms));
-                        handlePlayPause(track);
-                      }}
-                    >
-                      <div className="w-12 h-12 bg-muted-foreground/20 rounded-lg overflow-hidden flex-shrink-0 relative">
-                        {track.cover_url ? (
-                          <img src={track.cover_url} alt={track.title} className="w-full h-full object-cover" />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center"><Music className="w-5 h-5 text-muted-foreground" /></div>
-                        )}
-                        <button 
-                          onClick={(e) => { e.stopPropagation(); handlePlayPause(track); }} 
-                          className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                        >
-                          {playingId === track.id && isPlaying ? <Pause className="w-5 h-5 text-white" /> : <Play className="w-5 h-5 text-white ml-0.5" />}
-                        </button>
-                      </div>
-                      <div className="flex-1 min-w-0 px-3 flex flex-col">
-                        <span className="text-sm font-bold text-foreground truncate">{track.title}</span>
-                        <span className="text-xs text-muted-foreground truncate">{track.artist}</span>
-                      </div>
-                      <span className="text-xs text-muted-foreground">{formatTime(track.duration_ms)}</span>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center p-8 text-muted-foreground text-sm">No se encontraron canciones</div>
-              )}
-            </div>
-          </>
-        ) : (
-          <>
-            <div className="p-4 border-b border-border flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <button 
-                  onClick={() => {
-                    setSelectedTrack(null)
-                    if (audioRef.current) {
-                      audioRef.current.pause();
-                      setIsPlaying(false);
-                    }
-                  }} 
-                  className="p-2 -ml-2 text-muted-foreground hover:text-foreground rounded-full hover:bg-muted transition-colors"
-                >
-                  <ArrowLeft className="w-5 h-5" />
-                </button>
-                <h3 className="text-lg font-semibold">Elegir fragmento</h3>
-              </div>
-              <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleClose(); }} className="p-2 text-muted-foreground hover:text-foreground rounded-full hover:bg-muted transition-colors">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="flex-1 overflow-y-auto p-4 flex flex-col items-center">
-              
-              <div className="bg-muted px-4 py-2 rounded-xl mb-4 flex items-center text-orange-500">
-                <span className="font-medium text-sm mr-2">Duración:</span>
-                <input 
-                  type="number"
-                  value={durationInput}
-                  onChange={e => setDurationInput(e.target.value)}
-                  onBlur={handleDurationBlur}
-                  onKeyDown={e => e.key === 'Enter' && e.currentTarget.blur()}
-                  disabled={isVideo}
-                  className="w-8 bg-transparent text-right font-bold text-sm outline-none appearance-none p-0 focus:border-b border-orange-500"
-                  style={{ MozAppearance: 'textfield' }}
-                />
-                <span className="font-bold text-sm ml-0.5">s</span>
-              </div>
-              
-              <div className="text-center mb-8 w-full px-4">
-                <div className="text-xl font-bold text-foreground mb-1 line-clamp-1">{selectedTrack.title}</div>
-                <div className="text-muted-foreground text-sm line-clamp-1">{selectedTrack.artist}</div>
-                <div className="text-muted-foreground text-xs font-medium mt-2 flex items-center justify-center gap-1.5 bg-muted/50 w-fit mx-auto px-3 py-1 rounded-full">
-                  <span>Fragmento: {formatTime(startTimeMs)} &mdash; {formatTime(startTimeMs + fragmentDurationMs)}</span>
-                  <span>&middot;</span>
-                  <span>Canción: {formatTime(selectedTrack.duration_ms)}</span>
-                </div>
-              </div>
-
-              {/* TIMELINE */}
-              <div className="relative w-full flex flex-col items-center select-none mb-8">
-                
-                <div 
-                  ref={scrollRef}
-                  className="w-full overflow-x-auto no-scrollbar relative h-20 flex items-center touch-pan-x"
-                >
-                  <div 
-                    className="relative h-full flex items-center flex-shrink-0" 
-                    style={{ width: selectedTrack.duration_ms * pixelsPerMs + containerWidth }}
+                {search && (
+                  <button
+                    onClick={() => setSearch("")}
+                    className="absolute right-2.5 p-1 text-muted-foreground hover:text-foreground cursor-pointer"
                   >
-                    {/* Left padding to allow full scroll */}
-                    <div style={{ width: containerWidth / 2, flexShrink: 0 }} />
-                    
-                    {/* Track Waveform */}
-                    <div className="relative h-10 flex items-center gap-[1px]" style={{ width: selectedTrack.duration_ms * pixelsPerMs }}>
-                      {bars.map((h, i) => (
-                        <div key={i} className="flex-1 bg-foreground/30 rounded-full" style={{ height: `${h}%` }} />
-                      ))}
-
-                      {/* The Orange Selection Bar */}
-                      <div 
-                        className="absolute top-1/2 -translate-y-1/2 border-x-[3px] border-y-[2.5px] border-orange-500 bg-orange-500/10 shadow-sm touch-none cursor-grab active:cursor-grabbing rounded-[4px] z-10"
-                        style={{ left: startTimeMs * pixelsPerMs, width: fragmentDurationMs * pixelsPerMs, height: 'calc(100% + 12px)' }}
-                        onPointerDown={(e) => handlePointerDown(e, 'center')}
-                        onPointerMove={handlePointerMove}
-                        onPointerUp={handlePointerUp}
-                        onPointerCancel={handlePointerUp}
-                      >
-                        {/* Left Handle */}
-                        <div 
-                          className="absolute left-[-24px] top-[-10px] bottom-[-10px] w-[48px] flex items-center justify-center cursor-ew-resize touch-none group z-20"
-                          onPointerDown={(e) => handlePointerDown(e, 'left')}
-                          onPointerMove={handlePointerMove}
-                          onPointerUp={handlePointerUp}
-                          onPointerCancel={handlePointerUp}
-                        >
-                          <div className="w-[5px] h-6 bg-white border border-orange-500 rounded-full shadow-sm group-hover:bg-orange-100 transition-colors pointer-events-none" />
-                        </div>
-                        
-                        {/* Right Handle */}
-                        <div 
-                          className="absolute right-[-24px] top-[-10px] bottom-[-10px] w-[48px] flex items-center justify-center cursor-ew-resize touch-none group z-20"
-                          onPointerDown={(e) => handlePointerDown(e, 'right')}
-                          onPointerMove={handlePointerMove}
-                          onPointerUp={handlePointerUp}
-                          onPointerCancel={handlePointerUp}
-                        >
-                          <div className="w-[5px] h-6 bg-white border border-orange-500 rounded-full shadow-sm group-hover:bg-orange-100 transition-colors pointer-events-none" />
-                        </div>
-                      </div>
-                    </div>
-                    
-                    {/* Right padding */}
-                    <div style={{ width: containerWidth / 2, flexShrink: 0 }} />
-                  </div>
-                </div>
-                
-              </div>
-
-              {/* Playback Control */}
-              <div className="flex justify-center mb-8">
-                <button 
-                  onClick={() => handlePlayPause(selectedTrack)} 
-                  className="w-14 h-14 bg-foreground text-background rounded-full flex items-center justify-center hover:scale-105 transition-transform shadow-md"
-                >
-                  {isPlaying ? <Pause className="w-6 h-6" /> : <Play className="w-6 h-6 ml-1" />}
-                </button>
-              </div>
-
-              {/* Volumes */}
-              <div className="flex flex-col gap-4 w-full mb-6">
-                <div className="flex items-center gap-3">
-                  <Music className="w-5 h-5 text-muted-foreground" />
-                  <span className="text-sm font-medium w-24">Música</span>
-                  <input 
-                    type="range" min={0} max={100} value={volume * 100} 
-                    onChange={e => {
-                      const v = parseInt(e.target.value) / 100;
-                      setVolume(v);
-                      if (audioRef.current) audioRef.current.volume = v;
-                    }}
-                    className="flex-1 accent-orange-500 h-1.5 bg-muted rounded-full appearance-none"
-                  />
-                </div>
-                {isVideo && (
-                  <div className="flex items-center gap-3">
-                    <Video className="w-5 h-5 text-muted-foreground" />
-                    <span className="text-sm font-medium w-24">Audio original</span>
-                    <input 
-                      type="range" min={0} max={100} value={originalVolume * 100} 
-                      onChange={e => {
-                        const v = parseInt(e.target.value) / 100;
-                        setOriginalVolume(v);
-                        if (videoRef?.current) {
-                          videoRef.current.volume = v;
-                        }
-                      }}
-                      className="flex-1 accent-orange-500 h-1.5 bg-muted rounded-full appearance-none"
-                    />
-                  </div>
+                    <X className="w-3.5 h-3.5" />
+                  </button>
                 )}
               </div>
 
-              <button 
-                onClick={handleConfirm}
-                className="w-full py-4 bg-orange-500 text-white rounded-2xl font-bold hover:bg-orange-600 transition-colors shadow-sm"
+              {/* Category Chips */}
+              {categories.length > 1 && (
+                <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide py-1">
+                  {categories.map((cat) => {
+                    const isActive = selectedCategory === cat
+                    return (
+                      <button
+                        key={cat}
+                        onClick={() => setSelectedCategory(cat)}
+                        className={`px-3 py-1 rounded-full text-[11px] font-semibold transition-all shrink-0 cursor-pointer ${
+                          isActive
+                            ? 'bg-primary text-primary-foreground shadow-sm'
+                            : 'bg-muted text-muted-foreground hover:text-foreground hover:bg-muted/80'
+                        }`}
+                      >
+                        {cat}
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Track List */}
+            <div className="flex-1 overflow-y-auto p-2 space-y-1 no-scrollbar">
+              {loading ? (
+                <div className="flex flex-col items-center justify-center py-12 gap-2 text-muted-foreground">
+                  <div className="w-6 h-6 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+                  <span className="text-xs">Cargando pistas...</span>
+                </div>
+              ) : filteredTracks.length > 0 ? (
+                filteredTracks.map((track) => {
+                  const isCurrentPlaying = previewTrackId === track.id && isPlaying
+                  return (
+                    <div
+                      key={track.id}
+                      onClick={() => handleSelectTrack(track)}
+                      className={`w-full flex items-center p-2 rounded-2xl hover:bg-muted/70 transition-colors cursor-pointer group border ${
+                        previewTrackId === track.id ? 'bg-primary/5 border-primary/30' : 'border-transparent'
+                      }`}
+                    >
+                      {/* Cover with Play/Pause button */}
+                      <div className="w-11 h-11 bg-muted rounded-xl overflow-hidden shrink-0 relative flex items-center justify-center border border-border/50">
+                        {track.cover_url ? (
+                          <img src={track.cover_url} alt={track.title} className="w-full h-full object-cover" />
+                        ) : (
+                          <Music className="w-5 h-5 text-muted-foreground" />
+                        )}
+                        <button
+                          onClick={(e) => handleTogglePreview(e, track)}
+                          className={`absolute inset-0 flex items-center justify-center transition-all ${
+                            isCurrentPlaying
+                              ? 'bg-primary/80 opacity-100 text-white'
+                              : 'bg-black/40 opacity-0 group-hover:opacity-100 text-white'
+                          }`}
+                          title={isCurrentPlaying ? "Pausar" : "Escuchar"}
+                        >
+                          {isCurrentPlaying ? (
+                            <Pause className="w-4 h-4 fill-white" />
+                          ) : (
+                            <Play className="w-4 h-4 fill-white ml-0.5" />
+                          )}
+                        </button>
+                      </div>
+
+                      {/* Title & Artist */}
+                      <div className="flex-1 min-w-0 px-3 flex flex-col">
+                        <span className={`text-xs font-bold truncate ${previewTrackId === track.id ? 'text-primary' : 'text-foreground'}`}>
+                          {track.title}
+                        </span>
+                        <span className="text-[11px] text-muted-foreground truncate">
+                          {track.artist}
+                        </span>
+                      </div>
+
+                      {/* Total Duration & Action indicator */}
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className="text-[11px] font-mono text-muted-foreground">
+                          {formatTime(track.duration_ms)}
+                        </span>
+                        <div className="px-2 py-1 rounded-lg bg-muted text-[10px] font-semibold text-muted-foreground group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                          Elegir
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })
+              ) : (
+                <div className="text-center py-12 text-muted-foreground text-xs">
+                  No se encontraron canciones
+                </div>
+              )}
+            </div>
+          </div>
+        ) : (
+          /* ---------------- STATE 2: ADJUST FRAGMENT ---------------- */
+          <div className="flex-1 flex flex-col justify-between p-4 pt-1 gap-3 overflow-hidden">
+            {/* Top Bar: Back, Track Info, Close */}
+            <div className="flex items-center justify-between gap-2 shrink-0">
+              <button
+                onClick={() => {
+                  stopPlayback()
+                  setSelectedTrack(null)
+                }}
+                className="w-8 h-8 flex items-center justify-center text-muted-foreground hover:text-foreground rounded-full hover:bg-muted transition-colors cursor-pointer shrink-0"
+                title="Cambiar canción"
               >
-                Usar este fragmento
+                <ArrowLeft className="w-4 h-4" />
+              </button>
+
+              <div className="flex items-center gap-2 min-w-0 flex-1 justify-center">
+                <div className="w-7 h-7 rounded-lg bg-muted overflow-hidden shrink-0 border border-border/50 flex items-center justify-center">
+                  {selectedTrack.cover_url ? (
+                    <img src={selectedTrack.cover_url} alt={selectedTrack.title} className="w-full h-full object-cover" />
+                  ) : (
+                    <Music className="w-3.5 h-3.5 text-muted-foreground" />
+                  )}
+                </div>
+                <div className="min-w-0 text-center">
+                  <div className="text-xs font-bold text-foreground truncate max-w-[200px] sm:max-w-[280px]">
+                    {selectedTrack.title}
+                  </div>
+                  <div className="text-[10px] text-muted-foreground truncate max-w-[200px] sm:max-w-[280px]">
+                    {selectedTrack.artist}
+                  </div>
+                </div>
+              </div>
+
+              <button
+                onClick={handleClose}
+                className="w-8 h-8 flex items-center justify-center text-muted-foreground hover:text-foreground rounded-full hover:bg-muted transition-colors cursor-pointer shrink-0"
+                title="Cerrar"
+              >
+                <X className="w-4 h-4" />
               </button>
             </div>
-          </>
+
+            {/* Time interval pill */}
+            <div className="flex justify-center shrink-0">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary font-mono text-[11px] font-bold">
+                <span>{formatTime(startTimeMs)}</span>
+                <span className="opacity-60">—</span>
+                <span>{formatTime(startTimeMs + durationMs)}</span>
+                <span className="opacity-40">·</span>
+                <span className="text-foreground font-sans">{(durationMs / 1000).toFixed(0)} s</span>
+              </div>
+            </div>
+
+            {/* Waveform & Timeline Area */}
+            <div className="flex flex-col gap-1.5 shrink-0 px-1">
+              <div
+                ref={timelineRef}
+                className="relative w-full h-14 bg-muted/40 rounded-2xl overflow-hidden select-none touch-none flex items-center px-1 border border-border/40"
+              >
+                {/* Background Waveform Bars (Representing the full song) */}
+                <div className="absolute inset-0 flex items-center justify-between px-2 pointer-events-none">
+                  {waveformBars.map((h, i) => (
+                    <div
+                      key={i}
+                      className="w-[2px] sm:w-[3px] rounded-full bg-muted-foreground/30 transition-all"
+                      style={{ height: `${h}%` }}
+                    />
+                  ))}
+                </div>
+
+                {/* Orange Selection Window */}
+                <div
+                  className="absolute top-1 bottom-1 rounded-xl border-2 border-primary bg-primary/15 shadow-sm touch-none z-10"
+                  style={{
+                    left: `${leftPct}%`,
+                    width: `${widthPct}%`
+                  }}
+                >
+                  {/* Playhead indicator within selection */}
+                  {isPlaying && (
+                    <div
+                      className="absolute top-1 bottom-1 w-[2px] bg-white rounded-full shadow pointer-events-none z-10"
+                      style={{ left: `${playheadPct}%` }}
+                    />
+                  )}
+
+                  {/* Left Handle (Width 40px touch hitbox, centered at edge) */}
+                  <div
+                    className="absolute -left-5 top-0 bottom-0 w-10 flex items-center justify-center cursor-ew-resize touch-none z-30 group"
+                    onPointerDown={(e) => handlePointerDown(e, 'left')}
+                    onPointerMove={handlePointerMove}
+                    onPointerUp={handlePointerUp}
+                    onPointerCancel={handlePointerUp}
+                    title="Ajustar inicio"
+                  >
+                    <div className="w-1.5 h-7 bg-white border border-primary rounded-full shadow-md group-hover:scale-110 transition-transform pointer-events-none" />
+                  </div>
+
+                  {/* Center drag area (Moves entire fragment preserving duration) */}
+                  <div
+                    className="absolute inset-0 mx-4 cursor-grab active:cursor-grabbing touch-none z-20 flex items-center justify-center"
+                    onPointerDown={(e) => handlePointerDown(e, 'center')}
+                    onPointerMove={handlePointerMove}
+                    onPointerUp={handlePointerUp}
+                    onPointerCancel={handlePointerUp}
+                    title="Arrastrar fragmento"
+                  />
+
+                  {/* Right Handle (Width 40px touch hitbox, centered at edge) */}
+                  <div
+                    className="absolute -right-5 top-0 bottom-0 w-10 flex items-center justify-center cursor-ew-resize touch-none z-30 group"
+                    onPointerDown={(e) => handlePointerDown(e, 'right')}
+                    onPointerMove={handlePointerMove}
+                    onPointerUp={handlePointerUp}
+                    onPointerCancel={handlePointerUp}
+                    title="Ajustar duración"
+                  >
+                    <div className="w-1.5 h-7 bg-white border border-primary rounded-full shadow-md group-hover:scale-110 transition-transform pointer-events-none" />
+                  </div>
+                </div>
+              </div>
+
+              {/* Track boundaries indicator */}
+              <div className="flex items-center justify-between px-1 text-[10px] font-mono text-muted-foreground">
+                <span>0:00</span>
+                <span>{formatTime(selectedTrack.duration_ms)}</span>
+              </div>
+            </div>
+
+            {/* Controls: Play/Pause button + Volume sliders */}
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                onClick={handleToggleFragmentPlayback}
+                className="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-md hover:scale-105 active:scale-95 transition-transform shrink-0 cursor-pointer"
+                title={isPlaying ? "Pausar" : "Reproducir fragmento"}
+              >
+                {isPlaying ? <Pause className="w-4 h-4 fill-current" /> : <Play className="w-4 h-4 fill-current ml-0.5" />}
+              </button>
+
+              {/* Music Volume */}
+              <div className="flex-1 flex items-center gap-2 bg-muted/40 px-3 py-2 rounded-2xl border border-border/40">
+                <Volume2 className="w-3.5 h-3.5 text-primary shrink-0" />
+                <span className="text-[11px] font-semibold text-muted-foreground shrink-0">Música</span>
+                <input
+                  type="range"
+                  min={0}
+                  max={100}
+                  value={Math.round(volume * 100)}
+                  onChange={handleVolumeChange}
+                  className="w-full accent-primary h-1 bg-muted rounded-full appearance-none cursor-pointer"
+                />
+                <span className="text-[10px] font-mono text-muted-foreground w-7 text-right shrink-0">
+                  {Math.round(volume * 100)}%
+                </span>
+              </div>
+
+              {/* Original Audio Volume (only if video story) */}
+              {isVideo && (
+                <div className="flex-1 flex items-center gap-2 bg-muted/40 px-3 py-2 rounded-2xl border border-border/40">
+                  <Video className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                  <span className="text-[11px] font-semibold text-muted-foreground shrink-0">Vídeo</span>
+                  <input
+                    type="range"
+                    min={0}
+                    max={100}
+                    value={Math.round(originalVolume * 100)}
+                    onChange={handleOriginalVolumeChange}
+                    className="w-full accent-primary h-1 bg-muted rounded-full appearance-none cursor-pointer"
+                  />
+                  <span className="text-[10px] font-mono text-muted-foreground w-7 text-right shrink-0">
+                    {Math.round(originalVolume * 100)}%
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* Bottom Actions: Remove (if active) & Confirm */}
+            <div className="flex items-center gap-2 pb-[max(env(safe-area-inset-bottom),0.5rem)] shrink-0">
+              {initialConfig && (
+                <button
+                  onClick={handleRemoveMusic}
+                  className="px-4 py-3 bg-muted hover:bg-muted/80 text-muted-foreground hover:text-destructive rounded-2xl font-bold text-xs border border-border/50 flex items-center gap-1.5 transition-colors cursor-pointer"
+                  title="Eliminar música de la historia"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Quitar</span>
+                </button>
+              )}
+
+              <button
+                onClick={handleConfirm}
+                className="flex-1 py-3 bg-primary hover:bg-primary/90 text-primary-foreground rounded-2xl font-bold text-xs shadow-md transition-transform active:scale-[0.99] flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <Check className="w-4 h-4" />
+                <span>Listo</span>
+              </button>
+            </div>
+          </div>
         )}
       </div>
     </div>

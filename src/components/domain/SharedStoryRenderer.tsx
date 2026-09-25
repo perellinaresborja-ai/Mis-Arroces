@@ -106,11 +106,17 @@ export function SharedStoryRenderer({
           }
         });
       });
+    } else {
+      setMusicTrackUrl(null);
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
+      }
     }
   }, [musicConfig?.track_id]);
 
   useEffect(() => {
-    if (audioRef.current && musicConfig) {
+    if (audioRef.current && musicConfig && musicTrackUrl) {
       if (isPaused) {
         audioRef.current.pause();
       } else {
@@ -128,11 +134,33 @@ export function SharedStoryRenderer({
     if (audioRef.current && musicConfig) {
       audioRef.current.volume = musicConfig.music_volume ?? 1;
       // Start time initialization
-      if (Math.abs(audioRef.current.currentTime - (musicConfig.start_time_ms / 1000)) > 1) {
-        audioRef.current.currentTime = musicConfig.start_time_ms / 1000;
+      const startSec = (musicConfig.start_time_ms || 0) / 1000;
+      if (Math.abs(audioRef.current.currentTime - startSec) > 0.5) {
+        audioRef.current.currentTime = startSec;
       }
     }
   }, [musicTrackUrl, musicConfig]);
+
+  // Fragment loop enforcement (loops strictly between start_time_ms and start_time_ms + duration_ms)
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio || !musicConfig || !musicTrackUrl) return;
+
+    const startSec = (musicConfig.start_time_ms || 0) / 1000;
+    const durSec = (musicConfig.duration_ms || 15000) / 1000;
+    const endSec = startSec + durSec;
+
+    const handleTimeUpdate = () => {
+      if (audio.currentTime >= endSec || audio.currentTime < startSec) {
+        audio.currentTime = startSec;
+      }
+    };
+
+    audio.addEventListener('timeupdate', handleTimeUpdate);
+    return () => {
+      audio.removeEventListener('timeupdate', handleTimeUpdate);
+    };
+  }, [musicConfig, musicTrackUrl]);
 
   useEffect(() => {
     if (videoRef && videoRef.current && musicConfig?.original_audio_volume !== undefined) {

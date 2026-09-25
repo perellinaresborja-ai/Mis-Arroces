@@ -3,10 +3,12 @@
 import Image from "next/image"
 import { useState } from "react"
 import { Utensils, User } from "lucide-react"
+import { VideoThumbnail } from "./VideoThumbnail"
 
 interface MediaImageProps {
   src: string | null
   alt: string
+  thumbnailPath?: string | null
   className?: string
   fill?: boolean
   width?: number
@@ -22,6 +24,7 @@ interface MediaImageProps {
 export function MediaImage({
   src,
   alt,
+  thumbnailPath,
   className = "",
   fill = true,
   width,
@@ -68,41 +71,18 @@ export function MediaImage({
   const isVideo = Boolean(src && (/\.(mp4|webm|mov)(\?.*)?$/i.test(src) || src.includes('video/')));
 
   if (isVideo && src) {
-    const posterUrl = src.includes('#t=') ? src : `${src}#t=0.001`;
-    if (fill) {
-      return (
-        <video
-          src={src}
-          poster={posterUrl}
-          className={`absolute inset-0 w-full h-full object-cover pointer-events-none ${className}`}
-          preload="auto"
-          autoPlay
-          muted
-          loop
-          playsInline
-          onError={() => setError(true)}
-        >
-          <source src={src} type="video/mp4" />
-        </video>
-      )
-    }
     return (
-      <video
+      <VideoThumbnail
         src={src}
-        poster={posterUrl}
+        alt={alt}
+        thumbnailPath={thumbnailPath}
+        className={className}
+        fill={fill}
         width={width}
         height={height}
-        className={`pointer-events-none ${className}`}
-        preload="auto"
-        autoPlay
-        muted
-        loop
-        playsInline
-        onError={() => setError(true)}
-      >
-        <source src={src} type="video/mp4" />
-      </video>
-    )
+        priority={priority}
+      />
+    );
   }
 
   const shouldUnoptimize = unoptimized || isPrivate;

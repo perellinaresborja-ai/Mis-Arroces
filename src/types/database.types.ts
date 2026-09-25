@@ -878,6 +878,7 @@ export type Database = {
           mime_type: string
           owner_id: string
           storage_path: string
+          thumbnail_path: string | null
           updated_at: string
           width: number | null
         }
@@ -892,6 +893,7 @@ export type Database = {
           mime_type: string
           owner_id: string
           storage_path: string
+          thumbnail_path?: string | null
           updated_at?: string
           width?: number | null
         }
@@ -906,6 +908,7 @@ export type Database = {
           mime_type?: string
           owner_id?: string
           storage_path?: string
+          thumbnail_path?: string | null
           updated_at?: string
           width?: number | null
         }

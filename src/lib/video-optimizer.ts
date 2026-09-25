@@ -281,3 +281,109 @@ export async function optimizePostVideo(file: File): Promise<File> {
   });
 }
 
+/**
+ * Generates a lightweight static WebP thumbnail (max 480px) from a video file at upload time.
+ */
+export async function generateVideoThumbnailFile(file: File | Blob, baseName: string = "video"): Promise<File> {
+  return new Promise((resolve, reject) => {
+    if (typeof window === 'undefined') {
+      return reject(new Error("Window not available"));
+    }
+
+    const video = document.createElement('video');
+    const url = URL.createObjectURL(file);
+    video.src = url;
+    video.muted = true;
+    video.playsInline = true;
+    video.preload = 'metadata';
+
+    let finished = false;
+    const cleanup = () => {
+      try {
+        URL.revokeObjectURL(url);
+        video.removeAttribute('src');
+        video.load();
+        video.remove();
+      } catch {}
+    };
+
+    video.onerror = () => {
+      if (!finished) {
+        finished = true;
+        cleanup();
+        reject(new Error("Failed to load video for thumbnail generation"));
+      }
+    };
+
+    const capture = () => {
+      if (finished) return;
+      try {
+        const maxDim = 480;
+        let w = video.videoWidth || 480;
+        let h = video.videoHeight || 480;
+        if (w > maxDim || h > maxDim) {
+          if (w > h) {
+            h = Math.round((h * maxDim) / w);
+            w = maxDim;
+          } else {
+            w = Math.round((w * maxDim) / h);
+            h = maxDim;
+          }
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          finished = true;
+          cleanup();
+          return reject(new Error("Canvas context failed"));
+        }
+
+        ctx.drawImage(video, 0, 0, w, h);
+        canvas.toBlob(
+          (blob) => {
+            finished = true;
+            cleanup();
+            if (blob) {
+              const cleanBase = baseName.replace(/\.[^/.]+$/, '');
+              const thumbFile = new File([blob], `${cleanBase}.thumb.webp`, { type: 'image/webp' });
+              resolve(thumbFile);
+            } else {
+              reject(new Error("Canvas blob export failed"));
+            }
+          },
+          'image/webp',
+          0.82
+        );
+      } catch (err) {
+        if (!finished) {
+          finished = true;
+          cleanup();
+          reject(err);
+        }
+      }
+    };
+
+    video.onloadeddata = () => {
+      try {
+        video.currentTime = 0.001;
+      } catch {
+        capture();
+      }
+    };
+
+    video.onseeked = () => {
+      capture();
+    };
+
+    setTimeout(() => {
+      if (!finished) {
+        capture();
+      }
+    }, 3000);
+  });
+}
+
+

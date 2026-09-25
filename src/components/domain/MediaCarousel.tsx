@@ -57,6 +57,16 @@ export function MediaCarousel({ items, bucket = "recipe_media", href, priority =
         videoEl.currentTime = 0
       }
     })
+
+    return () => {
+      Object.values(videoRefs.current).forEach(videoEl => {
+        if (videoEl) {
+          try {
+            videoEl.pause()
+          } catch {}
+        }
+      })
+    }
   }, [currentIndex, isMuted])
 
   const currentItem = items[currentIndex]

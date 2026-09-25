@@ -12,11 +12,13 @@ export function ProfileGridCard({ item, currentUserId }: { item: any, currentUse
   // determine image and media type
   let imagePath = null
   let isVideo = false
+  let thumbnailPath = null
   const mediaList = item.recipe_media || item.session_media || item.post_media
   if (mediaList && mediaList.length > 0) {
     const sorted = [...mediaList].sort((a: any, b: any) => (a.display_order || 0) - (b.display_order || 0))
     const firstMedia = sorted[0]?.media
     imagePath = firstMedia?.storage_path
+    thumbnailPath = firstMedia?.thumbnail_path
     isVideo = Boolean(firstMedia?.media_type === 'VIDEO' || imagePath?.match(/\.(mp4|webm|mov)$/i))
   }
   const imageUrl = imagePath ? `https://zvesoygqssyyojqyswwm.supabase.co/storage/v1/object/public/recipe_media/${imagePath}` : null
@@ -40,6 +42,7 @@ export function ProfileGridCard({ item, currentUserId }: { item: any, currentUse
         <MediaImage 
           src={imageUrl} 
           alt={item.name || item.content || "Media"} 
+          thumbnailPath={thumbnailPath}
           variant="feed"
           fallbackType="recipe"
           className="w-full h-full object-cover transition-transform md:group-hover:scale-105" 

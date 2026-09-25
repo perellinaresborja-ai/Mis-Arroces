@@ -394,16 +394,40 @@ export function StoryCreator({
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("No hay sesión activa para subir el contenido");
 
-      const { data: assetData, error: dbError } = await supabase.from('media_assets').insert({
+      let storyThumbPath: string | undefined = undefined;
+      if (globalStoryDraftType === 'VIDEO') {
+        try {
+          const { generateVideoThumbnailFile } = await import("@/lib/video-optimizer");
+          const thumbFile = await generateVideoThumbnailFile(fileToUpload, fileName);
+          storyThumbPath = `stories/${fileName.replace(/\.[^/.]+$/, "")}.thumb.webp`;
+          await supabase.storage.from('recipe_media').upload(storyThumbPath, thumbFile, {
+            cacheControl: '31536000',
+            upsert: true
+          });
+        } catch (thumbErr) {
+          console.warn("Could not generate story video thumbnail:", thumbErr);
+        }
+      }
+
+      const insertData: any = {
         storage_path: data.path,
         media_type: globalStoryDraftType === 'VIDEO' ? 'VIDEO' : 'IMAGE',
         mime_type: fileToUpload.type,
-        owner_id: user.id
-      }).select().single();
+        owner_id: user.id,
+        thumbnail_path: storyThumbPath || null
+      };
+
+      let { data: assetData, error: dbError } = await supabase.from('media_assets').insert(insertData).select().single();
+      if (dbError && (dbError as any).message?.includes("thumbnail_path")) {
+        delete insertData.thumbnail_path;
+        const retry = await supabase.from('media_assets').insert(insertData).select().single();
+        assetData = retry.data;
+        dbError = retry.error;
+      }
       
-      if (dbError) {
+      if (dbError || !assetData) {
         console.error("Media asset DB error:", dbError);
-        throw new Error(`Error al registrar el archivo multimedia: ${dbError.message}`);
+        throw new Error(`Error al registrar el archivo multimedia: ${dbError?.message || 'No se pudo registrar'}`);
       }
       return assetData.id;
     }
@@ -920,7 +944,7 @@ export function StoryCreator({
       {mode === 'MUSIC' && (
         <StoryMusicSelector
           isVideo={draftMediaType === 'VIDEO' && videoHasAudio}
-          maxDurationMs={draftMediaType === 'VIDEO' ? ((videoRef.current?.duration || 5) * 1000) : 5000}
+          maxDurationMs={draftMediaType === 'VIDEO' ? Math.max(3000, Math.min(15000, ((videoRef.current?.duration || 15) * 1000))) : 15000}
           initialConfig={musicConfig}
           videoRef={videoRef}
           onSelect={(config) => {

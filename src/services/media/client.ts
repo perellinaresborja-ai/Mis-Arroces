@@ -125,8 +125,27 @@ export async function uploadMedia(file: File, context: 'recipes' | 'posts' | 'se
     throw uploadError
   }
 
+  // Generate and upload lightweight static thumbnail if video
+  let thumbnailPath: string | undefined = undefined
+  if (isVideo) {
+    try {
+      const { generateVideoThumbnailFile } = await import("@/lib/video-optimizer")
+      const thumbFile = await generateVideoThumbnailFile(processedFile, file.name)
+      thumbnailPath = filePath.replace(/\.[^/.]+$/, "") + ".thumb.webp"
+      await supabase.storage
+        .from(bucket)
+        .upload(thumbnailPath, thumbFile, {
+          cacheControl: '31536000',
+          upsert: true
+        })
+    } catch (thumbErr) {
+      console.warn("Could not generate or upload video thumbnail at upload time:", thumbErr)
+      thumbnailPath = undefined
+    }
+  }
+
   // Register in media_assets via Server Action for strict server-side size validation
-  const assetId = await registerMediaAsset(filePath, processedFile.type, bucket)
+  const assetId = await registerMediaAsset(filePath, processedFile.type, bucket, thumbnailPath)
 
   return assetId
 }
