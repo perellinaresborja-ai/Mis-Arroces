@@ -688,3 +688,292 @@ export function ProfilePicker({ onSelect }: { onSelect: (u: { id: string, title:
     }}
   />
 }
+
+const POPULAR_REACTION_EMOJIS = ['🔥', '🥘', '😍', '🤤', '👏', '❤️', '💯', '🌶️', '😋', '👌', '🎉', '🤯'];
+
+export function SliderPicker({ onSelect }: { onSelect: (slider: { id: string, question: string, emoji: string }) => void }) {
+  const [question, setQuestion] = useState('')
+  const [selectedEmoji, setSelectedEmoji] = useState('🔥')
+  const [customEmoji, setCustomEmoji] = useState('')
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    const finalEmoji = customEmoji.trim() || selectedEmoji
+    onSelect({
+      id: 'slider_' + Date.now(),
+      question: question.trim(),
+      emoji: finalEmoji
+    })
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="flex flex-col h-full w-full bg-card p-4 gap-4 animate-in slide-in-from-bottom duration-200 overflow-y-auto">
+      {/* Texto opcional */}
+      <div className="flex flex-col gap-1.5">
+        <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Pregunta o texto (opcional)</label>
+        <input 
+          autoFocus
+          type="text"
+          value={question}
+          onChange={e => setQuestion(e.target.value)}
+          placeholder="¿Qué te parece? ¿Cuánto te apetece?..."
+          maxLength={70}
+          className="w-full h-11 px-3 rounded-xl border border-border bg-muted/50 focus:bg-background outline-none text-sm text-foreground"
+        />
+      </div>
+
+      {/* Selector de Emoji */}
+      <div className="flex flex-col gap-2">
+        <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Elige un emoji</label>
+        <div className="grid grid-cols-6 gap-2">
+          {POPULAR_REACTION_EMOJIS.map(emoji => (
+            <button
+              key={emoji}
+              type="button"
+              onClick={() => {
+                setSelectedEmoji(emoji)
+                setCustomEmoji('')
+              }}
+              className={`h-11 rounded-xl text-2xl flex items-center justify-center transition-all cursor-pointer ${
+                selectedEmoji === emoji && !customEmoji
+                  ? 'bg-primary/20 border-2 border-primary scale-110 shadow-sm'
+                  : 'bg-muted/40 hover:bg-muted border border-border/50'
+              }`}
+            >
+              {emoji}
+            </button>
+          ))}
+        </div>
+        
+        {/* Emoji personalizado o escritura directa */}
+        <div className="flex items-center gap-2 mt-1">
+          <input 
+            type="text"
+            value={customEmoji}
+            onChange={e => setCustomEmoji(e.target.value)}
+            placeholder="O escribe otro emoji aquí..."
+            maxLength={4}
+            className="w-full h-10 px-3 rounded-xl border border-border bg-muted/50 focus:bg-background outline-none text-sm text-foreground"
+          />
+        </div>
+      </div>
+
+      {/* Vista previa en tiempo real */}
+      <div className="flex flex-col items-center justify-center p-3 rounded-2xl bg-muted/30 border border-border/50">
+        <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-2">Vista previa</span>
+        <div className="bg-card text-foreground rounded-2xl p-3 border border-border shadow-md min-w-[200px] flex flex-col items-center gap-1.5">
+          {question.trim() ? (
+            <div className="font-bold text-xs text-foreground text-center leading-tight truncate max-w-[180px]">
+              {question.trim()}
+            </div>
+          ) : (
+            <div className="text-xs text-muted-foreground/60 italic text-center">Sin texto</div>
+          )}
+          <div className="w-full flex items-center gap-2 mt-0.5">
+            <span className="text-2xl filter drop-shadow-sm select-none">{customEmoji.trim() || selectedEmoji}</span>
+            <div className="flex-1 h-2 bg-primary/20 rounded-full overflow-hidden relative">
+              <div className="absolute left-0 top-0 bottom-0 w-1/2 bg-primary rounded-full" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <button
+        type="submit"
+        className="mt-auto py-3 bg-primary hover:bg-primary/90 text-primary-foreground font-bold rounded-2xl transition-colors shadow-sm cursor-pointer"
+      >
+        Añadir reacción
+      </button>
+    </form>
+  )
+}
+
+export function HashtagPicker({ onSelect }: { onSelect: (tag: { id: string; tag: string }) => void }) {
+  const [inputVal, setInputVal] = useState('')
+
+  // Limpiar y normalizar el hashtag: remover '#' inicial y espacios
+  const cleanTag = inputVal.replace(/^#+/, '').replace(/\s+/g, '').trim()
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!cleanTag) return
+    onSelect({
+      id: 'hashtag_' + Date.now(),
+      tag: cleanTag
+    })
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="flex flex-col h-full w-full bg-card p-4 gap-4 animate-in slide-in-from-bottom duration-200 overflow-y-auto">
+      <div className="flex flex-col gap-1.5">
+        <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Hashtag</label>
+        <div className="relative flex items-center">
+          <span className="absolute left-3.5 text-primary font-black text-lg select-none">#</span>
+          <input 
+            autoFocus
+            type="text"
+            value={inputVal}
+            onChange={e => setInputVal(e.target.value)}
+            placeholder="paella, socarrat, valencia..."
+            maxLength={40}
+            className="w-full h-11 pl-8 pr-3 rounded-xl border border-border bg-muted/50 focus:bg-background outline-none text-sm text-foreground font-semibold"
+          />
+        </div>
+        <p className="text-[11px] text-muted-foreground">Escribe con o sin #, se añadirá automáticamente.</p>
+      </div>
+
+      {/* Vista previa tipo sticker en tiempo real */}
+      <div className="flex flex-col items-center justify-center p-4 rounded-2xl bg-muted/30 border border-border/50">
+        <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-2">Vista previa</span>
+        <div className="bg-card text-foreground px-4 py-2 rounded-2xl font-bold flex items-center gap-1.5 shadow-md border border-border text-sm">
+          <span className="text-primary font-black text-base">#</span>
+          <span>{cleanTag || 'hashtag'}</span>
+        </div>
+      </div>
+
+      <button
+        type="submit"
+        disabled={!cleanTag}
+        className="mt-auto py-3 bg-primary hover:bg-primary/90 text-primary-foreground font-bold rounded-2xl transition-colors shadow-sm cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        Añadir hashtag
+      </button>
+    </form>
+  )
+}
+
+export function CountdownPicker({ onSelect }: { onSelect: (data: { id: string; title: string; targetDate: string }) => void }) {
+  const [title, setTitle] = useState('');
+  
+  const getDefaultDate = () => {
+    const d = new Date();
+    d.setDate(d.getDate() + 1);
+    return d.toISOString().split('T')[0];
+  };
+
+  const [date, setDate] = useState(getDefaultDate());
+  const [time, setTime] = useState('20:00');
+
+  const todayStr = new Date().toISOString().split('T')[0];
+
+  let isValidFuture = false;
+  let targetIso = '';
+  if (date && time) {
+    const target = new Date(`${date}T${time}:00`);
+    if (!isNaN(target.getTime()) && target.getTime() > Date.now()) {
+      isValidFuture = true;
+      targetIso = target.toISOString();
+    }
+  }
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!title.trim() || !isValidFuture) return;
+    onSelect({
+      id: 'countdown_' + Date.now(),
+      title: title.trim(),
+      targetDate: targetIso
+    });
+  };
+
+  const getPreviewDiff = () => {
+    if (!isValidFuture) return null;
+    const diff = Math.max(0, new Date(`${date}T${time}:00`).getTime() - Date.now());
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    return { days, hours, minutes };
+  };
+
+  const preview = getPreviewDiff();
+
+  return (
+    <form onSubmit={handleSubmit} className="flex flex-col h-full w-full bg-card p-4 gap-4 animate-in slide-in-from-bottom duration-200 overflow-y-auto">
+      {/* Título */}
+      <div className="flex flex-col gap-1.5">
+        <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Nombre de la cuenta atrás</label>
+        <input 
+          autoFocus
+          type="text"
+          value={title}
+          onChange={e => setTitle(e.target.value)}
+          placeholder="Ej: Directo de paella, Cena de arroz..."
+          maxLength={45}
+          className="w-full h-11 px-3 rounded-xl border border-border bg-muted/50 focus:bg-background outline-none text-sm text-foreground font-semibold"
+        />
+      </div>
+
+      {/* Selectores de Fecha y Hora */}
+      <div className="grid grid-cols-2 gap-3">
+        <div className="flex flex-col gap-1.5">
+          <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Fecha</label>
+          <input 
+            type="date"
+            min={todayStr}
+            value={date}
+            onChange={e => setDate(e.target.value)}
+            className="w-full h-11 px-3 rounded-xl border border-border bg-muted/50 focus:bg-background outline-none text-sm text-foreground font-medium"
+          />
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Hora</label>
+          <input 
+            type="time"
+            value={time}
+            onChange={e => setTime(e.target.value)}
+            className="w-full h-11 px-3 rounded-xl border border-border bg-muted/50 focus:bg-background outline-none text-sm text-foreground font-medium"
+          />
+        </div>
+      </div>
+
+      {/* Alerta si la fecha/hora es pasada */}
+      {!isValidFuture && date && time && (
+        <p className="text-xs text-destructive font-medium">
+          La fecha y hora elegidas deben ser en el futuro.
+        </p>
+      )}
+
+      {/* Vista previa en tiempo real */}
+      <div className="flex flex-col items-center justify-center p-4 rounded-2xl bg-muted/30 border border-border/50">
+        <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-2">Vista previa</span>
+        <div className="bg-card text-foreground rounded-2xl p-3.5 border border-border shadow-md min-w-[220px] max-w-[260px] flex flex-col items-center gap-2">
+          <div className="font-bold text-sm text-foreground text-center leading-tight truncate max-w-[200px]">
+            {title.trim() || 'Nombre del evento'}
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="flex flex-col items-center justify-center bg-muted/60 rounded-xl px-2.5 py-1 min-w-[44px]">
+              <span className="font-mono font-black text-base leading-tight text-primary">
+                {preview ? String(preview.days).padStart(2, '0') : '00'}
+              </span>
+              <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-tight">Días</span>
+            </div>
+            <span className="font-black text-muted-foreground/60 text-sm">:</span>
+            <div className="flex flex-col items-center justify-center bg-muted/60 rounded-xl px-2.5 py-1 min-w-[44px]">
+              <span className="font-mono font-black text-base leading-tight text-primary">
+                {preview ? String(preview.hours).padStart(2, '0') : '00'}
+              </span>
+              <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-tight">Horas</span>
+            </div>
+            <span className="font-black text-muted-foreground/60 text-sm">:</span>
+            <div className="flex flex-col items-center justify-center bg-muted/60 rounded-xl px-2.5 py-1 min-w-[44px]">
+              <span className="font-mono font-black text-base leading-tight text-primary">
+                {preview ? String(preview.minutes).padStart(2, '0') : '00'}
+              </span>
+              <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-tight">Min</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <button
+        type="submit"
+        disabled={!title.trim() || !isValidFuture}
+        className="mt-auto py-3 bg-primary hover:bg-primary/90 text-primary-foreground font-bold rounded-2xl transition-colors shadow-sm cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        Añadir cuenta atrás
+      </button>
+    </form>
+  );
+}
+
+

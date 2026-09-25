@@ -9,8 +9,8 @@ import { optimizeStoryVideo } from '@/lib/video-optimizer';
 import { globalStoryDraftUrl, globalStoryDraftType, globalStoryDraftFile, globalStoryDraftFresh, clearGlobalStoryDraft, setGlobalStoryDraft, consumeGlobalStoryDraft } from '@/lib/story-draft';
 import { SharedStoryRenderer, renderOverlayContent } from './SharedStoryRenderer';
 import { DraggableOverlay } from './stories/DraggableOverlay';
-import { MentionPicker, RecipePicker, IngredientPicker, LocationPicker, StickerPicker, LinkPicker, QuestionPicker, PollPicker, cleanIngredientName } from './stories/StickerPickers';
-import { Camera, User, ChefHat, MapPin, AlignLeft, AlignCenter, AlignRight, Apple, Image as ImageIcon, Trash2, Paintbrush, Sparkles, Link as LinkIcon, HelpCircle, BarChart2, Music, Volume2, Video, X, Undo2, Globe, Users, AtSign } from 'lucide-react';
+import { MentionPicker, RecipePicker, IngredientPicker, LocationPicker, StickerPicker, LinkPicker, QuestionPicker, PollPicker, ProfilePicker, SliderPicker, HashtagPicker, CountdownPicker, cleanIngredientName } from './stories/StickerPickers';
+import { Camera, User, ChefHat, MapPin, AlignLeft, AlignCenter, AlignRight, Apple, Image as ImageIcon, Trash2, Paintbrush, Sparkles, Link as LinkIcon, HelpCircle, BarChart2, Music, Volume2, Video, X, Undo2, Globe, Users, AtSign, Smile, Hash, Timer } from 'lucide-react';
 import { StoryMusicSelector } from './StoryMusicSelector';
 import { useModalHistory } from '@/hooks/useModalHistory';
 
@@ -105,6 +105,74 @@ export function StoryCreator({
     }
     setMode('EDIT');
   };
+
+  const pendingPhotoStickersRef = useRef<Map<string, File>>(new Map());
+
+  const handlePhotoStickerUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = '';
+
+    try {
+      // 1. Optimize image using existing service
+      const { prepareImage } = await import("@/services/media/client");
+      const optimizedImg = await prepareImage(file, 'stories').catch(() => file);
+      const fileToUpload = optimizedImg instanceof File 
+        ? optimizedImg 
+        : new File([optimizedImg], file.name.replace(/\.[^/.]+$/, "") + ".webp", { type: 'image/webp' });
+
+      // 2. Measure dimensions & calculate aspect ratio
+      const localUrl = URL.createObjectURL(fileToUpload);
+      const img = new window.Image();
+      img.onload = () => {
+        const aspectRatio = (img.naturalWidth && img.naturalHeight) 
+          ? img.naturalWidth / img.naturalHeight 
+          : 1;
+
+        const overlayId = 'image_' + Date.now() + '_' + Math.random().toString(36).substring(7);
+        pendingPhotoStickersRef.current.set(overlayId, fileToUpload);
+
+        saveHistory();
+        const newOverlay: StoryOverlay = {
+          id: overlayId,
+          type: 'IMAGE',
+          x: 0.5,
+          y: 0.5,
+          scale: 1,
+          rotation: 0,
+          zIndex: overlays.length + 10,
+          payload: {
+            url: localUrl,
+            aspectRatio
+          }
+        };
+
+        setOverlays(prev => [...prev, newOverlay]);
+        setActiveStickerType(null);
+        setMode('EDIT');
+
+        // 3. Upload in background to Supabase storage
+        const ext = fileToUpload.type === 'image/webp' ? 'webp' : (fileToUpload.name.split('.').pop() || 'jpg');
+        const fileName = `stories/stickers/${Date.now()}-${Math.random().toString(36).substring(7)}.${ext}`;
+        supabase.storage.from('recipe_media').upload(fileName, fileToUpload, {
+          contentType: fileToUpload.type,
+          cacheControl: '31536000'
+        }).then(({ data, error }) => {
+          if (!error && data?.path) {
+            const publicUrl = supabase.storage.from('recipe_media').getPublicUrl(data.path).data.publicUrl;
+            pendingPhotoStickersRef.current.delete(overlayId);
+            setOverlays(current => current.map(o => (o.id === overlayId && o.type === 'IMAGE') ? { ...o, payload: { ...o.payload, url: publicUrl } } : o));
+          }
+        }).catch(err => {
+          console.warn("Background upload of photo sticker failed, will retry on publish:", err);
+        });
+      };
+      img.src = localUrl;
+    } catch (err) {
+      console.error("Error processing photo sticker:", err);
+    }
+  };
+
   const [activeStickerType, setActiveStickerType] = useState<string | null>(null);
   const [selectedOverlayId, setSelectedOverlayId] = useState<string | null>(null);
 
@@ -353,6 +421,13 @@ export function StoryCreator({
       newOverlay = { ...common, type: 'SESSION', payload: { authorName: data.title, sessionId: data.id } };
     } else if (type === 'PROFILE') {
       newOverlay = { ...common, type: 'PROFILE', payload: { username: data.title, userId: data.id } };
+    } else if (type === 'SLIDER') {
+      newOverlay = { ...common, type: 'SLIDER', payload: { question: data.question || '', emoji: data.emoji || '🔥' } };
+    } else if (type === 'HASHTAG') {
+      const cleanTag = (data.tag || '').replace(/^#+/, '').trim();
+      newOverlay = { ...common, type: 'HASHTAG', payload: { tag: cleanTag } };
+    } else if (type === 'COUNTDOWN') {
+      newOverlay = { ...common, type: 'COUNTDOWN', payload: { title: data.title, targetDate: data.targetDate } };
     }
     
     if (newOverlay) {
@@ -456,6 +531,33 @@ export function StoryCreator({
     setIsPublishing(true);
     try {
       const uploadedMediaId = await uploadDraftIfNeeded();
+
+      // Ensure any photo sticker overlay with blob: URL is uploaded
+      const finalOverlays = await Promise.all(overlays.map(async (ov) => {
+        if (ov.type === 'IMAGE' && ov.payload.url.startsWith('blob:')) {
+          const file = pendingPhotoStickersRef.current.get(ov.id);
+          if (file) {
+            const ext = file.type === 'image/webp' ? 'webp' : (file.name.split('.').pop() || 'jpg');
+            const fileName = `stories/stickers/${Date.now()}-${Math.random().toString(36).substring(7)}.${ext}`;
+            const { data, error } = await supabase.storage.from('recipe_media').upload(fileName, file, {
+              contentType: file.type,
+              cacheControl: '31536000'
+            });
+            if (!error && data?.path) {
+              const publicUrl = supabase.storage.from('recipe_media').getPublicUrl(data.path).data.publicUrl;
+              return {
+                ...ov,
+                payload: {
+                  ...ov.payload,
+                  url: publicUrl
+                }
+              };
+            }
+          }
+        }
+        return ov;
+      }));
+
       await createStory({
         mediaTransform,
         background,
@@ -463,7 +565,7 @@ export function StoryCreator({
         recipeId: initialRecipe?.id,
         sessionId: initialSession?.id,
         postId: initialPost?.id,
-        overlays,
+        overlays: finalOverlays,
         musicConfig
       });
       clearGlobalStoryDraft();
@@ -527,35 +629,7 @@ export function StoryCreator({
         {/* Top Floating Controls Bar (Overlaid on canvas) */}
         {mode === 'EDIT' && (
           <div className="absolute top-0 inset-x-0 z-[120] flex items-center justify-between p-3.5 pt-[max(env(safe-area-inset-top),0.85rem)] bg-gradient-to-b from-black/70 via-black/30 to-transparent pointer-events-none">
-            {/* Left Controls: Close & Media upload */}
-            <div className="flex items-center gap-2 pointer-events-auto">
-              {/* Close / Discard Button */}
-              <button 
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (draftMediaUrl || overlays.length > 0) {
-                    setShowDiscardDialog(true);
-                  } else {
-                    router.back();
-                  }
-                }}
-                className="w-10 h-10 bg-black/45 hover:bg-black/65 backdrop-blur-md rounded-full flex items-center justify-center text-white border border-white/15 transition-transform active:scale-90 shadow-sm cursor-pointer"
-                aria-label="Cerrar editor"
-              >
-                <X size={20} />
-              </button>
-
-              {/* Media Change / Upload button */}
-              <label 
-                className="w-10 h-10 bg-black/45 hover:bg-black/65 backdrop-blur-md rounded-full flex items-center justify-center text-white border border-white/15 transition-transform active:scale-90 cursor-pointer shadow-sm" 
-                title="Cambiar foto o vídeo"
-              >
-                <input type="file" className="sr-only" accept="image/*,video/*" onChange={handleFileChange} />
-                <Camera size={18} />
-              </label>
-            </div>
-
-            {/* Overlaid Action Tools: ACCESOS DIRECTOS VISIBLES */}
+            {/* Overlaid Action Tools: ACCESOS DIRECTOS VISIBLES (Izquierda) */}
             <div className="flex items-center gap-1.5 sm:gap-2 pointer-events-auto">
               {/* 1. Texto */}
               <button 
@@ -601,6 +675,24 @@ export function StoryCreator({
                 title="Stickers y widgets"
               >
                 <Sparkles size={18} />
+              </button>
+            </div>
+
+            {/* Right: Close / Discard Button (Derecha) */}
+            <div className="flex items-center pointer-events-auto">
+              <button 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (draftMediaUrl || overlays.length > 0) {
+                    setShowDiscardDialog(true);
+                  } else {
+                    router.back();
+                  }
+                }}
+                className="w-10 h-10 bg-black/45 hover:bg-black/65 backdrop-blur-md rounded-full flex items-center justify-center text-white border border-white/15 transition-transform active:scale-90 shadow-sm cursor-pointer"
+                aria-label="Cerrar editor"
+              >
+                <X size={20} />
               </button>
             </div>
           </div>
@@ -987,6 +1079,52 @@ export function StoryCreator({
                       <Sparkles size={21} className="text-primary group-hover:scale-110 transition-transform"/>
                       <span className="text-[10px] font-medium text-foreground/85 tracking-tight">GIFs</span>
                     </button>
+                    {/* Perfil */}
+                    <button 
+                      onClick={() => setActiveStickerType('PROFILE')} 
+                      className="flex flex-col items-center justify-center gap-1.5 py-2.5 px-1 bg-muted/30 hover:bg-muted/60 active:bg-primary/10 rounded-2xl border border-border/40 hover:border-primary/30 text-foreground transition-all active:scale-95 cursor-pointer touch-manipulation group"
+                    >
+                      <User size={21} className="text-primary group-hover:scale-110 transition-transform"/>
+                      <span className="text-[10px] font-medium text-foreground/85 tracking-tight">Perfil</span>
+                    </button>
+                    {/* Reacción */}
+                    <button 
+                      onClick={() => setActiveStickerType('SLIDER')} 
+                      className="flex flex-col items-center justify-center gap-1.5 py-2.5 px-1 bg-muted/30 hover:bg-muted/60 active:bg-primary/10 rounded-2xl border border-border/40 hover:border-primary/30 text-foreground transition-all active:scale-95 cursor-pointer touch-manipulation group"
+                    >
+                      <Smile size={21} className="text-primary group-hover:scale-110 transition-transform"/>
+                      <span className="text-[10px] font-medium text-foreground/85 tracking-tight">Reacción</span>
+                    </button>
+                    {/* Foto */}
+                    <label 
+                      className="flex flex-col items-center justify-center gap-1.5 py-2.5 px-1 bg-muted/30 hover:bg-muted/60 active:bg-primary/10 rounded-2xl border border-border/40 hover:border-primary/30 text-foreground transition-all active:scale-95 cursor-pointer touch-manipulation group"
+                      title="Añadir foto"
+                    >
+                      <input 
+                        type="file" 
+                        accept="image/*" 
+                        className="sr-only" 
+                        onChange={handlePhotoStickerUpload} 
+                      />
+                      <ImageIcon size={21} className="text-primary group-hover:scale-110 transition-transform"/>
+                      <span className="text-[10px] font-medium text-foreground/85 tracking-tight">Foto</span>
+                    </label>
+                    {/* Hashtag */}
+                    <button 
+                      onClick={() => setActiveStickerType('HASHTAG')} 
+                      className="flex flex-col items-center justify-center gap-1.5 py-2.5 px-1 bg-muted/30 hover:bg-muted/60 active:bg-primary/10 rounded-2xl border border-border/40 hover:border-primary/30 text-foreground transition-all active:scale-95 cursor-pointer touch-manipulation group"
+                    >
+                      <Hash size={21} className="text-primary group-hover:scale-110 transition-transform"/>
+                      <span className="text-[10px] font-medium text-foreground/85 tracking-tight">Hashtag</span>
+                    </button>
+                    {/* Cuenta atrás */}
+                    <button 
+                      onClick={() => setActiveStickerType('COUNTDOWN')} 
+                      className="flex flex-col items-center justify-center gap-1.5 py-2.5 px-1 bg-muted/30 hover:bg-muted/60 active:bg-primary/10 rounded-2xl border border-border/40 hover:border-primary/30 text-foreground transition-all active:scale-95 cursor-pointer touch-manipulation group"
+                    >
+                      <Timer size={21} className="text-primary group-hover:scale-110 transition-transform"/>
+                      <span className="text-[10px] font-medium text-foreground/85 tracking-tight">Cuenta atrás</span>
+                    </button>
                   </div>
                 </div>
               ) : (
@@ -1004,6 +1142,10 @@ export function StoryCreator({
                       {activeStickerType === 'LINK' && 'Enlace'}
                       {activeStickerType === 'QUESTION' && 'Pregunta'}
                       {activeStickerType === 'POLL' && 'Votación'}
+                      {activeStickerType === 'PROFILE' && 'Perfil'}
+                      {activeStickerType === 'SLIDER' && 'Reacción'}
+                      {activeStickerType === 'HASHTAG' && 'Hashtag'}
+                      {activeStickerType === 'COUNTDOWN' && 'Cuenta atrás'}
                     </span>
                     <div className="w-12" />
                   </div>
@@ -1016,6 +1158,10 @@ export function StoryCreator({
                     {activeStickerType === 'LINK' && <LinkPicker onSelect={(lk) => handleStickerSelect('LINK', lk)} />}
                     {activeStickerType === 'QUESTION' && <QuestionPicker onSelect={(q) => handleStickerSelect('QUESTION', q)} />}
                     {activeStickerType === 'POLL' && <PollPicker onSelect={(p) => handleStickerSelect('POLL', p)} />}
+                    {activeStickerType === 'PROFILE' && <ProfilePicker onSelect={(u) => handleStickerSelect('PROFILE', u)} />}
+                    {activeStickerType === 'SLIDER' && <SliderPicker onSelect={(s) => handleStickerSelect('SLIDER', s)} />}
+                    {activeStickerType === 'HASHTAG' && <HashtagPicker onSelect={(h) => handleStickerSelect('HASHTAG', h)} />}
+                    {activeStickerType === 'COUNTDOWN' && <CountdownPicker onSelect={(c) => handleStickerSelect('COUNTDOWN', c)} />}
                   </div>
                 </div>
               )}

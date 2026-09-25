@@ -1,4 +1,4 @@
-export type OverlayType = 'TEXT' | 'MENTION' | 'LOCATION' | 'RECIPE' | 'GIF' | 'DRAWING' | 'POLL' | 'SLIDER' | 'QUESTION' | 'SESSION' | 'PROFILE' | 'INGREDIENT' | 'POST' | 'LINK';
+export type OverlayType = 'TEXT' | 'MENTION' | 'LOCATION' | 'RECIPE' | 'GIF' | 'DRAWING' | 'POLL' | 'SLIDER' | 'QUESTION' | 'SESSION' | 'PROFILE' | 'INGREDIENT' | 'POST' | 'LINK' | 'IMAGE' | 'HASHTAG' | 'COUNTDOWN';
 
 export interface StoryTransform {
   scale: number;
@@ -154,7 +154,30 @@ export interface LinkOverlay extends BaseOverlay {
   };
 }
 
-export type StoryOverlay = TextOverlay | DrawingOverlay | MentionOverlay | LocationOverlay | RecipeOverlay | SessionOverlay | ProfileOverlay | IngredientOverlay | GifOverlay | PollOverlay | SliderOverlay | QuestionOverlay | PostOverlay | LinkOverlay;
+export interface ImageOverlay extends BaseOverlay {
+  type: 'IMAGE';
+  payload: {
+    url: string;
+    aspectRatio?: number;
+  };
+}
+
+export interface HashtagOverlay extends BaseOverlay {
+  type: 'HASHTAG';
+  payload: {
+    tag: string;
+  };
+}
+
+export interface CountdownOverlay extends BaseOverlay {
+  type: 'COUNTDOWN';
+  payload: {
+    title: string;
+    targetDate: string;
+  };
+}
+
+export type StoryOverlay = TextOverlay | DrawingOverlay | MentionOverlay | LocationOverlay | RecipeOverlay | SessionOverlay | ProfileOverlay | IngredientOverlay | GifOverlay | PollOverlay | SliderOverlay | QuestionOverlay | PostOverlay | LinkOverlay | ImageOverlay | HashtagOverlay | CountdownOverlay;
 
 export function validateOverlay(overlay: any): boolean {
   if (!overlay || typeof overlay !== 'object') return false;
@@ -179,7 +202,12 @@ export function validateOverlay(overlay: any): boolean {
     case 'INGREDIENT':
       return typeof overlay.payload?.ingredientId === 'string' && typeof overlay.payload?.name === 'string';
     case 'GIF':
-      return typeof overlay.payload?.url === 'string' && overlay.payload.url.startsWith('https://');
+    case 'IMAGE':
+      return typeof overlay.payload?.url === 'string';
+    case 'HASHTAG':
+      return typeof overlay.payload?.tag === 'string' && overlay.payload.tag.length <= 100;
+    case 'COUNTDOWN':
+      return typeof overlay.payload?.title === 'string' && typeof overlay.payload?.targetDate === 'string';
     case 'LINK':
       return typeof overlay.payload?.url === 'string' && (overlay.payload.url.startsWith('https://') || overlay.payload.url.startsWith('http://'));
     case 'POLL':

@@ -23,7 +23,8 @@ interface SliderResultData {
   average: number;
   total?: number;
   count?: number;
-  userValue: number | null;
+  userValue?: number | null;
+  myValue?: number | null;
 }
 
 export interface RenderContext {
@@ -199,23 +200,35 @@ export function SharedStoryRenderer({
 
   React.useEffect(() => {
     if (mode === 'VIEWER' && storyId) {
-      const fetchPolls = async () => {
+      const fetchPollsAndSliders = async () => {
         try {
           const results: Record<string, PollResultData> = {};
+          const sResults: Record<string, SliderResultData> = {};
+          const sValues: Record<string, number> = {};
           for (const ov of overlays || []) {
             if (ov.type === 'POLL') {
               const pollId = ov.payload.pollId || ov.id;
               results[pollId] = await getPollResults(pollId, storyId);
+            } else if (ov.type === 'SLIDER') {
+              const res = await getSliderResults(ov.id);
+              sResults[ov.id] = res;
+              if (res.myValue !== null && res.myValue !== undefined) {
+                sValues[ov.id] = res.myValue;
+              }
             }
           }
           setPollResults(results);
+          setSliderResults(sResults);
+          if (Object.keys(sValues).length > 0) {
+            setSliderValues(prev => ({ ...prev, ...sValues }));
+          }
         } catch (e) {
-          console.error('Error fetching poll results', e);
+          console.error('Error fetching poll/slider results', e);
         }
       };
-      fetchPolls();
+      fetchPollsAndSliders();
     }
-  }, [storyId, mode]);
+  }, [storyId, mode, overlays]);
 
   
   // Pause/play effect
@@ -893,7 +906,7 @@ export function renderOverlayContent(overlay: StoryOverlay, mode: string, ctx?: 
       };
       return (
         <div className="bg-background/95 backdrop-blur-md rounded-2xl p-4 shadow-2xl border border-border/50 min-w-[200px] flex flex-col items-center gap-2 pointer-events-auto">
-          <div className="font-bold text-foreground text-center leading-tight">{p.question}</div>
+          {p.question ? <div className="font-bold text-foreground text-center leading-tight">{p.question}</div> : null}
           <div className="w-full flex items-center gap-2 cursor-pointer mt-1">
             <div className="text-3xl filter drop-shadow-md">{p.emoji}</div>
             <input 
@@ -923,8 +936,110 @@ export function renderOverlayContent(overlay: StoryOverlay, mode: string, ctx?: 
       const p = overlay.payload;
       return <img src={p.url} className="w-32 h-auto max-w-[200px] object-contain drop-shadow-md pointer-events-none select-none" alt="sticker" />;
     }
+    case 'IMAGE': {
+      const p = overlay.payload;
+      return (
+        <div className="relative rounded-2xl overflow-hidden shadow-2xl border border-white/20 select-none pointer-events-none w-44 sm:w-48">
+          <img 
+            src={p.url} 
+            alt="Sticker foto" 
+            className="w-full h-auto object-cover block"
+            style={{ aspectRatio: p.aspectRatio ? `${p.aspectRatio}` : undefined }}
+            loading="eager"
+          />
+        </div>
+      );
+    }
+    case 'HASHTAG': {
+      const p = overlay.payload;
+      const rawTag = p.tag || '';
+      const cleanTag = rawTag.replace(/^#+/, '').trim();
+      return (
+        <div 
+          className="bg-card text-foreground px-4 py-2 rounded-2xl font-bold flex items-center gap-1.5 shadow-2xl border border-border cursor-pointer text-sm select-none pointer-events-auto"
+          onClick={(e) => {
+            e.stopPropagation();
+            if (mode === 'VIEWER' && cleanTag) {
+              navigate(`/discover?q=${encodeURIComponent('#' + cleanTag)}&hashtag=${encodeURIComponent(cleanTag)}`);
+            }
+          }}
+        >
+          <span className="text-primary font-black text-base">#</span>
+          <span>{cleanTag}</span>
+        </div>
+      );
+    }
+    case 'COUNTDOWN': {
+      const p = overlay.payload;
+      return <CountdownOverlayView title={p.title || 'Cuenta atrás'} targetDate={p.targetDate} />;
+    }
     default:
       return null;
   }
+}
+
+function CountdownOverlayView({ title, targetDate }: { title: string; targetDate: string }) {
+  const [timeLeft, setTimeLeft] = React.useState(() => {
+    return new Date(targetDate).getTime() - Date.now();
+  });
+
+  React.useEffect(() => {
+    const calculate = () => {
+      setTimeLeft(new Date(targetDate).getTime() - Date.now());
+    };
+    calculate();
+    const interval = setInterval(calculate, 1000);
+    return () => clearInterval(interval);
+  }, [targetDate]);
+
+  const isFinished = timeLeft <= 0;
+
+  if (isFinished) {
+    return (
+      <div className="bg-card text-foreground rounded-2xl p-3.5 border border-border shadow-2xl min-w-[200px] max-w-[250px] flex flex-col items-center gap-2 select-none pointer-events-none">
+        <div className="font-bold text-sm text-foreground text-center leading-tight truncate max-w-[190px]">
+          {title}
+        </div>
+        <div className="px-3.5 py-1 bg-primary/10 text-primary font-bold text-xs rounded-xl border border-primary/20 flex items-center gap-1.5">
+          <span>🏁</span>
+          <span>Finalizado</span>
+        </div>
+      </div>
+    );
+  }
+
+  const days = Math.floor(timeLeft / (1000 * 60 * 60 * 24));
+  const hours = Math.floor((timeLeft % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+  const minutes = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
+
+  return (
+    <div className="bg-card text-foreground rounded-2xl p-3.5 border border-border shadow-2xl min-w-[210px] max-w-[260px] flex flex-col items-center gap-2 select-none pointer-events-none">
+      <div className="font-bold text-sm text-foreground text-center leading-tight truncate max-w-[200px]">
+        {title}
+      </div>
+      <div className="flex items-center gap-1.5 sm:gap-2">
+        <div className="flex flex-col items-center justify-center bg-muted/60 rounded-xl px-2.5 py-1 min-w-[42px]">
+          <span className="font-mono font-black text-base leading-tight text-primary">
+            {String(days).padStart(2, '0')}
+          </span>
+          <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-tight">Días</span>
+        </div>
+        <span className="font-black text-muted-foreground/60 text-sm">:</span>
+        <div className="flex flex-col items-center justify-center bg-muted/60 rounded-xl px-2.5 py-1 min-w-[42px]">
+          <span className="font-mono font-black text-base leading-tight text-primary">
+            {String(hours).padStart(2, '0')}
+          </span>
+          <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-tight">Horas</span>
+        </div>
+        <span className="font-black text-muted-foreground/60 text-sm">:</span>
+        <div className="flex flex-col items-center justify-center bg-muted/60 rounded-xl px-2.5 py-1 min-w-[42px]">
+          <span className="font-mono font-black text-base leading-tight text-primary">
+            {String(minutes).padStart(2, '0')}
+          </span>
+          <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-tight">Min</span>
+        </div>
+      </div>
+    </div>
+  );
 }
 
