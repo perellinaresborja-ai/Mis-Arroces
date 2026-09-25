@@ -129,13 +129,28 @@ export function MessageInput({ conversationId, receiverId, disabled, replyingTo,
         if (!typeOverride) {
           messageType = filePayload.type.startsWith('video/') ? 'VIDEO' : 'IMAGE'
         }
-        const ext = filePayload.name.split('.').pop()
+
+        let finalFile = filePayload
+        let cleanMime = mimeOverride ? mimeOverride.split(';')[0] : filePayload.type.split(';')[0]
+
+        // Optimizar imágenes de mensajes a WebP 80% (máx 2048px)
+        if (messageType === 'IMAGE') {
+          try {
+            const { prepareImage } = await import("@/services/media/client")
+            const optimized = await prepareImage(filePayload, 'messages')
+            finalFile = optimized instanceof File
+              ? optimized
+              : new File([optimized], filePayload.name.replace(/\.[^/.]+$/, "") + ".webp", { type: 'image/webp' })
+            cleanMime = finalFile.type || 'image/webp'
+          } catch (imgErr) {
+            console.warn("Message image optimization fallback:", imgErr)
+          }
+        }
+
+        const ext = finalFile.type === 'image/webp' ? 'webp' : (finalFile.name.split('.').pop() || 'jpg')
         const path = `${conversationId}/${crypto.randomUUID()}.${ext}`
         
-        // Use a clean MIME type for the Content-Type header
-        const cleanMime = mimeOverride ? mimeOverride.split(';')[0] : filePayload.type.split(';')[0];
-        
-        const { error: uploadError } = await supabase.storage.from('message_media').upload(path, filePayload, {
+        const { error: uploadError } = await supabase.storage.from('message_media').upload(path, finalFile, {
           cacheControl: '3600',
           upsert: false,
           contentType: cleanMime

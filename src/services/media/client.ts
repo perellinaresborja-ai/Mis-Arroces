@@ -25,20 +25,21 @@ function getMaxLongEdge(context: string): number {
   switch (context) {
     case 'avatars': return 512
     case 'stories': return 1920 // standard vertical 1080x1920
+    case 'messages': return 2048
     default: return 2048 // recipes, posts, etc
   }
 }
 
-// Super simple client-side image resizer using Canvas
-export async function prepareImage(file: File, context: string): Promise<File | Blob> {
-  // If it's not an image we can process natively (like HEIC or videos), just return it
-  if (file.type === 'image/heic' || file.type === 'image/heif' || file.type.startsWith('video/')) {
+// Client-side image optimizer using Canvas to produce WebP
+export async function prepareImage(file: File, context: string): Promise<File> {
+  // If it's a video, do not process as image
+  if (file.type.startsWith('video/')) {
     return file
   }
 
   const maxLongEdge = getMaxLongEdge(context)
 
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve) => {
     const img = new Image()
     const url = URL.createObjectURL(file)
     
@@ -46,6 +47,10 @@ export async function prepareImage(file: File, context: string): Promise<File | 
       URL.revokeObjectURL(url)
       
       let { width, height } = img
+      if (!width || !height) {
+        return resolve(file)
+      }
+
       const isLandscape = width > height
       
       if (isLandscape && width > maxLongEdge) {
@@ -69,7 +74,7 @@ export async function prepareImage(file: File, context: string): Promise<File | 
       canvas.toBlob(
         (blob) => {
           if (blob) {
-            // Keep original filename but change extension to webp
+            // Keep original filename base but change extension to .webp
             const newName = file.name.replace(/\.[^/.]+$/, "") + ".webp"
             resolve(new File([blob], newName, { type: 'image/webp' }))
           } else {
@@ -81,7 +86,13 @@ export async function prepareImage(file: File, context: string): Promise<File | 
       )
     }
 
-    img.onerror = () => reject(new Error("Failed to load image for processing"))
+    img.onerror = () => {
+      URL.revokeObjectURL(url)
+      console.warn("prepareImage: no se pudo decodificar la imagen nativamente, fallback controlado a original:", file.name, file.type)
+      // Fallback seguro: no romper la subida del usuario si el navegador no tiene el decodificador
+      resolve(file)
+    }
+
     img.src = url
   })
 }
@@ -104,7 +115,7 @@ export async function uploadMedia(file: File, context: 'recipes' | 'posts' | 'se
   const { data: { session } } = await supabase.auth.getSession()
   if (!session) throw new Error("No session")
   
-  const ext = processedFile.type.split('/')[1] || 'jpg'
+  const ext = processedFile.type === 'image/webp' ? 'webp' : (processedFile.name.split('.').pop() || processedFile.type.split('/')[1] || 'jpg')
   // Strategy: {user_id}/{context}/{contextId}/{uuid}.{ext}
   const filePath = `${session.user.id}/${context}/${contextId}/${uuidv4()}.${ext}`
 
@@ -114,7 +125,8 @@ export async function uploadMedia(file: File, context: 'recipes' | 'posts' | 'se
     .from(bucket)
     .upload(filePath, processedFile, {
       cacheControl: '604800',
-      upsert: false
+      upsert: false,
+      contentType: processedFile.type
     })
 
   if (uploadError) {

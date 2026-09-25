@@ -382,11 +382,27 @@ export function StoryCreator({
             throw new Error(`El vídeo pesa demasiado (${(globalStoryDraftFile.size / 1024 / 1024).toFixed(1)}MB) y el dispositivo no pudo optimizarlo. Intenta con un vídeo más corto.`);
           }
         }
+      } else {
+        try {
+          setIsOptimizing(true);
+          const { prepareImage } = await import("@/services/media/client");
+          const optimizedImg = await prepareImage(globalStoryDraftFile, 'stories');
+          fileToUpload = optimizedImg instanceof File 
+            ? optimizedImg 
+            : new File([optimizedImg], globalStoryDraftFile.name.replace(/\.[^/.]+$/, "") + ".webp", { type: 'image/webp' });
+          setIsOptimizing(false);
+        } catch (imgErr) {
+          setIsOptimizing(false);
+          console.warn("No se pudo optimizar la imagen de la historia, usando fallback:", imgErr);
+        }
       }
 
-      const ext = fileToUpload.name.split('.').pop() || 'jpg';
+      const ext = fileToUpload.type === 'image/webp' ? 'webp' : (fileToUpload.name.split('.').pop() || 'jpg');
       const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${ext}`;
-      const { data, error } = await supabase.storage.from('recipe_media').upload(`stories/${fileName}`, fileToUpload);
+      const { data, error } = await supabase.storage.from('recipe_media').upload(`stories/${fileName}`, fileToUpload, {
+        contentType: fileToUpload.type,
+        cacheControl: '604800'
+      });
       if (error) {
         console.error("Storage upload error:", error);
         throw new Error(`Error al subir el archivo multimedia: ${error.message}`);
