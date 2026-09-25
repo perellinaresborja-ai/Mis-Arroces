@@ -327,10 +327,11 @@ export function StoriesViewer({ groupedStories: _groupedStories, initialGroupInd
 
   const fallbackRecipeMediaObj = currentStory.recipe?.recipe_media?.[0]?.media;
   const fallbackSessionMediaObj = currentStory.session?.session_media?.[0]?.media;
+  const postOverlay = currentStory.overlays?.find((o: any) => o.type === 'POST');
   const rawStoryMedia = currentStory.story_media?.[0];
   const mediaObj = rawStoryMedia?.media || fallbackRecipeMediaObj || fallbackSessionMediaObj;
-  const mediaPath = mediaObj?.storage_path || rawStoryMedia?.storage_path;
-  const isVideo = mediaPath?.match(/\.(mp4|webm|ogg)$/i);
+  const mediaPath = mediaObj?.storage_path || rawStoryMedia?.storage_path || postOverlay?.payload?.coverUrl;
+  const isVideo = mediaPath?.match(/\.(mp4|webm|ogg)(\?.*)?$/i) || postOverlay?.payload?.mediaType === 'VIDEO' || (mediaPath && (/\.(mp4|webm|mov)(\?.*)?$/i.test(mediaPath) || mediaPath.includes('video/')));
   const fullUrl = mediaObj?.signed_url || (mediaPath ? (mediaPath.startsWith('http') ? mediaPath : `${"https://zvesoygqssyyojqyswwm.supabase.co"}/storage/v1/object/public/recipe_media/${mediaPath}`) : "");
 
   const handlePointerDown = () => setIsPaused(true)

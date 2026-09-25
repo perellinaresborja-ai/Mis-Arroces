@@ -213,7 +213,7 @@ export function SharedStoryRenderer({
     position: 'absolute',
     width: '100%',
     height: '100%',
-    objectFit: 'contain',
+    objectFit: 'cover',
     transform: transform ? ('translate(' + (transform.translateX||0) + 'px, ' + (transform.translateY||0) + 'px) scale(' + (transform.scale||1) + ') rotate(' + (transform.rotation||0) + 'deg)') : 'none',
     transition: 'none',
   }
@@ -241,10 +241,13 @@ export function SharedStoryRenderer({
             id={mode === 'EDITOR' ? 'story-media-layer' : undefined}
             ref={videoRef}
             src={mediaUrl}
+            poster={mediaUrl ? (mediaUrl.includes('#t=') ? mediaUrl : `${mediaUrl}#t=0.001`) : undefined}
             style={actualMediaStyle}
             onTimeUpdate={onTimeUpdate}
             onEnded={onEnded}
             playsInline
+            autoPlay
+            loop={mode === 'EDITOR'}
             muted={mode === 'EDITOR'}
           />
         ) : (
@@ -328,8 +331,7 @@ function SharedPostCard({
   onNavigate?: (path: string) => void;
   onPauseRequest?: () => void;
 }) {
-  const [hasError, setHasError] = React.useState(false);
-  const style = payload?.displayStyle || 'card';
+  const style = payload?.displayStyle || 'pill';
 
   const handleClick = (e: React.MouseEvent) => {
     if (mode === 'VIEWER') {
@@ -346,91 +348,41 @@ function SharedPostCard({
 
   const cleanAuthor = payload?.authorName ? payload.authorName.replace(/^@+/, '') : 'usuario';
 
-  if (style === 'compact') {
+  if (style === 'white') {
     return (
       <div 
-        className="bg-card border border-border text-foreground px-4 py-2 rounded-2xl font-bold flex items-center gap-2 shadow-2xl cursor-pointer text-sm pointer-events-auto transition-transform hover:scale-105 select-none" 
         onClick={handleClick}
+        className="bg-white/95 hover:bg-white text-zinc-900 border border-black/10 px-3.5 py-1.5 rounded-full font-medium flex items-center gap-2 shadow-2xl cursor-pointer pointer-events-auto transition-transform hover:scale-105 active:scale-95 select-none text-xs" 
       >
-        <span>@{cleanAuthor}</span> 
-        <span className="text-primary text-xs ml-1 border-l pl-2 border-border font-semibold">Ver</span>
+        <span className="font-bold text-black">@{cleanAuthor}</span>
+        <span className="text-zinc-300">|</span>
+        <span className="font-semibold text-primary">Ver publicación</span>
       </div>
     );
   }
 
-  if (style === 'text') {
+  if (style === 'minimal') {
     return (
       <div 
         onClick={handleClick} 
-        className="text-white drop-shadow-md px-3 py-1.5 flex flex-col items-center cursor-pointer pointer-events-auto hover:opacity-80 transition-opacity select-none"
+        className="bg-black/50 hover:bg-black/70 backdrop-blur-md border border-white/20 text-white px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5 shadow-xl cursor-pointer pointer-events-auto transition-transform hover:scale-105 active:scale-95 select-none"
       >
-        <span className="font-bold text-lg text-center max-w-[200px] truncate">{payload?.text || `Publicación de @${cleanAuthor}`}</span>
-        <span className="text-xs bg-black/50 border border-white/20 px-3 py-1 rounded-full mt-1 font-medium">Ver publicación →</span>
+        <span>@{cleanAuthor}</span>
+        <span className="text-white/40">•</span>
+        <span className="text-primary text-[11px] font-semibold">Ver publicación</span>
       </div>
     );
   }
 
-  const isVideo = payload?.mediaType === 'VIDEO' || Boolean(
-    payload?.coverUrl && (/\.(mp4|webm|mov)(\?.*)?$/i.test(payload.coverUrl) || payload.coverUrl.includes('video/'))
-  );
-
-  const showMedia = Boolean(payload?.coverUrl && !hasError);
-
+  // Default 'pill' (glass dark style - standard Instagram/TikTok post sticker)
   return (
     <div 
       onClick={handleClick} 
-      className="bg-card rounded-2xl overflow-hidden shadow-2xl border border-border flex flex-col w-60 cursor-pointer pointer-events-auto transition-transform hover:scale-105 select-none"
+      className="bg-black/65 hover:bg-black/85 backdrop-blur-md border border-white/20 text-white px-3.5 py-1.5 rounded-full font-medium flex items-center gap-2 shadow-2xl cursor-pointer pointer-events-auto transition-transform hover:scale-105 active:scale-95 select-none text-xs"
     >
-      {showMedia && isVideo && (
-        <div className="relative w-full aspect-square bg-black overflow-hidden flex items-center justify-center">
-          <video 
-            src={`${payload.coverUrl}#t=0.001`} 
-            preload="metadata"
-            muted
-            playsInline
-            autoPlay
-            loop
-            draggable={false}
-            onError={() => setHasError(true)}
-            className="w-full h-full object-cover pointer-events-none select-none" 
-          />
-        </div>
-      )}
-
-      {showMedia && !isVideo && (
-        <div className="relative w-full aspect-square bg-muted overflow-hidden">
-          <img 
-            src={payload.coverUrl} 
-            alt="" 
-            draggable={false}
-            onError={() => setHasError(true)}
-            className="w-full h-full object-cover pointer-events-none select-none" 
-          />
-        </div>
-      )}
-
-      {!showMedia && (
-        <div className="p-4 bg-muted/60 relative flex-1 flex flex-col items-center justify-center text-center min-h-[120px]">
-          <Utensils className="w-6 h-6 text-primary/40 mb-2 shrink-0" />
-          {payload?.text ? (
-            <p className="text-xs italic text-muted-foreground line-clamp-3 leading-relaxed">
-              "{payload.text}"
-            </p>
-          ) : (
-            <span className="text-xs text-muted-foreground font-medium">Publicación de @{cleanAuthor}</span>
-          )}
-        </div>
-      )}
-
-      <div className="p-3 flex flex-col gap-1 text-center bg-card border-t border-border">
-        <span className="font-bold text-foreground text-sm truncate">@{cleanAuthor}</span>
-        {payload?.text && showMedia && (
-          <p className="text-xs text-muted-foreground line-clamp-2 text-left mt-0.5 leading-snug">
-            {payload.text}
-          </p>
-        )}
-        <span className="text-xs font-semibold text-primary mt-1">Ver publicación</span>
-      </div>
+      <span className="font-bold text-white tracking-tight">@{cleanAuthor}</span>
+      <span className="text-white/30">|</span>
+      <span className="font-semibold text-white/95">Ver publicación</span>
     </div>
   );
 }

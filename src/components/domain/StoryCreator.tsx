@@ -10,7 +10,7 @@ import { globalStoryDraftUrl, globalStoryDraftType, globalStoryDraftFile, global
 import { SharedStoryRenderer, renderOverlayContent } from './SharedStoryRenderer';
 import { DraggableOverlay } from './stories/DraggableOverlay';
 import { MentionPicker, RecipePicker, IngredientPicker, LocationPicker, StickerPicker, LinkPicker, QuestionPicker, PollPicker, cleanIngredientName } from './stories/StickerPickers';
-import { Camera, User, ChefHat, MapPin, AlignLeft, AlignCenter, AlignRight, Apple, Image as ImageIcon, Trash2, Paintbrush, Sparkles, Link as LinkIcon, HelpCircle, BarChart2, Music, Volume2, Video, X } from 'lucide-react';
+import { Camera, User, ChefHat, MapPin, AlignLeft, AlignCenter, AlignRight, Apple, Image as ImageIcon, Trash2, Paintbrush, Sparkles, Link as LinkIcon, HelpCircle, BarChart2, Music, Volume2, Video, X, Undo2, Globe, Users } from 'lucide-react';
 import { StoryMusicSelector } from './StoryMusicSelector';
 import { useModalHistory } from '@/hooks/useModalHistory';
 
@@ -203,21 +203,21 @@ export function StoryCreator({
       let newOverlay: any = null;
       if (initialRecipe) {
         extractedCoverUrl = initialRecipe.coverUrl;
-        newOverlay = { id: "recipe_"+Date.now(), type: "RECIPE", x: 0.5, y: 0.8, scale: 1, rotation: 0, zIndex: 1, payload: { title: initialRecipe.name, recipeId: initialRecipe.id, displayStyle: "card" } };
+        newOverlay = { id: "recipe_"+Date.now(), type: "RECIPE", x: 0.5, y: 0.8, scale: 1, rotation: 0, zIndex: 1, payload: { title: initialRecipe.name, recipeId: initialRecipe.id, displayStyle: "compact" } };
       } else if (initialSession) {
         extractedCoverUrl = initialSession.coverUrl;
-        newOverlay = { id: "session_"+Date.now(), type: "SESSION", x: 0.5, y: 0.8, scale: 1, rotation: 0, zIndex: 1, payload: { sessionId: initialSession.id, authorName: initialSession.authorName, title: initialSession.title, displayStyle: "card" } };
+        newOverlay = { id: "session_"+Date.now(), type: "SESSION", x: 0.5, y: 0.8, scale: 1, rotation: 0, zIndex: 1, payload: { sessionId: initialSession.id, authorName: initialSession.authorName, title: initialSession.title, displayStyle: "compact" } };
       } else if (initialPost) {
-        // Do not set extractedCoverUrl so the post image doesn't stretch as background
         const isVid = initialPost.mediaType === 'VIDEO' || Boolean(
           initialPost.coverUrl && (/\.(mp4|webm|mov)(\?.*)?$/i.test(initialPost.coverUrl) || initialPost.coverUrl.includes('video/'))
         );
+        extractedCoverUrl = initialPost.coverUrl;
         newOverlay = { 
           id: "post_"+Date.now(), 
           type: "POST", 
           x: 0.5, 
-          y: 0.5, 
-          scale: 1.2, 
+          y: 0.82, 
+          scale: 1, 
           rotation: 0, 
           zIndex: 1, 
           payload: { 
@@ -226,14 +226,15 @@ export function StoryCreator({
             text: initialPost.text, 
             coverUrl: initialPost.coverUrl, 
             mediaType: isVid ? 'VIDEO' : 'IMAGE',
-            displayStyle: "card" 
+            displayStyle: "pill" 
           } 
         };
       }
       if (newOverlay) {
         if (extractedCoverUrl) {
            setDraftMediaUrl(extractedCoverUrl);
-           setDraftMediaType("IMAGE");
+           const isVid = initialPost ? (initialPost.mediaType === 'VIDEO' || Boolean(initialPost.coverUrl && (/\.(mp4|webm|mov)(\?.*)?$/i.test(initialPost.coverUrl) || initialPost.coverUrl.includes('video/')))) : false;
+           setDraftMediaType(isVid ? "VIDEO" : "IMAGE");
         }
         setOverlays([newOverlay]);
         setMode("EDIT");
@@ -399,33 +400,33 @@ export function StoryCreator({
   }
 
   return (
-    <div className="fixed inset-0 bg-black z-50 flex flex-col md:flex-row touch-none">
+    <div className="fixed inset-0 bg-black z-50 flex items-center justify-center overflow-hidden touch-none select-none">
       
       {/* Discard Dialog Modal */}
       {showDiscardDialog && (
-        <div className="absolute inset-0 z-[200] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm pointer-events-auto">
+        <div className="absolute inset-0 z-[400] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm pointer-events-auto">
           <div className="bg-card border border-border w-full max-w-xs rounded-3xl p-6 shadow-2xl flex flex-col gap-5 text-center animate-in fade-in zoom-in-95 duration-200">
             <div>
-              <h3 className="text-xl font-bold font-serif text-charcoal mb-1.5">¿Descartar historia?</h3>
+              <h3 className="text-xl font-bold font-serif text-foreground mb-1.5">¿Descartar historia?</h3>
               <p className="text-muted-foreground text-sm">Si sales ahora, perderás todos los cambios que hayas hecho.</p>
             </div>
             <div className="flex flex-col gap-2.5 mt-2">
-                <button 
-                  onClick={() => {
-                    clearGlobalStoryDraft();
-                    setShowDiscardDialog(false);
-                    setIsExiting(true);
-                    React.startTransition(() => {
-                      router.replace('/');
-                    });
-                  }}
-                  className="w-full py-3 bg-destructive hover:bg-destructive/90 text-destructive-foreground font-bold rounded-2xl transition-colors"
-                >
+              <button 
+                onClick={() => {
+                  clearGlobalStoryDraft();
+                  setShowDiscardDialog(false);
+                  setIsExiting(true);
+                  React.startTransition(() => {
+                    router.replace('/');
+                  });
+                }}
+                className="w-full py-3 bg-destructive hover:bg-destructive/90 text-destructive-foreground font-bold rounded-2xl transition-colors cursor-pointer"
+              >
                 Descartar cambios
               </button>
               <button 
                 onClick={() => safeCloseDiscard()}
-                className="w-full py-3 bg-muted hover:bg-muted/80 text-foreground font-bold rounded-2xl transition-colors"
+                className="w-full py-3 bg-muted hover:bg-muted/80 text-foreground font-bold rounded-2xl transition-colors cursor-pointer"
               >
                 Seguir editando
               </button>
@@ -434,329 +435,448 @@ export function StoryCreator({
         </div>
       )}
 
-      {/* Viewer / Canvas Area */}
-      <div className="flex-1 relative flex items-center justify-center overflow-hidden" onClick={() => setSelectedOverlayId(null)}>
-        <div ref={containerRef} {...bindBackgroundGestures()} className="relative w-full max-w-[400px] touch-none h-full max-h-[85vh] md:max-h-full bg-zinc-900 border border-white/10 md:rounded-xl overflow-hidden" style={{ aspectRatio: '9/16' }}>
-          
-          
-
-          {/* Close Button Inside Card */}
-          {mode === 'EDIT' && (
+      {/* Main 9:16 Vertical Story Canvas */}
+      <div 
+        ref={containerRef} 
+        {...bindBackgroundGestures()} 
+        className="relative w-full h-[100dvh] max-w-[calc(100dvh*9/16)] md:h-[92vh] md:max-w-[calc(92vh*9/16)] bg-zinc-950 md:rounded-3xl overflow-hidden shadow-2xl flex flex-col justify-between"
+        style={{ aspectRatio: '9/16' }}
+        onClick={() => setSelectedOverlayId(null)}
+      >
+        {/* Top Floating Controls Bar (Overlaid on canvas) */}
+        {mode === 'EDIT' && (
+          <div className="absolute top-0 inset-x-0 z-[120] flex items-center justify-between p-3.5 pt-[max(env(safe-area-inset-top),0.85rem)] bg-gradient-to-b from-black/70 via-black/30 to-transparent pointer-events-none">
+            {/* Close / Discard Button */}
             <button 
               onClick={(e) => {
                 e.stopPropagation();
-                setShowDiscardDialog(true);
+                if (draftMediaUrl || overlays.length > 0) {
+                  setShowDiscardDialog(true);
+                } else {
+                  router.back();
+                }
               }}
-              className="absolute top-4 right-4 z-[100] w-8 h-8 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center text-white hover:bg-black/60 transition-colors pointer-events-auto"
+              className="w-10 h-10 bg-black/45 hover:bg-black/65 backdrop-blur-md rounded-full flex items-center justify-center text-white border border-white/15 transition-transform active:scale-90 pointer-events-auto shadow-sm cursor-pointer"
+              aria-label="Cerrar editor"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+              <X size={20} />
             </button>
-          )}
-          
-          <SharedStoryRenderer 
-            mediaUrl={draftMediaUrl} 
-            isVideo={draftMediaType === 'VIDEO'}
-            videoRef={videoRef}
-            background={background}
-            overlays={[]} 
-            musicConfig={musicConfig}
-            mode="EDITOR"
-            isPaused={mode !== 'EDIT'}
-          />
-          {!draftMediaUrl && overlays.length === 0 && mode === 'EDIT' && (
-            <div className="absolute inset-0 z-50 flex items-center justify-center pointer-events-none">
-              <label className="bg-primary hover:bg-primary/90 text-primary-foreground w-24 h-24 rounded-full flex flex-col items-center justify-center cursor-pointer pointer-events-auto transition-transform hover:scale-105 shadow-2xl">
+
+            {/* Overlaid Action Tools */}
+            <div className="flex items-center gap-2 pointer-events-auto">
+              {/* Media Change / Upload button */}
+              <label 
+                className="w-10 h-10 bg-black/45 hover:bg-black/65 backdrop-blur-md rounded-full flex items-center justify-center text-white border border-white/15 transition-transform active:scale-90 cursor-pointer shadow-sm" 
+                title="Cambiar foto o vídeo"
+              >
                 <input type="file" className="sr-only" accept="image/*,video/*" onChange={handleFileChange} />
-                <Camera size={40} />
-                <span className="text-sm font-bold mt-1">Subir</span>
+                <Camera size={18} />
               </label>
+
+              {/* Texto */}
+              <button 
+                onClick={() => setMode('TEXT')} 
+                className="w-10 h-10 bg-black/45 hover:bg-black/65 backdrop-blur-md rounded-full flex items-center justify-center text-white border border-white/15 transition-transform active:scale-90 shadow-sm cursor-pointer"
+                title="Añadir texto"
+              >
+                <span className="font-serif font-black text-sm">Aa</span>
+              </button>
+
+              {/* Stickers / Widgets */}
+              <button 
+                onClick={() => { setActiveStickerType(null); setMode('STICKER'); }} 
+                className="w-10 h-10 bg-black/45 hover:bg-black/65 backdrop-blur-md rounded-full flex items-center justify-center text-white border border-white/15 transition-transform active:scale-90 shadow-sm cursor-pointer"
+                title="Stickers y widgets"
+              >
+                <Sparkles size={18} />
+              </button>
+
+              {/* Música */}
+              <button 
+                onClick={() => setMode('MUSIC')} 
+                className="w-10 h-10 bg-black/45 hover:bg-black/65 backdrop-blur-md rounded-full flex items-center justify-center text-white border border-white/15 transition-transform active:scale-90 relative shadow-sm cursor-pointer"
+                title="Música"
+              >
+                <Music size={18} className={musicConfig ? "text-primary" : "text-white"} />
+                {musicConfig && <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-primary rounded-full border-2 border-zinc-950" />}
+              </button>
+
+              {/* Dibujar */}
+              <button 
+                onClick={() => setMode('DRAW')} 
+                className="w-10 h-10 bg-black/45 hover:bg-black/65 backdrop-blur-md rounded-full flex items-center justify-center text-white border border-white/15 transition-transform active:scale-90 shadow-sm cursor-pointer"
+                title="Dibujar"
+              >
+                <Paintbrush size={18} />
+              </button>
             </div>
-          )}
+          </div>
+        )}
 
-
-          <canvas 
-            ref={canvasRef}
-            width={400} height={711}
-            className="absolute inset-0 z-40 touch-none"
-            style={{ pointerEvents: mode === 'DRAW' ? 'auto' : 'none' }}
-            onPointerDown={handlePointerDown}
-            onPointerMove={handlePointerMove}
-            onPointerUp={handlePointerUp}
-          />
-
-          {overlays.map((o, i) => (
-            <DraggableOverlay
-                key={o.id}
-                overlay={o}
-                isSelected={selectedOverlayId === o.id}
-                onSelect={() => setSelectedOverlayId(o.id)}
-                onUpdate={(updated) => setOverlays(overlays.map(x => x.id === o.id ? updated : x))}
-                onDelete={() => { saveHistory(); setOverlays(overlays.filter(x => x.id !== o.id)); }}
-                onDragStateChange={setIsDraggingOverlay}
-                containerRef={containerRef}
-                onTap={() => {
-                  if (['RECIPE', 'SESSION', 'POST'].includes(o.type)) {
-                    saveHistory();
-                    const currentStyle = (o.payload as any).displayStyle || 'card';
-                    const nextStyle = currentStyle === 'card' ? 'compact' : (currentStyle === 'compact' ? 'text' : 'card');
-                    const updated = { ...o, payload: { ...(o.payload as any), displayStyle: nextStyle } } as any;
-                    setOverlays(overlays.map(x => x.id === o.id ? updated : x) as any);
+        {/* Top Controls for DRAW Mode */}
+        {mode === 'DRAW' && (
+          <div className="absolute top-0 inset-x-0 z-[120] flex items-center justify-between p-3 pt-[max(env(safe-area-inset-top),0.75rem)] bg-gradient-to-b from-black/80 via-black/40 to-transparent pointer-events-auto">
+            {/* Left: Clear & Undo */}
+            <div className="flex items-center gap-1.5">
+              <button 
+                onClick={() => {
+                  const ctx = canvasRef.current?.getContext('2d');
+                  if (ctx) ctx.clearRect(0,0,400,711);
+                  setCanvasUndoStack([]);
+                }}
+                className="p-2 bg-black/50 hover:bg-black/70 backdrop-blur-md text-white rounded-full border border-white/20 transition-transform active:scale-95 text-xs font-semibold flex items-center gap-1 cursor-pointer"
+                title="Borrar todo"
+              >
+                <Trash2 size={16} />
+              </button>
+              <button 
+                onClick={() => {
+                  if (canvasUndoStack.length > 0) {
+                    const ctx = canvasRef.current?.getContext('2d');
+                    if (ctx) {
+                      const newStack = [...canvasUndoStack];
+                      newStack.pop();
+                      if (newStack.length > 0) {
+                        ctx.putImageData(newStack[newStack.length - 1], 0, 0);
+                      } else {
+                        ctx.clearRect(0,0,400,711);
+                      }
+                      setCanvasUndoStack(newStack);
+                    }
                   }
                 }}
+                disabled={canvasUndoStack.length === 0}
+                className="p-2 bg-black/50 hover:bg-black/70 backdrop-blur-md text-white rounded-full border border-white/20 transition-transform active:scale-95 text-xs font-semibold disabled:opacity-40 cursor-pointer"
+                title="Deshacer trazo"
               >
-              <div className="pointer-events-none">
-                {renderOverlayContent(o, "PREVIEW")}
-              </div>
-            </DraggableOverlay>
-          ))}
+                <Undo2 size={16} />
+              </button>
+            </div>
 
-          {/* Inline Text Editor Overlay (Modernized) */}
-          {mode === 'TEXT' && (
-            <div className="absolute inset-0 z-[300] flex flex-col bg-black/70 backdrop-blur-md pointer-events-auto touch-none" onClick={addText}>
-              {/* Top Controls */}
-              <div className="flex items-center justify-between p-4" onClick={e=>e.stopPropagation()}>
-                <button onClick={() => setTextAlign(textAlign === 'left' ? 'center' : textAlign === 'center' ? 'right' : 'left')} className="w-10 h-10 flex items-center justify-center bg-white/20 rounded-full text-white">
-                  {textAlign === 'left' ? <AlignLeft size={20} /> : textAlign === 'center' ? <AlignCenter size={20} /> : <AlignRight size={20} />}
-                </button>
-                <button onClick={() => setTextBg(textBg === 'transparent' ? '#00000055' : textBg === '#00000055' ? textColor : 'transparent')} className="w-10 h-10 flex items-center justify-center bg-white/20 rounded-full text-white font-bold text-xl">
-                  A
-                </button>
-                <button onClick={addText} className="px-4 py-2 bg-white text-black font-bold rounded-full">
-                  Listo
-                </button>
-              </div>
-
-              {/* Text Area */}
-              <div className="flex-1 flex items-center justify-center p-4">
-                <textarea 
-                  autoFocus 
-                  value={textVal} 
-                  onChange={e=>setTextVal(e.target.value)}
-                  onClick={e=>e.stopPropagation()}
-                  className="w-full bg-transparent outline-none resize-none leading-tight font-bold whitespace-pre-wrap break-words"
-                  style={{ 
-                    color: textBg === textColor ? (textColor === '#ffffff' ? '#000000' : '#ffffff') : textColor, 
-                    backgroundColor: textBg, 
-                    fontFamily: textFont, 
-                    textAlign: textAlign,
-                    fontSize: '2rem',
-                    padding: textBg !== 'transparent' ? '0.5rem 1rem' : '0',
-                    borderRadius: '0.5rem',
-                    textShadow: textBg === 'transparent' ? '2px 2px 4px rgba(0,0,0,0.8)' : 'none'
+            {/* Center: Color dots */}
+            <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide px-2">
+              {['#FFFFFF', '#000000', '#FF0000', '#FFA500', '#FFFF00', '#00FF00', '#00BFFF', '#8A2BE2'].map(c => (
+                <button
+                  key={c}
+                  onClick={() => setDrawColor(c)}
+                  className="w-6 h-6 rounded-full border-2 transition-transform active:scale-90 shrink-0 cursor-pointer"
+                  style={{
+                    backgroundColor: c,
+                    borderColor: drawColor === c ? 'var(--primary, #E69A21)' : (c === '#000000' ? '#ffffff66' : 'transparent'),
+                    transform: drawColor === c ? 'scale(1.2)' : 'scale(1)'
                   }}
-                  rows={3}
-                  placeholder="Escribe algo..."
                 />
-              </div>
-
-              {/* Bottom Controls */}
-              <div className="mt-auto bg-card border-t md:border border-border rounded-t-3xl md:rounded-3xl p-6 flex flex-col gap-6 shadow-2xl md:mb-6 md:mx-4" onClick={e=>e.stopPropagation()}>
-                
-                {/* Font Selector */}
-                <div className="flex flex-col gap-3">
-                  <span className="text-[10px] font-bold text-muted-foreground uppercase">Fuente</span>
-                  <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-2">
-                    {TEXT_FONTS.map(font => (
-                      <button key={font} onClick={() => setTextFont(font)} className={`px-5 py-2.5 rounded-2xl whitespace-nowrap text-sm font-bold transition-colors ${textFont === font ? 'bg-primary text-primary-foreground' : 'bg-muted text-foreground hover:bg-muted/80'}`} style={{fontFamily: font}}>
-                        {font.split(',')[0]}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                
-                {/* Color Selector */}
-                <div className="flex flex-col gap-3">
-                  <span className="text-[10px] font-bold text-muted-foreground uppercase">Color</span>
-                  <div className="flex gap-3 overflow-x-auto scrollbar-hide pb-2">
-                    {TEXT_COLORS.map(c => (
-                      <button key={c} onClick={() => setTextColor(c)} className={`w-10 h-10 rounded-full shrink-0 border-2 transition-transform hover:scale-110 ${textColor === c ? 'border-primary' : 'border-border'}`} style={{backgroundColor: c}} />
-                    ))}
-                  </div>
-                </div>
-                
-              </div>
+              ))}
             </div>
-          )}
 
-          {/* Trash Zone */}
-          {(isDraggingOverlay || selectedOverlayId) && (
-            <div 
-              id="story-trash" 
-              onClick={(e) => {
-                e.stopPropagation();
-                if (selectedOverlayId) {
-                  setOverlays(overlays.filter(o => o.id !== selectedOverlayId));
-                  setSelectedOverlayId(null);
-                }
-              }}
-              className={`absolute bottom-8 left-1/2 -translate-x-1/2 w-14 h-14 rounded-full flex items-center justify-center z-[200] transition-all cursor-pointer ${isDraggingOverlay ? "bg-red-500/80 scale-90 border-transparent text-white" : "bg-black/50 backdrop-blur border border-white/20 text-white shadow-2xl hover:bg-red-500 hover:scale-110"}`}
-            >
-              <Trash2 className="w-6 h-6" />
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Controls Area */}
-      <div className="w-full md:w-80 bg-card border-t md:border-t-0 md:border-l border-border flex flex-col">
-        
-        {/* Editor Main Tools */}
-        
-      {mode === 'EDIT' && (
-          <div className="p-4 flex flex-col gap-4 h-full">
-              <div className="grid grid-cols-3 grid-rows-2 gap-2">
-                {/* Fila 1 */}
-                <button onClick={() => setMode('TEXT')} className="flex flex-col items-center justify-center gap-1.5 p-3 bg-muted hover:bg-muted/80 rounded-2xl transition-colors text-foreground">
-                  <AlignLeft size={22} className="text-primary"/>
-                  <span className="text-[11px] font-bold">Texto</span>
-                </button>
-                <button onClick={() => { setMode('STICKER'); setActiveStickerType('MENTION'); }} className="flex flex-col items-center justify-center gap-1.5 p-3 bg-muted hover:bg-muted/80 rounded-2xl transition-colors text-foreground">
-                  <User size={22} className="text-primary"/>
-                  <span className="text-[11px] font-bold">Mención</span>
-                </button>
-                <button onClick={() => { setMode('STICKER'); setActiveStickerType('LOCATION'); }} className="flex flex-col items-center justify-center gap-1.5 p-3 bg-muted hover:bg-muted/80 rounded-2xl transition-colors text-foreground">
-                  <MapPin size={22} className="text-primary"/>
-                  <span className="text-[11px] font-bold">Ubicación</span>
-                </button>
-
-                {/* Fila 2 */}
-                <button onClick={() => setMode('MUSIC')} className="flex flex-col items-center justify-center gap-1.5 p-3 bg-muted hover:bg-muted/80 rounded-2xl transition-colors text-foreground relative">
-                  <Music size={22} className={musicConfig ? "text-green-500" : "text-primary"}/>
-                  <span className="text-[11px] font-bold">Música</span>
-                  {musicConfig && <div className="absolute top-2 right-2 w-2 h-2 bg-green-500 rounded-full border border-zinc-900"></div>}
-                </button>
-                <button onClick={() => setMode('DRAW')} className="flex flex-col items-center justify-center gap-1.5 p-3 bg-muted hover:bg-muted/80 rounded-2xl transition-colors text-foreground">
-                  <Paintbrush size={22} className="text-primary"/>
-                  <span className="text-[11px] font-bold">Dibujar</span>
-                </button>
-                <button onClick={() => setMode('STICKER')} className="flex flex-col items-center justify-center gap-1.5 p-3 bg-muted hover:bg-muted/80 rounded-2xl transition-colors text-foreground">
-                  <Sparkles size={22} className="text-primary"/>
-                  <span className="text-[11px] font-bold">Añadir</span>
-                </button>
-              </div>
-            
-            <div className="mt-auto space-y-4">
-              <select value={privacy} onChange={e => setPrivacy(e.target.value as 'PUBLIC'|'FOLLOWERS')} className="w-full bg-muted text-foreground font-medium rounded-2xl p-4 border border-border outline-none focus:border-primary">
-                <option value="PUBLIC">Público</option>
-                <option value="FOLLOWERS">Solo Seguidores</option>
-              </select>
-                            <button onClick={handlePublish} disabled={isPublishing || isOptimizing} className="w-full font-bold text-lg bg-primary hover:bg-primary/90 text-primary-foreground py-4 rounded-full transition-transform active:scale-[0.98] disabled:opacity-50">
-                  {(isPublishing || isOptimizing) ? "Publicando..." : "Publicar Story"}
-                </button>
-            </div>
-          </div>
-        )}
-
-        {/* Draw Mode */}
-        {mode === 'DRAW' && (
-          <div className="p-5 flex flex-col gap-6 h-full">
-            <div className="flex flex-col gap-3">
-              <span className="text-[10px] font-bold text-muted-foreground uppercase text-center">Color</span>
-              <div className="flex flex-wrap gap-3 justify-center">
-                {['#FFFFFF', '#000000', '#FF0000', '#00FF00', '#0000FF', '#FFFF00', '#FF00FF', '#00FFFF'].map(c => (
-                  <button key={c} onClick={()=>setDrawColor(c)} className="w-10 h-10 rounded-full border-2 border-border shadow-sm transition-transform hover:scale-110" style={{backgroundColor: c, borderColor: drawColor===c ? 'var(--primary)' : 'transparent'}} />
+            {/* Right: Brush sizes & Done */}
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1 bg-black/40 backdrop-blur-md border border-white/15 rounded-full p-1">
+                {[5, 12, 22].map((s) => (
+                  <button
+                    key={s}
+                    onClick={() => setDrawSize(s)}
+                    className={`w-6 h-6 rounded-full flex items-center justify-center transition-colors cursor-pointer ${drawSize === s ? 'bg-white text-black' : 'text-white'}`}
+                  >
+                    <div className="rounded-full bg-current" style={{ width: s === 5 ? 4 : s === 12 ? 7 : 11, height: s === 5 ? 4 : s === 12 ? 7 : 11 }} />
+                  </button>
                 ))}
               </div>
-            </div>
-            <div className="flex flex-col gap-3 mt-4">
-              <span className="text-[10px] font-bold text-muted-foreground uppercase text-center">Grosor</span>
-              <div className="flex gap-4 justify-center items-center px-4">
-                <button onClick={()=>setDrawSize(5)} className={`w-10 h-10 flex items-center justify-center rounded-full transition-colors ${drawSize===5?'bg-primary text-primary-foreground':'bg-muted text-foreground hover:bg-muted/80'}`}>
-                  <div className="w-2 h-2 rounded-full bg-current" />
-                </button>
-                <button onClick={()=>setDrawSize(10)} className={`w-10 h-10 flex items-center justify-center rounded-full transition-colors ${drawSize===10?'bg-primary text-primary-foreground':'bg-muted text-foreground hover:bg-muted/80'}`}>
-                  <div className="w-4 h-4 rounded-full bg-current" />
-                </button>
-                <button onClick={()=>setDrawSize(20)} className={`w-10 h-10 flex items-center justify-center rounded-full transition-colors ${drawSize===20?'bg-primary text-primary-foreground':'bg-muted text-foreground hover:bg-muted/80'}`}>
-                  <div className="w-6 h-6 rounded-full bg-current" />
-                </button>
-              </div>
-            </div>
-            
-            <div className="mt-auto flex flex-col gap-3">
-              <button onClick={() => {
-                const ctx = canvasRef.current?.getContext('2d');
-                if (ctx) ctx.clearRect(0,0,400,711);
-                setCanvasUndoStack([]);
-              }} className="p-3 bg-muted hover:bg-muted/80 text-foreground font-bold rounded-2xl transition-colors">
-                Borrar Todo
+
+              <button 
+                onClick={() => setMode('EDIT')} 
+                className="px-4 py-1.5 bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-xs rounded-full shadow-lg transition-transform active:scale-95 cursor-pointer"
+              >
+                Listo
               </button>
-              <button onClick={() => {
-                if (canvasUndoStack.length > 0) {
-                  const ctx = canvasRef.current?.getContext('2d');
-                  if (ctx) {
-                    const newStack = [...canvasUndoStack];
-                    newStack.pop(); // remove current state
-                    if (newStack.length > 0) {
-                      ctx.putImageData(newStack[newStack.length - 1], 0, 0);
-                    } else {
-                      ctx.clearRect(0,0,400,711);
-                    }
-                    setCanvasUndoStack(newStack);
-                  }
-                }
-              }} disabled={canvasUndoStack.length === 0} className="p-3 bg-muted hover:bg-muted/80 text-foreground font-bold rounded-2xl disabled:opacity-50 transition-colors">
-                Deshacer trazo
-              </button>
-  
-              <button onClick={() => setMode('EDIT')} className="mt-2 p-4 bg-primary hover:bg-primary/90 text-primary-foreground font-bold rounded-2xl transition-colors shadow-sm">Hecho</button>
             </div>
           </div>
         )}
 
-        {/* Sticker Tray Mode */}
+        {/* Media Background Layer (Scalable, pannable 9:16 cover) */}
+        <SharedStoryRenderer 
+          mediaUrl={draftMediaUrl} 
+          isVideo={draftMediaType === 'VIDEO'}
+          videoRef={videoRef}
+          background={background}
+          overlays={[]} 
+          musicConfig={musicConfig}
+          mode="EDITOR"
+          isPaused={mode !== 'EDIT'}
+        />
+
+        {/* Empty State Prompt */}
+        {!draftMediaUrl && overlays.length === 0 && mode === 'EDIT' && (
+          <div className="absolute inset-0 z-50 flex flex-col items-center justify-center gap-4 pointer-events-none p-6 text-center">
+            <label className="bg-primary hover:bg-primary/90 text-primary-foreground px-6 py-4 rounded-full flex items-center gap-3 cursor-pointer pointer-events-auto transition-transform hover:scale-105 active:scale-95 shadow-2xl font-bold text-base">
+              <input type="file" className="sr-only" accept="image/*,video/*" onChange={handleFileChange} />
+              <Camera size={24} />
+              <span>Elegir foto o vídeo</span>
+            </label>
+            <button 
+              onClick={() => setMode('TEXT')} 
+              className="bg-black/60 hover:bg-black/80 backdrop-blur-md border border-white/20 text-white px-5 py-2.5 rounded-full pointer-events-auto font-semibold text-sm transition-transform active:scale-95 cursor-pointer"
+            >
+              Crear historia de texto
+            </button>
+          </div>
+        )}
+
+        {/* Drawing Canvas */}
+        <canvas 
+          ref={canvasRef}
+          width={400} height={711}
+          className="absolute inset-0 w-full h-full z-40 touch-none pointer-events-none"
+          style={{ pointerEvents: mode === 'DRAW' ? 'auto' : 'none' }}
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+        />
+
+        {/* Overlays / Stickers */}
+        {overlays.map((o) => (
+          <DraggableOverlay
+            key={o.id}
+            overlay={o}
+            isSelected={selectedOverlayId === o.id}
+            onSelect={() => setSelectedOverlayId(o.id)}
+            onUpdate={(updated) => setOverlays(overlays.map(x => x.id === o.id ? updated : x))}
+            onDelete={() => { saveHistory(); setOverlays(overlays.filter(x => x.id !== o.id)); }}
+            onDragStateChange={setIsDraggingOverlay}
+            containerRef={containerRef}
+            onTap={() => {
+              if (o.type === 'POST') {
+                saveHistory();
+                const cur = (o.payload as any).displayStyle || 'pill';
+                const next = cur === 'pill' ? 'white' : (cur === 'white' ? 'minimal' : 'pill');
+                const updated = { ...o, payload: { ...(o.payload as any), displayStyle: next } } as any;
+                setOverlays(overlays.map(x => x.id === o.id ? updated : x) as any);
+              } else if (['RECIPE', 'SESSION'].includes(o.type)) {
+                saveHistory();
+                const currentStyle = (o.payload as any).displayStyle || 'compact';
+                const nextStyle = currentStyle === 'compact' ? 'text' : 'compact';
+                const updated = { ...o, payload: { ...(o.payload as any), displayStyle: nextStyle } } as any;
+                setOverlays(overlays.map(x => x.id === o.id ? updated : x) as any);
+              }
+            }}
+          >
+            <div className="pointer-events-none">
+              {renderOverlayContent(o, "PREVIEW")}
+            </div>
+          </DraggableOverlay>
+        ))}
+
+        {/* Inline Text Editor Overlay */}
+        {mode === 'TEXT' && (
+          <div className="absolute inset-0 z-[300] flex flex-col bg-black/75 backdrop-blur-md pointer-events-auto touch-none" onClick={addText}>
+            {/* Top Controls */}
+            <div className="flex items-center justify-between p-4 pt-[max(env(safe-area-inset-top),1rem)]" onClick={e=>e.stopPropagation()}>
+              <button onClick={() => setTextAlign(textAlign === 'left' ? 'center' : textAlign === 'center' ? 'right' : 'left')} className="w-10 h-10 flex items-center justify-center bg-white/20 rounded-full text-white cursor-pointer">
+                {textAlign === 'left' ? <AlignLeft size={20} /> : textAlign === 'center' ? <AlignCenter size={20} /> : <AlignRight size={20} />}
+              </button>
+              <button onClick={() => setTextBg(textBg === 'transparent' ? '#00000055' : textBg === '#00000055' ? textColor : 'transparent')} className="w-10 h-10 flex items-center justify-center bg-white/20 rounded-full text-white font-bold text-xl cursor-pointer">
+                A
+              </button>
+              <button onClick={addText} className="px-5 py-2 bg-white text-black font-bold rounded-full cursor-pointer hover:bg-white/90">
+                Listo
+              </button>
+            </div>
+
+            {/* Text Area */}
+            <div className="flex-1 flex items-center justify-center p-4">
+              <textarea 
+                autoFocus 
+                value={textVal} 
+                onChange={e=>setTextVal(e.target.value)}
+                onClick={e=>e.stopPropagation()}
+                className="w-full bg-transparent outline-none resize-none leading-tight font-bold whitespace-pre-wrap break-words"
+                style={{ 
+                  color: textBg === textColor ? (textColor === '#ffffff' ? '#000000' : '#ffffff') : textColor, 
+                  backgroundColor: textBg, 
+                  fontFamily: textFont, 
+                  textAlign: textAlign,
+                  fontSize: '2rem',
+                  padding: textBg !== 'transparent' ? '0.5rem 1rem' : '0',
+                  borderRadius: '0.75rem',
+                  textShadow: textBg === 'transparent' ? '2px 2px 4px rgba(0,0,0,0.8)' : 'none'
+                }}
+                rows={3}
+                placeholder="Escribe algo..."
+              />
+            </div>
+
+            {/* Bottom Controls */}
+            <div className="mt-auto bg-card border-t border-border rounded-t-3xl p-5 pb-[max(env(safe-area-inset-bottom),1.25rem)] flex flex-col gap-4 shadow-2xl" onClick={e=>e.stopPropagation()}>
+              {/* Font Selector */}
+              <div className="flex flex-col gap-2">
+                <span className="text-[10px] font-bold text-muted-foreground uppercase">Tipografía</span>
+                <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
+                  {TEXT_FONTS.map(font => (
+                    <button key={font} onClick={() => setTextFont(font)} className={`px-4 py-2 rounded-2xl whitespace-nowrap text-xs font-bold transition-colors cursor-pointer ${textFont === font ? 'bg-primary text-primary-foreground' : 'bg-muted text-foreground hover:bg-muted/80'}`} style={{fontFamily: font}}>
+                      {font.split(',')[0]}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              
+              {/* Color Selector */}
+              <div className="flex flex-col gap-2">
+                <span className="text-[10px] font-bold text-muted-foreground uppercase">Color</span>
+                <div className="flex gap-2.5 overflow-x-auto scrollbar-hide pb-1">
+                  {TEXT_COLORS.map(c => (
+                    <button key={c} onClick={() => setTextColor(c)} className={`w-8 h-8 rounded-full shrink-0 border-2 transition-transform hover:scale-110 cursor-pointer ${textColor === c ? 'border-primary scale-110' : 'border-border'}`} style={{backgroundColor: c}} />
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Trash Zone */}
+        {(isDraggingOverlay || selectedOverlayId) && (
+          <div 
+            id="story-trash" 
+            onClick={(e) => {
+              e.stopPropagation();
+              if (selectedOverlayId) {
+                setOverlays(overlays.filter(o => o.id !== selectedOverlayId));
+                setSelectedOverlayId(null);
+              }
+            }}
+            className={`absolute bottom-20 left-1/2 -translate-x-1/2 w-14 h-14 rounded-full flex items-center justify-center z-[200] transition-all cursor-pointer pointer-events-auto ${
+              isDraggingOverlay 
+                ? "bg-red-500/90 scale-110 border-2 border-white text-white shadow-2xl" 
+                : "bg-black/60 backdrop-blur border border-white/20 text-white shadow-2xl hover:bg-red-500 hover:scale-105"
+            }`}
+          >
+            <Trash2 className="w-6 h-6" />
+          </div>
+        )}
+
+        {/* Bottom Floating Bar (Overlaid on canvas) */}
+        {mode === 'EDIT' && (
+          <div className="absolute bottom-0 inset-x-0 z-[120] flex items-center justify-between p-4 pb-[max(env(safe-area-inset-bottom),1rem)] bg-gradient-to-t from-black/80 via-black/40 to-transparent pointer-events-none">
+            {/* Left: Privacy toggle pill */}
+            <button 
+              type="button"
+              onClick={() => setPrivacy(privacy === 'PUBLIC' ? 'FOLLOWERS' : 'PUBLIC')}
+              className="bg-black/50 hover:bg-black/70 backdrop-blur-md border border-white/20 text-white/90 px-3.5 py-2 rounded-full text-xs font-semibold flex items-center gap-1.5 shadow-lg pointer-events-auto transition-transform active:scale-95 cursor-pointer"
+            >
+              {privacy === 'PUBLIC' ? <Globe size={13} className="text-white/80" /> : <Users size={13} className="text-white/80" />}
+              <span>{privacy === 'PUBLIC' ? 'Público' : 'Solo seguidores'}</span>
+            </button>
+
+            {/* Right: Publish Button */}
+            <button 
+              onClick={handlePublish} 
+              disabled={isPublishing || isOptimizing || (!draftMediaUrl && overlays.length === 0)}
+              className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-sm px-6 py-2.5 rounded-full flex items-center gap-2 shadow-2xl pointer-events-auto transition-transform active:scale-95 disabled:opacity-50 disabled:pointer-events-none cursor-pointer"
+            >
+              {(isPublishing || isOptimizing) ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                  <span>{isOptimizing ? "Optimizando..." : "Publicando..."}</span>
+                </>
+              ) : (
+                <>
+                  <span>Tu historia</span>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+                </>
+              )}
+            </button>
+          </div>
+        )}
+
+        {/* Sticker Tray Bottom Sheet */}
         {mode === 'STICKER' && (
-          <div className="flex flex-col h-[380px] md:h-full relative bg-card">
-            {!activeStickerType ? (
-              <div className="p-4 grid grid-cols-2 gap-2.5 overflow-y-auto">
-                <button onClick={() => setActiveStickerType('RECIPE')} className="bg-muted hover:bg-muted/80 text-foreground p-4 rounded-2xl flex items-center justify-center gap-2 transition-colors font-medium border border-border"><ChefHat size={18} className="text-primary"/> Receta</button>
-                <button onClick={() => setActiveStickerType('INGREDIENT')} className="bg-muted hover:bg-muted/80 text-foreground p-4 rounded-2xl flex items-center justify-center gap-2 transition-colors font-medium border border-border"><Apple size={18} className="text-primary"/> Ingrediente</button>
-                <button onClick={() => setActiveStickerType('GIF')} className="bg-muted hover:bg-muted/80 text-foreground p-4 rounded-2xl flex items-center justify-center gap-2 transition-colors font-medium border border-border"><Sparkles size={18} className="text-primary"/> Stickers/GIF</button>
-                <button onClick={() => setActiveStickerType('LINK')} className="bg-muted hover:bg-muted/80 text-foreground p-4 rounded-2xl flex items-center justify-center gap-2 transition-colors font-medium border border-border"><LinkIcon size={18} className="text-primary"/> Enlace</button>
-                <button onClick={() => setActiveStickerType('QUESTION')} className="bg-muted hover:bg-muted/80 text-foreground p-4 rounded-2xl flex items-center justify-center gap-2 transition-colors font-medium border border-border"><HelpCircle size={18} className="text-primary"/> Pregunta</button>
-                <button onClick={() => setActiveStickerType('POLL')} className="bg-muted hover:bg-muted/80 text-foreground p-4 rounded-2xl flex items-center justify-center gap-2 transition-colors font-medium border border-border"><BarChart2 size={18} className="text-primary"/> Votación</button>
-              </div>
-            ) : (
-              <div className="absolute inset-0 z-10 bg-card flex flex-col">
-                <div className="p-3 border-b border-border flex items-center justify-between">
-                  <button onClick={() => setActiveStickerType(null)} className="text-sm font-semibold text-primary hover:underline px-2 py-1">← Volver</button>
-                  <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-                    {activeStickerType === 'MENTION' && 'Mención'}
-                    {activeStickerType === 'LOCATION' && 'Ubicación'}
-                    {activeStickerType === 'RECIPE' && 'Receta'}
-                    {activeStickerType === 'INGREDIENT' && 'Ingrediente'}
-                    {activeStickerType === 'GIF' && 'Stickers'}
-                    {activeStickerType === 'LINK' && 'Enlace'}
-                    {activeStickerType === 'QUESTION' && 'Pregunta'}
-                    {activeStickerType === 'POLL' && 'Votación'}
-                  </span>
-                  <div className="w-10" />
+          <div 
+            className="absolute inset-0 z-[250] bg-black/60 backdrop-blur-sm flex items-end justify-center pointer-events-auto animate-in fade-in duration-150"
+            onClick={() => { setActiveStickerType(null); setMode('EDIT'); }}
+          >
+            <div 
+              className="w-full bg-card border-t border-border rounded-t-3xl max-h-[75vh] flex flex-col overflow-hidden pb-[max(env(safe-area-inset-bottom),1rem)] shadow-2xl animate-in slide-in-from-bottom duration-200"
+              onClick={e => e.stopPropagation()}
+            >
+              <div className="w-12 h-1.5 bg-muted-foreground/30 rounded-full mx-auto my-3" />
+              
+              {!activeStickerType ? (
+                <div className="p-4 pt-1 flex flex-col gap-3 overflow-y-auto">
+                  <div className="flex items-center justify-between pb-1 border-b border-border">
+                    <span className="text-sm font-bold text-foreground">Stickers e interacción</span>
+                    <button onClick={() => setMode('EDIT')} className="text-xs font-semibold text-muted-foreground hover:text-foreground cursor-pointer">Cerrar</button>
+                  </div>
+                  
+                  <div className="grid grid-cols-4 gap-2.5 pt-2">
+                    <button onClick={() => setActiveStickerType('MENTION')} className="flex flex-col items-center justify-center gap-1.5 p-3 bg-muted hover:bg-muted/80 rounded-2xl transition-transform active:scale-95 text-foreground border border-border cursor-pointer">
+                      <User size={22} className="text-primary"/>
+                      <span className="text-[10px] font-bold">Mención</span>
+                    </button>
+                    <button onClick={() => setActiveStickerType('LOCATION')} className="flex flex-col items-center justify-center gap-1.5 p-3 bg-muted hover:bg-muted/80 rounded-2xl transition-transform active:scale-95 text-foreground border border-border cursor-pointer">
+                      <MapPin size={22} className="text-primary"/>
+                      <span className="text-[10px] font-bold">Ubicación</span>
+                    </button>
+                    <button onClick={() => setActiveStickerType('POLL')} className="flex flex-col items-center justify-center gap-1.5 p-3 bg-muted hover:bg-muted/80 rounded-2xl transition-transform active:scale-95 text-foreground border border-border cursor-pointer">
+                      <BarChart2 size={22} className="text-primary"/>
+                      <span className="text-[10px] font-bold">Votación</span>
+                    </button>
+                    <button onClick={() => setActiveStickerType('QUESTION')} className="flex flex-col items-center justify-center gap-1.5 p-3 bg-muted hover:bg-muted/80 rounded-2xl transition-transform active:scale-95 text-foreground border border-border cursor-pointer">
+                      <HelpCircle size={22} className="text-primary"/>
+                      <span className="text-[10px] font-bold">Pregunta</span>
+                    </button>
+                    <button onClick={() => setActiveStickerType('RECIPE')} className="flex flex-col items-center justify-center gap-1.5 p-3 bg-muted hover:bg-muted/80 rounded-2xl transition-transform active:scale-95 text-foreground border border-border cursor-pointer">
+                      <ChefHat size={22} className="text-primary"/>
+                      <span className="text-[10px] font-bold">Receta</span>
+                    </button>
+                    <button onClick={() => setActiveStickerType('INGREDIENT')} className="flex flex-col items-center justify-center gap-1.5 p-3 bg-muted hover:bg-muted/80 rounded-2xl transition-transform active:scale-95 text-foreground border border-border cursor-pointer">
+                      <Apple size={22} className="text-primary"/>
+                      <span className="text-[10px] font-bold">Ingrediente</span>
+                    </button>
+                    <button onClick={() => setActiveStickerType('LINK')} className="flex flex-col items-center justify-center gap-1.5 p-3 bg-muted hover:bg-muted/80 rounded-2xl transition-transform active:scale-95 text-foreground border border-border cursor-pointer">
+                      <LinkIcon size={22} className="text-primary"/>
+                      <span className="text-[10px] font-bold">Enlace</span>
+                    </button>
+                    <button onClick={() => setActiveStickerType('GIF')} className="flex flex-col items-center justify-center gap-1.5 p-3 bg-muted hover:bg-muted/80 rounded-2xl transition-transform active:scale-95 text-foreground border border-border cursor-pointer">
+                      <Sparkles size={22} className="text-primary"/>
+                      <span className="text-[10px] font-bold">GIFs</span>
+                    </button>
+                  </div>
                 </div>
-                <div className="flex-1 overflow-hidden relative">
-                  {activeStickerType === 'MENTION' && <MentionPicker onSelect={(u) => handleStickerSelect('MENTION', u)} />}
-                  {activeStickerType === 'LOCATION' && <LocationPicker onSelect={(l) => handleStickerSelect('LOCATION', l)} />}
-                  {activeStickerType === 'RECIPE' && <RecipePicker onSelect={(r) => handleStickerSelect('RECIPE', r)} />}
-                  {activeStickerType === 'INGREDIENT' && <IngredientPicker onSelect={(i) => handleStickerSelect('INGREDIENT', i)} />}
-                  {activeStickerType === 'GIF' && <StickerPicker onSelect={(g) => handleStickerSelect('GIF', g)} />}
-                  {activeStickerType === 'LINK' && <LinkPicker onSelect={(lk) => handleStickerSelect('LINK', lk)} />}
-                  {activeStickerType === 'QUESTION' && <QuestionPicker onSelect={(q) => handleStickerSelect('QUESTION', q)} />}
-                  {activeStickerType === 'POLL' && <PollPicker onSelect={(p) => handleStickerSelect('POLL', p)} />}
+              ) : (
+                <div className="flex-1 flex flex-col h-[65vh]">
+                  <div className="p-3 border-b border-border flex items-center justify-between">
+                    <button onClick={() => setActiveStickerType(null)} className="text-sm font-semibold text-primary hover:underline px-2 py-1 flex items-center gap-1 cursor-pointer">
+                      ← Volver
+                    </button>
+                    <span className="text-xs font-bold text-foreground uppercase tracking-wider">
+                      {activeStickerType === 'MENTION' && 'Mención'}
+                      {activeStickerType === 'LOCATION' && 'Ubicación'}
+                      {activeStickerType === 'RECIPE' && 'Receta'}
+                      {activeStickerType === 'INGREDIENT' && 'Ingrediente'}
+                      {activeStickerType === 'GIF' && 'Stickers / GIF'}
+                      {activeStickerType === 'LINK' && 'Enlace'}
+                      {activeStickerType === 'QUESTION' && 'Pregunta'}
+                      {activeStickerType === 'POLL' && 'Votación'}
+                    </span>
+                    <div className="w-12" />
+                  </div>
+                  <div className="flex-1 overflow-hidden relative">
+                    {activeStickerType === 'MENTION' && <MentionPicker onSelect={(u) => handleStickerSelect('MENTION', u)} />}
+                    {activeStickerType === 'LOCATION' && <LocationPicker onSelect={(l) => handleStickerSelect('LOCATION', l)} />}
+                    {activeStickerType === 'RECIPE' && <RecipePicker onSelect={(r) => handleStickerSelect('RECIPE', r)} />}
+                    {activeStickerType === 'INGREDIENT' && <IngredientPicker onSelect={(i) => handleStickerSelect('INGREDIENT', i)} />}
+                    {activeStickerType === 'GIF' && <StickerPicker onSelect={(g) => handleStickerSelect('GIF', g)} />}
+                    {activeStickerType === 'LINK' && <LinkPicker onSelect={(lk) => handleStickerSelect('LINK', lk)} />}
+                    {activeStickerType === 'QUESTION' && <QuestionPicker onSelect={(q) => handleStickerSelect('QUESTION', q)} />}
+                    {activeStickerType === 'POLL' && <PollPicker onSelect={(p) => handleStickerSelect('POLL', p)} />}
+                  </div>
                 </div>
-              </div>
-            )}
-            
-            {!activeStickerType && (
-              <div className="mt-auto p-4 border-t border-border">
-                <button onClick={() => setMode('EDIT')} className="w-full bg-muted hover:bg-muted/80 text-foreground font-bold p-4 rounded-2xl transition-colors">Cancelar</button>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         )}
-
       </div>
 
-
-
+      {/* Music Selector Modal */}
       {mode === 'MUSIC' && (
         <StoryMusicSelector
           isVideo={draftMediaType === 'VIDEO' && videoHasAudio}

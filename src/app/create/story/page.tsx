@@ -5,7 +5,7 @@ import { Metadata } from "next"
 
 export const metadata: Metadata = {
   title: "Crear Story",
-  description: "Crea una nueva Story en Mis Arroces",
+  description: "Crea una nueva Story en misarroces",
 }
 
 export default async function CreateStoryPage(props: { searchParams?: Promise<{ recipe_id?: string, session_id?: string, post_id?: string, postId?: string, recipeId?: string, sessionId?: string, share?: string }> }) {

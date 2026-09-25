@@ -83,6 +83,37 @@ export async function createStory(data: {
       if (rm) finalMediaId = rm.media_id;
     }
 
+    // Automatically resolve post media if sharing a post and mediaId not provided
+    if (!finalMediaId && data.postId) {
+      const { data: pm } = await supabase
+        .from('post_media')
+        .select('media_id')
+        .eq('post_id', data.postId)
+        .order('display_order', { ascending: true })
+        .limit(1)
+        .maybeSingle();
+
+      if (pm?.media_id) {
+        finalMediaId = pm.media_id;
+      } else {
+        const { data: postRec } = await supabase
+          .from('social_posts')
+          .select('recipe_id')
+          .eq('id', data.postId)
+          .maybeSingle();
+        if (postRec?.recipe_id) {
+          const { data: rm } = await supabase
+            .from('recipe_media')
+            .select('media_id')
+            .eq('recipe_id', postRec.recipe_id)
+            .order('display_order', { ascending: true })
+            .limit(1)
+            .maybeSingle();
+          if (rm?.media_id) finalMediaId = rm.media_id;
+        }
+      }
+    }
+
     if (finalMediaId) {
       const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
       let insertClient = supabase;
