@@ -6,6 +6,7 @@ import { Camera, X, Image as ImageIcon, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import Image from "next/image"
 import { cn } from "@/lib/utils"
+import { optimizePostVideo } from "@/lib/video-optimizer"
 
 export interface SelectedMedia {
   id: string // local temp id
@@ -23,47 +24,30 @@ interface MediaUploaderProps {
   hidePreview?: boolean
 }
 
-function VideoPreview({ src, fileType }: { src: string, fileType: string }) {
-  const [hasNoVideoTrack, setHasNoVideoTrack] = useState(false);
-
+function VideoPreview({ src }: { src: string, fileType?: string }) {
   return (
-    <>
-      <video 
-        src={src} 
-        className={cn("absolute inset-0 object-cover w-full h-full", hasNoVideoTrack && "opacity-0")} 
-        autoPlay 
-        muted 
-        loop 
-        playsInline 
-        preload="metadata"
-        onLoadedMetadata={(e) => {
-          if (e.currentTarget.videoWidth === 0 && e.currentTarget.duration > 0) {
-            setHasNoVideoTrack(true);
-          }
-        }}
-      />
-      {hasNoVideoTrack && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 text-white p-4 text-center">
-          <div className="bg-white/20 p-3 rounded-full mb-2">
-            <Loader2 className="w-6 h-6 animate-spin opacity-50" />
-          </div>
-          <p className="text-sm font-medium">Vídeo Listo</p>
-          <p className="text-xs text-white/60 mt-1">El navegador no puede previsualizar este formato, pero se publicará correctamente.</p>
-        </div>
-      )}
-    </>
+    <video 
+      src={src} 
+      className="absolute inset-0 object-cover w-full h-full" 
+      autoPlay 
+      muted 
+      loop 
+      playsInline 
+      preload="auto"
+    />
   );
 }
 
 export function MediaUploader({ maxItems = 1, context, onMediaChange, className, emptyLabel, variant = 'default', hidePreview = false }: MediaUploaderProps) {
   const [items, setItems] = useState<SelectedMedia[]>([])
+  const [isOptimizing, setIsOptimizing] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
-      const newFiles = Array.from(e.target.files)
+      const rawFiles = Array.from(e.target.files)
       
-      const validFiles = newFiles.filter(file => {
+      const validFiles = rawFiles.filter(file => {
         if (!ALLOWED_MIME_TYPES.includes(file.type as any)) {
           alert(`Formato no soportado: ${file.name}`)
           return false
@@ -78,9 +62,32 @@ export function MediaUploader({ maxItems = 1, context, onMediaChange, className,
         return true
       })
 
+      if (validFiles.length === 0) return
+
+      // If any video is present, optimize it to universal H.264
+      const hasVideos = validFiles.some(f => f.type.startsWith('video/'))
+      if (hasVideos) {
+        setIsOptimizing(true)
+      }
+
+      const processedFiles: File[] = []
+      for (const file of validFiles) {
+        if (file.type.startsWith('video/')) {
+          try {
+            const opt = await optimizePostVideo(file)
+            processedFiles.push(opt)
+          } catch {
+            processedFiles.push(file)
+          }
+        } else {
+          processedFiles.push(file)
+        }
+      }
+      setIsOptimizing(false)
+
       if (maxItems === 1) {
-        if (validFiles.length > 0) {
-          const file = validFiles[0]
+        if (processedFiles.length > 0) {
+          const file = processedFiles[0]
           if (items.length > 0) URL.revokeObjectURL(items[0].previewUrl)
           
           const newItems = [{
@@ -94,10 +101,10 @@ export function MediaUploader({ maxItems = 1, context, onMediaChange, className,
         }
       } else {
         const availableSlots = maxItems - items.length
-        const filesToAdd = validFiles.slice(0, availableSlots)
+        const filesToAdd = processedFiles.slice(0, availableSlots)
         
-        if (validFiles.length > availableSlots) {
-          alert(`Solo puedes subir un máximo de ${maxItems} imágenes.`)
+        if (processedFiles.length > availableSlots) {
+          alert(`Solo puedes subir un máximo de ${maxItems} elementos.`)
         }
 
         const newItems = filesToAdd.map(file => ({
@@ -146,6 +153,13 @@ export function MediaUploader({ maxItems = 1, context, onMediaChange, className,
 
   return (
     <div className={cn("space-y-4", className)}>
+      {isOptimizing && (
+        <div className="flex items-center gap-2 p-3 bg-primary/10 text-primary rounded-2xl text-xs font-semibold animate-pulse border border-primary/20">
+          <Loader2 className="w-4 h-4 animate-spin shrink-0" />
+          <span>Optimizando vídeo para reproducción universal (móvil y PC)...</span>
+        </div>
+      )}
+
       {items.length > 0 && !hidePreview && (
         <div className={cn("gap-3", maxItems === 1 ? "grid grid-cols-1" : "grid grid-cols-2 md:grid-cols-3")}>
           {items.map((item, index) => (

@@ -1,10 +1,11 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Eye, EyeOff } from "lucide-react"
+import { Eye, EyeOff, Loader2, Check } from "lucide-react"
 import Link from "next/link"
 import { login, signup } from "./actions"
 import { useFormStatus } from "react-dom"
+import { checkDisplayNameAvailabilityAction, checkUsernameAvailabilityAction } from "@/app/onboarding/actions"
 
 export function LoginForm({ initialMode = "login", initialEmail = "", error, message, redirectTo }: { initialMode?: "login" | "signup", initialEmail?: string, error?: string, message?: string, redirectTo?: string }) {
   const [mode, setMode] = useState<"login" | "signup">(initialMode)
@@ -15,6 +16,94 @@ export function LoginForm({ initialMode = "login", initialEmail = "", error, mes
   const [acqData, setAcqData] = useState("")
   const [email, setEmail] = useState(initialEmail)
   const [password, setPassword] = useState("")
+
+  // Identity fields for signup & real-time validation
+  const [displayName, setDisplayName] = useState("")
+  const [checkingDisplayName, setCheckingDisplayName] = useState(false)
+  const [displayNameStatus, setDisplayNameStatus] = useState<{ available?: boolean; message?: string } | null>(null)
+
+  const [username, setUsername] = useState("")
+  const [checkingUsername, setCheckingUsername] = useState(false)
+  const [usernameStatus, setUsernameStatus] = useState<{ available?: boolean; message?: string } | null>(null)
+
+  const [legalAccepted, setLegalAccepted] = useState(false)
+  const [ageConfirmed, setAgeConfirmed] = useState(false)
+
+  // Real-time debounced check of displayName availability
+  useEffect(() => {
+    if (mode !== "signup") return
+    const cleanDisplay = (displayName || "").trim()
+    if (!cleanDisplay) {
+      setDisplayNameStatus(null)
+      return
+    }
+
+    if (cleanDisplay.length < 2) {
+      setDisplayNameStatus({ available: false, message: "Mínimo 2 caracteres" })
+      return
+    }
+
+    setCheckingDisplayName(true)
+    const timer = setTimeout(async () => {
+      try {
+        const res = await checkDisplayNameAvailabilityAction(cleanDisplay)
+        if (res.available) {
+          setDisplayNameStatus({ available: true, message: "Nombre disponible" })
+        } else {
+          setDisplayNameStatus({ available: false, message: res.error || "Este nombre ya está en uso." })
+        }
+      } catch {
+        setDisplayNameStatus(null)
+      } finally {
+        setCheckingDisplayName(false)
+      }
+    }, 400)
+
+    return () => clearTimeout(timer)
+  }, [displayName, mode])
+
+  // Real-time debounced check of username availability
+  useEffect(() => {
+    if (mode !== "signup") return
+    const cleanUser = (username || "").trim().toLowerCase().replace(/[^a-z0-9_.]/g, "")
+    if (!cleanUser) {
+      setUsernameStatus(null)
+      return
+    }
+
+    if (cleanUser.length < 3) {
+      setUsernameStatus({ available: false, message: "Mínimo 3 caracteres" })
+      return
+    }
+
+    setCheckingUsername(true)
+    const timer = setTimeout(async () => {
+      try {
+        const res = await checkUsernameAvailabilityAction(cleanUser)
+        if (res.available) {
+          setUsernameStatus({ available: true, message: "Nombre de usuario disponible" })
+        } else {
+          setUsernameStatus({ available: false, message: res.error || "Este nombre de usuario ya está en uso" })
+        }
+      } catch {
+        setUsernameStatus(null)
+      } finally {
+        setCheckingUsername(false)
+      }
+    }, 400)
+
+    return () => clearTimeout(timer)
+  }, [username, mode])
+
+  const canSubmitSignup = 
+    displayNameStatus?.available === true &&
+    usernameStatus?.available === true &&
+    email.trim().length > 0 &&
+    password.length >= 6 &&
+    legalAccepted &&
+    ageConfirmed &&
+    !checkingDisplayName &&
+    !checkingUsername
 
   useEffect(() => {
     if (initialEmail) {
@@ -89,6 +178,93 @@ export function LoginForm({ initialMode = "login", initialEmail = "", error, mes
         )}
 
         <div className="space-y-3">
+          {mode === "signup" && (
+            <>
+              <div className="space-y-1.5">
+                <label htmlFor="display_name" className="text-sm font-semibold text-charcoal block">
+                  Nombre
+                </label>
+                <div className="relative flex items-center">
+                  <input 
+                    id="display_name" 
+                    name="display_name" 
+                    type="text" 
+                    autoComplete="name" 
+                    placeholder="Ej. Paco Arroces"
+                    required
+                    value={displayName}
+                    onChange={(e) => setDisplayName(e.target.value)}
+                    className={`w-full h-12 pl-4 pr-10 bg-transparent border-2 rounded-xl outline-none transition-colors text-charcoal text-base ${
+                      displayNameStatus?.available === false
+                        ? "border-destructive focus:border-destructive"
+                        : displayNameStatus?.available === true
+                        ? "border-green-600 focus:border-green-600"
+                        : "border-border/80 focus:border-charcoal"
+                    }`}
+                  />
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                    {checkingDisplayName ? (
+                      <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+                    ) : displayNameStatus?.available === true ? (
+                      <Check className="w-4 h-4 text-green-600" />
+                    ) : null}
+                  </div>
+                </div>
+                {displayNameStatus?.message && (
+                  <p className={`text-xs mt-1 font-medium ${
+                    displayNameStatus.available === true ? "text-green-600" : "text-destructive"
+                  }`}>
+                    {displayNameStatus.message}
+                  </p>
+                )}
+              </div>
+
+              <div className="space-y-1.5">
+                <label htmlFor="username" className="text-sm font-semibold text-charcoal block">
+                  Nombre de usuario
+                </label>
+                <div className="relative flex items-center">
+                  <span className="h-12 flex items-center justify-center px-3.5 bg-muted/50 border-2 border-r-0 border-border/80 rounded-l-xl text-muted-foreground font-semibold text-sm">
+                    @
+                  </span>
+                  <input 
+                    id="username" 
+                    name="username" 
+                    type="text" 
+                    autoCapitalize="none"
+                    autoCorrect="off"
+                    spellCheck={false}
+                    placeholder="paco_arroces"
+                    required
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_.]/g, ''))}
+                    className={`w-full h-12 pl-3 pr-10 bg-transparent border-2 rounded-l-none rounded-r-xl outline-none transition-colors text-charcoal text-base font-medium ${
+                      usernameStatus?.available === false
+                        ? "border-destructive focus:border-destructive"
+                        : usernameStatus?.available === true
+                        ? "border-green-600 focus:border-green-600"
+                        : "border-border/80 focus:border-charcoal"
+                    }`}
+                  />
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                    {checkingUsername ? (
+                      <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+                    ) : usernameStatus?.available === true ? (
+                      <Check className="w-4 h-4 text-green-600" />
+                    ) : null}
+                  </div>
+                </div>
+                {usernameStatus?.message && (
+                  <p className={`text-xs mt-1 font-medium ${
+                    usernameStatus.available === true ? "text-green-600" : "text-destructive"
+                  }`}>
+                    {usernameStatus.message}
+                  </p>
+                )}
+              </div>
+            </>
+          )}
+
           <div className="space-y-1.5">
             <label htmlFor="email" className="text-sm font-semibold text-charcoal block">
               Correo electrónico
@@ -170,6 +346,8 @@ export function LoginForm({ initialMode = "login", initialEmail = "", error, mes
                   name="legal_accepted" 
                   id="legal_accepted"
                   required
+                  checked={legalAccepted}
+                  onChange={(e) => setLegalAccepted(e.target.checked)}
                   className="peer appearance-none w-5 h-5 border-2 border-charcoal/40 bg-white rounded-md checked:bg-primary checked:border-primary transition-colors cursor-pointer"
                 />
                 <svg className="absolute w-3 h-3 text-primary-foreground opacity-0 peer-checked:opacity-100 pointer-events-none transition-opacity" viewBox="0 0 14 10" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -188,6 +366,8 @@ export function LoginForm({ initialMode = "login", initialEmail = "", error, mes
                   name="age_18_confirmed" 
                   id="age_18_confirmed"
                   required
+                  checked={ageConfirmed}
+                  onChange={(e) => setAgeConfirmed(e.target.checked)}
                   className="peer appearance-none w-5 h-5 border-2 border-charcoal/40 bg-white rounded-md checked:bg-primary checked:border-primary transition-colors cursor-pointer"
                 />
                 <svg className="absolute w-3 h-3 text-primary-foreground opacity-0 peer-checked:opacity-100 pointer-events-none transition-opacity" viewBox="0 0 14 10" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -201,14 +381,14 @@ export function LoginForm({ initialMode = "login", initialEmail = "", error, mes
           </div>
         )}
 
-        <SubmitButton mode={mode} />
+        <SubmitButton mode={mode} canSubmitSignup={canSubmitSignup} />
 
       </form>
     </div>
   )
 }
 
-function SubmitButton({ mode }: { mode: "login" | "signup" }) {
+function SubmitButton({ mode, canSubmitSignup }: { mode: "login" | "signup", canSubmitSignup?: boolean }) {
   const { pending } = useFormStatus()
 
   if (mode === "signup") {
@@ -217,7 +397,7 @@ function SubmitButton({ mode }: { mode: "login" | "signup" }) {
         <button 
           type="submit"
           formAction={signup}
-          disabled={pending}
+          disabled={pending || !canSubmitSignup}
           className="w-full h-12 bg-primary hover:bg-primary/90 disabled:bg-primary/50 disabled:cursor-not-allowed text-primary-foreground rounded-xl font-bold text-base transition-colors shadow-md"
         >
           {pending ? "CREANDO CUENTA..." : "CREAR CUENTA NUEVA"}

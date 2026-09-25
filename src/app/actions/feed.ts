@@ -57,6 +57,35 @@ export async function fetchFeedPage(pageIndex: number = 0, existingUser?: any) {
   const recipes = recipesRes.data || []
   const sessions = sessionsRes.data || []
 
+  // Load collaborators and tagged users for posts
+  if (posts.length > 0) {
+    try {
+      const postCollaboratorIds = posts.map((p: any) => p.collaborator_id).filter(Boolean)
+      const [collabRes, taggedRes] = await Promise.all([
+        postCollaboratorIds.length > 0
+          ? supabase.from("profiles").select("id, username, display_name").in("id", postCollaboratorIds)
+          : { data: [] },
+        postIds.length > 0
+          ? supabase.from("tagged_users").select("entity_id, tagged:profiles!tagged_users_tagged_id_fkey(id, username, display_name)").eq("entity_type", "social_post").in("entity_id", postIds)
+          : { data: [] }
+      ])
+
+      const collabMap = (collabRes.data || []).reduce((acc: any, c: any) => { acc[c.id] = c; return acc }, {})
+      const taggedMap = (taggedRes.data || []).reduce((acc: any, t: any) => {
+        if (!acc[t.entity_id]) acc[t.entity_id] = []
+        if (t.tagged) acc[t.entity_id].push(t.tagged)
+        return acc
+      }, {})
+
+      posts.forEach((p: any) => {
+        p.collaborator = p.collaborator_id ? collabMap[p.collaborator_id] || null : null
+        p.tagged_users = taggedMap[p.id] || []
+      })
+    } catch (e) {
+      console.error("Error attaching feed post metadata:", e)
+    }
+  }
+
   const metricsMap = (commentsRes?.data || []).reduce((acc: any, val: any) => {
     acc[`${val.entity_type}:${val.entity_id}`] = { 
       likeCount: val.like_count || 0, 

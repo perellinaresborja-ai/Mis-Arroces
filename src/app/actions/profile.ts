@@ -51,18 +51,24 @@ export async function updateProfile(formData: FormData): Promise<{
       .single()
 
     const cleanUsername = normalizeUsername(username)
-    const cleanDisplayName = display_name ? display_name.trim() : null
+    const cleanDisplayName = display_name ? display_name.trim() : ""
 
-    if (cleanDisplayName) {
-      const formatCheck = validateDisplayNameFormat(cleanDisplayName)
-      if (!formatCheck.valid) {
-        return { success: false, error: formatCheck.error || "Nombre no válido." }
-      }
+    if (!cleanDisplayName) {
+      return { success: false, error: "El nombre es obligatorio." }
+    }
 
-      const availableDisplay = await isDisplayNameAvailable(supabase, cleanDisplayName, user.id)
-      if (!availableDisplay) {
-        return { success: false, error: "Este nombre ya está en uso." }
-      }
+    const formatCheck = validateDisplayNameFormat(cleanDisplayName)
+    if (!formatCheck.valid) {
+      return { success: false, error: formatCheck.error || "Nombre no válido." }
+    }
+
+    const availableDisplay = await isDisplayNameAvailable(supabase, cleanDisplayName, user.id)
+    if (!availableDisplay) {
+      return { success: false, error: "Este nombre ya está en uso." }
+    }
+
+    if (!cleanUsername) {
+      return { success: false, error: "El nombre de usuario es obligatorio." }
     }
 
     let updateData: any = {

@@ -113,8 +113,19 @@ export async function parseAndSaveMentionsAndHashtags(text: string, entityType: 
           entity_id: entityId
         })
         
-        // TODO: Notification event ready here!
-        // e.g. generateEvent('MENTION', actorId, profile.id, entityType, entityId)
+        if (profile.id !== actorId) {
+          try {
+            const { createNotification } = await import("@/app/actions/notifications")
+            await createNotification(
+              profile.id,
+              "MENTION",
+              entityType === "social_post" ? "post" : entityType,
+              entityId
+            )
+          } catch (e) {
+            console.error("Failed to send mention notification:", e)
+          }
+        }
       }
     }
   }
@@ -135,6 +146,22 @@ export async function saveTags(entityType: string, entityId: string, authorId: s
       entity_id: entityId
     }))
     await supabase.from("tagged_users").insert(inserts)
+
+    try {
+      const { createNotification } = await import("@/app/actions/notifications")
+      for (const t of tags) {
+        if (t.id && t.id !== authorId) {
+          await createNotification(
+            t.id,
+            "TAG",
+            entityType === "social_post" ? "post" : entityType,
+            entityId
+          ).catch(() => {})
+        }
+      }
+    } catch (e) {
+      console.error("Failed to send tag notifications:", e)
+    }
   }
 }
 

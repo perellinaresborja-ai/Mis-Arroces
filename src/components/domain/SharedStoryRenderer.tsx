@@ -6,6 +6,7 @@ import { StoryOverlay, StoryTransform, StoryBackground, PollOverlay, QuestionOve
 import { MapPin, Utensils, ChefHat } from "lucide-react"
 import { votePoll, getPollResults, submitQuestionReply, upsertSliderValue, getSliderResults } from "@/app/actions/stories"
 import { cleanIngredientName } from "./stories/StickerPickers"
+import { isInternalUrl, getInternalPath } from "@/lib/utils"
 
 interface PollResultData {
   countA?: number;
@@ -45,6 +46,7 @@ export interface RenderContext {
   handleSliderRelease?: (sId: string, val: number, prompt: string) => Promise<void>;
   onPauseRequest?: () => void;
   onResumeRequest?: () => void;
+  onNavigate?: (url: string) => void;
   storyId?: string;
 }
 
@@ -66,6 +68,7 @@ interface SharedStoryRendererProps {
   selectedOverlayId?: string | null;
   onPauseRequest?: () => void;
   onResumeRequest?: () => void;
+  onNavigate?: (url: string) => void;
 }
 
 export function SharedStoryRenderer({
@@ -77,8 +80,16 @@ export function SharedStoryRenderer({
   musicConfig,
   mode,
   onOverlayClick,
-  selectedOverlayId
-, isVideo, videoRef, onTimeUpdate, onEnded, isPaused, onPauseRequest, onResumeRequest}: SharedStoryRendererProps) {
+  selectedOverlayId,
+  isVideo,
+  videoRef,
+  onTimeUpdate,
+  onEnded,
+  isPaused,
+  onPauseRequest,
+  onResumeRequest,
+  onNavigate
+}: SharedStoryRendererProps) {
   const [pollResults, setPollResults] = React.useState<Record<string, PollResultData>>({});
   const [isVoting, setIsVoting] = React.useState<Record<string, boolean>>({});
 
@@ -257,7 +268,7 @@ export function SharedStoryRenderer({
             top: (overlay.y * 100 + '%'),
             transform: ('translate(-50%, -50%) scale(' + overlay.scale + ') rotate(' + overlay.rotation + 'deg)'),
             zIndex: overlay.zIndex + 10,
-            pointerEvents: (mode === 'EDITOR' || ['POLL', 'QUESTION', 'SLIDER', 'MENTION', 'LOCATION', 'RECIPE', 'INGREDIENT', 'SESSION', 'PROFILE', 'TEXT', 'LINK'].includes(overlay.type)) ? 'auto' : 'none',
+            pointerEvents: (mode === 'EDITOR' || ['POLL', 'QUESTION', 'SLIDER', 'MENTION', 'LOCATION', 'RECIPE', 'INGREDIENT', 'SESSION', 'PROFILE', 'TEXT', 'LINK', 'POST'].includes(overlay.type)) ? 'auto' : 'none',
             cursor: mode === 'EDITOR' ? 'grab' : 'default',
             boxShadow: isSelected ? '0 0 0 2px #3b82f6' : 'none', // highlight if selected
           }
@@ -267,7 +278,7 @@ export function SharedStoryRenderer({
               key={overlay.id} 
               style={overlayStyle}
               onClick={(e) => {
-                if (['POLL', 'QUESTION', 'SLIDER', 'MENTION', 'LOCATION', 'RECIPE', 'INGREDIENT', 'SESSION', 'PROFILE', 'TEXT', 'LINK'].includes(overlay.type)) {
+                if (['POLL', 'QUESTION', 'SLIDER', 'MENTION', 'LOCATION', 'RECIPE', 'INGREDIENT', 'SESSION', 'PROFILE', 'TEXT', 'LINK', 'POST'].includes(overlay.type)) {
                   e.stopPropagation();
                 }
                 if (mode === 'EDITOR' && onOverlayClick) {
@@ -295,7 +306,8 @@ export function SharedStoryRenderer({
                 sentQ, 
                 setSentQ, 
                 onPauseRequest, 
-                onResumeRequest 
+                onResumeRequest,
+                onNavigate
               })}
             </div>
           )
@@ -303,6 +315,124 @@ export function SharedStoryRenderer({
       </div>
     </div>
   )
+}
+
+function SharedPostCard({
+  payload,
+  mode,
+  onNavigate,
+  onPauseRequest,
+}: {
+  payload: any;
+  mode: string;
+  onNavigate?: (path: string) => void;
+  onPauseRequest?: () => void;
+}) {
+  const [hasError, setHasError] = React.useState(false);
+  const style = payload?.displayStyle || 'card';
+
+  const handleClick = (e: React.MouseEvent) => {
+    if (mode === 'VIEWER') {
+      e.stopPropagation();
+      if (onPauseRequest) onPauseRequest();
+      const path = '/posts/' + payload.postId;
+      if (onNavigate) {
+        onNavigate(path);
+      } else {
+        window.location.href = path;
+      }
+    }
+  };
+
+  const cleanAuthor = payload?.authorName ? payload.authorName.replace(/^@+/, '') : 'usuario';
+
+  if (style === 'compact') {
+    return (
+      <div 
+        className="bg-card border border-border text-foreground px-4 py-2 rounded-2xl font-bold flex items-center gap-2 shadow-2xl cursor-pointer text-sm pointer-events-auto transition-transform hover:scale-105 select-none" 
+        onClick={handleClick}
+      >
+        <span>@{cleanAuthor}</span> 
+        <span className="text-primary text-xs ml-1 border-l pl-2 border-border font-semibold">Ver</span>
+      </div>
+    );
+  }
+
+  if (style === 'text') {
+    return (
+      <div 
+        onClick={handleClick} 
+        className="text-white drop-shadow-md px-3 py-1.5 flex flex-col items-center cursor-pointer pointer-events-auto hover:opacity-80 transition-opacity select-none"
+      >
+        <span className="font-bold text-lg text-center max-w-[200px] truncate">{payload?.text || `Publicación de @${cleanAuthor}`}</span>
+        <span className="text-xs bg-black/50 border border-white/20 px-3 py-1 rounded-full mt-1 font-medium">Ver publicación →</span>
+      </div>
+    );
+  }
+
+  const isVideo = payload?.mediaType === 'VIDEO' || Boolean(
+    payload?.coverUrl && (/\.(mp4|webm|mov)(\?.*)?$/i.test(payload.coverUrl) || payload.coverUrl.includes('video/'))
+  );
+
+  const showMedia = Boolean(payload?.coverUrl && !hasError);
+
+  return (
+    <div 
+      onClick={handleClick} 
+      className="bg-card rounded-2xl overflow-hidden shadow-2xl border border-border flex flex-col w-60 cursor-pointer pointer-events-auto transition-transform hover:scale-105 select-none"
+    >
+      {showMedia && isVideo && (
+        <div className="relative w-full aspect-square bg-black overflow-hidden flex items-center justify-center">
+          <video 
+            src={`${payload.coverUrl}#t=0.001`} 
+            preload="metadata"
+            muted
+            playsInline
+            autoPlay
+            loop
+            draggable={false}
+            onError={() => setHasError(true)}
+            className="w-full h-full object-cover pointer-events-none select-none" 
+          />
+        </div>
+      )}
+
+      {showMedia && !isVideo && (
+        <div className="relative w-full aspect-square bg-muted overflow-hidden">
+          <img 
+            src={payload.coverUrl} 
+            alt="" 
+            draggable={false}
+            onError={() => setHasError(true)}
+            className="w-full h-full object-cover pointer-events-none select-none" 
+          />
+        </div>
+      )}
+
+      {!showMedia && (
+        <div className="p-4 bg-muted/60 relative flex-1 flex flex-col items-center justify-center text-center min-h-[120px]">
+          <Utensils className="w-6 h-6 text-primary/40 mb-2 shrink-0" />
+          {payload?.text ? (
+            <p className="text-xs italic text-muted-foreground line-clamp-3 leading-relaxed">
+              "{payload.text}"
+            </p>
+          ) : (
+            <span className="text-xs text-muted-foreground font-medium">Publicación de @{cleanAuthor}</span>
+          )}
+        </div>
+      )}
+
+      <div className="p-3 flex flex-col gap-1 text-center bg-card border-t border-border">
+        <span className="font-bold text-foreground text-sm truncate">@{cleanAuthor}</span>
+        {payload?.text && showMedia && (
+          <p className="text-xs text-muted-foreground line-clamp-2 text-left mt-0.5 leading-snug">
+            {payload.text}
+          </p>
+        )}
+        <span className="text-xs font-semibold text-primary mt-1">Ver publicación</span>
+      </div>
+    </div>
+  );
 }
 
 export function renderOverlayContent(overlay: StoryOverlay, mode: string, ctx?: RenderContext) {
@@ -324,6 +454,7 @@ export function renderOverlayContent(overlay: StoryOverlay, mode: string, ctx?: 
     const setSentQ = safeCtx.setSentQ || (() => {});
     const onPauseRequest = safeCtx.onPauseRequest || (() => {});
     const onResumeRequest = safeCtx.onResumeRequest || (() => {});
+    const onNavigate = safeCtx.onNavigate;
     const pollResults = safeCtx.pollResults || {};
     const setPollResults = safeCtx.setPollResults || (() => {});
     const isVoting = safeCtx.isVoting || {};
@@ -332,6 +463,14 @@ export function renderOverlayContent(overlay: StoryOverlay, mode: string, ctx?: 
     const setSliderResults = safeCtx.setSliderResults || (() => {});
     const sliderValues = safeCtx.sliderValues || {};
     const setSliderValues = safeCtx.setSliderValues || (() => {});
+
+    const navigate = (path: string) => {
+      if (onNavigate) {
+        onNavigate(path);
+      } else {
+        window.location.href = path;
+      }
+    };
   
   switch (overlay.type) {
     case 'TEXT': {
@@ -345,13 +484,18 @@ export function renderOverlayContent(overlay: StoryOverlay, mode: string, ctx?: 
           const punctuation = w.slice(cleanW.length);
           
           if (cleanW.startsWith('@') && cleanW.length > 1) {
-            return <React.Fragment key={i}><span className="underline decoration-2 underline-offset-4 cursor-pointer" onClick={(e) => { e.stopPropagation(); if(mode==='VIEWER') window.location.href = '/' + cleanW.substring(1); }}>{cleanW}</span>{punctuation}</React.Fragment>;
+            return <React.Fragment key={i}><span className="underline decoration-2 underline-offset-4 cursor-pointer" onClick={(e) => { e.stopPropagation(); if(mode==='VIEWER') navigate('/' + cleanW.substring(1)); }}>{cleanW}</span>{punctuation}</React.Fragment>;
           }
           if (cleanW.startsWith('#') && cleanW.length > 1) {
-            return <React.Fragment key={i}><span className="underline decoration-2 underline-offset-4 cursor-pointer" onClick={(e) => { e.stopPropagation(); if(mode==='VIEWER') window.location.href = '/discover?q=' + encodeURIComponent(cleanW); }}>{cleanW}</span>{punctuation}</React.Fragment>;
+            return <React.Fragment key={i}><span className="underline decoration-2 underline-offset-4 cursor-pointer" onClick={(e) => { e.stopPropagation(); if(mode==='VIEWER') navigate('/discover?q=' + encodeURIComponent(cleanW)); }}>{cleanW}</span>{punctuation}</React.Fragment>;
           }
           if (cleanW.startsWith('http://') || cleanW.startsWith('https://')) {
-            return <React.Fragment key={i}><a href={cleanW} target="_blank" rel="noopener noreferrer" className="underline decoration-2 underline-offset-4 cursor-pointer" onClick={(e) => e.stopPropagation()}>{cleanW}</a>{punctuation}</React.Fragment>;
+            const isInternal = isInternalUrl(cleanW);
+            if (isInternal) {
+              const internalPath = getInternalPath(cleanW);
+              return <React.Fragment key={i}><span role="link" className="underline decoration-2 underline-offset-4 cursor-pointer" onClick={(e) => { e.stopPropagation(); if(mode==='VIEWER') navigate(internalPath); }}>{cleanW}</span>{punctuation}</React.Fragment>;
+            }
+            return <React.Fragment key={i}><a href={cleanW} target="_blank" rel="noopener noreferrer" className="underline decoration-2 underline-offset-4 cursor-pointer" onClick={(e) => { e.stopPropagation(); if (onPauseRequest) onPauseRequest(); }}>{cleanW}</a>{punctuation}</React.Fragment>;
           }
           return w;
         });
@@ -365,13 +509,14 @@ export function renderOverlayContent(overlay: StoryOverlay, mode: string, ctx?: 
     }
     case 'MENTION': {
       const p = overlay.payload;
+      const cleanUsername = (p.username || '').replace(/^@+/, '');
       return (
         <div 
           className="bg-primary text-primary-foreground px-4 py-2 rounded-2xl font-bold shadow-2xl flex items-center gap-1.5 border border-primary-foreground/20 cursor-pointer text-sm"
-          onClick={() => { if (mode === 'VIEWER') window.location.href = '/' + p.username; }}
+          onClick={(e) => { e.stopPropagation(); if (mode === 'VIEWER') navigate('/' + cleanUsername); }}
         >
           <span>@</span>
-          <span>{p.username}</span>
+          <span>{cleanUsername}</span>
         </div>
       );
     }
@@ -391,7 +536,7 @@ export function renderOverlayContent(overlay: StoryOverlay, mode: string, ctx?: 
       const style = p.displayStyle || 'compact';
 
       const handleClick = (e: React.MouseEvent) => { 
-        if (mode === 'VIEWER') { e.stopPropagation(); window.location.href = '/recipes/' + p.recipeId; } 
+        if (mode === 'VIEWER') { e.stopPropagation(); navigate('/recipes/' + p.recipeId); } 
       };
 
       if (style === 'compact') {
@@ -433,13 +578,14 @@ export function renderOverlayContent(overlay: StoryOverlay, mode: string, ctx?: 
     }
     case 'PROFILE': {
       const p = overlay.payload;
+      const cleanUsername = (p.username || '').replace(/^@+/, '');
       return (
         <div 
           className="bg-card text-foreground px-4 py-2 rounded-2xl font-bold flex items-center gap-2 shadow-2xl border border-border cursor-pointer text-sm" 
-          onClick={() => { if (mode === 'VIEWER') window.location.href = '/' + p.username; }}
+          onClick={(e) => { e.stopPropagation(); if (mode === 'VIEWER') navigate('/' + cleanUsername); }}
         >
           <span className="text-primary">👤</span>
-          <span>@{p.username}</span>
+          <span>@{cleanUsername}</span>
         </div>
       );
     }
@@ -447,7 +593,7 @@ export function renderOverlayContent(overlay: StoryOverlay, mode: string, ctx?: 
       const p = overlay.payload;
       const style = p.displayStyle || 'compact';
       const handleClick = (e: React.MouseEvent) => { 
-        if (mode === 'VIEWER') { e.stopPropagation(); window.location.href = '/sessions/' + p.sessionId; } 
+        if (mode === 'VIEWER') { e.stopPropagation(); navigate('/sessions/' + p.sessionId); } 
       };
 
       if (style === 'compact') {
@@ -482,52 +628,13 @@ export function renderOverlayContent(overlay: StoryOverlay, mode: string, ctx?: 
       );
     }
     case 'POST': {
-      const p = overlay.payload;
-      const style = p.displayStyle || 'card';
-      const handleClick = (e: React.MouseEvent) => { 
-        if (mode === 'VIEWER') { e.stopPropagation(); window.location.href = '/posts/' + p.postId; } 
-      };
-
-      const cleanAuthor = p.authorName ? p.authorName.replace(/^@+/, '') : 'usuario';
-
-      if (style === 'compact') {
-        return (
-          <div 
-            className="bg-card border border-border text-foreground px-4 py-2 rounded-2xl font-bold flex items-center gap-2 shadow-2xl cursor-pointer text-sm pointer-events-auto transition-transform hover:scale-105" 
-            onClick={handleClick}
-          >
-            <span>@{cleanAuthor}</span> 
-            <span className="text-primary text-xs ml-1 border-l pl-2 border-border font-semibold">Ver</span>
-          </div>
-        );
-      }
-
-      if (style === 'text') {
-        return (
-          <div onClick={handleClick} className="text-white drop-shadow-md px-3 py-1.5 flex flex-col items-center cursor-pointer pointer-events-auto hover:opacity-80 transition-opacity">
-            <span className="font-bold text-lg text-center max-w-[200px] truncate">{p.text || `Publicación de @${cleanAuthor}`}</span>
-            <span className="text-xs bg-black/50 border border-white/20 px-3 py-1 rounded-full mt-1 font-medium">Ver publicación →</span>
-          </div>
-        );
-      }
-
       return (
-        <div onClick={handleClick} className="bg-card rounded-2xl overflow-hidden shadow-2xl border border-border flex flex-col w-60 cursor-pointer pointer-events-auto transition-transform hover:scale-105">
-          {p.coverUrl && (
-            <img 
-              src={p.coverUrl} 
-              alt={p.text || "Publicación"} 
-              draggable={false}
-              className="w-full aspect-square object-cover pointer-events-none select-none" 
-            />
-          )}
-          {!p.coverUrl && p.text && (<div className="p-4 bg-muted relative flex-1 flex items-center justify-center text-center"><p className="text-sm italic text-muted-foreground line-clamp-3">{p.text}</p></div>)}
-          <div className="p-3.5 flex flex-col gap-1 text-center bg-card border-t border-border">
-            <span className="font-bold text-foreground text-sm truncate">@{cleanAuthor}</span>
-            {p.text && p.coverUrl && <p className="text-xs text-muted-foreground line-clamp-2 text-left mt-1">{p.text}</p>}
-            <span className="text-xs font-semibold text-primary mt-1">Ver publicación</span>
-          </div>
-        </div>
+        <SharedPostCard
+          payload={overlay.payload}
+          mode={mode}
+          onNavigate={onNavigate}
+          onPauseRequest={onPauseRequest}
+        />
       );
     }
     case 'POLL': {
@@ -652,7 +759,7 @@ export function renderOverlayContent(overlay: StoryOverlay, mode: string, ctx?: 
       const rawUrl = p.url || '';
       let displayDomain = '';
       try {
-        const parsed = new URL(rawUrl.startsWith('http') ? rawUrl : `https://${rawUrl}`);
+        const parsed = new URL(rawUrl.startsWith('http') ? rawUrl : (rawUrl.startsWith('/') ? `https://misarroces.es${rawUrl}` : `https://${rawUrl}`));
         displayDomain = parsed.hostname.replace(/^www\./, '');
       } catch {
         displayDomain = 'Enlace';
@@ -663,11 +770,18 @@ export function renderOverlayContent(overlay: StoryOverlay, mode: string, ctx?: 
       const handleClick = (e: React.MouseEvent) => {
         if (mode === 'VIEWER') {
           e.stopPropagation();
-          let targetUrl = rawUrl;
-          if (!/^https?:\/\//i.test(targetUrl)) {
-            targetUrl = `https://${targetUrl}`;
+          e.preventDefault();
+          if (isInternalUrl(rawUrl)) {
+            const internalPath = getInternalPath(rawUrl);
+            navigate(internalPath);
+          } else {
+            let targetUrl = rawUrl;
+            if (!/^https?:\/\//i.test(targetUrl)) {
+              targetUrl = `https://${targetUrl}`;
+            }
+            if (onPauseRequest) onPauseRequest();
+            window.open(targetUrl, '_blank', 'noopener,noreferrer');
           }
-          window.open(targetUrl, '_blank', 'noopener,noreferrer');
         }
       };
 

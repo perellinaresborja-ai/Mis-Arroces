@@ -467,6 +467,15 @@ export function LinkPicker({ onSelect }: { onSelect: (link: { id: string, title:
     }
 
     let parsedUrl = trimmedUrl
+    if (parsedUrl.startsWith('/') || parsedUrl.startsWith('#')) {
+      onSelect({
+        id: 'link_' + Date.now(),
+        title: title.trim() || '',
+        url: parsedUrl
+      })
+      return
+    }
+
     if (!/^https?:\/\//i.test(parsedUrl)) {
       parsedUrl = `https://${parsedUrl}`
     }

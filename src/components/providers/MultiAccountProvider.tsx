@@ -84,8 +84,22 @@ function saveMetaToStorage(accounts: AccountPublicProfile[]) {
 export function MultiAccountProvider({ children }: { children: React.ReactNode }) {
   const [accounts, setAccounts] = useState<AccountPublicProfile[]>([])
   const [activeAccountId, setActiveAccountId] = useState<string | null>(null)
-  const [isSwitching, setIsSwitching] = useState(false)
-  const [switchingTargetUsername, setSwitchingTargetUsername] = useState<string | null>(null)
+  const [isSwitching, setIsSwitching] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false
+    try {
+      return sessionStorage.getItem("ma_is_switching") === "1"
+    } catch {
+      return false
+    }
+  })
+  const [switchingTargetUsername, setSwitchingTargetUsername] = useState<string | null>(() => {
+    if (typeof window === "undefined") return null
+    try {
+      return sessionStorage.getItem("ma_switching_target")
+    } catch {
+      return null
+    }
+  })
   const [isSwitcherOpen, setIsSwitcherOpen] = useState(false)
 
   const accountsRef = useRef<AccountPublicProfile[]>([])
@@ -130,6 +144,12 @@ export function MultiAccountProvider({ children }: { children: React.ReactNode }
       if (session?.user && (event === "SIGNED_IN" || event === "TOKEN_REFRESHED")) {
         setActiveAccountId(session.user.id)
         await refreshAccounts()
+        try {
+          sessionStorage.removeItem("ma_is_switching")
+          sessionStorage.removeItem("ma_switching_target")
+        } catch {}
+        setIsSwitching(false)
+        setSwitchingTargetUsername(null)
       } else if (event === "SIGNED_OUT") {
         setActiveAccountId(null)
       }
@@ -139,6 +159,20 @@ export function MultiAccountProvider({ children }: { children: React.ReactNode }
       subscription.unsubscribe()
     }
   }, [])
+
+  // Temporizador de seguridad para desbloquear overlay si la navegación o red se demora
+  useEffect(() => {
+    if (!isSwitching) return
+    const safety = setTimeout(() => {
+      try {
+        sessionStorage.removeItem("ma_is_switching")
+        sessionStorage.removeItem("ma_switching_target")
+      } catch {}
+      setIsSwitching(false)
+      setSwitchingTargetUsername(null)
+    }, 2500)
+    return () => clearTimeout(safety)
+  }, [isSwitching])
 
   // Conmutación atómica a otra cuenta mediante Server Action (sin manipular tokens en cliente)
   const switchAccount = async (targetUserId: string): Promise<boolean> => {
@@ -150,6 +184,11 @@ export function MultiAccountProvider({ children }: { children: React.ReactNode }
       return true
     }
 
+    try {
+      sessionStorage.setItem("ma_is_switching", "1")
+      sessionStorage.setItem("ma_switching_target", targetAccount.username)
+    } catch {}
+
     setIsSwitching(true)
     setSwitchingTargetUsername(targetAccount.username)
 
@@ -158,6 +197,10 @@ export function MultiAccountProvider({ children }: { children: React.ReactNode }
       const res = await switchAccountSessionAction(targetUserId)
 
       if (!res.success) {
+        try {
+          sessionStorage.removeItem("ma_is_switching")
+          sessionStorage.removeItem("ma_switching_target")
+        } catch {}
         setIsSwitching(false)
         setSwitchingTargetUsername(null)
         await refreshAccounts()
@@ -191,8 +234,10 @@ export function MultiAccountProvider({ children }: { children: React.ReactNode }
         }
       }
 
-      // Asegurar que no se dispare el splash ni se limpien flags de arranque
+      // Asegurar señal persistente de cuenta en dispositivo
       try {
+        localStorage.setItem("ma_has_account", "1")
+        document.cookie = "ma_has_account=1; path=/; max-age=63072000; SameSite=Lax"
         sessionStorage.setItem("misarroces_splash_shown", "1")
       } catch {}
 
@@ -214,6 +259,10 @@ export function MultiAccountProvider({ children }: { children: React.ReactNode }
       return true
     } catch (err: any) {
       console.error("Fallo general conmutando cuenta:", err)
+      try {
+        sessionStorage.removeItem("ma_is_switching")
+        sessionStorage.removeItem("ma_switching_target")
+      } catch {}
       alert("No se ha podido cambiar de cuenta.")
       setIsSwitching(false)
       setSwitchingTargetUsername(null)

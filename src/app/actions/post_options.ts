@@ -110,21 +110,104 @@ export async function toggleBookmark(entityType: string, entityId: string) {
   revalidatePath('/[userParam]')
 }
 
-export async function updatePostContent(entityId: string, content: string) {
+export interface UpdatePostParams {
+  postId: string
+  content: string
+  location?: string | null
+  collaboratorId?: string | null
+  recipeId?: string | null
+  tags?: any[]
+}
+
+export async function updatePost({
+  postId,
+  content,
+  location,
+  collaboratorId,
+  recipeId,
+  tags = []
+}: UpdatePostParams) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error("Unauthorized")
 
-  const { error } = await supabase
+  if (!content || content.length > 2200) {
+    throw new Error("El contenido no puede estar vacío ni superar los 2200 caracteres.")
+  }
+
+  // 1. Verify ownership
+  const { data: existingPost, error: fetchErr } = await supabase
     .from('social_posts' as any)
-    .update({ content })
-    .eq('id', entityId)
+    .select('id, author_id, collaborator_id')
+    .eq('id', postId)
+    .eq('author_id', user.id)
+    .single()
+
+  if (fetchErr || !existingPost) {
+    throw new Error("No tienes permiso para editar esta publicación.")
+  }
+
+  // 2. Update post fields without touching post_media!
+  const updates: any = {
+    content,
+    recipe_id: recipeId || null,
+    updated_at: new Date().toISOString()
+  }
+  if (typeof location !== 'undefined') {
+    updates.location = location || null
+  }
+  if (typeof collaboratorId !== 'undefined') {
+    updates.collaborator_id = collaboratorId || null
+  }
+
+  let { error: updateErr } = await supabase
+    .from('social_posts' as any)
+    .update(updates)
+    .eq('id', postId)
     .eq('author_id', user.id)
 
-  if (error) throw error
+  if (updateErr && updateErr.message?.includes("column")) {
+    delete updates.location
+    delete updates.collaborator_id
+    const retry = await supabase
+      .from('social_posts' as any)
+      .update(updates)
+      .eq('id', postId)
+      .eq('author_id', user.id)
+    updateErr = retry.error
+  }
+  if (updateErr) throw updateErr
+
+  // 3. Update tags and mentions
+  try {
+    const { parseAndSaveMentionsAndHashtags, saveTags } = await import("@/app/actions/social_features")
+    await parseAndSaveMentionsAndHashtags(content, "social_post", postId, user.id)
+    await saveTags("social_post", postId, user.id, tags)
+  } catch (e) {
+    console.error("Error updating tags/mentions:", e)
+  }
+
+  // 4. Notify new collaborator if changed
+  if (collaboratorId && collaboratorId !== user.id && collaboratorId !== (existingPost as any).collaborator_id) {
+    try {
+      const { createNotification } = await import("@/app/actions/notifications")
+      await createNotification(collaboratorId, 'TAG', 'post', postId)
+    } catch (e) {
+      console.error("Error notifying collaborator:", e)
+    }
+  }
 
   revalidatePath('/')
+  revalidatePath('/feed')
+  revalidatePath('/discover')
   revalidatePath('/[userParam]', 'layout')
+  revalidatePath(`/posts/${postId}`)
+
+  return { success: true }
+}
+
+export async function updatePostContent(entityId: string, content: string) {
+  return updatePost({ postId: entityId, content })
 }
 
 export async function updateSessionContent(entityId: string, notes: string, rating: number, socarrat: number) {

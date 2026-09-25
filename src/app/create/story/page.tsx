@@ -102,14 +102,17 @@ export default async function CreateStoryPage(props: { searchParams?: Promise<{ 
 
     const { data: media } = await supabase
       .from('post_media')
-      .select('media:media_assets(storage_path), media_assets(storage_path), display_order')
+      .select('display_order, media:media_assets(id, storage_path, media_type, mime_type), media_assets(id, storage_path, media_type, mime_type)')
       .eq('post_id', finalPostId)
       .order('display_order', { ascending: true })
       .limit(1)
       .maybeSingle();
 
     let coverUrl: string | undefined;
-    const storagePath = (media as any)?.media?.storage_path || (media as any)?.media_assets?.storage_path;
+    const mediaAsset = (media as any)?.media || (media as any)?.media_assets;
+    const storagePath = mediaAsset?.storage_path;
+    let isVideo = mediaAsset?.media_type === 'VIDEO' || mediaAsset?.mime_type?.startsWith('video/');
+
     if (storagePath) {
       coverUrl = supabase.storage.from('recipe_media').getPublicUrl(storagePath).data.publicUrl;
     } else if (data?.recipe_id) {
@@ -123,13 +126,24 @@ export default async function CreateStoryPage(props: { searchParams?: Promise<{ 
       const rPath = (rMedia as any)?.media?.storage_path || (rMedia as any)?.media_assets?.storage_path;
       if (rPath) {
         coverUrl = supabase.storage.from('recipe_media').getPublicUrl(rPath).data.publicUrl;
+        isVideo = false;
       }
+    }
+
+    if (coverUrl && (/\.(mp4|webm|mov)(\?.*)?$/i.test(coverUrl) || coverUrl.includes('video/'))) {
+      isVideo = true;
     }
     
     if (data) {
       const author = (data.author as any) || {};
       const authorName = author.username ? author.username.replace(/^@+/, '') : (author.display_name || 'Usuario');
-      postData = { id: data.id, authorName, text: data.content || undefined, coverUrl };
+      postData = { 
+        id: data.id, 
+        authorName, 
+        text: data.content || undefined, 
+        coverUrl, 
+        mediaType: isVideo ? 'VIDEO' : 'IMAGE' 
+      };
     }
   }
 
@@ -138,7 +152,7 @@ export default async function CreateStoryPage(props: { searchParams?: Promise<{ 
       <StoryCreator 
         initialRecipe={recipeData ? { id: recipeData.id, name: recipeData.name, coverUrl: recipeMedia?.url } : undefined}
         initialSession={sessionData ? { id: sessionData.id, authorName: sessionData.authorName, title: sessionData.title, coverUrl: sessionData.coverUrl } : undefined}
-        initialPost={postData ? { id: postData.id, authorName: postData.authorName, text: postData.text, coverUrl: postData.coverUrl } : undefined}
+        initialPost={postData ? { id: postData.id, authorName: postData.authorName, text: postData.text, coverUrl: postData.coverUrl, mediaType: postData.mediaType as any } : undefined}
       />
     </div>
   )

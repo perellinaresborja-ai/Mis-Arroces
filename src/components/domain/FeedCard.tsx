@@ -7,12 +7,13 @@ import { ReactionButton } from "@/components/domain/ReactionButton"
 import { MediaCarousel } from "@/components/domain/MediaCarousel"
 import { MediaImage } from "@/components/domain/MediaImage"
 import { RecipeFeedPlaceholder } from "@/components/domain/RecipeFeedPlaceholder"
-import { MessageCircle, Bookmark } from "lucide-react"
+import { MessageCircle, Bookmark, MapPin, Users, Tag, ChefHat } from "lucide-react"
 import { FeedCommentsInline } from "@/components/domain/FeedCommentsInline"
 import { PostOptionsMenu } from "@/components/domain/PostOptionsMenu"
 import { cn, formatRelativeTime } from "@/lib/utils"
 import { useAuthPrompt } from "@/components/providers/AuthPromptProvider"
 import { FeedFollowButton } from "@/components/domain/FeedFollowButton"
+import { SocialTextRenderer } from "@/components/domain/SocialTextRenderer"
 
 export interface FeedCardProps {
   entityType: "recipe" | "session" | "post"
@@ -36,6 +37,9 @@ export interface FeedCardProps {
 
   // Post specific
   postContent?: string
+  location?: string | null
+  collaborator?: { id: string; username: string; display_name: string | null } | null
+  taggedUsers?: { id: string; username: string; display_name: string | null }[]
   
   // Recipe specific
   recipeName?: string
@@ -64,6 +68,9 @@ export function FeedCard({
   currentUserId,
   followStatus,
   postContent,
+  location,
+  collaborator,
+  taggedUsers,
   recipeName,
   recipeType,
   sessionRating,
@@ -107,17 +114,34 @@ export function FeedCard({
               )}
             </Link>
             <div>
-            <div className="flex items-center">
-              <Link href={`/@${user.username}`} className="font-bold text-[15px] hover:underline">
-                {user.display_name || `@${user.username}`}
-              </Link>
-            </div>
-            {user.display_name && (
-              <div className="text-[13px] text-muted-foreground flex items-center gap-1">
-                <Link href={`/@${user.username}`} className="hover:underline">@{user.username}</Link> <span>·</span> {formatRelativeTime(createdAt)}
+              <div className="flex items-center flex-wrap gap-1">
+                <Link href={`/@${user.username}`} className="font-bold text-[15px] hover:underline">
+                  {user.display_name || `@${user.username}`}
+                </Link>
+                {collaborator && (
+                  <>
+                    <span className="text-xs text-muted-foreground font-normal">y</span>
+                    <Link href={`/@${collaborator.username}`} className="font-bold text-[15px] text-primary hover:underline">
+                      {collaborator.display_name || `@${collaborator.username}`}
+                    </Link>
+                  </>
+                )}
               </div>
-            )}
-          </div>
+              <div className="text-[13px] text-muted-foreground flex items-center flex-wrap gap-1">
+                <Link href={`/@${user.username}`} className="hover:underline">@{user.username}</Link>
+                <span>·</span>
+                <span>{formatRelativeTime(createdAt)}</span>
+                {location && (
+                  <>
+                    <span>·</span>
+                    <span className="inline-flex items-center gap-0.5 text-foreground/80 font-medium">
+                      <MapPin className="w-3.5 h-3.5 text-primary shrink-0" />
+                      <span>{location}</span>
+                    </span>
+                  </>
+                )}
+              </div>
+            </div>
         </div>
         
         <div className="shrink-0 ml-2">
@@ -150,6 +174,22 @@ export function FeedCard({
         </div>
       </header>
 
+      {/* Tagged People Badge */}
+      {taggedUsers && taggedUsers.length > 0 && (
+        <div className="flex items-center gap-1.5 flex-wrap text-xs text-muted-foreground bg-muted/40 border border-border/50 px-3 py-1.5 rounded-xl w-fit">
+          <Tag className="w-3.5 h-3.5 text-primary shrink-0" />
+          <span>Con</span>
+          {taggedUsers.map((tu, idx) => (
+            <span key={tu.id}>
+              <Link href={`/@${tu.username}`} className="font-semibold text-foreground hover:underline">
+                @{tu.username}
+              </Link>
+              {idx < taggedUsers.length - 1 ? ", " : ""}
+            </span>
+          ))}
+        </div>
+      )}
+
       {/* Context Badge (Sessions) */}
       {entityType === 'session' && linkedRecipe?.id && (
         <div className="text-sm font-medium">
@@ -159,7 +199,9 @@ export function FeedCard({
 
       {/* Text Content (Posts) */}
       {postContent && (
-        <p className="whitespace-pre-wrap text-[15px]">{postContent}</p>
+        <p className="whitespace-pre-wrap text-[15px] leading-relaxed">
+          <SocialTextRenderer text={postContent} />
+        </p>
       )}
 
       {/* Media */}
@@ -181,10 +223,17 @@ export function FeedCard({
 
       {/* Linked Recipe (Posts) */}
       {entityType === 'post' && linkedRecipe && (
-        <div className="bg-muted border border-border rounded-xl p-3 flex justify-between items-center">
-          <div>
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-0.5">Receta vinculada</p>
-            <Link href={`/recipes/${linkedRecipe.id}`} className="font-medium hover:underline text-sm">{linkedRecipe.name}</Link>
+        <div className="bg-muted/50 border border-border rounded-2xl p-3.5 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5 overflow-hidden">
+            <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0">
+              <ChefHat className="w-4 h-4" />
+            </div>
+            <div className="truncate">
+              <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Receta vinculada</p>
+              <Link href={`/recipes/${linkedRecipe.id}`} className="font-bold hover:underline text-sm truncate block">
+                {linkedRecipe.name}
+              </Link>
+            </div>
           </div>
         </div>
       )}

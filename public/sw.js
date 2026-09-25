@@ -1,11 +1,13 @@
 // Service Worker ligero para misarroces PWA
-const CACHE_NAME = 'misarroces-v3';
+const CACHE_NAME = 'misarroces-v4';
 const OFFLINE_URL = '/offline.html';
 
 const STATIC_ASSETS = [
   OFFLINE_URL,
+  '/logopngver.png',
   '/icons/icon-192x192.png',
   '/icons/icon-512x512.png',
+  '/icons/icon-maskable-512x512.png',
   '/apple-touch-icon.png'
 ];
 

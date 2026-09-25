@@ -49,6 +49,17 @@ export function StoriesViewer({ groupedStories: _groupedStories, initialGroupInd
   const [storyIndex, setStoryIndex] = useState(initialIndex || 0)
   const [isPaused, setIsPaused] = useState(false)
   const [progress, setProgress] = useState(0) // 0 to 100 per story
+
+  const handleNavigate = (targetPath: string) => {
+    setIsPaused(true);
+    if (videoRef.current) {
+      try {
+        videoRef.current.pause();
+      } catch {}
+    }
+    onClose();
+    router.push(targetPath);
+  };
   const [showMenu, setShowMenu] = useState(false)
   const [showShare, setShowShare] = useState(false)
   const [showReport, setShowReport] = useState(false)
@@ -348,7 +359,16 @@ export function StoriesViewer({ groupedStories: _groupedStories, initialGroupInd
 
         {/* Header */}
         <div className="absolute top-0 left-0 w-full z-50 flex items-center justify-between px-4 pt-safe mt-3">
-          <div className="flex items-center gap-3 flex-1 min-w-0">
+          <div 
+            className="flex items-center gap-3 flex-1 min-w-0 cursor-pointer pointer-events-auto"
+            onClick={(e) => {
+              e.stopPropagation();
+              const uname = currentGroup.author?.username;
+              if (uname) {
+                handleNavigate(`/@${uname.replace(/^@+/, '')}`);
+              }
+            }}
+          >
             <div className="w-10 h-10 rounded-full bg-muted overflow-hidden flex items-center justify-center shrink-0">
               {currentGroup.author?.avatar?.storage_path ? (
                 <img src={`${"https://zvesoygqssyyojqyswwm.supabase.co"}/storage/v1/object/public/recipe_media/${currentGroup.author.avatar.storage_path}`} className="w-full h-full object-cover" />
@@ -471,6 +491,9 @@ export function StoriesViewer({ groupedStories: _groupedStories, initialGroupInd
             onTimeUpdate={handleTimeUpdate}
             onEnded={handleVideoEnded}
             isPaused={isPaused}
+            onPauseRequest={() => setIsPaused(true)}
+            onResumeRequest={() => setIsPaused(false)}
+            onNavigate={handleNavigate}
           />
           
           {/* LEFT NAV ZONE */}
@@ -547,9 +570,13 @@ export function StoriesViewer({ groupedStories: _groupedStories, initialGroupInd
         {/* Linked Content CTA */}
         {currentStory.recipe_id && (
           <div className="absolute bottom-24 left-0 w-full flex justify-center z-20 pointer-events-none px-4">
-            <Link 
-              href={`/recipes/${currentStory.recipe_id}`} 
-              className="w-full max-w-sm flex items-center bg-zinc-900/90 backdrop-blur-md rounded-2xl p-2 gap-3 shadow-2xl pointer-events-auto transition-transform hover:scale-105 border border-white/10"
+            <button 
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleNavigate(`/recipes/${currentStory.recipe_id}`);
+              }} 
+              className="w-full max-w-sm flex items-center bg-zinc-900/90 backdrop-blur-md rounded-2xl p-2 gap-3 shadow-2xl pointer-events-auto transition-transform hover:scale-105 border border-white/10 text-left"
             >
               {currentStory.recipe?.recipe_media?.[0]?.media?.storage_path ? (
                 <div className="w-12 h-12 rounded-xl overflow-hidden shrink-0">
@@ -571,14 +598,18 @@ export function StoriesViewer({ groupedStories: _groupedStories, initialGroupInd
               <div className="w-6 h-6 shrink-0 mr-1 flex items-center justify-center text-white/50">
                 &rarr;
               </div>
-            </Link>
+            </button>
           </div>
         )}
         {currentStory.session_id && (
           <div className="absolute bottom-24 left-0 w-full flex justify-center z-20 pointer-events-none px-4">
-            <Link 
-              href={`/sessions/${currentStory.session_id}`} 
-              className="w-full max-w-sm flex items-center bg-zinc-900/90 backdrop-blur-md rounded-2xl p-2 gap-3 shadow-2xl pointer-events-auto transition-transform hover:scale-105 border border-white/10"
+            <button 
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleNavigate(`/sessions/${currentStory.session_id}`);
+              }} 
+              className="w-full max-w-sm flex items-center bg-zinc-900/90 backdrop-blur-md rounded-2xl p-2 gap-3 shadow-2xl pointer-events-auto transition-transform hover:scale-105 border border-white/10 text-left"
             >
               {currentStory.session?.session_media?.[0]?.media?.storage_path ? (
                 <div className="w-12 h-12 rounded-xl overflow-hidden shrink-0">
@@ -600,7 +631,7 @@ export function StoriesViewer({ groupedStories: _groupedStories, initialGroupInd
               <div className="w-6 h-6 shrink-0 mr-1 flex items-center justify-center text-white/50">
                 &rarr;
               </div>
-            </Link>
+            </button>
           </div>
         )}
 

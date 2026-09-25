@@ -107,13 +107,36 @@ export function SocialElaborationModal({ isOpen, onClose, item, currentUserId }:
         <div className="md:w-[55%] lg:w-[60%] bg-black flex items-center justify-center relative shrink-0 h-[40dvh] md:h-full">
           {media.length > 0 ? (
             <>
-              <Image 
-                src={getImageUrl(media[currentIndex].storage_path)} 
-                alt={`Media ${currentIndex + 1}`} sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                fill
-                className="object-contain"
-                priority
-              />
+              {(() => {
+                const currentItem = media[currentIndex]
+                const isVideo = Boolean(currentItem?.media_type === 'VIDEO' || currentItem?.storage_path?.match(/\.(mp4|webm|mov)$/i))
+                const url = getImageUrl(currentItem.storage_path)
+
+                if (isVideo) {
+                  return (
+                    <video
+                      key={currentItem.storage_path}
+                      src={url}
+                      controls
+                      autoPlay
+                      playsInline
+                      className="w-full h-full object-contain"
+                    >
+                      <source src={url} type="video/mp4" />
+                    </video>
+                  )
+                }
+
+                return (
+                  <Image 
+                    src={url} 
+                    alt={`Media ${currentIndex + 1}`} sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                    fill
+                    className="object-contain"
+                    priority
+                  />
+                )
+              })()}
               {media.length > 1 && (
                 <>
                   <button onClick={prev} className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/60 text-white rounded-full p-2 transition">

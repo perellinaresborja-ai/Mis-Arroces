@@ -40,7 +40,17 @@ export function UserSessionProvider({
   const [user, setUser] = useState<User | null>(initialUser)
   const [avatarUrl, setAvatarUrl] = useState<string | null>(initialAvatarUrl)
   const [username, setUsername] = useState<string | null>(initialUsername)
-  const [isLoading, setIsLoading] = useState(false)
+  const [isLoading, setIsLoading] = useState(() => {
+    if (initialUser) return false
+    if (typeof window !== "undefined") {
+      try {
+        return localStorage.getItem("ma_has_account") === "1" || Boolean(sessionStorage.getItem("ma_is_switching"))
+      } catch {
+        return false
+      }
+    }
+    return false
+  })
 
   // Track active user ID and request sequence to prevent redundant calls and race conditions
   const activeUserIdRef = useRef<string | null>(initialUser ? initialUser.id : null)

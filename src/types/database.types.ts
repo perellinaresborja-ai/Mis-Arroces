@@ -2841,10 +2841,12 @@ profiles: {
         Row: {
           allow_comments: boolean
           author_id: string
+          collaborator_id: string | null
           content: string
           created_at: string
           id: string
           is_pinned: boolean
+          location: string | null
           recipe_id: string | null
           scheduled_for: string | null
           status: Database["public"]["Enums"]["recipe_status_enum"]
@@ -2854,10 +2856,12 @@ profiles: {
         Insert: {
           allow_comments?: boolean
           author_id: string
+          collaborator_id?: string | null
           content: string
           created_at?: string
           id?: string
           is_pinned?: boolean
+          location?: string | null
           recipe_id?: string | null
           scheduled_for?: string | null
           status?: Database["public"]["Enums"]["recipe_status_enum"]
@@ -2867,10 +2871,12 @@ profiles: {
         Update: {
           allow_comments?: boolean
           author_id?: string
+          collaborator_id?: string | null
           content?: string
           created_at?: string
           id?: string
           is_pinned?: boolean
+          location?: string | null
           recipe_id?: string | null
           scheduled_for?: string | null
           status?: Database["public"]["Enums"]["recipe_status_enum"]

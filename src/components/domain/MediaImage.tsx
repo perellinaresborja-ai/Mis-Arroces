@@ -65,6 +65,43 @@ export function MediaImage({
     return <div className={`bg-muted ${className}`} />
   }
 
+  const isVideo = Boolean(src && (/\.(mp4|webm|mov)(\?.*)?$/i.test(src) || src.includes('video/')));
+
+  if (isVideo && src) {
+    if (fill) {
+      return (
+        <video
+          src={src}
+          className={`absolute inset-0 w-full h-full object-cover pointer-events-none ${className}`}
+          preload="auto"
+          autoPlay
+          muted
+          loop
+          playsInline
+          onError={() => setError(true)}
+        >
+          <source src={src} type="video/mp4" />
+        </video>
+      )
+    }
+    return (
+      <video
+        src={src}
+        width={width}
+        height={height}
+        className={`pointer-events-none ${className}`}
+        preload="auto"
+        autoPlay
+        muted
+        loop
+        playsInline
+        onError={() => setError(true)}
+      >
+        <source src={src} type="video/mp4" />
+      </video>
+    )
+  }
+
   const shouldUnoptimize = unoptimized || isPrivate;
 
   if (shouldUnoptimize) {

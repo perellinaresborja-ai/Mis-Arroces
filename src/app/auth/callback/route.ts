@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { generateAvailableUsername } from '@/lib/username'
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)
@@ -20,17 +19,30 @@ export async function GET(request: Request) {
     const { data: { session }, error } = await supabase.auth.exchangeCodeForSession(code)
     
     if (!error && session) {
-      // Auto-create missing profile just in case
-      const { data: profile } = await supabase.from("profiles").select("username").eq("id", session.user.id).single()
+      const { data: profile } = await supabase.from("profiles").select("username").eq("id", session.user.id).maybeSingle()
       if (!profile) {
-        const autoUsername = await generateAvailableUsername(supabase, "arrocero")
-        await supabase.from("profiles").insert({
-          id: session.user.id,
-          username: autoUsername,
-          display_name: autoUsername,
-          account_type: 'PERSONAL',
-          privacy_level: 'PUBLIC'
-        })
+        const metaUser = (session.user.user_metadata?.username || "").trim().toLowerCase().replace(/[^a-z0-9_.]/g, '')
+        const metaName = (session.user.user_metadata?.display_name || session.user.user_metadata?.full_name || "").trim()
+
+        if (metaUser && metaName) {
+          await supabase.from("profiles").upsert({
+            id: session.user.id,
+            username: metaUser,
+            display_name: metaName,
+            account_type: 'PERSONAL',
+            privacy_level: 'PUBLIC',
+            onboarding_completed: true
+          }, { onConflict: 'id' })
+        } else {
+          const response = NextResponse.redirect(`${origin}/onboarding`)
+          response.cookies.set("ma_has_account", "1", {
+            path: "/",
+            maxAge: 60 * 60 * 24 * 730,
+            sameSite: "lax",
+            secure: process.env.NODE_ENV === "production"
+          })
+          return response
+        }
 
         // Registro interno de recomendación si existe cookie founder_ref
         try {

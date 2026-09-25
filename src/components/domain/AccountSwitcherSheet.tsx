@@ -28,7 +28,7 @@ export function AccountSwitcherSheet() {
     <>
       {/* OVERLAY DE CAMBIO ACTIVO */}
       {isSwitching && (
-        <div className="fixed inset-0 z-[110] flex flex-col items-center justify-center bg-background/80 backdrop-blur-md">
+        <div className="fixed inset-0 z-[110] flex flex-col items-center justify-center bg-background/95 backdrop-blur-md">
           <div className="bg-card border border-border p-6 rounded-3xl shadow-xl flex flex-col items-center space-y-3 max-w-xs text-center">
             <Loader2 className="w-8 h-8 text-primary animate-spin" aria-hidden="true" focusable="false" />
             <div className="space-y-1">

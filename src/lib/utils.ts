@@ -44,3 +44,51 @@ export function formatUnitSymbol(unitName: string | null | undefined): string {
   if (lower.includes("unidad")) return "ud."
   return unitName // fallback if unknown
 }
+
+export function isInternalUrl(url: string | null | undefined): boolean {
+  if (!url) return false
+  const trimmed = url.trim()
+  if (!trimmed) return false
+
+  // Relative URLs like /recipes/123 or /@user
+  if (trimmed.startsWith('/') && !trimmed.startsWith('//')) return true
+  if (trimmed.startsWith('#')) return true
+
+  try {
+    const parsed = new URL(trimmed.startsWith('http') ? trimmed : `https://${trimmed}`)
+    const host = parsed.hostname.toLowerCase().replace(/^www\./, '')
+
+    if (typeof window !== 'undefined') {
+      const currentHost = window.location.hostname.toLowerCase().replace(/^www\./, '')
+      if (host === currentHost) return true
+    }
+
+    if (
+      host === 'misarroces.es' ||
+      host === 'misarroces.com' ||
+      host === 'localhost' ||
+      host === '127.0.0.1'
+    ) {
+      return true
+    }
+
+    return false
+  } catch {
+    return false
+  }
+}
+
+export function getInternalPath(url: string | null | undefined): string {
+  if (!url) return '/'
+  const trimmed = url.trim()
+  if (trimmed.startsWith('/') && !trimmed.startsWith('//')) return trimmed
+
+  try {
+    const parsed = new URL(trimmed.startsWith('http') ? trimmed : `https://${trimmed}`)
+    const path = `${parsed.pathname}${parsed.search}${parsed.hash}`
+    return path || '/'
+  } catch {
+    return trimmed.startsWith('/') ? trimmed : `/${trimmed}`
+  }
+}
+

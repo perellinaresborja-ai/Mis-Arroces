@@ -143,3 +143,141 @@ export async function optimizeStoryVideo(file: File): Promise<Blob> {
     };
   });
 }
+
+export async function optimizePostVideo(file: File): Promise<File> {
+  if (typeof window === 'undefined' || typeof MediaRecorder === 'undefined') {
+    return file;
+  }
+
+  return new Promise((resolve) => {
+    const video = document.createElement('video');
+    const url = URL.createObjectURL(file);
+    video.src = url;
+    video.muted = true;
+    video.playsInline = true;
+    video.crossOrigin = 'anonymous';
+
+    const cleanup = () => {
+      URL.revokeObjectURL(url);
+      video.pause();
+      video.src = '';
+    };
+
+    const fallback = () => {
+      cleanup();
+      resolve(file);
+    };
+
+    video.onerror = () => {
+      fallback();
+    };
+
+    const timeoutTimer = setTimeout(() => {
+      fallback();
+    }, 6000);
+
+    video.onloadedmetadata = async () => {
+      clearTimeout(timeoutTimer);
+      try {
+        if (!video.videoWidth || !video.videoHeight) {
+          return fallback();
+        }
+
+        // Limit maximum dimension to 1080p for compatibility & fast loading
+        const maxDim = 1080;
+        let targetWidth = video.videoWidth;
+        let targetHeight = video.videoHeight;
+        if (targetWidth > maxDim || targetHeight > maxDim) {
+          if (targetWidth >= targetHeight) {
+            targetHeight = Math.round((targetHeight * maxDim) / targetWidth);
+            targetWidth = maxDim;
+          } else {
+            targetWidth = Math.round((targetWidth * maxDim) / targetHeight);
+            targetHeight = maxDim;
+          }
+        }
+        targetWidth = targetWidth % 2 === 0 ? targetWidth : targetWidth - 1;
+        targetHeight = targetHeight % 2 === 0 ? targetHeight : targetHeight - 1;
+
+        const canvas = document.createElement('canvas');
+        canvas.width = targetWidth;
+        canvas.height = targetHeight;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return fallback();
+
+        const playPromise = video.play();
+        if (playPromise !== undefined) {
+          await playPromise.catch(() => fallback());
+        }
+
+        let audioTracks: MediaStreamTrack[] = [];
+        const anyVid = video as any;
+        const sourceStream = anyVid.captureStream ? anyVid.captureStream() : (anyVid.mozCaptureStream ? anyVid.mozCaptureStream() : null);
+        if (sourceStream) {
+          audioTracks = sourceStream.getAudioTracks();
+        }
+
+        const canvasStream = canvas.captureStream ? canvas.captureStream(30) : (canvas as any).mozCaptureStream(30);
+        const combinedStream = new MediaStream([...canvasStream.getVideoTracks(), ...audioTracks]);
+
+        const types = [
+          'video/mp4;codecs=avc1,mp4a.40.2',
+          'video/mp4;codecs=avc1',
+          'video/mp4',
+          'video/webm;codecs=vp9,opus',
+          'video/webm;codecs=vp8,opus',
+          'video/webm'
+        ];
+        const selectedMime = types.find(t => MediaRecorder.isTypeSupported(t));
+        if (!selectedMime) return fallback();
+
+        const recorder = new MediaRecorder(combinedStream, {
+          mimeType: selectedMime,
+          videoBitsPerSecond: 3500000
+        });
+
+        const chunks: Blob[] = [];
+        recorder.ondataavailable = (e) => {
+          if (e.data.size > 0) chunks.push(e.data);
+        };
+
+        recorder.onstop = () => {
+          cleanup();
+          const ext = selectedMime.includes('webm') ? '.webm' : '.mp4';
+          const nameWithoutExt = file.name.replace(/\.[^/.]+$/, '');
+          const newFileName = `${nameWithoutExt}-optimized${ext}`;
+          const optimizedBlob = new Blob(chunks, { type: selectedMime });
+          const optimizedFile = new File([optimizedBlob], newFileName, { type: selectedMime });
+          resolve(optimizedFile);
+        };
+
+        recorder.start();
+
+        const drawInterval = setInterval(() => {
+          if (video.readyState >= 2 && !video.paused && !video.ended) {
+            ctx.drawImage(video, 0, 0, targetWidth, targetHeight);
+          }
+        }, 33);
+
+        const durationMs = video.duration && !isNaN(video.duration) && video.duration !== Infinity
+          ? video.duration * 1000
+          : 60000;
+
+        let stopped = false;
+        const finish = () => {
+          if (stopped) return;
+          stopped = true;
+          clearInterval(drawInterval);
+          if (recorder.state !== 'inactive') recorder.stop();
+        };
+
+        video.onended = finish;
+        setTimeout(finish, durationMs + 400);
+
+      } catch (err) {
+        fallback();
+      }
+    };
+  });
+}
+

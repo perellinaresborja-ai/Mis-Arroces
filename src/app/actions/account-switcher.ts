@@ -299,6 +299,7 @@ export async function removeAccountFromVaultAction(userId: string): Promise<{
         await supabase.auth.signOut()
         const cookieStore = await cookies()
         cookieStore.delete(VAULT_COOKIE_NAME)
+        cookieStore.delete("ma_has_account")
         revalidatePath("/", "layout")
         return { success: true, signedOutAll: true }
       }

@@ -38,9 +38,20 @@ export function MediaCarousel({ items, bucket = "recipe_media", href, priority =
   useEffect(() => {
     Object.entries(videoRefs.current).forEach(([index, videoEl]) => {
       if (!videoEl) return
+      videoEl.defaultMuted = true
       videoEl.muted = isMuted
       if (parseInt(index) === currentIndex) {
-        videoEl.play().catch(() => {})
+        if (isMuted) videoEl.muted = true
+        const playPromise = videoEl.play()
+        if (playPromise !== undefined) {
+          playPromise.catch(() => {
+            if (!videoEl.muted) {
+              videoEl.muted = true
+              setIsMuted(true)
+              videoEl.play().catch(() => {})
+            }
+          })
+        }
       } else {
         videoEl.pause()
         videoEl.currentTime = 0
@@ -59,16 +70,25 @@ export function MediaCarousel({ items, bucket = "recipe_media", href, priority =
 
     if (isVideo) {
       return (
-        <div className="absolute inset-0 w-full h-full">
+        <div className="absolute inset-0 w-full h-full bg-black/10">
           <video
-            ref={el => { videoRefs.current[index] = el }}
+            ref={el => {
+              videoRefs.current[index] = el
+              if (el) {
+                el.defaultMuted = true
+                el.muted = isMuted
+              }
+            }}
             src={url}
             className="w-full h-full object-cover"
             autoPlay={index === currentIndex}
             muted={isMuted}
+            preload="auto"
             loop
             playsInline
-          />
+          >
+            <source src={url} type="video/mp4" />
+          </video>
         </div>
       )
     }

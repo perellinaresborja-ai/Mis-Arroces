@@ -6,7 +6,6 @@ import {
   normalizeUsername,
   validateUsernameFormat,
   isUsernameAvailable,
-  generateAvailableUsername,
 } from "@/lib/username"
 import {
   normalizeDisplayName,
@@ -18,22 +17,24 @@ import { isAuthorizedOfficialAccount } from "@/lib/admin/auth"
 export async function checkUsernameAvailabilityAction(username: string) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { available: false, error: "No autorizado" }
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("username")
-    .eq("id", user.id)
-    .maybeSingle()
+  let isAuthorizedAdmin = false
+  if (user) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("username")
+      .eq("id", user.id)
+      .maybeSingle()
+    isAuthorizedAdmin = await isAuthorizedOfficialAccount(user.id, user.email, profile?.username)
+  }
 
   const clean = normalizeUsername(username)
-  const isAuthorizedAdmin = await isAuthorizedOfficialAccount(user.id, user.email, profile?.username)
   const validation = validateUsernameFormat(clean, { isAuthorizedAdmin })
   if (!validation.valid) {
     return { available: false, error: validation.error }
   }
 
-  const available = await isUsernameAvailable(supabase, clean, user.id)
+  const available = await isUsernameAvailable(supabase, clean, user?.id)
   if (!available) {
     return { available: false, error: "Este nombre de usuario ya está en uso" }
   }
@@ -44,11 +45,10 @@ export async function checkUsernameAvailabilityAction(username: string) {
 export async function checkDisplayNameAvailabilityAction(displayName: string) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { available: false, error: "No autorizado" }
 
   const trimmed = (displayName || "").trim()
   if (!trimmed) {
-    return { available: true } // optional in onboarding, defaults to username if empty
+    return { available: false, error: "El nombre es obligatorio." }
   }
 
   const validation = validateDisplayNameFormat(trimmed)
@@ -56,18 +56,12 @@ export async function checkDisplayNameAvailabilityAction(displayName: string) {
     return { available: false, error: validation.error }
   }
 
-  const available = await isDisplayNameAvailable(supabase, trimmed, user.id)
+  const available = await isDisplayNameAvailable(supabase, trimmed, user?.id)
   if (!available) {
     return { available: false, error: "Este nombre ya está en uso." }
   }
 
   return { available: true }
-}
-
-export async function getSuggestedUsernameAction() {
-  const supabase = await createClient()
-  const suggestion = await generateAvailableUsername(supabase, "arrocero")
-  return { suggestion }
 }
 
 export async function updateOnboardingProfile({ username, displayName }: { username: string, displayName: string }) {
@@ -89,26 +83,29 @@ export async function updateOnboardingProfile({ username, displayName }: { usern
   }
 
   const cleanDisplayName = (displayName || "").trim()
-  const effectiveDisplayName = cleanDisplayName || cleanUsername
+  if (!cleanDisplayName) {
+    return { error: "El nombre es obligatorio." }
+  }
 
-  // Check if display name is taken by someone else (normalized)
-  const formatValidation = validateDisplayNameFormat(effectiveDisplayName)
+  const formatValidation = validateDisplayNameFormat(cleanDisplayName)
   if (!formatValidation.valid) {
     return { error: formatValidation.error }
   }
 
-  const availableDisplay = await isDisplayNameAvailable(supabase, effectiveDisplayName, user.id)
+  const availableDisplay = await isDisplayNameAvailable(supabase, cleanDisplayName, user.id)
   if (!availableDisplay) {
     return { error: "Este nombre ya está en uso." }
   }
 
   const { error } = await supabase
     .from("profiles")
-    .update({ 
+    .upsert({ 
+      id: user.id,
       username: cleanUsername,
-      display_name: effectiveDisplayName
-    })
-    .eq("id", user.id)
+      display_name: cleanDisplayName,
+      account_type: 'PERSONAL',
+      privacy_level: 'PUBLIC'
+    }, { onConflict: 'id' })
 
   if (error) {
     console.error("Error updating profile in onboarding:", error)

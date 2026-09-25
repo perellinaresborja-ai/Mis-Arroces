@@ -9,9 +9,8 @@ import {
   updateOnboardingProfile,
   checkUsernameAvailabilityAction,
   checkDisplayNameAvailabilityAction,
-  getSuggestedUsernameAction
 } from "./actions"
-import { Camera, Check, UserPlus, Loader2, Sparkles } from "lucide-react"
+import { Camera, Check, UserPlus, Loader2 } from "lucide-react"
 import { toggleFollow } from "@/app/actions/social"
 import { acceptActiveLegalDocuments } from "@/app/actions/legal"
 import Link from "next/link"
@@ -24,9 +23,15 @@ export function OnboardingWizard({ initialProfile, inviter, suggestions, inviteC
   const [following, setFollowing] = useState<Set<string>>(new Set())
   const [error, setError] = useState<string | null>(null)
 
-  // Step 1 State
-  const [username, setUsername] = useState(initialProfile?.username || "")
-  const [displayName, setDisplayName] = useState(initialProfile?.display_name || "")
+  // Step 1 State - if legacy arroceroXXXXXX, start empty so the user writes their actual username and name
+  const rawInitUser = initialProfile?.username || ""
+  const isLegacyAutoUser = rawInitUser.startsWith("arrocero") && /^arrocero\d+$/.test(rawInitUser)
+  const [username, setUsername] = useState(isLegacyAutoUser ? "" : rawInitUser)
+
+  const rawInitDisplay = initialProfile?.display_name || ""
+  const isLegacyAutoDisplay = rawInitDisplay.startsWith("arrocero") || rawInitDisplay === "Chef Arrocero"
+  const [displayName, setDisplayName] = useState(isLegacyAutoDisplay ? "" : rawInitDisplay)
+
   const [checkingUsername, setCheckingUsername] = useState(false)
   const [usernameStatus, setUsernameStatus] = useState<{ available?: boolean; message?: string } | null>(null)
   const [checkingDisplayName, setCheckingDisplayName] = useState(false)
@@ -96,23 +101,24 @@ export function OnboardingWizard({ initialProfile, inviter, suggestions, inviteC
     return () => clearTimeout(timer)
   }, [displayName])
 
-  const handleSuggestUsername = async () => {
-    try {
-      setCheckingUsername(true)
-      const res = await getSuggestedUsernameAction()
-      if (res.suggestion) {
-        setUsername(res.suggestion)
-      }
-    } catch {
-      // ignore
-    } finally {
-      setCheckingUsername(false)
-    }
-  }
-
   const handleProfileSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
+
+    const cleanDisplay = (displayName || "").trim()
+    if (!cleanDisplay) {
+      setError("El nombre es obligatorio")
+      return
+    }
+    if (cleanDisplay.length < 2) {
+      setError("El nombre debe tener al menos 2 caracteres")
+      return
+    }
+    if (displayNameStatus?.available === false) {
+      setError(displayNameStatus.message || "Este nombre ya está en uso.")
+      return
+    }
+
     const cleanUser = (username || "").trim().toLowerCase().replace(/[^a-z0-9_.]/g, "")
     if (!cleanUser) {
       setError("El nombre de usuario es obligatorio")
@@ -122,14 +128,13 @@ export function OnboardingWizard({ initialProfile, inviter, suggestions, inviteC
       setError("El nombre de usuario debe tener al menos 3 caracteres")
       return
     }
-
-    if (displayNameStatus?.available === false) {
-      setError(displayNameStatus.message || "Este nombre ya está en uso.")
+    if (usernameStatus?.available === false) {
+      setError(usernameStatus.message || "Este nombre de usuario ya está en uso")
       return
     }
     
     setLoading(true)
-    const res = await updateOnboardingProfile({ username: cleanUser, displayName })
+    const res = await updateOnboardingProfile({ username: cleanUser, displayName: cleanDisplay })
     setLoading(false)
     
     if (res?.error) {
@@ -197,15 +202,6 @@ export function OnboardingWizard({ initialProfile, inviter, suggestions, inviteC
             <div>
               <div className="flex items-center justify-between mb-1">
                 <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground block">Usuario</label>
-                <button
-                  type="button"
-                  onClick={handleSuggestUsername}
-                  disabled={checkingUsername || loading}
-                  className="text-xs font-semibold text-primary hover:underline flex items-center gap-1 transition-colors"
-                >
-                  <Sparkles className="w-3.5 h-3.5" />
-                  Sugerir otro
-                </button>
               </div>
               <div className="relative flex items-center">
                 <span className="h-12 flex items-center justify-center px-3 bg-muted border border-r-0 border-input rounded-l-xl text-muted-foreground font-medium text-sm">
@@ -242,7 +238,7 @@ export function OnboardingWizard({ initialProfile, inviter, suggestions, inviteC
             </div>
 
             <div>
-              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1 block">Nombre (opcional)</label>
+              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1 block">Nombre</label>
               <div className="relative flex items-center">
                 <Input 
                   value={displayName} 
@@ -276,7 +272,17 @@ export function OnboardingWizard({ initialProfile, inviter, suggestions, inviteC
             <p className="text-xs text-muted-foreground text-center">Podrás añadir tu foto de perfil más adelante desde la configuración.</p>
           </div>
 
-          <Button type="submit" disabled={loading} className="w-full font-bold rounded-xl h-12 bg-olive hover:bg-olive/90 text-white">
+          <Button 
+            type="submit" 
+            disabled={
+              loading || 
+              checkingUsername || 
+              checkingDisplayName || 
+              usernameStatus?.available !== true || 
+              displayNameStatus?.available !== true
+            } 
+            className="w-full font-bold rounded-xl h-12 bg-primary hover:bg-primary/90 text-primary-foreground disabled:opacity-50"
+          >
             {loading ? "Guardando..." : "Siguiente"}
           </Button>
         </form>

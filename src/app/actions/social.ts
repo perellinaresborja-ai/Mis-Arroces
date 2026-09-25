@@ -16,6 +16,9 @@ export async function createPost(formData: FormData) {
   const visibility = formData.get("visibility") as string
   const recipeId = formData.get("recipeId") as string
   const mediaIdsRaw = formData.get("media_ids") as string
+  const location = (formData.get("location") as string)?.trim() || null
+  const collaboratorId = (formData.get("collaborator_id") as string)?.trim() || null
+  const taggedUsersRaw = formData.get("tagged_users") as string
 
   if (!content || content.length > 2200) throw new Error("Invalid content")
 
@@ -29,9 +32,48 @@ export async function createPost(formData: FormData) {
   if (id) {
     postData.id = id
   }
+  if (location) {
+    postData.location = location
+  }
+  if (collaboratorId) {
+    postData.collaborator_id = collaboratorId
+  }
 
-  const { error } = await supabase.from("social_posts").insert(postData)
+  let { error } = await supabase.from("social_posts").insert(postData)
+  if (error && error.message?.includes("column")) {
+    // Graceful fallback if database column hasn't finished migrating
+    delete postData.location
+    delete postData.collaborator_id
+    const retry = await supabase.from("social_posts").insert(postData)
+    error = retry.error
+  }
   if (error) throw error
+
+  // Save tags and parse mentions
+  if (id) {
+    try {
+      const { parseAndSaveMentionsAndHashtags, saveTags } = await import("@/app/actions/social_features")
+      await parseAndSaveMentionsAndHashtags(content, "social_post", id, user.id)
+
+      if (taggedUsersRaw) {
+        const taggedUsers = JSON.parse(taggedUsersRaw)
+        if (Array.isArray(taggedUsers) && taggedUsers.length > 0) {
+          await saveTags("social_post", id, user.id, taggedUsers)
+        }
+      }
+    } catch (e) {
+      console.error("Error processing tags/mentions for post:", e)
+    }
+
+    // Notify collaborator
+    if (collaboratorId && collaboratorId !== user.id) {
+      try {
+        await createNotification(collaboratorId, 'TAG', 'post', id)
+      } catch (e) {
+        console.error("Error notifying collaborator:", e)
+      }
+    }
+  }
 
   if (mediaIdsRaw && id) {
     try {
@@ -52,6 +94,24 @@ export async function createPost(formData: FormData) {
 
   revalidatePath("/")
   revalidatePath("/discover")
+  revalidatePath("/[userParam]", "page")
+
+  try {
+    const { data: authorProfile } = await supabase
+      .from("profiles")
+      .select("username")
+      .eq("id", user.id)
+      .maybeSingle()
+
+    if (authorProfile?.username) {
+      const cleanUser = authorProfile.username.replace(/^@+/, "")
+      revalidatePath(`/@${cleanUser}`)
+      revalidatePath(`/${cleanUser}`)
+    }
+  } catch (err) {
+    console.error("Error revalidating profile paths:", err)
+  }
+
   return { success: true, id }
 }
 

@@ -5,7 +5,8 @@ import { redirect } from "next/navigation"
 import { cookies } from "next/headers"
 import { createClient } from "@/lib/supabase/server"
 import { sendWelcomeEmail } from "@/lib/email"
-import { generateAvailableUsername } from "@/lib/username"
+import { normalizeUsername, validateUsernameFormat, isUsernameAvailable } from "@/lib/username"
+import { normalizeDisplayName, validateDisplayNameFormat, isDisplayNameAvailable } from "@/lib/identity"
 import { normalizeEmail, getFriendlyAuthErrorMessage } from "@/lib/auth-messages"
 import { syncCurrentSessionToVaultAction } from "@/app/actions/account-switcher"
 
@@ -41,20 +42,27 @@ export async function login(formData: FormData) {
 
     const { data: profile } = await supabase
       .from("profiles")
-      .select("username")
+      .select("username, display_name")
       .eq("id", user.id)
-      .single()
+      .maybeSingle()
 
     if (!profile) {
-      // Auto-create missing profile with guaranteed unique username & provisional display_name
-      const autoUsername = await generateAvailableUsername(supabase, "arrocero")
-      await supabase.from("profiles").insert({
-        id: user.id,
-        username: autoUsername,
-        display_name: autoUsername,
-        account_type: 'PERSONAL',
-        privacy_level: 'PUBLIC'
-      })
+      const metaName = (user.user_metadata?.display_name || user.user_metadata?.full_name || "").trim()
+      const metaUser = normalizeUsername(user.user_metadata?.username || "")
+
+      if (metaName && metaUser) {
+        await supabase.from("profiles").upsert({
+          id: user.id,
+          username: metaUser,
+          display_name: metaName,
+          account_type: 'PERSONAL',
+          privacy_level: 'PUBLIC',
+          onboarding_completed: true
+        }, { onConflict: 'id' })
+      } else {
+        // Redirigir a onboarding para que defina su nombre y @usuario de forma explícita
+        redirect("/onboarding")
+      }
     }
 
     // Asegurar la cuenta recién iniciada en la bóveda multicuenta
@@ -81,23 +89,53 @@ export async function signup(formData: FormData) {
   const supabase = await createClient()
   const email = normalizeEmail(formData.get("email") as string || "")
   const password = (formData.get("password") as string || "")
+  const displayNameRaw = (formData.get("display_name") as string || "")
+  const usernameRaw = (formData.get("username") as string || "")
   const legalAccepted = formData.get("legal_accepted") === "on"
   const ageConfirmed = formData.get("age_18_confirmed") === "on"
 
   if (!legalAccepted) {
-    redirect(`/login?error=${encodeURIComponent("Debes aceptar los Términos de servicio y confirmar que has leído la Política de privacidad.")}`)
+    redirect(`/login?mode=signup&error=${encodeURIComponent("Debes aceptar los Términos de servicio y confirmar que has leído la Política de privacidad.")}`)
   }
 
   if (!ageConfirmed) {
-    redirect(`/login?error=${encodeURIComponent("Debes confirmar que eres mayor de 18 años para crear una cuenta.")}`)
+    redirect(`/login?mode=signup&error=${encodeURIComponent("Debes confirmar que eres mayor de 18 años para crear una cuenta.")}`)
+  }
+
+  // Validación de Nombre obligatorio y único
+  const cleanDisplayName = displayNameRaw.trim()
+  if (!cleanDisplayName) {
+    redirect(`/login?mode=signup&error=${encodeURIComponent("El nombre es obligatorio.")}`)
+  }
+  const displayCheck = validateDisplayNameFormat(cleanDisplayName)
+  if (!displayCheck.valid) {
+    redirect(`/login?mode=signup&error=${encodeURIComponent(displayCheck.error || "El nombre no es válido.")}`)
+  }
+  const isDisplayAvail = await isDisplayNameAvailable(supabase, cleanDisplayName)
+  if (!isDisplayAvail) {
+    redirect(`/login?mode=signup&error=${encodeURIComponent("El nombre introducido ya está en uso por otra cuenta.")}`)
+  }
+
+  // Validación de @usuario obligatorio y único
+  const cleanUsername = normalizeUsername(usernameRaw)
+  if (!cleanUsername) {
+    redirect(`/login?mode=signup&error=${encodeURIComponent("El nombre de usuario es obligatorio.")}`)
+  }
+  const usernameCheck = validateUsernameFormat(cleanUsername, { isAuthorizedAdmin: false })
+  if (!usernameCheck.valid) {
+    redirect(`/login?mode=signup&error=${encodeURIComponent(usernameCheck.error || "El nombre de usuario no es válido.")}`)
+  }
+  const isUserAvail = await isUsernameAvailable(supabase, cleanUsername)
+  if (!isUserAvail) {
+    redirect(`/login?mode=signup&error=${encodeURIComponent("El nombre de usuario @" + cleanUsername + " ya está en uso.")}`)
   }
 
   if (!email || !password) {
-    redirect(`/login?error=${encodeURIComponent("Por favor, introduce un correo y una contraseña para crear tu cuenta.")}`)
+    redirect(`/login?mode=signup&error=${encodeURIComponent("Por favor, introduce un correo y una contraseña para crear tu cuenta.")}`)
   }
 
   if (password.length < 6) {
-    redirect(`/login?error=${encodeURIComponent("La contraseña debe tener al menos 6 caracteres.")}`)
+    redirect(`/login?mode=signup&error=${encodeURIComponent("La contraseña debe tener al menos 6 caracteres.")}`)
   }
 
   const { cookies } = await import("next/headers")
@@ -118,12 +156,18 @@ export async function signup(formData: FormData) {
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
-    options: { emailRedirectTo: `${baseUrl}/auth/callback?next=${encodeURIComponent(emailNext)}` }
+    options: {
+      data: {
+        display_name: cleanDisplayName,
+        username: cleanUsername,
+      },
+      emailRedirectTo: `${baseUrl}/auth/callback?next=${encodeURIComponent(emailNext)}`
+    }
   })
 
   if (error) {
     const userMessage = getFriendlyAuthErrorMessage(error, "signup")
-    redirect(`/login?error=${encodeURIComponent(userMessage)}`)
+    redirect(`/login?mode=signup&error=${encodeURIComponent(userMessage)}`)
   }
 
   if (data.user) {
@@ -134,16 +178,23 @@ export async function signup(formData: FormData) {
       secure: process.env.NODE_ENV === "production"
     })
 
-    // Generate a guaranteed unique automatic username & provisional display_name
-    const autoUsername = await generateAvailableUsername(supabase, "arrocero")
-    
-    await supabase.from("profiles").insert({
+    // Insertar perfil con el nombre y @usuario explícitamente escogidos por el usuario
+    const { error: profileError } = await supabase.from("profiles").insert({
       id: data.user.id,
-      username: autoUsername,
-      display_name: autoUsername,
+      username: cleanUsername,
+      display_name: cleanDisplayName,
       account_type: 'PERSONAL',
-      privacy_level: 'PUBLIC'
+      privacy_level: 'PUBLIC',
+      onboarding_completed: true
     })
+
+    if (profileError) {
+      console.error("Error al crear perfil en registro:", profileError)
+      if (profileError.code === "23505") {
+        redirect(`/login?mode=signup&error=${encodeURIComponent("El nombre o @usuario ya está ocupado.")}`)
+      }
+      redirect(`/login?mode=signup&error=${encodeURIComponent("No se pudo crear el perfil. Inténtalo de nuevo.")}`)
+    }
 
     // Register legal acceptances via secure RPC
     const { error: rpcError } = await (supabase.rpc as any)('accept_current_legal_documents')
@@ -175,6 +226,9 @@ export async function signup(formData: FormData) {
     sendWelcomeEmail(data.user.email!).catch(err =>
       console.error('Welcome email failed:', err)
     )
+
+    // Sincronizar sesión en la bóveda multicuenta
+    await syncCurrentSessionToVaultAction()
   }
 
   revalidatePath("/", "layout")

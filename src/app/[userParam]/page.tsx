@@ -277,6 +277,11 @@ export default async function PublicProfilePage({
     }
   }
 
+  const videoItems = feedItems.filter(item => {
+    const mediaList = item.recipe_media || item.session_media || item.post_media || []
+    return mediaList.some((m: any) => m.media?.media_type === 'VIDEO' || m.media?.storage_path?.match(/\.(mp4|webm|mov)$/i))
+  })
+
   const avatarUrl = profile.avatar?.storage_path 
     ? `${"https://zvesoygqssyyojqyswwm.supabase.co"}/storage/v1/object/public/recipe_media/${profile.avatar.storage_path}`
     : null;
@@ -436,9 +441,27 @@ export default async function PublicProfilePage({
           </div>
         ) : (
           <div>
-            {tab !== 'posts' && (
+            {tab === 'videos' && videoItems.length === 0 && (
               <div className="text-center py-16 text-muted-foreground">
-                <p>Próximamente: Aún no hay contenido en esta sección.</p>
+                <p>No hay vídeos publicados todavía.</p>
+              </div>
+            )}
+
+            {tab === 'videos' && videoItems.length > 0 && (
+              <div className="grid grid-cols-3 gap-1 md:gap-4 mx-auto w-full">
+                {videoItems.map(item => (
+                  <ProfileGridCard 
+                    key={`${item.entity_type}-${item.id}`} 
+                    item={item} 
+                    currentUserId={user?.id || null}
+                  />
+                ))}
+              </div>
+            )}
+
+            {tab === 'tagged' && (
+              <div className="text-center py-16 text-muted-foreground">
+                <p>Próximamente: Aún no hay publicaciones etiquetadas.</p>
               </div>
             )}
 

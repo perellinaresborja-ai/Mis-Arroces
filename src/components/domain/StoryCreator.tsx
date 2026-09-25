@@ -26,7 +26,7 @@ export function StoryCreator({
   initialMedia?: { url: string, type: 'IMAGE'|'VIDEO' },
   initialRecipe?: { id: string, name: string, coverUrl?: string },
   initialSession?: { id: string, authorName: string, title?: string, coverUrl?: string },
-  initialPost?: { id: string, authorName: string, text?: string, coverUrl?: string }
+  initialPost?: { id: string, authorName: string, text?: string, coverUrl?: string, mediaType?: 'IMAGE'|'VIDEO' }
 }) {
   const router = useRouter();
 
@@ -209,7 +209,26 @@ export function StoryCreator({
         newOverlay = { id: "session_"+Date.now(), type: "SESSION", x: 0.5, y: 0.8, scale: 1, rotation: 0, zIndex: 1, payload: { sessionId: initialSession.id, authorName: initialSession.authorName, title: initialSession.title, displayStyle: "card" } };
       } else if (initialPost) {
         // Do not set extractedCoverUrl so the post image doesn't stretch as background
-        newOverlay = { id: "post_"+Date.now(), type: "POST", x: 0.5, y: 0.5, scale: 1.2, rotation: 0, zIndex: 1, payload: { postId: initialPost.id, authorName: initialPost.authorName, text: initialPost.text, coverUrl: initialPost.coverUrl, displayStyle: "card" } };
+        const isVid = initialPost.mediaType === 'VIDEO' || Boolean(
+          initialPost.coverUrl && (/\.(mp4|webm|mov)(\?.*)?$/i.test(initialPost.coverUrl) || initialPost.coverUrl.includes('video/'))
+        );
+        newOverlay = { 
+          id: "post_"+Date.now(), 
+          type: "POST", 
+          x: 0.5, 
+          y: 0.5, 
+          scale: 1.2, 
+          rotation: 0, 
+          zIndex: 1, 
+          payload: { 
+            postId: initialPost.id, 
+            authorName: initialPost.authorName, 
+            text: initialPost.text, 
+            coverUrl: initialPost.coverUrl, 
+            mediaType: isVid ? 'VIDEO' : 'IMAGE',
+            displayStyle: "card" 
+          } 
+        };
       }
       if (newOverlay) {
         if (extractedCoverUrl) {

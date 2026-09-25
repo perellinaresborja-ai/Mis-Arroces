@@ -90,6 +90,7 @@ export interface PostOverlay extends BaseOverlay {
     authorName: string;
     text?: string;
     coverUrl?: string;
+    mediaType?: 'IMAGE' | 'VIDEO';
     displayStyle?: 'compact' | 'card' | 'text';
   };
 }

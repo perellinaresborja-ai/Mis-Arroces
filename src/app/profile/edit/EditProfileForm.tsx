@@ -32,13 +32,18 @@ export function EditProfileForm({ initialProfile }: { initialProfile: any }) {
 
   useEffect(() => {
     const trimmed = (displayName || "").trim()
-    if (!trimmed || trimmed === (initialProfile.display_name || "").trim()) {
+    if (!trimmed) {
+      setDisplayNameStatus({ available: false, message: "El nombre es obligatorio." })
+      return
+    }
+
+    if (trimmed === (initialProfile.display_name || "").trim()) {
       setDisplayNameStatus(null)
       return
     }
 
     if (trimmed.length < 2) {
-      setDisplayNameStatus({ available: false, message: "Mínimo 2 caracteres" })
+      setDisplayNameStatus({ available: false, message: "Mínimo 2 caracteres." })
       return
     }
 
@@ -63,13 +68,18 @@ export function EditProfileForm({ initialProfile }: { initialProfile: any }) {
 
   useEffect(() => {
     const clean = (username || "").trim().toLowerCase().replace(/^@+/, "")
-    if (!clean || clean === (initialProfile.username || "").trim().toLowerCase()) {
+    if (!clean) {
+      setUsernameStatus({ available: false, message: "El nombre de usuario es obligatorio." })
+      return
+    }
+
+    if (clean === (initialProfile.username || "").trim().toLowerCase()) {
       setUsernameStatus(null)
       return
     }
 
     if (clean.length < 3) {
-      setUsernameStatus({ available: false, message: "Mínimo 3 caracteres" })
+      setUsernameStatus({ available: false, message: "Mínimo 3 caracteres." })
       return
     }
 
@@ -153,6 +163,15 @@ export function EditProfileForm({ initialProfile }: { initialProfile: any }) {
     ? (new Date().getTime() - new Date(initialProfile.last_username_update).getTime()) / (1000 * 3600 * 24) < 30
     : false
 
+  const isFormInvalid = 
+    !displayName.trim() || 
+    !username.trim() ||
+    checkingDisplayName || 
+    checkingUsername || 
+    displayNameStatus?.available === false || 
+    usernameStatus?.available === false ||
+    (hasCooldown && username.trim().toLowerCase() !== (initialProfile.username || "").trim().toLowerCase())
+
   return (
     <form onSubmit={handleSubmit} className="space-y-6 bg-card p-6 rounded-3xl border border-border pb-12">
       
@@ -226,6 +245,7 @@ export function EditProfileForm({ initialProfile }: { initialProfile: any }) {
               name="display_name" 
               value={displayName} 
               onChange={e => setDisplayName(e.target.value)} 
+              required
               placeholder="Ej. Pere"
               className={`h-12 pr-10 ${
                 displayNameStatus?.available === false
@@ -335,7 +355,7 @@ export function EditProfileForm({ initialProfile }: { initialProfile: any }) {
       </div>
 
       <div className="pt-4">
-        <Button type="submit" className="w-full h-14 rounded-xl text-lg" disabled={isSubmitting}>
+        <Button type="submit" className="w-full h-14 rounded-xl text-lg" disabled={isSubmitting || isFormInvalid}>
           {isSubmitting ? "Guardando..." : <><Save className="w-5 h-5 mr-2" /> Guardar Perfil</>}
         </Button>
       </div>
