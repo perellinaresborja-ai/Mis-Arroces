@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef, useCallback, useMemo } from "react"
-import { ChevronLeft, ChevronRight, Check, Play, Pause, RotateCcw, Volume2, X, Maximize, Mic, MicOff, AlertCircle } from "lucide-react"
+import { ChevronLeft, ChevronRight, Check, Play, Pause, RotateCcw, Volume2, X, Maximize, Mic, MicOff, AlertCircle, Info } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
 import { calculateLayer, calculateRealBrothRatio } from "@/lib/paella-calculator"
@@ -29,7 +29,7 @@ interface TimerState {
 
 export function CookModeClient({ recipe, userName, reset }: { recipe: CookModeRecipe, userName?: string | null, reset?: boolean }) {
   const router = useRouter()
-  const [hasStarted, setHasStarted] = useState(false)
+  const [showSummaryModal, setShowSummaryModal] = useState(false)
   const [currentStepIndex, setCurrentStepIndex] = useState(0)
   
   // Timer state per step
@@ -53,9 +53,7 @@ export function CookModeClient({ recipe, userName, reset }: { recipe: CookModeRe
           if (parsed.currentStepIndex >= recipe.steps.length) {
             // They finished it last time. Start fresh.
             setCurrentStepIndex(0)
-            setHasStarted(false)
           } else {
-            setHasStarted(parsed.hasStarted || false)
             setCurrentStepIndex(parsed.currentStepIndex || 0)
           }
           
@@ -89,16 +87,15 @@ export function CookModeClient({ recipe, userName, reset }: { recipe: CookModeRe
   useEffect(() => {
     if (!isClient) return
     localStorage.setItem(`cook-mode-${recipe.id}`, JSON.stringify({
-      hasStarted,
       currentStepIndex,
       requested_servings: recipe.requested_servings,
       timers
     }))
-  }, [hasStarted, currentStepIndex, timers, recipe.id, recipe.requested_servings, isClient])
+  }, [currentStepIndex, timers, recipe.id, recipe.requested_servings, isClient])
 
   // WakeLock management
   const requestWakeLock = useCallback(async () => {
-    if ('wakeLock' in navigator && hasStarted) {
+    if ('wakeLock' in navigator) {
       try {
         const lock = await (navigator as any).wakeLock.request('screen')
         setWakeLock(lock)
@@ -106,13 +103,13 @@ export function CookModeClient({ recipe, userName, reset }: { recipe: CookModeRe
         console.warn("WakeLock error:", err)
       }
     }
-  }, [hasStarted])
+  }, [])
 
   useEffect(() => {
-    if (hasStarted) requestWakeLock()
+    if (isClient) requestWakeLock()
     
     const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible' && hasStarted && wakeLock !== null) {
+      if (document.visibilityState === 'visible' && isClient && wakeLock !== null) {
         requestWakeLock()
       }
     }
@@ -123,7 +120,7 @@ export function CookModeClient({ recipe, userName, reset }: { recipe: CookModeRe
         wakeLock.release().catch(console.error)
       }
     }
-  }, [hasStarted, requestWakeLock]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [isClient, requestWakeLock]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // TTS
   const currentUtterance = useRef<SpeechSynthesisUtterance | null>(null)
@@ -188,8 +185,8 @@ export function CookModeClient({ recipe, userName, reset }: { recipe: CookModeRe
     })
   }
 
-  // Cooking start state (user must press play manually on Step 1)
-  const [cookingStartedByUser, setCookingStartedByUser] = useState(false)
+  // Cooking start state (user clicked Empezar a cocinar)
+  const [cookingStartedByUser, setCookingStartedByUser] = useState(true)
   const cookingStartedByUserRef = useRef(cookingStartedByUser)
   useEffect(() => {
     cookingStartedByUserRef.current = cookingStartedByUser
@@ -217,8 +214,6 @@ export function CookModeClient({ recipe, userName, reset }: { recipe: CookModeRe
 
   // Flag to avoid double triggering step-end processing for the same step
   const completedStepsProcessed = useRef<Record<number, boolean>>({})
-
-  const handleStart = () => setHasStarted(true)
   
   const handleNext = () => {
     if (currentStepIndex < recipe.steps.length) {
@@ -375,9 +370,28 @@ export function CookModeClient({ recipe, userName, reset }: { recipe: CookModeRe
   const currentStep = recipe.steps[currentStepIndex]
 
   useEffect(() => {
-    if (!isClient || !hasStarted || !currentStep) return
+    if (!isClient || !currentStep) return
 
     let isMounted = true
+
+    // Auto-start timer on entrance if step has duration and timer not already started
+    if (currentStep.duration_minutes && currentStep.duration_minutes > 0) {
+      setTimers(prev => {
+        const t = prev[currentStepIndex]
+        if (!t) {
+          const durationMs = currentStep.duration_minutes * 60 * 1000
+          return {
+            ...prev,
+            [currentStepIndex]: {
+              isRunning: true,
+              remainingMs: durationMs,
+              endTime: Date.now() + durationMs
+            }
+          }
+        }
+        return prev
+      })
+    }
 
     // When entering a new step, speak instruction ONLY (never notes)
     if (lastSpokenStepIndex.current !== currentStepIndex) {
@@ -398,54 +412,14 @@ export function CookModeClient({ recipe, userName, reset }: { recipe: CookModeRe
       }
 
       if (entranceText) {
-        speakText(entranceText).then(() => {
-          if (!isMounted) return
-
-          // Step 1: NEVER auto-start timer on entrance. User MUST press Play.
-          // Step 2+: If cooking was started by user, autoAdvance is enabled and step has duration, auto-start timer after instruction finishes speaking.
-          if (currentStepIndex > 0 && cookingStartedByUserRef.current && autoAdvanceRef.current && currentStep.duration_minutes) {
-            setTimers(prev => {
-              const t = prev[currentStepIndex]
-              if (!t || (!t.isRunning && t.remainingMs > 0)) {
-                const durationMs = currentStep.duration_minutes * 60 * 1000
-                const rem = t ? t.remainingMs : durationMs
-                return {
-                  ...prev,
-                  [currentStepIndex]: {
-                    isRunning: true,
-                    remainingMs: rem,
-                    endTime: Date.now() + rem
-                  }
-                }
-              }
-              return prev
-            })
-          }
-        })
+        speakText(entranceText)
       }
-    }
-
-    // Step 1 reminder interval: If on step 0 and cooking hasn't started, repeat instruction every 30 seconds
-    let reminderInterval: NodeJS.Timeout | null = null
-    if (currentStepIndex === 0 && !cookingStartedByUser) {
-      reminderInterval = setInterval(() => {
-        if (!cookingStartedByUserRef.current && currentStepIndexRef.current === 0) {
-          let repeatText = currentStep.instruction || ""
-          if (currentStep.duration_minutes) {
-            repeatText += `. Tiempo estimado: ${currentStep.duration_minutes} minuto${currentStep.duration_minutes !== 1 ? 's' : ''}.`
-          }
-          if (repeatText) {
-            speakText(repeatText)
-          }
-        }
-      }, 30000)
     }
 
     return () => {
       isMounted = false
-      if (reminderInterval) clearInterval(reminderInterval)
     }
-  }, [currentStepIndex, currentStep, hasStarted, isClient, cookingStartedByUser, recipe.name, userName])
+  }, [currentStepIndex, currentStep, isClient, recipe.name, userName])
 
   // Preload next image
   useEffect(() => {
@@ -529,71 +503,6 @@ export function CookModeClient({ recipe, userName, reset }: { recipe: CookModeRe
 
   const layer = (recipe.rice_qty && recipe.diameter_cm) ? calculateLayer(recipe.rice_qty, recipe.diameter_cm) : null
   const ratio = (recipe.rice_qty && recipe.stock_qty) ? calculateRealBrothRatio(recipe.rice_qty, recipe.stock_qty) : null
-
-
-
-
-
-  // Top actions are now inlined to prevent unmounting on every render
-
-  // Initial Summary View
-  if (!hasStarted) {
-    return (
-      <div className="min-h-[100dvh] bg-black text-white flex flex-col justify-center p-6 sm:p-10 animate-in fade-in duration-500 relative overflow-hidden">
-      <div className="absolute top-4 right-4 md:top-6 md:right-6 flex items-center z-50">
-        <Link href={`/recipes/${recipe.id}`} onClick={() => localStorage.removeItem(`cook-mode-${recipe.id}`)} className="p-2 text-white/50 hover:text-white transition-colors" aria-label="Cerrar modo cocina">
-          <X className="w-8 h-8" aria-hidden="true" />
-        </Link>
-      </div>
-        <div className="max-w-md mx-auto w-full flex flex-col gap-6 md:gap-8 justify-center">
-          <div className="space-y-2 md:space-y-4 text-center">
-            <h1 className="text-3xl md:text-4xl font-black font-serif leading-tight">{recipe.name}</h1>
-            <p className="text-white/60 text-sm md:text-lg uppercase tracking-widest font-bold">Resumen</p>
-          </div>
-          
-          <div className="grid grid-cols-2 gap-3 md:gap-4">
-            <div className="bg-white/10 p-4 md:p-5 rounded-3xl border border-white/10 flex flex-col items-center justify-center text-center">
-              <span className="text-white/50 text-xs md:text-sm font-bold uppercase mb-1">Raciones</span>
-              <span className="text-2xl md:text-3xl font-black">{recipe.requested_servings}</span>
-            </div>
-            {recipe.diameter_cm && (
-              <div className="bg-white/10 p-4 md:p-5 rounded-3xl border border-white/10 flex flex-col items-center justify-center text-center">
-                <span className="text-white/50 text-xs md:text-sm font-bold uppercase mb-1">Paella</span>
-                <span className="text-2xl md:text-3xl font-black">{recipe.diameter_cm} cm</span>
-              </div>
-            )}
-            {recipe.rice_qty && (
-              <div className="bg-white/10 p-4 md:p-5 rounded-3xl border border-white/10 flex flex-col items-center justify-center text-center">
-                <span className="text-white/50 text-xs md:text-sm font-bold uppercase mb-1">Arroz</span>
-                <span className="text-xl md:text-2xl font-black">{Math.round(recipe.rice_qty)}g</span>
-                {recipe.variety_name && <span className="text-[10px] md:text-xs text-white/60 mt-1">{recipe.variety_name}</span>}
-              </div>
-            )}
-            {recipe.stock_qty && (
-              <div className="bg-white/10 p-4 md:p-5 rounded-3xl border border-white/10 flex flex-col items-center justify-center text-center">
-                <span className="text-white/50 text-xs md:text-sm font-bold uppercase mb-1">Caldo</span>
-                <span className="text-xl md:text-2xl font-black">{Math.round(recipe.stock_qty)}ml</span>
-                {ratio && <span className="text-[10px] md:text-xs text-white/60 mt-1">Ratio {ratio}:1</span>}
-              </div>
-            )}
-            {layer && (
-              <div className="bg-white/10 p-4 md:p-5 rounded-3xl border border-white/10 flex flex-col items-center justify-center text-center col-span-2">
-                <span className="text-white/50 text-xs md:text-sm font-bold uppercase mb-1">Capa estimada</span>
-                <span className="text-xl md:text-2xl font-black">{layer}</span>
-              </div>
-            )}
-          </div>
-
-          <button 
-            onClick={handleStart}
-            className="w-full py-5 md:py-6 mt-2 bg-primary text-white rounded-full font-black text-xl md:text-2xl hover:bg-primary/90 transition-transform active:scale-95 shadow-xl"
-          >
-            EMPEZAR
-          </button>
-        </div>
-      </div>
-    )
-  }
 
   // Final View
   if (currentStepIndex >= recipe.steps.length) {
@@ -687,8 +596,19 @@ export function CookModeClient({ recipe, userName, reset }: { recipe: CookModeRe
           </div>
         </div>
 
-        {/* Spacer to balance the top bar layout */}
-        <div className="w-24 sm:w-28" />
+        {/* Right side: Info / Datos button */}
+        <div className="flex items-center justify-end gap-2 z-10 w-24 sm:w-28 mr-8 md:mr-10">
+          <button
+            type="button"
+            onClick={() => setShowSummaryModal(true)}
+            className="px-2.5 py-1.5 rounded-full bg-white/10 hover:bg-white/20 text-white/80 hover:text-white border border-white/10 text-xs font-bold flex items-center gap-1.5 transition-colors"
+            aria-label="Ver datos de la paella"
+            title="Ver datos y proporciones de la paella"
+          >
+            <Info className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Datos</span>
+          </button>
+        </div>
       </header>
 
       {/* Floating feedback message for voice commands */}
@@ -829,6 +749,68 @@ export function CookModeClient({ recipe, userName, reset }: { recipe: CookModeRe
                 Sí / Terminar
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal con los datos de proporciones y paella */}
+      {showSummaryModal && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-6 animate-in fade-in duration-200">
+          <div className="bg-card text-card-foreground border border-border rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl flex flex-col gap-6 relative">
+            <button
+              type="button"
+              onClick={() => setShowSummaryModal(false)}
+              className="absolute top-4 right-4 p-2 text-muted-foreground hover:text-foreground transition-colors"
+              aria-label="Cerrar resumen"
+            >
+              <X className="w-6 h-6" />
+            </button>
+
+            <div className="space-y-1 text-center pr-6">
+              <h3 className="text-2xl font-bold font-serif">{recipe.name}</h3>
+              <p className="text-xs uppercase tracking-wider font-bold text-muted-foreground">Datos del cocinado</p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="bg-muted/40 p-4 rounded-2xl border border-border flex flex-col items-center justify-center text-center">
+                <span className="text-muted-foreground text-xs font-bold uppercase mb-1">Raciones</span>
+                <span className="text-2xl font-black">{recipe.requested_servings}</span>
+              </div>
+              {recipe.diameter_cm && (
+                <div className="bg-muted/40 p-4 rounded-2xl border border-border flex flex-col items-center justify-center text-center">
+                  <span className="text-muted-foreground text-xs font-bold uppercase mb-1">Paella</span>
+                  <span className="text-2xl font-black">{recipe.diameter_cm} cm</span>
+                </div>
+              )}
+              {recipe.rice_qty && (
+                <div className="bg-muted/40 p-4 rounded-2xl border border-border flex flex-col items-center justify-center text-center">
+                  <span className="text-muted-foreground text-xs font-bold uppercase mb-1">Arroz</span>
+                  <span className="text-xl font-black">{Math.round(recipe.rice_qty)}g</span>
+                  {recipe.variety_name && <span className="text-[10px] text-muted-foreground mt-0.5">{recipe.variety_name}</span>}
+                </div>
+              )}
+              {recipe.stock_qty && (
+                <div className="bg-muted/40 p-4 rounded-2xl border border-border flex flex-col items-center justify-center text-center">
+                  <span className="text-muted-foreground text-xs font-bold uppercase mb-1">Caldo</span>
+                  <span className="text-xl font-black">{Math.round(recipe.stock_qty)}ml</span>
+                  {ratio && <span className="text-[10px] text-muted-foreground mt-0.5">Ratio {ratio}:1</span>}
+                </div>
+              )}
+              {layer && (
+                <div className="bg-muted/40 p-4 rounded-2xl border border-border flex flex-col items-center justify-center text-center col-span-2">
+                  <span className="text-muted-foreground text-xs font-bold uppercase mb-1">Capa estimada</span>
+                  <span className="text-xl font-black">{layer}</span>
+                </div>
+              )}
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setShowSummaryModal(false)}
+              className="w-full py-3.5 bg-primary text-primary-foreground font-bold rounded-2xl hover:bg-primary/90 transition-colors shadow-sm"
+            >
+              Continuar cocinando
+            </button>
           </div>
         </div>
       )}
