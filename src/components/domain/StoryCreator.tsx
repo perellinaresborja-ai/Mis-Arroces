@@ -10,7 +10,7 @@ import { globalStoryDraftUrl, globalStoryDraftType, globalStoryDraftFile, global
 import { SharedStoryRenderer, renderOverlayContent } from './SharedStoryRenderer';
 import { DraggableOverlay } from './stories/DraggableOverlay';
 import { MentionPicker, RecipePicker, IngredientPicker, LocationPicker, StickerPicker, LinkPicker, QuestionPicker, PollPicker, cleanIngredientName } from './stories/StickerPickers';
-import { Camera, User, ChefHat, MapPin, AlignLeft, AlignCenter, AlignRight, Apple, Image as ImageIcon, Trash2, Paintbrush, Sparkles, Link as LinkIcon, HelpCircle, BarChart2, Music, Volume2, Video, X, Undo2, Globe, Users } from 'lucide-react';
+import { Camera, User, ChefHat, MapPin, AlignLeft, AlignCenter, AlignRight, Apple, Image as ImageIcon, Trash2, Paintbrush, Sparkles, Link as LinkIcon, HelpCircle, BarChart2, Music, Volume2, Video, X, Undo2, Globe, Users, AtSign } from 'lucide-react';
 import { StoryMusicSelector } from './StoryMusicSelector';
 import { useModalHistory } from '@/hooks/useModalHistory';
 
@@ -527,24 +527,24 @@ export function StoryCreator({
         {/* Top Floating Controls Bar (Overlaid on canvas) */}
         {mode === 'EDIT' && (
           <div className="absolute top-0 inset-x-0 z-[120] flex items-center justify-between p-3.5 pt-[max(env(safe-area-inset-top),0.85rem)] bg-gradient-to-b from-black/70 via-black/30 to-transparent pointer-events-none">
-            {/* Close / Discard Button */}
-            <button 
-              onClick={(e) => {
-                e.stopPropagation();
-                if (draftMediaUrl || overlays.length > 0) {
-                  setShowDiscardDialog(true);
-                } else {
-                  router.back();
-                }
-              }}
-              className="w-10 h-10 bg-black/45 hover:bg-black/65 backdrop-blur-md rounded-full flex items-center justify-center text-white border border-white/15 transition-transform active:scale-90 pointer-events-auto shadow-sm cursor-pointer"
-              aria-label="Cerrar editor"
-            >
-              <X size={20} />
-            </button>
-
-            {/* Overlaid Action Tools */}
+            {/* Left Controls: Close & Media upload */}
             <div className="flex items-center gap-2 pointer-events-auto">
+              {/* Close / Discard Button */}
+              <button 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (draftMediaUrl || overlays.length > 0) {
+                    setShowDiscardDialog(true);
+                  } else {
+                    router.back();
+                  }
+                }}
+                className="w-10 h-10 bg-black/45 hover:bg-black/65 backdrop-blur-md rounded-full flex items-center justify-center text-white border border-white/15 transition-transform active:scale-90 shadow-sm cursor-pointer"
+                aria-label="Cerrar editor"
+              >
+                <X size={20} />
+              </button>
+
               {/* Media Change / Upload button */}
               <label 
                 className="w-10 h-10 bg-black/45 hover:bg-black/65 backdrop-blur-md rounded-full flex items-center justify-center text-white border border-white/15 transition-transform active:scale-90 cursor-pointer shadow-sm" 
@@ -553,8 +553,11 @@ export function StoryCreator({
                 <input type="file" className="sr-only" accept="image/*,video/*" onChange={handleFileChange} />
                 <Camera size={18} />
               </label>
+            </div>
 
-              {/* Texto */}
+            {/* Overlaid Action Tools: ACCESOS DIRECTOS VISIBLES */}
+            <div className="flex items-center gap-1.5 sm:gap-2 pointer-events-auto">
+              {/* 1. Texto */}
               <button 
                 onClick={() => setMode('TEXT')} 
                 className="w-10 h-10 bg-black/45 hover:bg-black/65 backdrop-blur-md rounded-full flex items-center justify-center text-white border border-white/15 transition-transform active:scale-90 shadow-sm cursor-pointer"
@@ -563,16 +566,25 @@ export function StoryCreator({
                 <span className="font-serif font-black text-sm">Aa</span>
               </button>
 
-              {/* Stickers / Widgets */}
+              {/* 2. Etiquetar personas / Mención */}
               <button 
-                onClick={() => { setActiveStickerType(null); setMode('STICKER'); }} 
+                onClick={() => { setActiveStickerType('MENTION'); setMode('STICKER'); }} 
                 className="w-10 h-10 bg-black/45 hover:bg-black/65 backdrop-blur-md rounded-full flex items-center justify-center text-white border border-white/15 transition-transform active:scale-90 shadow-sm cursor-pointer"
-                title="Stickers y widgets"
+                title="Etiquetar personas"
               >
-                <Sparkles size={18} />
+                <AtSign size={18} />
               </button>
 
-              {/* Música */}
+              {/* 3. Ubicación */}
+              <button 
+                onClick={() => { setActiveStickerType('LOCATION'); setMode('STICKER'); }} 
+                className="w-10 h-10 bg-black/45 hover:bg-black/65 backdrop-blur-md rounded-full flex items-center justify-center text-white border border-white/15 transition-transform active:scale-90 shadow-sm cursor-pointer"
+                title="Ubicación"
+              >
+                <MapPin size={18} />
+              </button>
+
+              {/* 4. Música */}
               <button 
                 onClick={() => setMode('MUSIC')} 
                 className="w-10 h-10 bg-black/45 hover:bg-black/65 backdrop-blur-md rounded-full flex items-center justify-center text-white border border-white/15 transition-transform active:scale-90 relative shadow-sm cursor-pointer"
@@ -582,13 +594,13 @@ export function StoryCreator({
                 {musicConfig && <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-primary rounded-full border-2 border-zinc-950" />}
               </button>
 
-              {/* Dibujar */}
+              {/* 5. Stickers */}
               <button 
-                onClick={() => setMode('DRAW')} 
+                onClick={() => { setActiveStickerType(null); setMode('STICKER'); }} 
                 className="w-10 h-10 bg-black/45 hover:bg-black/65 backdrop-blur-md rounded-full flex items-center justify-center text-white border border-white/15 transition-transform active:scale-90 shadow-sm cursor-pointer"
-                title="Dibujar"
+                title="Stickers y widgets"
               >
-                <Paintbrush size={18} />
+                <Sparkles size={18} />
               </button>
             </div>
           </div>
@@ -905,20 +917,15 @@ export function StoryCreator({
                   </div>
                   
                   <div className="grid grid-cols-4 gap-2">
+                    {/* Efectos / Brocha */}
                     <button 
-                      onClick={() => setActiveStickerType('MENTION')} 
+                      onClick={() => { setActiveStickerType(null); setMode('DRAW'); }} 
                       className="flex flex-col items-center justify-center gap-1.5 py-2.5 px-1 bg-muted/30 hover:bg-muted/60 active:bg-primary/10 rounded-2xl border border-border/40 hover:border-primary/30 text-foreground transition-all active:scale-95 cursor-pointer touch-manipulation group"
                     >
-                      <User size={21} className="text-primary group-hover:scale-110 transition-transform"/>
-                      <span className="text-[10px] font-medium text-foreground/85 tracking-tight">Mención</span>
+                      <Paintbrush size={21} className="text-primary group-hover:scale-110 transition-transform"/>
+                      <span className="text-[10px] font-medium text-foreground/85 tracking-tight">Brocha</span>
                     </button>
-                    <button 
-                      onClick={() => setActiveStickerType('LOCATION')} 
-                      className="flex flex-col items-center justify-center gap-1.5 py-2.5 px-1 bg-muted/30 hover:bg-muted/60 active:bg-primary/10 rounded-2xl border border-border/40 hover:border-primary/30 text-foreground transition-all active:scale-95 cursor-pointer touch-manipulation group"
-                    >
-                      <MapPin size={21} className="text-primary group-hover:scale-110 transition-transform"/>
-                      <span className="text-[10px] font-medium text-foreground/85 tracking-tight">Ubicación</span>
-                    </button>
+                    {/* Votación */}
                     <button 
                       onClick={() => setActiveStickerType('POLL')} 
                       className="flex flex-col items-center justify-center gap-1.5 py-2.5 px-1 bg-muted/30 hover:bg-muted/60 active:bg-primary/10 rounded-2xl border border-border/40 hover:border-primary/30 text-foreground transition-all active:scale-95 cursor-pointer touch-manipulation group"
@@ -926,6 +933,7 @@ export function StoryCreator({
                       <BarChart2 size={21} className="text-primary group-hover:scale-110 transition-transform"/>
                       <span className="text-[10px] font-medium text-foreground/85 tracking-tight">Votación</span>
                     </button>
+                    {/* Pregunta */}
                     <button 
                       onClick={() => setActiveStickerType('QUESTION')} 
                       className="flex flex-col items-center justify-center gap-1.5 py-2.5 px-1 bg-muted/30 hover:bg-muted/60 active:bg-primary/10 rounded-2xl border border-border/40 hover:border-primary/30 text-foreground transition-all active:scale-95 cursor-pointer touch-manipulation group"
@@ -933,6 +941,7 @@ export function StoryCreator({
                       <HelpCircle size={21} className="text-primary group-hover:scale-110 transition-transform"/>
                       <span className="text-[10px] font-medium text-foreground/85 tracking-tight">Pregunta</span>
                     </button>
+                    {/* Receta */}
                     <button 
                       onClick={() => setActiveStickerType('RECIPE')} 
                       className="flex flex-col items-center justify-center gap-1.5 py-2.5 px-1 bg-muted/30 hover:bg-muted/60 active:bg-primary/10 rounded-2xl border border-border/40 hover:border-primary/30 text-foreground transition-all active:scale-95 cursor-pointer touch-manipulation group"
@@ -940,6 +949,7 @@ export function StoryCreator({
                       <ChefHat size={21} className="text-primary group-hover:scale-110 transition-transform"/>
                       <span className="text-[10px] font-medium text-foreground/85 tracking-tight">Receta</span>
                     </button>
+                    {/* Ingrediente */}
                     <button 
                       onClick={() => setActiveStickerType('INGREDIENT')} 
                       className="flex flex-col items-center justify-center gap-1.5 py-2.5 px-1 bg-muted/30 hover:bg-muted/60 active:bg-primary/10 rounded-2xl border border-border/40 hover:border-primary/30 text-foreground transition-all active:scale-95 cursor-pointer touch-manipulation group"
@@ -947,6 +957,7 @@ export function StoryCreator({
                       <Apple size={21} className="text-primary group-hover:scale-110 transition-transform"/>
                       <span className="text-[10px] font-medium text-foreground/85 tracking-tight">Ingrediente</span>
                     </button>
+                    {/* Enlace */}
                     <button 
                       onClick={() => setActiveStickerType('LINK')} 
                       className="flex flex-col items-center justify-center gap-1.5 py-2.5 px-1 bg-muted/30 hover:bg-muted/60 active:bg-primary/10 rounded-2xl border border-border/40 hover:border-primary/30 text-foreground transition-all active:scale-95 cursor-pointer touch-manipulation group"
@@ -954,6 +965,7 @@ export function StoryCreator({
                       <LinkIcon size={21} className="text-primary group-hover:scale-110 transition-transform"/>
                       <span className="text-[10px] font-medium text-foreground/85 tracking-tight">Enlace</span>
                     </button>
+                    {/* GIFs */}
                     <button 
                       onClick={() => setActiveStickerType('GIF')} 
                       className="flex flex-col items-center justify-center gap-1.5 py-2.5 px-1 bg-muted/30 hover:bg-muted/60 active:bg-primary/10 rounded-2xl border border-border/40 hover:border-primary/30 text-foreground transition-all active:scale-95 cursor-pointer touch-manipulation group"
