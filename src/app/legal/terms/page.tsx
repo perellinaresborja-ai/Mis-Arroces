@@ -54,7 +54,7 @@ export default function TermsPage() {
 
         <h2 className="text-2xl font-bold text-foreground mt-8 mb-4">4. Normas de la Comunidad y Moderación</h2>
         <p className="mb-4">
-          Todos los usuarios deben respetar las <Link href="/legal/guidelines" className="text-primary hover:underline">Normas de la Comunidad</Link>. La plataforma cuenta con sistemas de reporte para señalar infracciones.
+          Todos los usuarios deben respetar las <Link href="/normas-comunidad" className="text-primary hover:underline">Normas de la Comunidad</Link>. La plataforma cuenta con sistemas de reporte para señalar infracciones.
         </p>
         <p className="mb-4">
           En caso de detectar contenido que vulnere estas normas, MisArroces se reserva el derecho de restringir su visibilidad o eliminarlo. Ante infracciones graves o reiteradas, podemos suspender o cerrar tu cuenta permanentemente.

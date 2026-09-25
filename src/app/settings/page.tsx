@@ -213,8 +213,8 @@ export default async function SettingsPage() {
                 <ChevronRight className="w-4 h-4 text-muted-foreground" />
               </a>
               <div className="h-px bg-border ml-12"></div>
-              <Link href="/legal/guidelines" className="flex items-center justify-between p-4 hover:bg-muted/50 transition">
-                <div className="flex items-center gap-3"><Shield className="w-5 h-5 text-muted-foreground" /> <span className="font-medium">Normas de la comunidad</span></div>
+              <Link href="/normas-comunidad" className="flex items-center justify-between p-4 hover:bg-muted/50 transition">
+                <div className="flex items-center gap-3"><Shield className="w-5 h-5 text-muted-foreground" /> <span className="font-medium">Normas de la Comunidad</span></div>
                 <ChevronRight className="w-4 h-4 text-muted-foreground" />
               </Link>
               <div className="h-px bg-border ml-12"></div>
@@ -248,7 +248,7 @@ export default async function SettingsPage() {
           <div className="pt-6 pb-8">
             <LogoutButton />
             <div className="text-center mt-8">
-              <span className="text-xs text-muted-foreground font-medium">Mis Arroces v1.0</span>
+              <span className="text-xs text-muted-foreground font-medium">misarroces v1.0</span>
             </div>
           </div>
 
