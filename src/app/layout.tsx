@@ -32,7 +32,10 @@ export const metadata: Metadata = {
   },
   manifest: "/manifest.webmanifest",
   icons: {
-    icon: "/icons/icon-192x192.png",
+    icon: [
+      { url: "/icons/icon-192x192.webp", type: "image/webp" },
+      { url: "/icons/icon-192x192.png", type: "image/png" }
+    ],
     apple: "/apple-touch-icon.png",
   },
   openGraph: {
