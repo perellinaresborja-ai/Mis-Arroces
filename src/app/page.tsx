@@ -105,7 +105,7 @@ export default async function Home() {
                 "@type": "Organization",
                 "name": "misarroces",
                 "url": "https://www.misarroces.es",
-                "logo": "https://www.misarroces.es/logopaellaicono.png",
+                "logo": "https://www.misarroces.es/logopngver.webp",
                 "description": "Plataforma y red social especializada en arroz, recetas y comunidad.",
                 "slogan": "La red social de los arroces"
               }

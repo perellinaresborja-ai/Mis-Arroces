@@ -148,7 +148,7 @@ export async function sendFounderEmail(
                 
                 <!-- Encabezado con marca y píldora -->
                 <div style="font-size:15px;font-weight:900;color:#18181B;letter-spacing:-0.02em;line-height:1;margin-bottom:3px;">
-                  <img src="https://www.misarroces.es/logopaellaicono.png" width="18" height="18" alt="Icono paella" style="vertical-align:middle;margin-right:5px;display:inline-block;" />
+                  <img src="https://www.misarroces.es/logopngver.webp" width="18" height="18" alt="misarroces" style="vertical-align:middle;margin-right:5px;display:inline-block;" />
                   <span style="vertical-align:middle;">mis<span style="color:#EA580C;">arroces</span></span>
                 </div>
                 <div style="display:inline-block;background:#FFFFFF;border:1px solid #EA580C;border-radius:100px;padding:1px 8px;font-size:8px;font-weight:800;color:#EA580C;letter-spacing:0.18em;margin-top:2px;margin-bottom:8px;text-transform:uppercase;">

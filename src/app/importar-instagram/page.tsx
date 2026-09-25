@@ -7,7 +7,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Trae tus recetas de Instagram | misarroces",
     description: "Importa recetas desde Instagram o desde cualquier web directamente a tu recetario digital de misarroces.",
-    images: ["/logopaellaicono.png"],
+    images: ["/logopngver.webp"],
   },
 }
 

@@ -8,7 +8,7 @@ async function generateGooglePlayAssets() {
   // 1. ICONO GOOGLE PLAY 512x512
   // "usa únicamente la paella con la “m”, sin texto ni claim, manteniendo máxima calidad y proporción. Conserva transparencia del logo master original."
   // ----------------------------------------------------
-  const paellaMasterBuf = fs.readFileSync('public/logopaellaicono.png');
+  const paellaMasterBuf = fs.readFileSync('public/logopngver.webp');
 
   // Redimensionar paella con máxima nitidez (Lanczos3) para que encaje perfectamente en 512x512 respetando la zona segura de Google Play
   // logopaellaicono recortado es 1289x996 (ratio 1.294). Con ancho de 476px, alto es ~368px.

@@ -42,7 +42,7 @@ export const metadata: Metadata = {
     title: "misarroces | La red social de los arroces",
     description: "Descubre, guarda y comparte las mejores recetas de arroces y paellas.",
     images: [{
-      url: "/logopaellaicono.png",
+      url: "/logopngver.webp",
       width: 1200,
       height: 630,
       alt: "misarroces"
@@ -52,7 +52,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "misarroces | La red social de los arroces",
     description: "Descubre, guarda y comparte las mejores recetas de arroces y paellas.",
-    images: ["/logopaellaicono.png"]
+    images: ["/logopngver.webp"]
   },
   robots: {
     index: true,

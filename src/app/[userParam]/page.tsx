@@ -68,7 +68,7 @@ export async function generateMetadata({ params }: { params: Promise<{ userParam
   const isPublic = profile.privacy_level === "PUBLIC";
   const avatarUrl = profile.avatar?.storage_path 
     ? `https://zvesoygqssyyojqyswwm.supabase.co/storage/v1/object/public/recipe_media/${profile.avatar.storage_path}`
-    : "https://www.misarroces.es/logopaellaicono.png";
+    : "https://www.misarroces.es/logopngver.webp";
 
   const canonicalUrl = `https://www.misarroces.es/@${username}`;
   const displayName = profile.display_name || username;

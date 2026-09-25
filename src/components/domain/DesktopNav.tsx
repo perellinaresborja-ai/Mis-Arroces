@@ -83,10 +83,10 @@ export function DesktopNav() {
           
           <Link href="/" className="flex items-center gap-1">
               <div className="relative w-12 h-12 shrink-0">
-                <Image src="/logopaellaicono.png" alt="Mis Arroces Icono" fill sizes="100px" className="object-contain" priority />
+                <Image src="/logopngver.webp" alt="misarroces" fill sizes="100px" className="object-contain" priority />
               </div>
               <div className="relative w-48 h-10 shrink-0">
-                <Image src="/logoextto.png" alt="Mis Arroces Texto" fill sizes="200px" className="object-contain object-left" priority />
+                <Image src="/logoextto.png" alt="misarroces" fill sizes="200px" className="object-contain object-left" priority />
               </div>
             </Link>
 

@@ -92,7 +92,7 @@ export default function DownloadClient() {
           <div className="flex flex-col items-center space-y-3">
             <div className="relative w-36 h-40 sm:w-44 sm:h-48 mx-auto">
               <Image
-                src="/logopngver.png"
+                src="/logopngver.webp"
                 alt="misarroces"
                 fill
                 sizes="(max-width: 640px) 144px, 176px"

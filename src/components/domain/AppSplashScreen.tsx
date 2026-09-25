@@ -54,7 +54,7 @@ export function AppSplashScreen() {
         {/* Logo completo oficial con transparencia y proporciones intactas */}
         <div className="relative w-44 h-48 sm:w-52 sm:h-56">
           <Image
-            src="/logopngver.png"
+            src="/logopngver.webp"
             alt="misarroces"
             fill
             priority

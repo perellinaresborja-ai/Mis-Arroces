@@ -7,7 +7,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Descarga misarroces | misarroces",
     description: "Recetas, cálculo de arroz milimétrico, bitácora y comunidad en la palma de tu mano.",
-    images: ["/logopngver.png"],
+    images: ["/logopngver.webp"],
   },
 }
 

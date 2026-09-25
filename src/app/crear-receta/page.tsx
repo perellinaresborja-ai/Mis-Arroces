@@ -7,7 +7,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Crea tu recetario de arroces | misarroces",
     description: "Todos tus arroces, organizados en un único lugar. Guarda cantidades, ingredientes, elaboración, fotos y todos los datos necesarios para volver a cocinarlos siempre que quieras.",
-    images: ["/logopaellaicono.png"],
+    images: ["/logopngver.webp"],
   },
 }
 

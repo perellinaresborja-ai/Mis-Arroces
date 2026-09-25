@@ -78,7 +78,7 @@ export default function LinksPage() {
         <div className="flex justify-center pt-2 sm:pt-4">
           <div className="relative w-36 h-40 sm:w-44 sm:h-48">
             <Image
-              src="/logopngver.png"
+              src="/logopngver.webp"
               alt="misarroces"
               fill
               sizes="(max-width: 640px) 144px, 176px"

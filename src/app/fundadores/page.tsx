@@ -58,7 +58,7 @@ export default async function FundadoresPage() {
         {/* Logo misarroces */}
         <div className="relative w-28 h-28 sm:w-32 sm:h-32 mb-6">
           <Image
-            src="/logopngver.png"
+            src="/logopngver.webp"
             alt="misarroces"
             fill
             className="object-contain"

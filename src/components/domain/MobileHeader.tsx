@@ -27,10 +27,10 @@ export function MobileHeader() {
         className="flex items-center gap-1 shrink-0"
       >
         <div className="relative w-10 h-10 shrink-0">
-          <Image src="/logopaellaicono.png" alt="Mis Arroces Icono" fill sizes="80px" className="object-contain" priority />
+          <Image src="/logopngver.webp" alt="misarroces" fill sizes="80px" className="object-contain" priority />
         </div>
         <div className="relative w-40 h-9 shrink-0">
-          <Image src="/logoextto.png" alt="Mis Arroces Texto" fill sizes="180px" className="object-contain object-left" priority />
+          <Image src="/logoextto.png" alt="misarroces" fill sizes="180px" className="object-contain object-left" priority />
         </div>
       </Link>
       <div className="flex items-center gap-3">

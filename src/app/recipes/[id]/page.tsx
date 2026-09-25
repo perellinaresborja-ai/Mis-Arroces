@@ -42,7 +42,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   const primaryMedia = (recipe.media?.[0] as any)?.media_assets?.storage_path;
   const imageUrl = primaryMedia 
     ? `https://zvesoygqssyyojqyswwm.supabase.co/storage/v1/object/public/recipe_media/${primaryMedia}`
-    : "https://www.misarroces.es/logopaellaicono.png";
+    : "https://www.misarroces.es/logopngver.webp";
 
   const authorName = (recipe.profiles as any)?.display_name || (recipe.profiles as any)?.username || 'un chef arrocero';
   const canonicalUrl = `https://www.misarroces.es/recipes/${recipe.id}`;
@@ -254,7 +254,7 @@ export default async function RecipeDetailPage({
     "@type": "Recipe",
     "name": recipe.name,
     ...(recipe.description ? { "description": recipe.description } : {}),
-    "image": imageUrl ? [imageUrl] : ["https://www.misarroces.es/logopaellaicono.png"],
+    "image": imageUrl ? [imageUrl] : ["https://www.misarroces.es/logopngver.webp"],
     ...(authorName ? {
       "author": {
         "@type": "Person",

@@ -49,7 +49,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   const firstMedia = session.session_media?.sort((a: any, b: any) => a.display_order - b.display_order)?.[0]?.media?.storage_path
   const imageUrl = firstMedia
     ? `https://zvesoygqssyyojqyswwm.supabase.co/storage/v1/object/public/recipe_media/${firstMedia}`
-    : "https://www.misarroces.es/logopaellaicono.png"
+    : "https://www.misarroces.es/logopngver.webp"
   const canonicalUrl = `https://www.misarroces.es/sessions/${session.id}`
 
   return {

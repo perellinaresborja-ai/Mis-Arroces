@@ -143,7 +143,7 @@ Solo existirán 100. Cuando se completen, se cerrará para siempre.`
               <div className="border border-[#EAE3D7] rounded-[16px] p-3 bg-[#FDFBF7]">
                 {/* Encabezado */}
                 <div className="flex items-center justify-center gap-1.5 mb-1">
-                  <img src="/logopaellaicono.png" alt="Icono paella" className="w-[18px] h-[18px] object-contain" />
+                  <img src="/logopngver.webp" alt="misarroces" className="w-[18px] h-[18px] object-contain" />
                   <span className="text-[15px] font-black tracking-tight text-[#18181B] leading-none">
                     mis<span className="text-[#EA580C]">arroces</span>
                   </span>

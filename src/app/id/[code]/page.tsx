@@ -52,7 +52,7 @@ export default async function MemberIdPage({
   let formattedFounderNumber: string | null = null;
   let displayName = "";
   let username = "";
-  let avatarUrl = "https://www.misarroces.es/logopaellaicono.png";
+  let avatarUrl = "https://www.misarroces.es/logopngver.webp";
   let isOwner = false;
 
   // Si no existe o está desactivada en DB
@@ -116,7 +116,7 @@ export default async function MemberIdPage({
     username = profile.username;
     avatarUrl = profile.avatar?.storage_path
       ? `https://zvesoygqssyyojqyswwm.supabase.co/storage/v1/object/public/recipe_media/${profile.avatar.storage_path}`
-      : "https://www.misarroces.es/logopaellaicono.png";
+      : "https://www.misarroces.es/logopngver.webp";
   }
 
   const qrImageUrl = `/api/qr/${cleanCode}`;
@@ -140,8 +140,8 @@ export default async function MemberIdPage({
             <div className="flex items-center justify-center gap-1.5 mb-1">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src="/logopaellaicono.png"
-                alt="Icono paella"
+                src="/logopngver.webp"
+                alt="misarroces"
                 className="w-5 h-5 object-contain"
               />
               <span className="text-[16px] font-black tracking-tight text-[#18181B] leading-none">
