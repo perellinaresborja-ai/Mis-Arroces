@@ -92,6 +92,7 @@ export function PostMediaManager({
   const holdTimerRef = useRef<NodeJS.Timeout | null>(null)
   const capturedElementRef = useRef<HTMLElement | null>(null)
   const capturedPointerIdRef = useRef<number | null>(null)
+  const draggedNodeRef = useRef<HTMLElement | null>(null)
   const hasReorderedRef = useRef<boolean>(false)
 
   // Global safety net: ensure pointer capture and dragging state are always released
@@ -100,6 +101,10 @@ export function PostMediaManager({
       if (holdTimerRef.current) {
         clearTimeout(holdTimerRef.current)
         holdTimerRef.current = null
+      }
+      if (draggedNodeRef.current) {
+        draggedNodeRef.current.style.transform = ''
+        draggedNodeRef.current = null
       }
       if (capturedElementRef.current && capturedPointerIdRef.current !== null) {
         try {
@@ -254,6 +259,7 @@ export function PostMediaManager({
     activeDragIdRef.current = id
     pointerTypeRef.current = e.pointerType
     hasReorderedRef.current = false
+    draggedNodeRef.current = e.currentTarget
 
     const targetEl = e.currentTarget
     const pointerId = e.pointerId
@@ -263,8 +269,8 @@ export function PostMediaManager({
       holdTimerRef.current = null
     }
 
-    // Touch device: short intentional hold delay (220ms) before activating drag.
-    // This leaves natural vertical scroll completely uninhibited for normal swipes!
+    // Touch device: short intentional hold delay (200ms) before activating drag.
+    // Leaves normal vertical scroll completely uninhibited for swipes!
     if (e.pointerType === 'touch' || e.pointerType === 'pen') {
       holdTimerRef.current = setTimeout(() => {
         if (dragStartPosRef.current && activeDragIdRef.current === id) {
@@ -279,7 +285,7 @@ export function PostMediaManager({
             try { navigator.vibrate(35) } catch {}
           }
         }
-      }, 220)
+      }, 200)
     }
   }
 
@@ -293,19 +299,20 @@ export function PostMediaManager({
     if (!isDraggingActiveRef.current) {
       if (pointerTypeRef.current === 'touch' || pointerTypeRef.current === 'pen') {
         // If moving vertically before hold timer fires, user is scrolling!
-        // Immediately abort drag recognition to let browser scroll smoothly.
-        if (Math.abs(dy) > 7 && Math.abs(dy) > Math.abs(dx)) {
+        // Immediately cancel drag intent so the browser scrolls smoothly.
+        if (Math.abs(dy) > 5 && Math.abs(dy) > Math.abs(dx)) {
           if (holdTimerRef.current) {
             clearTimeout(holdTimerRef.current)
             holdTimerRef.current = null
           }
           dragStartPosRef.current = null
           activeDragIdRef.current = null
+          draggedNodeRef.current = null
           return
         }
 
         // Substantial lateral move after touch:
-        if (dist > 16) {
+        if (dist > 18) {
           if (holdTimerRef.current) {
             clearTimeout(holdTimerRef.current)
             holdTimerRef.current = null
@@ -321,8 +328,8 @@ export function PostMediaManager({
           return
         }
       } else {
-        // Desktop mouse: drag activates after 6px movement
-        if (dist > 6) {
+        // Desktop mouse: drag activates after 5px movement
+        if (dist > 5) {
           isDraggingActiveRef.current = true
           setActiveDragId(activeDragIdRef.current)
           capturedElementRef.current = e.currentTarget
@@ -334,6 +341,11 @@ export function PostMediaManager({
           return
         }
       }
+    }
+
+    // Direct hardware-accelerated translation on dragged DOM node (zero latency!)
+    if (draggedNodeRef.current) {
+      draggedNodeRef.current.style.transform = `translate3d(${dx}px, ${dy}px, 0) scale(1.06)`
     }
 
     if (!gridRef.current) return
@@ -378,6 +390,8 @@ export function PostMediaManager({
       hasReorderedRef.current = true
       setItems(updated)
       itemsRef.current = updated
+      // Reset drag start position to current position so relative offset smoothly matches new slot
+      dragStartPosRef.current = { x: e.clientX, y: e.clientY }
     }
   }
 
@@ -385,6 +399,11 @@ export function PostMediaManager({
     if (holdTimerRef.current) {
       clearTimeout(holdTimerRef.current)
       holdTimerRef.current = null
+    }
+
+    if (draggedNodeRef.current) {
+      draggedNodeRef.current.style.transform = ''
+      draggedNodeRef.current = null
     }
 
     if (capturedElementRef.current && capturedPointerIdRef.current !== null) {
@@ -440,10 +459,10 @@ export function PostMediaManager({
                 onPointerUp={handlePointerUp}
                 onPointerCancel={handlePointerUp}
                 className={cn(
-                  "relative aspect-square rounded-2xl overflow-hidden border border-border bg-muted group transition-transform duration-150 select-none",
+                  "relative aspect-square rounded-2xl overflow-hidden border border-border bg-muted group select-none shadow-sm",
                   isDraggingThis 
-                    ? "scale-105 shadow-xl ring-2 ring-primary z-30 opacity-90 cursor-grabbing touch-none" 
-                    : "hover:shadow-md cursor-grab active:cursor-grabbing touch-pan-y",
+                    ? "shadow-2xl ring-2 ring-primary z-50 opacity-95 cursor-grabbing touch-none !transition-none" 
+                    : "hover:shadow-md cursor-grab active:cursor-grabbing touch-pan-y transition-transform duration-150",
                   isCover && "ring-2 ring-primary/80"
                 )}
               >
