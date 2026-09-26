@@ -49,11 +49,16 @@ export function CookbookRecipeCard({ recipe, tab }: { recipe: any, tab: string }
     setShowConfirm(false)
     setIsDeleting(true)
     try {
-      await deleteRecipe(recipe.id)
+      const res = await deleteRecipe(recipe.id)
+      if (res && !res.success) {
+        alert(res.error || "No se pudo eliminar la receta.")
+        setIsDeleting(false)
+        return
+      }
       router.refresh()
     } catch (err: any) {
-      console.error(err)
-      alert(err.message || "Error desconocido al eliminar la receta.")
+      console.error("Error deleting recipe:", err)
+      alert(err?.message || "Error desconocido al eliminar la receta.")
       setIsDeleting(false)
     }
   }

@@ -472,53 +472,145 @@ export async function toggleSaveRecipe(recipeId: string, saved: boolean) {
 }
 
 
-export async function deleteRecipe(recipeId: string) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error("Unauthorized")
+export async function deleteRecipe(recipeId: string): Promise<{ success: boolean; error?: string }> {
+  try {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { success: false, error: "No autorizado. Inicia sesión de nuevo." }
 
-  // Verify ownership before modifying related records
-  const { data: recipe } = await supabase.from('recipes').select('id, status').eq('id', recipeId).eq('owner_id', user.id).single();
-  if (!recipe) throw new Error("Unauthorized or not found");
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://zvesoygqssyyojqyswwm.supabase.co'
+    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+    const adminClient = serviceKey 
+      ? createAdminClient(supabaseUrl, serviceKey, { auth: { autoRefreshToken: false, persistSession: false } }) 
+      : supabase
 
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  const adminClient = serviceKey 
-    ? createAdminClient(process.env.NEXT_PUBLIC_SUPABASE_URL || '', serviceKey) 
-    : supabase;
-
-  if (recipe.status === 'DRAFT') {
-    // Drafts have no public dependencies (comments/sessions from others)
-    // We can hard-delete them cleanly to avoid polluting DB.
-    // ON DELETE CASCADE will handle recipe_ingredients, recipe_steps, recipe_media, etc.
-    const { error } = await adminClient.from('recipes').delete().eq('id', recipeId);
-    if (error) {
-      console.error("Hard delete draft recipe error:", error)
-      throw new Error(error.message)
-    }
-  } else {
-    // Published recipes might have cooking sessions or social interactions.
-    // 1. Delete saves for this recipe across all users
-    await adminClient.from('saves').delete().eq('recipe_id', recipeId);
-    
-    // 2. Delete want_to_cook entries for this recipe
-    await adminClient.from('want_to_cook').delete().eq('recipe_id', recipeId);
-
-    // 3. Soft delete the recipe (leaves cooking_sessions intact)
-    // We use adminClient because RLS on 'recipes' FOR UPDATE prevents updating if deleted_at IS NULL without a WITH CHECK
-    const { error } = await adminClient
+    // 1. Verify recipe and ownership
+    const { data: recipe } = await adminClient
       .from('recipes')
-      .update({ deleted_at: new Date().toISOString() })
+      .select('id, status, deleted_at, owner_id')
       .eq('id', recipeId)
+      .maybeSingle()
 
-    if (error) {
-      console.error("Soft delete recipe error:", error)
-      throw new Error(error.message)
+    if (!recipe) {
+      // Check via user client as fallback
+      const { data: userRecipe } = await supabase
+        .from('recipes')
+        .select('id, status, deleted_at, owner_id')
+        .eq('id', recipeId)
+        .maybeSingle()
+
+      if (!userRecipe) {
+        // Recipe already does not exist or was deleted
+        try {
+          revalidatePath('/')
+          revalidatePath('/cookbook')
+        } catch {}
+        return { success: true }
+      }
+      if (userRecipe.owner_id !== user.id) {
+        return { success: false, error: "No tienes permiso para eliminar esta receta." }
+      }
+    } else if (recipe.owner_id !== user.id) {
+      return { success: false, error: "No tienes permiso para eliminar esta receta." }
     }
-  }
 
-  revalidatePath('/')
-  revalidatePath('/cookbook')
-  revalidatePath(`/[userParam]`, 'layout')
+    // 2. Clean up auxiliary relations (saves, want_to_cook, collection_recipes)
+    await Promise.allSettled([
+      adminClient.from('saves').delete().eq('recipe_id', recipeId),
+      adminClient.from('want_to_cook').delete().eq('recipe_id', recipeId),
+      adminClient.from('collection_recipes').delete().eq('recipe_id', recipeId),
+      supabase.from('saves').delete().eq('recipe_id', recipeId),
+      supabase.from('want_to_cook').delete().eq('recipe_id', recipeId),
+    ])
+
+    // 3. Check if there are cooking sessions from other users
+    const { count: otherCooksCount } = await adminClient
+      .from('cooking_sessions')
+      .select('id', { count: 'exact', head: true })
+      .eq('recipe_id', recipeId)
+      .neq('user_id', user.id)
+
+    if (otherCooksCount && otherCooksCount > 0) {
+      // Other users cooked it: soft-delete to preserve their cooking history
+      // Unlink from active stories and social posts so they don't break
+      await Promise.allSettled([
+        adminClient.from('stories').update({ recipe_id: null }).eq('recipe_id', recipeId),
+        adminClient.from('social_posts').update({ recipe_id: null }).eq('recipe_id', recipeId),
+      ])
+
+      let softDeleted = false
+      const { error: softErr } = await adminClient
+        .from('recipes')
+        .update({ deleted_at: new Date().toISOString() })
+        .eq('id', recipeId)
+
+      if (!softErr) {
+        softDeleted = true
+      } else {
+        console.error("Soft delete via adminClient failed:", softErr)
+        const { error: userSoftErr } = await supabase
+          .from('recipes')
+          .update({ deleted_at: new Date().toISOString() })
+          .eq('id', recipeId)
+        if (!userSoftErr) {
+          softDeleted = true
+        } else {
+          console.error("Soft delete via user client failed:", userSoftErr)
+        }
+      }
+
+      // If soft-delete failed, fallback to hard delete so the user is never stuck
+      if (!softDeleted) {
+        const { error: fallbackDelErr } = await adminClient.from('recipes').delete().eq('id', recipeId)
+        if (fallbackDelErr) {
+          const { error: userDelErr } = await supabase.from('recipes').delete().eq('id', recipeId)
+          if (userDelErr) {
+            return { success: false, error: userDelErr.message || fallbackDelErr.message }
+          }
+        }
+      }
+    } else {
+      // No cooking sessions by other users: hard delete completely!
+      // ON DELETE CASCADE cleanly removes recipe_ingredients, recipe_steps, recipe_media, etc.
+      let hardDeleted = false
+      const { error: delErr } = await adminClient.from('recipes').delete().eq('id', recipeId)
+      if (!delErr) {
+        hardDeleted = true
+      } else {
+        console.error("Hard delete via adminClient failed:", delErr)
+        const { error: userDelErr } = await supabase.from('recipes').delete().eq('id', recipeId)
+        if (!userDelErr) {
+          hardDeleted = true
+        } else {
+          console.error("Hard delete via user client failed:", userDelErr)
+          // Try soft delete as fallback
+          const { error: softFallbackErr } = await adminClient
+            .from('recipes')
+            .update({ deleted_at: new Date().toISOString() })
+            .eq('id', recipeId)
+          if (!softFallbackErr) {
+            hardDeleted = true
+          } else {
+            return { success: false, error: userDelErr.message || delErr.message }
+          }
+        }
+      }
+    }
+
+    try {
+      revalidatePath('/')
+      revalidatePath('/cookbook')
+      revalidatePath(`/recipes/${recipeId}`)
+      revalidatePath('/[userParam]', 'layout')
+    } catch (revErr) {
+      console.warn("Revalidate path warning:", revErr)
+    }
+
+    return { success: true }
+  } catch (err: any) {
+    console.error("deleteRecipe uncaught error:", err)
+    return { success: false, error: err?.message || "Error al eliminar la receta." }
+  }
 }
 
 export async function searchIngredientsAction(query: string) {

@@ -12,7 +12,6 @@ import { DraggableOverlay } from './stories/DraggableOverlay';
 import { MentionPicker, RecipePicker, IngredientPicker, LocationPicker, StickerPicker, LinkPicker, QuestionPicker, PollPicker, ProfilePicker, SliderPicker, HashtagPicker, CountdownPicker, cleanIngredientName } from './stories/StickerPickers';
 import { Camera, User, ChefHat, MapPin, AlignLeft, AlignCenter, AlignRight, Apple, Image as ImageIcon, Trash2, Paintbrush, Sparkles, Link as LinkIcon, HelpCircle, BarChart2, Music, Volume2, Video, X, Undo2, Globe, Users, AtSign, Smile, Hash, Timer, Play, Pause } from 'lucide-react';
 import { StoryMusicSelector } from './StoryMusicSelector';
-import { useModalHistory } from '@/hooks/useModalHistory';
 import { isTapStyleSupported, getNextStickerStyle } from '@/lib/story-sticker-styles';
 
 const TEXT_COLORS = ['#ffffff', '#000000', '#ef4444', '#f97316', '#eab308', '#22c55e', '#3b82f6', '#a855f7', '#ec4899'];
@@ -49,28 +48,16 @@ export function StoryCreator({
     if (globalStoryDraftUrl && !initialMedia && globalStoryDraftFresh) {
       setDraftMediaUrl(globalStoryDraftUrl);
       setDraftMediaType(globalStoryDraftType || 'IMAGE');
-      // Set mode to EDIT since we have media
       setMode('EDIT');
       consumeGlobalStoryDraft();
-    } else if (globalStoryDraftUrl && !globalStoryDraftFresh) {
-      // Stale draft! Clear it.
+    } else {
       clearGlobalStoryDraft();
-      setDraftMediaUrl(undefined);
-      setDraftMediaType(undefined);
-      setMode('EDIT');
-    } else if (!initialMedia && !initialRecipe && !initialSession && !initialPost) {
-      // Always default to EDIT so the user sees the 'Subir' file picker first,
-      // and can manually click 'Texto' if they want a text-only story.
-      setMode('EDIT');
+      setDraftMediaUrl(initialMedia?.url);
+      setDraftMediaType(initialMedia?.type);
+      if (!initialMedia && !initialRecipe && !initialSession && !initialPost) {
+        setMode('EDIT');
+      }
     }
-  }, []);
-  
-  // Important: We need a cleanup when unmounting to free memory if needed, 
-  // but if we are publishing we might need it. Let's just keep it in memory for now until it's published or we leave.
-  useEffect(() => {
-    return () => {
-      // We don't automatically clear here because they might be navigating to sticker pickers etc.
-    };
   }, []);
   
   
@@ -241,6 +228,7 @@ export function StoryCreator({
     const file = e.target.files?.[0];
     if (!file) return;
     setGlobalStoryDraft(file);
+    consumeGlobalStoryDraft();
     const url = URL.createObjectURL(file);
     userHasInteractedRef.current = false;
     setDraftMediaUrl(url);
@@ -251,6 +239,7 @@ export function StoryCreator({
       setDraftMediaType("IMAGE");
     }
     setMode('EDIT');
+    e.target.value = '';
   };
 
   const pendingPhotoStickersRef = useRef<Map<string, File>>(new Map());
@@ -448,8 +437,143 @@ export function StoryCreator({
   const [textAlign, setTextAlign] = useState<'left'|'center'|'right'>('center');
 
   const [showDiscardDialog, setShowDiscardDialog] = useState(false);
-  const safeCloseMode = useModalHistory(mode !== 'EDIT', () => setMode('EDIT'), 'storyCreatorMode');
-  const safeCloseDiscard = useModalHistory(showDiscardDialog, () => setShowDiscardDialog(false), 'storyDiscard');
+  const isExitingRef = useRef(false);
+  const isPublishingRef = useRef(false);
+
+  const hasUnsavedChanges = Boolean(
+    draftMediaUrl ||
+    overlays.length > 0 ||
+    textVal.trim().length > 0 ||
+    canvasUndoStack.length > 0 ||
+    musicConfig?.track_id ||
+    (background.type === 'color' && background.value !== '#18181B') ||
+    background.type !== 'color' ||
+    initialRecipe ||
+    initialSession ||
+    initialPost
+  );
+
+  const hasUnsavedChangesRef = useRef(hasUnsavedChanges);
+  useEffect(() => {
+    hasUnsavedChangesRef.current = hasUnsavedChanges;
+  }, [hasUnsavedChanges]);
+
+  const modeRef = useRef(mode);
+  useEffect(() => {
+    modeRef.current = mode;
+  }, [mode]);
+
+  const showDiscardDialogRef = useRef(showDiscardDialog);
+  useEffect(() => {
+    showDiscardDialogRef.current = showDiscardDialog;
+  }, [showDiscardDialog]);
+
+  useEffect(() => {
+    isPublishingRef.current = isPublishing;
+  }, [isPublishing]);
+
+  const safeCloseMode = () => setMode('EDIT');
+
+  const handleCancelDiscard = () => {
+    setShowDiscardDialog(false);
+  };
+
+  const handleConfirmDiscard = () => {
+    isExitingRef.current = true;
+    clearGlobalStoryDraft();
+    if (draftMediaUrl && draftMediaUrl.startsWith('blob:')) {
+      try {
+        URL.revokeObjectURL(draftMediaUrl);
+      } catch {}
+    }
+    setDraftMediaUrl(undefined);
+    setDraftMediaType(undefined);
+    setOverlays([]);
+    setTextVal('');
+    setMusicConfig(null);
+    setCanvasUndoStack([]);
+    pendingPhotoStickersRef.current.clear();
+    setShowDiscardDialog(false);
+    setIsExiting(true);
+    router.replace('/');
+  };
+
+  const requestExit = () => {
+    if (hasUnsavedChangesRef.current) {
+      setShowDiscardDialog(true);
+    } else {
+      isExitingRef.current = true;
+      clearGlobalStoryDraft();
+      setIsExiting(true);
+      router.replace('/');
+    }
+  };
+
+  const handleCloseClick = (e?: React.MouseEvent) => {
+    if (e) {
+      e.stopPropagation();
+      e.preventDefault();
+    }
+    requestExit();
+  };
+
+  useEffect(() => {
+    // Empujar entrada en historial para interceptar el botón o gesto atrás
+    window.history.pushState({ isStoryEditor: true }, '');
+
+    const handlePopState = () => {
+      if (isPublishingRef.current || isExitingRef.current) {
+        return;
+      }
+
+      // 1. Si el diálogo de descarte ya está abierto y le dan a atrás:
+      // Cerrar el diálogo y permanecer en el editor (Seguir editando)
+      if (showDiscardDialogRef.current) {
+        setShowDiscardDialog(false);
+        window.history.pushState({ isStoryEditor: true }, '');
+        return;
+      }
+
+      // 2. Si está en un submodo (STICKER, TEXT, MUSIC, DRAW):
+      // Volver al modo EDIT y mantener la guardia del editor
+      if (modeRef.current !== 'EDIT') {
+        setMode('EDIT');
+        window.history.pushState({ isStoryEditor: true }, '');
+        return;
+      }
+
+      // 3. Estamos en modo EDIT:
+      if (hasUnsavedChangesRef.current) {
+        // Hay contenido o modificaciones: neutralizamos salida y mostramos confirmación
+        window.history.pushState({ isStoryEditor: true }, '');
+        setShowDiscardDialog(true);
+      } else {
+        // El editor está vacío: salida directa
+        isExitingRef.current = true;
+        clearGlobalStoryDraft();
+        setIsExiting(true);
+        router.replace('/');
+      }
+    };
+
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasUnsavedChangesRef.current && !isPublishingRef.current && !isExitingRef.current) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      if (!isPublishingRef.current) {
+        clearGlobalStoryDraft();
+      }
+    };
+  }, [router]);
 
   // Init recipe, session or post if passed
     useEffect(() => {
@@ -676,6 +800,7 @@ export function StoryCreator({
   const handlePublish = async () => {
     if (isPublishing || isOptimizing) return;
     setIsPublishing(true);
+    isPublishingRef.current = true;
     try {
       const uploadedMediaId = await uploadDraftIfNeeded();
 
@@ -721,6 +846,7 @@ export function StoryCreator({
       console.error("Error al publicar historia:", e);
       alert(e?.message || "Error al publicar la historia. Por favor, inténtalo de nuevo.");
       setIsPublishing(false);
+      isPublishingRef.current = false;
       setIsOptimizing(false);
     }
   };
@@ -733,32 +859,28 @@ export function StoryCreator({
     <div className="fixed inset-0 bg-black z-50 flex items-center justify-center overflow-hidden touch-none select-none">
       
       {/* Discard Dialog Modal */}
+      {/* Discard Dialog Modal */}
       {showDiscardDialog && (
         <div className="absolute inset-0 z-[400] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm pointer-events-auto">
           <div className="bg-card border border-border w-full max-w-xs rounded-3xl p-6 shadow-2xl flex flex-col gap-5 text-center animate-in fade-in zoom-in-95 duration-200">
             <div>
               <h3 className="text-xl font-bold font-serif text-foreground mb-1.5">¿Descartar historia?</h3>
-              <p className="text-muted-foreground text-sm">Si sales ahora, perderás todos los cambios que hayas hecho.</p>
+              <p className="text-muted-foreground text-sm">Si sales ahora, perderás los cambios.</p>
             </div>
             <div className="flex flex-col gap-2.5 mt-2">
               <button 
-                onClick={() => {
-                  clearGlobalStoryDraft();
-                  setShowDiscardDialog(false);
-                  setIsExiting(true);
-                  React.startTransition(() => {
-                    router.replace('/');
-                  });
-                }}
-                className="w-full py-3 bg-destructive hover:bg-destructive/90 text-destructive-foreground font-bold rounded-2xl transition-colors cursor-pointer"
-              >
-                Descartar cambios
-              </button>
-              <button 
-                onClick={() => safeCloseDiscard()}
+                type="button"
+                onClick={handleCancelDiscard}
                 className="w-full py-3 bg-muted hover:bg-muted/80 text-foreground font-bold rounded-2xl transition-colors cursor-pointer"
               >
                 Seguir editando
+              </button>
+              <button 
+                type="button"
+                onClick={handleConfirmDiscard}
+                className="w-full py-3 bg-destructive hover:bg-destructive/90 text-destructive-foreground font-bold rounded-2xl transition-colors cursor-pointer"
+              >
+                Descartar
               </button>
             </div>
           </div>
@@ -836,14 +958,8 @@ export function StoryCreator({
             {/* Right: Close / Discard Button (Derecha) */}
             <div className="flex items-center pointer-events-auto">
               <button 
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (draftMediaUrl || overlays.length > 0) {
-                    setShowDiscardDialog(true);
-                  } else {
-                    router.back();
-                  }
-                }}
+                type="button"
+                onClick={handleCloseClick}
                 className="w-10 h-10 bg-black/45 hover:bg-black/65 backdrop-blur-md rounded-full flex items-center justify-center text-white border border-white/15 transition-transform active:scale-90 shadow-sm cursor-pointer"
                 aria-label="Cerrar editor"
               >
