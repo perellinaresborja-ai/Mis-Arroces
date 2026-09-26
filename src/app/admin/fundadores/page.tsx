@@ -1,32 +1,63 @@
 import { requireAdminSession } from "@/lib/admin/auth"
-import { Crown } from "lucide-react"
+import { getAdminClient } from "@/lib/admin/client"
+import {
+  AdminFundadoresClient,
+  FounderListItem,
+} from "./AdminFundadoresClient"
+
+export const dynamic = "force-dynamic"
 
 export default async function AdminFundadoresPage() {
-  await requireAdminSession()
+  await requireAdminSession("MODERATOR")
+  const adminClient = getAdminClient()
 
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-3">
-        <div className="p-3 rounded-2xl bg-amber-600/10 text-amber-600 border border-amber-600/20">
-          <Crown className="w-6 h-6" />
-        </div>
-        <div>
-          <h1 className="text-2xl font-bold">Arroceros Fundadores</h1>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Control de las 100 plazas fundadoras exclusivas de misarroces.
-          </p>
-        </div>
-      </div>
+  // 1. Cargar las plazas fundadoras asignadas
+  const [foundersRes, authUsersRes] = await Promise.all([
+    adminClient
+      .from("founders")
+      .select("founder_number, user_id, granted_at, welcome_email_sent_at")
+      .order("founder_number", { ascending: true }),
+    adminClient.auth.admin.listUsers({ perPage: 1000 }),
+  ])
 
-      <div className="bg-card border border-border rounded-3xl p-8 text-center space-y-3">
-        <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mx-auto text-muted-foreground">
-          <Crown className="w-6 h-6" />
-        </div>
-        <h3 className="font-bold text-lg">Módulo de Fundadores Preparado</h3>
-        <p className="text-sm text-muted-foreground max-w-md mx-auto">
-          La tabla <code>founders</code> ya controla las plazas 0 a 99. La tabla administrativa y los reenvíos de bienvenida se conectarán en el Bloque 5.
-        </p>
-      </div>
-    </div>
-  )
+  const rawFounders = foundersRes.data || []
+  const authUsers = authUsersRes.data?.users || []
+  const emailMap = new Map(authUsers.map((u) => [u.id, u.email || null]))
+
+  // 2. Extraer user_ids para obtener sus perfiles
+  const userIds = rawFounders.map((f) => f.user_id).filter(Boolean)
+  let profileMap = new Map<string, any>()
+
+  if (userIds.length > 0) {
+    const { data: profiles } = await adminClient
+      .from("profiles")
+      .select("id, username, display_name, account_status, avatar:media_assets!fk_profiles_avatar(storage_path)")
+      .in("id", userIds)
+
+    if (profiles) {
+      profiles.forEach((p) => profileMap.set(p.id, p))
+    }
+  }
+
+  // 3. Mapear a FounderListItem
+  const founders: FounderListItem[] = rawFounders.map((f) => {
+    const prof = profileMap.get(f.user_id)
+    return {
+      founderNumber: f.founder_number,
+      userId: f.user_id,
+      grantedAt: f.granted_at,
+      welcomeEmailSentAt: f.welcome_email_sent_at,
+      user: prof
+        ? {
+            username: prof.username,
+            displayName: prof.display_name,
+            email: emailMap.get(f.user_id) || null,
+            accountStatus: prof.account_status || "ACTIVE",
+            avatarUrl: prof.avatar?.storage_path || null,
+          }
+        : null,
+    }
+  })
+
+  return <AdminFundadoresClient founders={founders} totalSpots={100} />
 }

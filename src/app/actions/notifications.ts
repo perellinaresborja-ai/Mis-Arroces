@@ -2,7 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server"
 import { Database } from "@/types/database.types"
-import { createClient as createAdminClient } from "@supabase/supabase-js"
+import { getAdminClient } from "@/lib/admin/client"
 import { sendPushToUser } from "@/lib/push"
 
 type NotificationType = Database["public"]["Enums"]["notification_type_enum"]
@@ -40,7 +40,19 @@ function formatPushMessage(
     case "FOLLOW_ACCEPT":
       return { title, body: `${name} aceptó tu solicitud.` }
     case "COOKED_RECIPE":
-      return { title, body: `${name} ha cocinado tu receta.` }
+      return {
+        title,
+        body: payload?.recipe_name
+          ? `${name} está cocinando tu receta "${payload.recipe_name}".`
+          : `${name} está cocinando tu receta.`,
+      }
+    case "PUBLISHED_RESULT":
+      return {
+        title,
+        body: payload?.recipe_name
+          ? `${name} ha publicado una elaboración de tu receta "${payload.recipe_name}".`
+          : `${name} ha publicado una elaboración de tu receta.`,
+      }
     case "NEW_MESSAGE": {
       const msgType = payload?.message_type
       if (msgType === "AUDIO") return { title, body: `${name} te envió una nota de voz.` }
@@ -48,6 +60,14 @@ function formatPushMessage(
       return { title, body: `${name} te envió un mensaje.` }
     }
     case "SYSTEM":
+      if (payload?.subtype === "RECIPE_SAVED") {
+        return {
+          title,
+          body: payload?.recipe_name
+            ? `${name} ha guardado tu receta "${payload.recipe_name}".`
+            : `${name} ha guardado tu receta.`,
+        }
+      }
       return {
         title: payload?.title || title,
         body: payload?.body || payload?.message || "Nueva notificación en misarroces",
@@ -76,9 +96,15 @@ function resolveNotificationUrl(
     return `/profile/requests`
   }
   if (type === "COOKED_RECIPE") {
-    return `/sessions/${entity_id}`
+    return `/recipes/${payload?.recipe_id || entity_id}`
+  }
+  if (type === "PUBLISHED_RESULT") {
+    return `/sessions/${payload?.session_id || entity_id}`
   }
   if (type === "SYSTEM") {
+    if (payload?.subtype === "RECIPE_SAVED" && (payload?.recipe_id || entity_id)) {
+      return `/recipes/${payload?.recipe_id || entity_id}`
+    }
     return payload?.url || "/"
   }
 
@@ -103,11 +129,7 @@ export async function createNotification(
 
   if (!user || user.id === recipient_id) return // Don't notify yourself
 
-  const adminKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const dbClient = (adminKey && supabaseUrl)
-    ? createAdminClient(supabaseUrl, adminKey, { auth: { autoRefreshToken: false, persistSession: false } })
-    : supabase
+  const dbClient = getAdminClient()
 
   // Check user preferences securely on server without RLS blocking read of recipient's settings
   let prefKey = null;
@@ -142,7 +164,65 @@ export async function createNotification(
   const { title: pushTitle, body: pushBody } = formatPushMessage(type, actorName, entity_type, payload)
   const pushUrl = resolveNotificationUrl(type, actorProfile?.username || null, user.id, entity_type, entity_id, payload)
 
-  // Deduplication check for repeatable actions
+  // 1. Deduplication for recipe saves (24h cooldown to prevent save -> unsave -> save spam)
+  if (type === 'SYSTEM' && payload?.subtype === 'RECIPE_SAVED') {
+    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+    const { data: recentSave } = await dbClient
+      .from('notifications')
+      .select('id')
+      .eq('recipient_id', recipient_id)
+      .eq('actor_id', user.id)
+      .eq('type', 'SYSTEM')
+      .eq('entity_type', entity_type)
+      .eq('entity_id', entity_id)
+      .gte('created_at', twentyFourHoursAgo)
+      .limit(1)
+      .maybeSingle()
+
+    if (recentSave) {
+      return // Already notified within 24h, suppress duplicate notification
+    }
+  }
+
+  // 2. Deduplication for "Voy a cocinar" (3h cooldown: 1 real session = max 1 notification to author)
+  if (type === 'COOKED_RECIPE') {
+    const threeHoursAgo = new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString()
+    const { data: recentCooking } = await dbClient
+      .from('notifications')
+      .select('id')
+      .eq('recipient_id', recipient_id)
+      .eq('actor_id', user.id)
+      .eq('type', 'COOKED_RECIPE')
+      .eq('entity_type', entity_type)
+      .eq('entity_id', entity_id)
+      .gte('created_at', threeHoursAgo)
+      .limit(1)
+      .maybeSingle()
+
+    if (recentCooking) {
+      return // Session already notified recently, suppress reload/resume duplicates
+    }
+  }
+
+  // 3. Deduplication for published cooking results (1 session = max 1 notification)
+  if (type === 'PUBLISHED_RESULT') {
+    const { data: existingResult } = await dbClient
+      .from('notifications')
+      .select('id')
+      .eq('recipient_id', recipient_id)
+      .eq('actor_id', user.id)
+      .eq('type', 'PUBLISHED_RESULT')
+      .eq('entity_type', entity_type)
+      .eq('entity_id', entity_id)
+      .limit(1)
+      .maybeSingle()
+
+    if (existingResult) {
+      return // Result already notified
+    }
+  }
+
+  // 4. Deduplication check for repeatable social actions
   if (type === 'LIKE' || type === 'FOLLOW' || type === 'FOLLOW_REQUEST') {
 
     const { data: existing } = await dbClient
@@ -255,6 +335,48 @@ export async function fetchNotifications() {
 
   return data || []
 }
+
+export async function notifyRecipeSaved(authorId: string, recipeId: string, recipeName: string) {
+  try {
+    await createNotification(authorId, "SYSTEM", "recipe", recipeId, {
+      subtype: "RECIPE_SAVED",
+      recipe_id: recipeId,
+      recipe_name: recipeName,
+    })
+  } catch (error) {
+    console.error("[notifyRecipeSaved] Error:", error)
+  }
+}
+
+export async function notifyCookingStarted(authorId: string, recipeId: string, recipeName: string) {
+  try {
+    await createNotification(authorId, "COOKED_RECIPE", "recipe", recipeId, {
+      action: "COOKING_RECIPE",
+      recipe_id: recipeId,
+      recipe_name: recipeName,
+    })
+  } catch (error) {
+    console.error("[notifyCookingStarted] Error:", error)
+  }
+}
+
+export async function notifyResultPublished(
+  authorId: string,
+  sessionId: string,
+  recipeId: string,
+  recipeName: string
+) {
+  try {
+    await createNotification(authorId, "PUBLISHED_RESULT", "session", sessionId, {
+      session_id: sessionId,
+      recipe_id: recipeId,
+      recipe_name: recipeName,
+    })
+  } catch (error) {
+    console.error("[notifyResultPublished] Error:", error)
+  }
+}
+
 
 
 

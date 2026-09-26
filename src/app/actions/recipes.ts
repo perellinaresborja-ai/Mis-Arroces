@@ -470,13 +470,15 @@ export async function toggleSaveRecipe(recipeId: string, saved: boolean) {
   if (!session) throw new Error("No session");
 
   if (saved) {
-    const { data: recipe } = await supabase.from("recipes").select("owner_id, deleted_at").eq("id", recipeId).single();
+    const { data: recipe } = await supabase.from("recipes").select("name, owner_id, deleted_at").eq("id", recipeId).single();
     if (!recipe || recipe.deleted_at) throw new Error("Receta no disponible");
 
     await supabase.from('saves').insert({ recipe_id: recipeId, user_id: session.user.id });
     try {
       if (recipe.owner_id && recipe.owner_id !== session.user.id) {
         await trackEvent("SAVE", "RECIPE", recipeId, recipe.owner_id);
+        const { notifyRecipeSaved } = await import("@/app/actions/notifications");
+        await notifyRecipeSaved(recipe.owner_id, recipeId, recipe.name || "receta");
       }
     } catch(e) {}
   } else {
@@ -485,6 +487,33 @@ export async function toggleSaveRecipe(recipeId: string, saved: boolean) {
   revalidatePath('/recipes/' + recipeId);
   revalidatePath('/cookbook');
 }
+
+export async function startCookingRecipe(recipeId: string) {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    // 1. Track analytics event
+    await trackEvent("COOK_RECIPE", "RECIPE", recipeId);
+
+    // 2. Notify recipe author if cooked by another user
+    if (user) {
+      const { data: recipe } = await supabase
+        .from("recipes")
+        .select("id, name, owner_id")
+        .eq("id", recipeId)
+        .maybeSingle();
+
+      if (recipe && recipe.owner_id && recipe.owner_id !== user.id) {
+        const { notifyCookingStarted } = await import("@/app/actions/notifications");
+        await notifyCookingStarted(recipe.owner_id, recipe.id, recipe.name || "receta");
+      }
+    }
+  } catch (error) {
+    console.error("[startCookingRecipe] Error:", error);
+  }
+}
+
 
 
 export async function deleteRecipe(recipeId: string): Promise<{ success: boolean; error?: string }> {

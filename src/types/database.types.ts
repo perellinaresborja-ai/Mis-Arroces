@@ -87,6 +87,155 @@ export type Database = {
           }
         ]
       }
+      admin_campaigns: {
+        Row: {
+          admin_id: string | null
+          channels: string[]
+          created_at: string
+          cta_text: string | null
+          cta_url: string | null
+          error_details: Json | null
+          failed_count: number
+          id: string
+          message: string
+          recipient_count: number
+          segment: string
+          sent_count: number
+          status: string
+          subject: string | null
+          title: string
+        }
+        Insert: {
+          admin_id?: string | null
+          channels?: string[]
+          created_at?: string
+          cta_text?: string | null
+          cta_url?: string | null
+          error_details?: Json | null
+          failed_count?: number
+          id?: string
+          message: string
+          recipient_count?: number
+          segment?: string
+          sent_count?: number
+          status?: string
+          subject?: string | null
+          title: string
+        }
+        Update: {
+          admin_id?: string | null
+          channels?: string[]
+          created_at?: string
+          cta_text?: string | null
+          cta_url?: string | null
+          error_details?: Json | null
+          failed_count?: number
+          id?: string
+          message?: string
+          recipient_count?: number
+          segment?: string
+          sent_count?: number
+          status?: string
+          subject?: string | null
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_campaigns_admin_id_fkey"
+            columns: ["admin_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      app_incidents: {
+        Row: {
+          context: Json | null
+          created_at: string
+          id: string
+          incident_type: string
+          message: string
+          resolved_at: string | null
+          resolved_by: string | null
+          stack: string | null
+          status: string
+          url: string | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          context?: Json | null
+          created_at?: string
+          id?: string
+          incident_type?: string
+          message: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          stack?: string | null
+          status?: string
+          url?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          context?: Json | null
+          created_at?: string
+          id?: string
+          incident_type?: string
+          message?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          stack?: string | null
+          status?: string
+          url?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      story_music_tracks: {
+        Row: {
+          active: boolean
+          artist: string
+          audio_url: string
+          category: string | null
+          created_at: string
+          duration_ms: number
+          file_hash: string | null
+          id: string
+          source_license: string
+          source_url: string | null
+          title: string
+        }
+        Insert: {
+          active?: boolean
+          artist: string
+          audio_url: string
+          category?: string | null
+          created_at?: string
+          duration_ms: number
+          file_hash?: string | null
+          id?: string
+          source_license: string
+          source_url?: string | null
+          title: string
+        }
+        Update: {
+          active?: boolean
+          artist?: string
+          audio_url?: string
+          category?: string | null
+          created_at?: string
+          duration_ms?: number
+          file_hash?: string | null
+          id?: string
+          source_license?: string
+          source_url?: string | null
+          title?: string
+        }
+        Relationships: []
+      }
       push_subscriptions: {
         Row: {
           auth: string

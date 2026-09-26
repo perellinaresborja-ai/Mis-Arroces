@@ -116,14 +116,17 @@ export function AdminCommunityBreakdown({ community }: CommunityBreakdownProps) 
           </div>
 
           {/* Pastillas de tipos profesionales */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 pt-1">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 pt-1">
             {profTypes.map((t) => (
               <div
                 key={t.key}
-                className="bg-muted/30 border border-border/50 rounded-2xl p-2 text-center"
+                className="bg-muted/30 border border-border/50 rounded-2xl p-2.5 text-center min-w-0 flex flex-col items-center justify-center"
               >
                 <span className="text-base font-black text-foreground block">{t.count}</span>
-                <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+                <span
+                  className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider truncate w-full"
+                  title={t.label}
+                >
                   {t.label}
                 </span>
               </div>

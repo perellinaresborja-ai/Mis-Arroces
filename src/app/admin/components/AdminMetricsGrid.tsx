@@ -3,6 +3,7 @@ import { Users, UtensilsCrossed, Activity, ShieldCheck, Flame, Radio, Image as I
 interface MetricsGridProps {
   metrics: {
     totalUsers: number
+    organicUsers?: number
     newUsers7d: number
     newUsers30d: number
     publishedRecipes: number
@@ -11,6 +12,8 @@ interface MetricsGridProps {
     totalSessions: number
     activeUsers7d: number
     activeUsers30d: number
+    visitors7d?: number
+    visitors30d?: number
     eventsToday: number
     events7d: number
     pendingReports: number
@@ -42,8 +45,13 @@ export function AdminMetricsGrid({ metrics }: MetricsGridProps) {
               <span className="text-3xl sm:text-4xl font-black tracking-tight text-foreground">
                 {metrics.totalUsers.toLocaleString()}
               </span>
-              <span className="text-xs text-muted-foreground font-semibold">totales</span>
+              <span className="text-xs text-muted-foreground font-semibold">perfiles registrados</span>
             </div>
+            {typeof metrics.organicUsers === 'number' && (
+              <p className="text-xs text-muted-foreground mt-1">
+                <strong>{metrics.organicUsers}</strong> perfiles orgánicos activos
+              </p>
+            )}
           </div>
 
           <div className="grid grid-cols-2 gap-2 pt-2 border-t border-border/50 text-xs">
@@ -127,42 +135,43 @@ export function AdminMetricsGrid({ metrics }: MetricsGridProps) {
             </span>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <div className="flex items-baseline gap-1">
-                <span className="text-2xl sm:text-3xl font-black text-foreground">
-                  {metrics.activeUsers7d}
-                </span>
+          {/* Fila 1: Usuarios registrados activos */}
+          <div>
+            <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 flex items-center gap-1">
+              <Users className="w-3 h-3 text-emerald-500" /> Usuarios activos (registrados)
+            </p>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="bg-muted/40 rounded-2xl p-2.5">
+                <span className="text-2xl font-black text-foreground">{metrics.activeUsers7d}</span>
+                <p className="text-[10px] text-muted-foreground mt-0.5">Últimos 7 días</p>
               </div>
-              <p className="text-xs text-muted-foreground font-medium flex items-center gap-1 mt-0.5">
-                <TrendingUp className="w-3 h-3 text-emerald-500" /> Activos 7d
-              </p>
-            </div>
-            <div>
-              <div className="flex items-baseline gap-1">
-                <span className="text-2xl sm:text-3xl font-black text-foreground">
-                  {metrics.activeUsers30d}
-                </span>
+              <div className="bg-muted/40 rounded-2xl p-2.5">
+                <span className="text-2xl font-black text-foreground">{metrics.activeUsers30d}</span>
+                <p className="text-[10px] text-muted-foreground mt-0.5">Últimos 30 días</p>
               </div>
-              <p className="text-xs text-muted-foreground font-medium flex items-center gap-1 mt-0.5">
-                <TrendingUp className="w-3 h-3 text-emerald-500" /> Activos 30d
-              </p>
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-2 pt-2 border-t border-border/50 text-xs">
-            <div className="bg-muted/40 rounded-2xl p-2.5">
-              <p className="text-[11px] text-muted-foreground">Eventos hoy</p>
-              <p className="font-bold text-sm text-foreground mt-0.5">
-                {metrics.eventsToday}
-              </p>
+          {/* Fila 2: Visitantes únicos web */}
+          <div className="pt-2 border-t border-border/50">
+            <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 flex items-center gap-1">
+              <Radio className="w-3 h-3 text-blue-500" /> Visitantes web únicos
+            </p>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="bg-muted/30 rounded-2xl p-2">
+                <span className="text-lg font-bold text-foreground">{metrics.visitors7d ?? 0}</span>
+                <p className="text-[10px] text-muted-foreground">Únicos 7 días</p>
+              </div>
+              <div className="bg-muted/30 rounded-2xl p-2">
+                <span className="text-lg font-bold text-foreground">{metrics.visitors30d ?? 0}</span>
+                <p className="text-[10px] text-muted-foreground">Únicos 30 días</p>
+              </div>
             </div>
-            <div className="bg-muted/40 rounded-2xl p-2.5">
-              <p className="text-[11px] text-muted-foreground">Eventos 7 días</p>
-              <p className="font-bold text-sm text-foreground mt-0.5">
-                {metrics.events7d.toLocaleString()}
-              </p>
-            </div>
+          </div>
+
+          <div className="flex items-center justify-between pt-1 border-t border-border/50 text-[11px] text-muted-foreground">
+            <span>Eventos hoy: <strong>{metrics.eventsToday}</strong></span>
+            <span>7 días: <strong>{metrics.events7d.toLocaleString()}</strong></span>
           </div>
         </div>
 

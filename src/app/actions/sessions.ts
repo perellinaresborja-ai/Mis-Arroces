@@ -128,6 +128,24 @@ export async function createCookingSession(formData: FormData) {
     await supabase.from("want_to_cook").delete().eq("recipe_id", recipeId).eq("user_id", user.id);
   }
 
+  // Notify original recipe author when publishing an elaboration of their recipe
+  if (status === 'PUBLISHED' && recipeId) {
+    try {
+      const { data: rec } = await supabase
+        .from("recipes")
+        .select("id, name, owner_id")
+        .eq("id", recipeId)
+        .maybeSingle()
+
+      if (rec && rec.owner_id && rec.owner_id !== user.id) {
+        const { notifyResultPublished } = await import("@/app/actions/notifications")
+        await notifyResultPublished(rec.owner_id, session.id, rec.id, rec.name || "receta")
+      }
+    } catch (e) {
+      console.error("[createCookingSession] Error notifying author:", e)
+    }
+  }
+
   revalidatePath(`/recipes/${recipeId}`)
   revalidatePath("/cookbook")
   redirect(`/sessions/${session.id}`)

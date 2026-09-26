@@ -1,32 +1,60 @@
 import { requireAdminSession } from "@/lib/admin/auth"
-import { History } from "lucide-react"
+import { getAdminClient } from "@/lib/admin/client"
+import { AdminAuditoriaClient, AuditLogItem } from "./AdminAuditoriaClient"
+
+export const dynamic = "force-dynamic"
 
 export default async function AdminAuditoriaPage() {
-  await requireAdminSession()
+  await requireAdminSession("ADMIN")
+  const adminClient = getAdminClient()
 
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-3">
-        <div className="p-3 rounded-2xl bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
-          <History className="w-6 h-6" />
-        </div>
-        <div>
-          <h1 className="text-2xl font-bold">Registro de Auditoría</h1>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Historial inmutable de acciones administrativas ejecutadas en Mi Admin.
-          </p>
-        </div>
-      </div>
+  // 1. Obtener registros de auditoría recientes (últimos 150)
+  const { data: logsData } = await adminClient
+    .from("admin_audit_logs")
+    .select("id, admin_id, action, target_type, target_id, details, ip_address, created_at")
+    .order("created_at", { ascending: false })
+    .limit(150)
 
-      <div className="bg-card border border-border rounded-3xl p-8 text-center space-y-3">
-        <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mx-auto text-muted-foreground">
-          <History className="w-6 h-6" />
-        </div>
-        <h3 className="font-bold text-lg">Módulo de Auditoría Preparado</h3>
-        <p className="text-sm text-muted-foreground max-w-md mx-auto">
-          La tabla <code>admin_audit_logs</code> y el helper <code>logAdminAction</code> ya están integrados para registrar automáticamente las acciones del panel.
-        </p>
-      </div>
-    </div>
+  const rawLogs = logsData || []
+
+  // 2. Extraer admin_ids para resolver perfiles
+  const adminIds = Array.from(
+    new Set(rawLogs.map((l) => l.admin_id).filter((id): id is string => Boolean(id)))
   )
+
+  let profileMap = new Map<string, any>()
+  if (adminIds.length > 0) {
+    const { data: profiles } = await adminClient
+      .from("profiles")
+      .select("id, username, display_name, avatar:media_assets!fk_profiles_avatar(storage_path)")
+      .in("id", adminIds)
+
+    if (profiles) {
+      profiles.forEach((p) => profileMap.set(p.id, p))
+    }
+  }
+
+  // 3. Mapear a AuditLogItem
+  const logs: AuditLogItem[] = rawLogs.map((l) => {
+    const adminProfile = l.admin_id ? profileMap.get(l.admin_id) : null
+    return {
+      id: l.id,
+      action: l.action,
+      targetType: l.target_type,
+      targetId: l.target_id,
+      details: l.details,
+      ipAddress: l.ip_address,
+      createdAt: l.created_at,
+      admin: adminProfile
+        ? {
+            id: adminProfile.id,
+            username: adminProfile.username,
+            displayName: adminProfile.display_name,
+            avatarUrl: adminProfile.avatar?.storage_path || null,
+          }
+        : null,
+    }
+  })
+
+  return <AdminAuditoriaClient logs={logs} />
 }

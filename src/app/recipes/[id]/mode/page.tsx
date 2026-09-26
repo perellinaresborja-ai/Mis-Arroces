@@ -4,7 +4,7 @@ import { CookModeClient } from "@/components/domain/cook-mode/CookModeClient"
 import { Metadata } from "next"
 
 export const metadata: Metadata = {
-  title: "Modo Cocina - Mis Arroces",
+  title: "Modo Cocina - misarroces",
   description: "Modo inmersivo paso a paso.",
 }
 
@@ -19,7 +19,7 @@ export default async function RecipeCookModePage({ params, searchParams }: { par
   const { data: recipe, error } = await supabase
     .from("recipes")
     .select(`
-      id, name, rice_qty, stock_qty, base_servings, rest_time,
+      id, name, rice_qty, stock_qty, base_servings, rest_time, owner_id,
       variety:rice_varieties(name),
       recipe_vessels(diameter_cm),
       steps:recipe_steps(*, media:media_assets(storage_path)),
@@ -27,6 +27,9 @@ export default async function RecipeCookModePage({ params, searchParams }: { par
         *,
         unit:units(name),
         canonical:ingredients(normalized_name)
+      ),
+      author:profiles!recipes_owner_id_fkey(
+        id, username, display_name, avatar:media_assets!fk_profiles_avatar(storage_path)
       )
     `)
     .eq("id", resolvedParams.id)
@@ -90,6 +93,13 @@ export default async function RecipeCookModePage({ params, searchParams }: { par
     variety_name: (recipe.variety as any)?.name || null,
     diameter_cm: recipe.recipe_vessels?.[0]?.diameter_cm || null,
     steps: sortedSteps,
+    owner_id: recipe.owner_id,
+    author: (recipe as any).author ? {
+      id: (recipe as any).author.id,
+      username: (recipe as any).author.username,
+      display_name: (recipe as any).author.display_name,
+      avatar_url: (recipe as any).author.avatar?.storage_path || null,
+    } : null,
   }
 
   return (

@@ -1,66 +1,105 @@
-import Link from "next/link"
 import { requireAdminSession } from "@/lib/admin/auth"
-import { UtensilsCrossed, Music, ArrowRight } from "lucide-react"
+import { getAdminClient } from "@/lib/admin/client"
+import {
+  AdminContenidosClient,
+  AdminRecipeItem,
+  AdminPostItem,
+  AdminStoryItem,
+} from "./AdminContenidosClient"
+
+export const dynamic = "force-dynamic"
 
 export default async function AdminContenidosPage() {
-  await requireAdminSession()
+  await requireAdminSession("MODERATOR")
+  const adminClient = getAdminClient()
+
+  const [recipesRes, postsRes, storiesRes] = await Promise.all([
+    adminClient
+      .from("recipes")
+      .select(`
+        id, name, status, created_at, base_servings,
+        author:profiles!recipes_owner_id_fkey(id, username, display_name, avatar:media_assets!fk_profiles_avatar(storage_path)),
+        media:recipe_media(media:media_assets(storage_path))
+      `)
+      .order("created_at", { ascending: false })
+      .limit(100),
+    adminClient
+      .from("social_posts")
+      .select(`
+        id, content, created_at, status, allow_comments, is_pinned,
+        author:profiles!social_posts_author_id_fkey(id, username, display_name, avatar:media_assets!fk_profiles_avatar(storage_path)),
+        media:post_media(media:media_assets(storage_path))
+      `)
+      .order("created_at", { ascending: false })
+      .limit(100),
+    adminClient
+      .from("stories")
+      .select(`
+        id, created_at, expires_at,
+        author:profiles!stories_owner_id_fkey(id, username, display_name, avatar:media_assets!fk_profiles_avatar(storage_path)),
+        media:story_media(media:media_assets(storage_path))
+      `)
+      .order("created_at", { ascending: false })
+      .limit(50),
+  ])
+
+  const recipes: AdminRecipeItem[] = (recipesRes.data || []).map((r: any) => ({
+    id: r.id,
+    name: r.name,
+    status: r.status,
+    createdAt: r.created_at,
+    servings: r.base_servings,
+    author: r.author
+      ? {
+          id: r.author.id,
+          username: r.author.username,
+          displayName: r.author.display_name,
+          avatarUrl: r.author.avatar?.storage_path || null,
+        }
+      : null,
+    mediaUrl: r.media?.[0]?.media?.storage_path || null,
+  }))
+
+  const posts: AdminPostItem[] = (postsRes.data || []).map((p: any) => ({
+    id: p.id,
+    content: p.content,
+    createdAt: p.created_at,
+    deletedAt: p.status === "DRAFT" ? p.created_at : null,
+    allowComments: p.allow_comments !== false,
+    isPinned: Boolean(p.is_pinned),
+    author: p.author
+      ? {
+          id: p.author.id,
+          username: p.author.username,
+          displayName: p.author.display_name,
+          avatarUrl: p.author.avatar?.storage_path || null,
+        }
+      : null,
+    media: (p.media || []).map((m: any) => ({ storage_path: m.media?.storage_path })),
+  }))
+
+  const nowIso = new Date().toISOString()
+  const stories: AdminStoryItem[] = (storiesRes.data || []).map((s: any) => ({
+    id: s.id,
+    createdAt: s.created_at,
+    expiresAt: s.expires_at,
+    isActive: s.expires_at > nowIso,
+    author: s.author
+      ? {
+          id: s.author.id,
+          username: s.author.username,
+          displayName: s.author.display_name,
+          avatarUrl: s.author.avatar?.storage_path || null,
+        }
+      : null,
+    mediaUrl: s.media?.[0]?.media?.storage_path || null,
+  }))
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-3">
-        <div className="p-3 rounded-2xl bg-primary/10 text-primary border border-primary/20">
-          <UtensilsCrossed className="w-6 h-6" />
-        </div>
-        <div>
-          <h1 className="text-2xl font-bold">Recetas y Publicaciones</h1>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Moderación de contenido público, recetas, publicaciones, Stories y catálogo multimedia.
-          </p>
-        </div>
-      </div>
-
-      {/* Subsecciones disponibles */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <Link
-          href="/admin/contenidos/musica"
-          className="group bg-card border border-border rounded-3xl p-5 hover:border-primary/50 transition-all shadow-sm flex flex-col justify-between gap-4"
-        >
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="p-2.5 rounded-2xl border text-primary bg-primary/10 border-primary/20">
-                <Music className="w-5 h-5" />
-              </div>
-              <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-muted text-muted-foreground border border-border">
-                Herramienta
-              </span>
-            </div>
-
-            <div>
-              <h3 className="font-bold text-base text-foreground group-hover:text-primary transition-colors">
-                Música para Stories
-              </h3>
-              <p className="text-xs text-muted-foreground mt-1 line-clamp-2 leading-relaxed">
-                Importador masivo de pistas de audio libres de derechos para el selector de Stories.
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center justify-between text-xs font-semibold text-primary pt-2 border-t border-border/50">
-            <span>Abrir importador</span>
-            <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
-          </div>
-        </Link>
-      </div>
-
-      <div className="bg-card border border-border rounded-3xl p-8 text-center space-y-3">
-        <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mx-auto text-muted-foreground">
-          <UtensilsCrossed className="w-6 h-6" />
-        </div>
-        <h3 className="font-bold text-lg">Módulo de Contenido Preparado</h3>
-        <p className="text-sm text-muted-foreground max-w-md mx-auto">
-          Las acciones de ocultar, restaurar y gestionar recetas y publicaciones se conectarán en el Bloque de Contenido.
-        </p>
-      </div>
-    </div>
+    <AdminContenidosClient
+      recipes={recipes}
+      posts={posts}
+      stories={stories}
+    />
   )
 }

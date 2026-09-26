@@ -60,7 +60,18 @@ export function NotificationPanel({ onClose, onRead, refreshKey = 0 }: { onClose
         router.push(url);
       }
     } else if (notif.type === 'COOKED_RECIPE') {
-      router.push(`/sessions/${notif.entity_id}`)
+      const recipeId = notif.payload?.recipe_id || notif.entity_id
+      router.push(`/recipes/${recipeId}`)
+    } else if (notif.type === 'PUBLISHED_RESULT') {
+      const sessionId = notif.payload?.session_id || notif.entity_id
+      router.push(`/sessions/${sessionId}`)
+    } else if (notif.type === 'SYSTEM') {
+      if (notif.payload?.subtype === 'RECIPE_SAVED') {
+        const recipeId = notif.payload?.recipe_id || notif.entity_id
+        router.push(`/recipes/${recipeId}`)
+      } else if (notif.payload?.url) {
+        router.push(notif.payload.url)
+      }
     }
 
     onClose()
@@ -96,7 +107,27 @@ export function NotificationPanel({ onClose, onRead, refreshKey = 0 }: { onClose
         return <><span className="font-bold">{name}</span> te envió un mensaje.</>;
       }
       case 'FOLLOW_ACCEPT': return <><span className="font-bold">{name}</span> aceptó tu solicitud.</>
-      case 'COOKED_RECIPE': return <><span className="font-bold">{name}</span> ha cocinado tu receta.</>
+      case 'COOKED_RECIPE':
+        return (
+          <>
+            <span className="font-bold">{name}</span> está cocinando tu receta{notif.payload?.recipe_name ? <> "<span className="italic">{notif.payload.recipe_name}</span>"</> : ""}.
+          </>
+        )
+      case 'PUBLISHED_RESULT':
+        return (
+          <>
+            <span className="font-bold">{name}</span> ha publicado una elaboración de tu receta{notif.payload?.recipe_name ? <> "<span className="italic">{notif.payload.recipe_name}</span>"</> : ""}.
+          </>
+        )
+      case 'SYSTEM':
+        if (notif.payload?.subtype === 'RECIPE_SAVED') {
+          return (
+            <>
+              <span className="font-bold">{name}</span> ha guardado tu receta{notif.payload?.recipe_name ? <> "<span className="italic">{notif.payload.recipe_name}</span>"</> : ""}.
+            </>
+          )
+        }
+        return <>{notif.payload?.body || notif.payload?.message || "Notificación de misarroces"}</>
       default: return <><span className="font-bold">{name}</span> interactuó contigo.</>
     }
   }

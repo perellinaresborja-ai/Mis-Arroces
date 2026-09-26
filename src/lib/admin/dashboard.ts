@@ -28,6 +28,7 @@ export interface AuditLogDisplayItem {
 export interface DashboardData {
   metrics: {
     totalUsers: number
+    organicUsers: number
     newUsers7d: number
     newUsers30d: number
     publishedRecipes: number
@@ -36,6 +37,8 @@ export interface DashboardData {
     totalSessions: number
     activeUsers7d: number
     activeUsers30d: number
+    visitors7d: number
+    visitors30d: number
     eventsToday: number
     events7d: number
     pendingReports: number
@@ -114,7 +117,7 @@ export async function getAdminDashboardData(): Promise<DashboardData> {
   // Ejecución concurrente y aislada de consultas con Promise.allSettled
   const results = await Promise.allSettled([
     // 0. Profiles (total, created_at, account_type, professional_type)
-    sb.from("profiles").select("id, created_at, account_type, professional_type"),
+    sb.from("profiles").select("id, username, created_at, account_type, professional_type"),
     // 1. Published recipes
     sb.from("recipes").select("id, name, owner_id, profiles:owner_id(username, display_name)").eq("status", "PUBLISHED"),
     // 2. Posts count
@@ -176,9 +179,15 @@ export async function getAdminDashboardData(): Promise<DashboardData> {
     if (pt >= t30) newUsers30d++
   })
 
-  // Métricas de actividad (usuarios activos únicos)
-  const unique7d = new Set(activeUsers7dData.map((e: any) => e.actor_id || e.visitor_id).filter(Boolean)).size
-  const unique30d = new Set(activeUsers30dData.map((e: any) => e.actor_id || e.visitor_id).filter(Boolean)).size
+  // Perfiles orgánicos reales (excluye test/duplicados identificados en auditoría)
+  const testUsernames = new Set(["testuser83402", "paellaloversclub", "misarroces2"])
+  const organicUsers = profilesData.filter((p: any) => !testUsernames.has(p.username?.toLowerCase())).length
+
+  // Métricas de actividad: Separación estricta entre usuarios registrados y visitantes anónimos
+  const activeUsers7d = new Set(activeUsers7dData.map((e: any) => e.actor_id).filter(Boolean)).size
+  const activeUsers30d = new Set(activeUsers30dData.map((e: any) => e.actor_id).filter(Boolean)).size
+  const visitors7d = new Set(activeUsers7dData.map((e: any) => e.visitor_id).filter(Boolean)).size
+  const visitors30d = new Set(activeUsers30dData.map((e: any) => e.visitor_id).filter(Boolean)).size
 
   // Comunidad: Fundadores y Cuentas Profesionales
   const foundersAssigned = foundersData.length
@@ -300,14 +309,17 @@ export async function getAdminDashboardData(): Promise<DashboardData> {
   return {
     metrics: {
       totalUsers,
+      organicUsers,
       newUsers7d,
       newUsers30d,
       publishedRecipes: recipesData.length,
       totalPosts: postsCount,
       activeStories: activeStoriesCount,
       totalSessions: sessionsData.length,
-      activeUsers7d: unique7d,
-      activeUsers30d: unique30d,
+      activeUsers7d,
+      activeUsers30d,
+      visitors7d,
+      visitors30d,
       eventsToday: eventsTodayCount,
       events7d: events7dCount,
       pendingReports: pendingReportsCount,
@@ -348,6 +360,7 @@ export function getFallbackDashboardData(): DashboardData {
   return {
     metrics: {
       totalUsers: 0,
+      organicUsers: 0,
       newUsers7d: 0,
       newUsers30d: 0,
       publishedRecipes: 0,
@@ -356,6 +369,8 @@ export function getFallbackDashboardData(): DashboardData {
       totalSessions: 0,
       activeUsers7d: 0,
       activeUsers30d: 0,
+      visitors7d: 0,
+      visitors30d: 0,
       eventsToday: 0,
       events7d: 0,
       pendingReports: 0,

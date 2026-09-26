@@ -7,6 +7,7 @@ import Image from "next/image"
 import { calculateLayer, calculateRealBrothRatio } from "@/lib/paella-calculator"
 import { useRouter } from "next/navigation"
 import { useVoiceCommands, type VoiceState } from "./useVoiceCommands"
+import { startCookingRecipe } from "@/app/actions/recipes"
 
 interface CookModeRecipe {
   id: string
@@ -19,6 +20,13 @@ interface CookModeRecipe {
   variety_name: string | null
   diameter_cm: number | null
   steps: any[]
+  owner_id?: string | null
+  author?: {
+    id: string
+    username: string
+    display_name: string | null
+    avatar_url: string | null
+  } | null
 }
 
 interface TimerState {
@@ -37,6 +45,14 @@ export function CookModeClient({ recipe, userName, reset }: { recipe: CookModeRe
   const [wakeLock, setWakeLock] = useState<any>(null)
   const [isClient, setIsClient] = useState(false)
   const hasWelcomed = useRef(false)
+  const hasTrackedCooking = useRef(false)
+
+  useEffect(() => {
+    if (!hasTrackedCooking.current) {
+      hasTrackedCooking.current = true
+      startCookingRecipe(recipe.id).catch(console.error)
+    }
+  }, [recipe.id])
 
   // Recovery on mount
   useEffect(() => {
@@ -517,6 +533,14 @@ export function CookModeClient({ recipe, userName, reset }: { recipe: CookModeRe
           <div className="space-y-3">
             <h1 className="text-4xl md:text-6xl font-black font-serif text-primary leading-tight">¡Arroz terminado!</h1>
             <p className="text-lg md:text-xl text-white/70">Es hora de disfrutar del socarrat.</p>
+            {recipe.author && (
+              <p className="text-sm text-white/60">
+                Has cocinado la receta de{" "}
+                <Link href={`/@${recipe.author.username}`} target="_blank" className="font-bold text-white hover:underline">
+                  @{recipe.author.username}
+                </Link>
+              </p>
+            )}
           </div>
           
           <div className="flex flex-col gap-4 w-full">
