@@ -4,10 +4,6 @@ import { getAdminClient } from "./client"
 
 export type AdminRole = "SUPER_ADMIN" | "ADMIN" | "MODERATOR"
 
-// Identificadores fundacionales del creador de misarroces para garantizar resiliencia en despliegues
-const PRIMARY_SUPER_ADMIN_IDS = ["d5e0c178-49d0-4160-b122-d518f5d46036"]
-const PRIMARY_SUPER_ADMIN_EMAILS = ["perellinaresborja@gmail.com"]
-
 /**
  * Resolves the admin role for a given user ID and optional email.
  * Evaluates secure server-side environment configuration and the database admin_roles table.
@@ -16,15 +12,7 @@ const PRIMARY_SUPER_ADMIN_EMAILS = ["perellinaresborja@gmail.com"]
 export async function getAdminRole(userId: string, userEmail?: string): Promise<AdminRole | null> {
   if (!userId) return null
 
-  // 1. Verificación primaria de la cuenta fundadora
-  if (PRIMARY_SUPER_ADMIN_IDS.includes(userId)) {
-    return "SUPER_ADMIN"
-  }
-  if (userEmail && PRIMARY_SUPER_ADMIN_EMAILS.includes(userEmail.toLowerCase())) {
-    return "SUPER_ADMIN"
-  }
-
-  // 2. Comprobación segura por variables de entorno del servidor
+  // 1. Comprobación segura por variables de entorno del servidor
   const envSuperAdmins = (process.env.SUPER_ADMIN_IDS || "").split(",").map((s) => s.trim()).filter(Boolean)
   if (envSuperAdmins.includes(userId)) {
     return "SUPER_ADMIN"
