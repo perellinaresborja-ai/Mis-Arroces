@@ -20,13 +20,14 @@ import { ExpandableImage } from "@/components/ui/ExpandableImage"
 import { RecipeStateProvider } from "@/components/domain/RecipeStateProvider"
 import { StartCookButton } from "@/components/domain/StartCookButton"
 import { ReportButton } from "@/components/domain/ReportButton"
+import { MediaCarousel } from "@/components/domain/MediaCarousel"
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = await params;
   const supabase = await createClient();
   const { data: recipe } = await supabase
     .from("recipes")
-    .select("id, name, description, status, visibility, deleted_at, profiles:recipes_owner_id_fkey(username, display_name), media:recipe_media!recipe_media_recipe_id_fkey(media_assets(storage_path))")
+    .select("id, name, description, status, visibility, deleted_at, profiles:recipes_owner_id_fkey(username, display_name), media:recipe_media!recipe_media_recipe_id_fkey(display_order, is_primary, media_assets(storage_path))")
     .eq("id", resolvedParams.id)
     .single();
   
@@ -39,7 +40,10 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
     return { title: recipe.name || "Receta Privada" }
   }
 
-  const primaryMedia = (recipe.media?.[0] as any)?.media_assets?.storage_path;
+  const sortedMedia = ((recipe.media as any[]) || [])
+    .slice()
+    .sort((a: any, b: any) => (b.is_primary ? 1 : 0) - (a.is_primary ? 1 : 0) || (a.display_order || 0) - (b.display_order || 0));
+  const primaryMedia = sortedMedia[0]?.media_assets?.storage_path;
   const imageUrl = primaryMedia 
     ? `https://zvesoygqssyyojqyswwm.supabase.co/storage/v1/object/public/recipe_media/${primaryMedia}`
     : "https://www.misarroces.es/logopngver.webp";
@@ -103,7 +107,7 @@ export default async function RecipeDetailPage({
       stock_ingredient:ingredients(*),
       heat:heat_sources(name),
         recipe_vessels(*),
-      media:recipe_media!recipe_media_recipe_id_fkey(media_assets(id, storage_path, is_deleted)),
+      media:recipe_media!recipe_media_recipe_id_fkey(display_order, is_primary, media_assets(id, storage_path, is_deleted, media_type)),
       steps:recipe_steps(*, media:media_assets(storage_path)),
       ingredients:recipe_ingredients(
         *,
@@ -155,11 +159,30 @@ export default async function RecipeDetailPage({
     )
   }
 
-  // Get primary image
-  const primaryMedia = recipe.media?.[0]?.media_assets?.storage_path
+  // Recipe media gallery (sorted by display_order)
+  const sortedRecipeMedia = ((recipe.media as any[]) || [])
+    .filter((rm: any) => {
+      const asset = rm.media_assets || rm.media;
+      return asset && !asset.is_deleted && asset.storage_path;
+    })
+    .sort((a: any, b: any) => (a.display_order ?? 0) - (b.display_order ?? 0));
+
+  const recipeMediaList = sortedRecipeMedia.map((rm: any) => {
+    const asset = rm.media_assets || rm.media;
+    return {
+      id: String(asset.id || asset.storage_path),
+      storage_path: asset.storage_path,
+      media_type: asset.media_type || "IMAGE"
+    };
+  });
+
+  // Cover image is the one marked as primary (is_primary), independent of display_order
+  const primaryItem = sortedRecipeMedia.find((rm: any) => rm.is_primary) || sortedRecipeMedia[0];
+  const primaryAsset = primaryItem?.media_assets || primaryItem?.media;
+  const primaryMedia = primaryAsset?.storage_path;
   const imageUrl = primaryMedia 
     ? `${"https://zvesoygqssyyojqyswwm.supabase.co"}/storage/v1/object/public/recipe_media/${primaryMedia}`
-    : null
+    : null;
 
   // Calculate ratio
   const ratio = (recipe.rice_qty && recipe.stock_qty && recipe.rice_qty > 0)
@@ -290,16 +313,17 @@ export default async function RecipeDetailPage({
           
           {/* Left Column: Image & Actions */}
           <div className="md:col-span-5 order-2 md:order-1 flex flex-col gap-6">
-            <div className="relative w-full aspect-square bg-muted rounded-2xl md:rounded-3xl overflow-hidden shadow-sm border border-border">
-              {imageUrl ? (
-                /* eslint-disable-next-line @next/next/no-img-element */
-                <img src={imageUrl} alt={recipe.name} className="w-full h-full object-cover" />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center text-muted-foreground bg-sand/30">
-                  <span className="text-sm">Sin foto principal</span>
-                </div>
-              )}
-            </div>
+            {recipeMediaList.length > 0 ? (
+              <MediaCarousel 
+                items={recipeMediaList} 
+                priority={true} 
+                className="aspect-square md:aspect-square rounded-2xl md:rounded-3xl border border-border shadow-sm bg-muted" 
+              />
+            ) : (
+              <div className="relative w-full aspect-square bg-muted rounded-2xl md:rounded-3xl overflow-hidden shadow-sm border border-border flex items-center justify-center text-muted-foreground bg-sand/30">
+                <span className="text-sm">Sin foto principal</span>
+              </div>
+            )}
             
             
           </div>

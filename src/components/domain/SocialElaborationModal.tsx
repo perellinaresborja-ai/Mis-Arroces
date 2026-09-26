@@ -66,7 +66,7 @@ export function SocialElaborationModal({ isOpen, onClose, item, currentUserId }:
   const handleCommentDeleted = (commentId: string) => setComments(prev => prev.map(c => c.id === commentId ? { ...c, is_deleted: true, content: "Comentario eliminado" } : c))
 
   const mediaList = item.recipe_media || item.session_media || item.post_media || []
-  const media = [...mediaList].sort((a: any, b: any) => (a.display_order || 0) - (b.display_order || 0)).map(m => m.media).filter(Boolean)
+  const media = [...mediaList].sort((a: any, b: any) => (b.is_primary ? 1 : 0) - (a.is_primary ? 1 : 0) || (a.display_order || 0) - (b.display_order || 0)).map(m => m.media || m.media_assets).filter(Boolean)
 
   const NEXT_PUBLIC_SUPABASE_URL = "https://zvesoygqssyyojqyswwm.supabase.co"
   const getImageUrl = (path: string) => `${NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/recipe_media/${path}`

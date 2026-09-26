@@ -34,8 +34,8 @@ export function CookbookRecipeCard({ recipe, tab }: { recipe: any, tab: string }
   }, [showMenu])
 
   const mediaArray = recipe.recipe_media
-  const sorted = mediaArray ? [...mediaArray].sort((a: any, b: any) => (a.display_order||0) - (b.display_order||0)) : []
-  const path = sorted[0]?.media?.storage_path
+  const sorted = mediaArray ? [...mediaArray].sort((a: any, b: any) => (b.is_primary ? 1 : 0) - (a.is_primary ? 1 : 0) || (a.display_order||0) - (b.display_order||0)) : []
+  const path = sorted[0]?.media?.storage_path || sorted[0]?.media_assets?.storage_path
   const coverUrl = path ? `https://zvesoygqssyyojqyswwm.supabase.co/storage/v1/object/public/recipe_media/${path}` : null
 
   const handleDelete = (e: React.MouseEvent) => {

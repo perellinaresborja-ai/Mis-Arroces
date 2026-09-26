@@ -15,8 +15,8 @@ export function ProfileGridCard({ item, currentUserId }: { item: any, currentUse
   let thumbnailPath = null
   const mediaList = item.recipe_media || item.session_media || item.post_media
   if (mediaList && mediaList.length > 0) {
-    const sorted = [...mediaList].sort((a: any, b: any) => (a.display_order || 0) - (b.display_order || 0))
-    const firstMedia = sorted[0]?.media
+    const sorted = [...mediaList].sort((a: any, b: any) => (b.is_primary ? 1 : 0) - (a.is_primary ? 1 : 0) || (a.display_order || 0) - (b.display_order || 0))
+    const firstMedia = sorted[0]?.media || sorted[0]?.media_assets
     imagePath = firstMedia?.storage_path
     thumbnailPath = firstMedia?.thumbnail_path
     isVideo = Boolean(firstMedia?.media_type === 'VIDEO' || imagePath?.match(/\.(mp4|webm|mov)$/i))

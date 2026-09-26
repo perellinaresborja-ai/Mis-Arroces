@@ -390,13 +390,28 @@ export async function updateRecipeFull(id: string, data: any, skipRedirect: bool
     // MEDIA
     if (media_ids) {
       await supabase.from("recipe_media").delete().eq("recipe_id", id);
-      const validMediaIds = media_ids.filter((mid: string) => UUID_REGEX.test(mid));
-      if (validMediaIds.length > 0) {
-        const mediasToInsert = validMediaIds.map((mid: string, idx: number) => ({
+      const normalizedMedia = media_ids
+        .map((m: any, idx: number) => {
+          const mid = typeof m === 'string' ? m : m?.id;
+          const isPrimary = typeof m === 'object' && m?.is_primary !== undefined ? !!m.is_primary : idx === 0;
+          return { id: mid, isPrimary };
+        })
+        .filter((m: any) => m.id && UUID_REGEX.test(m.id));
+
+      if (normalizedMedia.length > 0) {
+        // Ensure exactly one is marked as primary
+        const primaryCount = normalizedMedia.filter((m: any) => m.isPrimary).length;
+        if (primaryCount !== 1) {
+          normalizedMedia.forEach((m: any, idx: number) => {
+            m.isPrimary = idx === 0;
+          });
+        }
+
+        const mediasToInsert = normalizedMedia.map((m: any, idx: number) => ({
           recipe_id: id,
-          media_id: mid,
+          media_id: m.id,
           display_order: idx + 1,
-          is_primary: idx === 0
+          is_primary: m.isPrimary
         }));
         const { error: insertError } = await supabase.from("recipe_media").insert(mediasToInsert);
         if (insertError) console.error("MEDIA INSERT ERROR:", insertError);

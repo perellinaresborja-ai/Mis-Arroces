@@ -48,7 +48,7 @@ export async function fetchFeedPage(pageIndex: number = 0, existingUser?: any) {
 
   const [postsRes, recipesRes, sessionsRes, commentsRes] = await Promise.all([
     postIds.length > 0 ? supabase.from("social_posts").select(`*, author:profiles!social_posts_author_id_fkey(id, username, display_name, privacy_level, avatar:media_assets!fk_profiles_avatar(storage_path)), post_media(display_order, media:media_assets(id, storage_path, media_type)), recipe:recipes(id, name)`).in("id", postIds) : { data: [] },
-    recipeIds.length > 0 ? supabase.from("recipes").select(`*, author:profiles!recipes_owner_id_fkey(id, username, display_name, privacy_level, avatar:media_assets!fk_profiles_avatar(storage_path)), recipe_media(display_order, media:media_assets(id, storage_path, media_type))`).in("id", recipeIds) : { data: [] },
+    recipeIds.length > 0 ? supabase.from("recipes").select(`*, author:profiles!recipes_owner_id_fkey(id, username, display_name, privacy_level, avatar:media_assets!fk_profiles_avatar(storage_path)), recipe_media(display_order, is_primary, media:media_assets(id, storage_path, media_type))`).in("id", recipeIds) : { data: [] },
     sessionIds.length > 0 ? supabase.from("cooking_sessions").select(`*, author:profiles!cooking_sessions_user_id_fkey(id, username, display_name, privacy_level, avatar:media_assets!fk_profiles_avatar(storage_path)), session_media(display_order, media:media_assets(id, storage_path, media_type)), recipe:recipes(id, name)`).in("id", sessionIds) : { data: [] },
     supabase.from("feed_metrics").select("*").in("entity_id", feedItems?.map(i => i.entity_id).filter(Boolean) || [])
   ])

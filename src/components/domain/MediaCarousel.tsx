@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react"
 import Image from "next/image"
 import { ChevronLeft, ChevronRight, Volume2, VolumeX } from "lucide-react"
 import Link from "next/link";
+import { cn } from "@/lib/utils"
 import { VideoThumbnail } from "./VideoThumbnail"
 
 interface MediaItem {
@@ -13,7 +14,19 @@ interface MediaItem {
   thumbnail_path?: string | null
 }
 
-export function MediaCarousel({ items, bucket = "recipe_media", href, priority = false }: { items: MediaItem[], bucket?: string, href?: string, priority?: boolean }) {
+export function MediaCarousel({ 
+  items, 
+  bucket = "recipe_media", 
+  href, 
+  priority = false,
+  className 
+}: { 
+  items: MediaItem[]
+  bucket?: string
+  href?: string
+  priority?: boolean
+  className?: string 
+}) {
   const [currentIndex, setCurrentIndex] = useState(0)
   const [isMuted, setIsMuted] = useState(true)
   const videoRefs = useRef<{ [key: number]: HTMLVideoElement | null }>({})
@@ -233,7 +246,7 @@ export function MediaCarousel({ items, bucket = "recipe_media", href, priority =
 
   return (
     <div 
-      className="relative w-full aspect-square md:aspect-[4/3] rounded-2xl overflow-hidden bg-black/5 touch-pan-y select-none"
+      className={cn("relative w-full aspect-square md:aspect-[4/3] rounded-2xl overflow-hidden bg-black/5 touch-pan-y select-none", className)}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}

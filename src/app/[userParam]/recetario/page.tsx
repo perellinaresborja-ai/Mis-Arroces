@@ -22,14 +22,14 @@ export default async function PublicCookbookPage({
   // 2. Fetch published recipes
   const { data: recipes } = await supabase
     .from("recipes")
-    .select("*, recipe_media(display_order, media:media_assets(storage_path)), variety:rice_varieties(name), style:rice_styles(name)")
+    .select("*, recipe_media(display_order, is_primary, media:media_assets(storage_path)), variety:rice_varieties(name), style:rice_styles(name)")
     .eq("owner_id", profile.id)
     .eq("status", "PUBLISHED")
     .order("created_at", { ascending: false })
 
   const getMediaUrl = (mediaArray: any[]) => {
-    const sorted = mediaArray ? [...mediaArray].sort((a,b) => (a.display_order||0) - (b.display_order||0)) : []
-    const path = sorted[0]?.media?.storage_path
+    const sorted = mediaArray ? [...mediaArray].sort((a,b) => (b.is_primary ? 1 : 0) - (a.is_primary ? 1 : 0) || (a.display_order||0) - (b.display_order||0)) : []
+    const path = sorted[0]?.media?.storage_path || sorted[0]?.media_assets?.storage_path
     return path ? `${"https://zvesoygqssyyojqyswwm.supabase.co"}/storage/v1/object/public/recipe_media/${path}` : null
   }
 

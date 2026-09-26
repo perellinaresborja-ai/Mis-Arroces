@@ -102,12 +102,17 @@ export default function EditRecipeForm({ recipe, catalogs }: { recipe: any, cata
   })
 
   const [mediaItems, setMediaItems] = useState<MediaItem[]>(
-    (recipe.recipe_media || recipe.media)?.map((m: any) => ({
-      id: m.media_id || m.media?.id,
-      url: `${"https://zvesoygqssyyojqyswwm.supabase.co"}/storage/v1/object/public/recipe_media/${m.media_assets?.storage_path || m.media?.storage_path}`,
-      file: null,
-      type: 'existing'
-    })) || []
+    (recipe.recipe_media || recipe.media)
+      ?.slice()
+      ?.sort((a: any, b: any) => (b.is_primary ? 1 : 0) - (a.is_primary ? 1 : 0) || (a.display_order || 0) - (b.display_order || 0))
+      ?.map((m: any, idx: number) => ({
+        id: m.media_id || m.media?.id || m.media_assets?.id || m.id,
+        url: `${"https://zvesoygqssyyojqyswwm.supabase.co"}/storage/v1/object/public/recipe_media/${m.media_assets?.storage_path || m.media?.storage_path}`,
+        file: null,
+        type: 'existing' as const,
+        isPrimary: idx === 0
+      }))
+      ?.filter((m: any) => m.id && m.url && !m.url.endsWith("/undefined")) || []
   )
 
   const { fields: stepFields, append: appendStep, remove: removeStep, move: moveStep, insert: insertStep } = useFieldArray({
@@ -197,7 +202,11 @@ export default function EditRecipeForm({ recipe, catalogs }: { recipe: any, cata
               diameter_cm: currentValues.vessel_diameter_cm,
               notes: currentValues.vessel_notes
             }],
-            media_ids: mediaItems.filter(m => m.type === 'existing').map(m => m.id),
+            media_ids: mediaItems.filter(m => m.type === 'existing').map((m, idx) => ({ 
+              id: m.id, 
+              is_primary: Boolean(m.isPrimary),
+              display_order: idx + 1 
+            })),
             tags: currentValues.tags,
             variety_id: currentValues.variety_id,
           };
@@ -281,13 +290,15 @@ export default function EditRecipeForm({ recipe, catalogs }: { recipe: any, cata
     setIsSaving(true)
     setTechnicalError(null)
     try {
-      const finalMediaIds: string[] = []
-      for (const item of mediaItems) {
+      const finalMediaIds: Array<{ id: string, is_primary: boolean, display_order: number }> = []
+      for (let idx = 0; idx < mediaItems.length; idx++) {
+        const item = mediaItems[idx]
+        const isPrimary = Boolean(item.isPrimary)
         if (item.type === 'existing' && item.id) {
-          finalMediaIds.push(item.id)
+          finalMediaIds.push({ id: item.id, is_primary: isPrimary, display_order: idx + 1 })
         } else if (item.file) {
           const uploadedId = await uploadMedia(item.file, 'recipes', recipe.id)
-          finalMediaIds.push(uploadedId)
+          finalMediaIds.push({ id: uploadedId, is_primary: isPrimary, display_order: idx + 1 })
         }
       }
       data.media_ids = finalMediaIds
@@ -480,7 +491,7 @@ export default function EditRecipeForm({ recipe, catalogs }: { recipe: any, cata
         {/* Basic Info */}
         <CollapsibleSection id="section-basic" title="Información Básica" defaultOpen={true} forceOpen={openSections.basic}>
           <div className="space-y-2 mb-6">
-            <Label>Foto de Portada (Opcional)</Label>
+            <Label>Fotos de la receta (Hasta 10 fotos)</Label>
             <RecipeMediaManager 
                 initialMedia={recipe.recipe_media || recipe.media || []}
                 onChange={setMediaItems}

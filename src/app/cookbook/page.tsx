@@ -20,7 +20,7 @@ export default async function CookbookPage(props: { searchParams?: Promise<{ tab
   if (tab === "mine") {
     const { data } = await supabase
       .from("recipes")
-      .select("id, name, status, scheduled_for, created_at, description, base_servings, rice_qty, stock_qty, stock_ingredient_id, cook_time, rest_time, difficulty, style_id, variety_id, heat_source_id, recipe_media!recipe_media_recipe_id_fkey(display_order, media:media_assets(storage_path)), variety:rice_varieties(name), recipe_ingredients(display_text)")
+      .select("id, name, status, scheduled_for, created_at, description, base_servings, rice_qty, stock_qty, stock_ingredient_id, cook_time, rest_time, difficulty, style_id, variety_id, heat_source_id, recipe_media!recipe_media_recipe_id_fkey(display_order, is_primary, media:media_assets(storage_path)), variety:rice_varieties(name), recipe_ingredients(display_text)")
       .eq("owner_id", user.id)
       .order("created_at", { ascending: false })
     
@@ -38,14 +38,14 @@ export default async function CookbookPage(props: { searchParams?: Promise<{ tab
   } else if (tab === "saved") {
     const { data } = await supabase
       .from("saves")
-      .select("recipes(id, name, status, scheduled_for, created_at, recipe_media!recipe_media_recipe_id_fkey(display_order, media:media_assets(storage_path)), variety:rice_varieties(name), author:profiles!recipes_owner_id_fkey(username))")
+      .select("recipes(id, name, status, scheduled_for, created_at, recipe_media!recipe_media_recipe_id_fkey(display_order, is_primary, media:media_assets(storage_path)), variety:rice_varieties(name), author:profiles!recipes_owner_id_fkey(username))")
       .eq("user_id", user.id)
       .order("saved_at", { ascending: false })
     recipes = data?.map(d => d.recipes).filter(Boolean) || []
   } else if (tab === "want") {
     const { data } = await supabase
       .from("want_to_cook")
-      .select("recipes(id, name, status, scheduled_for, created_at, recipe_media!recipe_media_recipe_id_fkey(display_order, media:media_assets(storage_path)), variety:rice_varieties(name), author:profiles!recipes_owner_id_fkey(username))")
+      .select("recipes(id, name, status, scheduled_for, created_at, recipe_media!recipe_media_recipe_id_fkey(display_order, is_primary, media:media_assets(storage_path)), variety:rice_varieties(name), author:profiles!recipes_owner_id_fkey(username))")
       .eq("user_id", user.id)
       .order("added_at", { ascending: false })
     recipes = data?.map(d => d.recipes).filter(Boolean) || []
@@ -59,8 +59,8 @@ export default async function CookbookPage(props: { searchParams?: Promise<{ tab
   }
 
   const getMediaUrl = (mediaArray: any[]) => {
-    const sorted = mediaArray ? [...mediaArray].sort((a,b) => (a.display_order||0) - (b.display_order||0)) : []
-    const path = sorted[0]?.media?.storage_path
+    const sorted = mediaArray ? [...mediaArray].sort((a,b) => (b.is_primary ? 1 : 0) - (a.is_primary ? 1 : 0) || (a.display_order||0) - (b.display_order||0)) : []
+    const path = sorted[0]?.media?.storage_path || sorted[0]?.media_assets?.storage_path
     return path ? `${"https://zvesoygqssyyojqyswwm.supabase.co"}/storage/v1/object/public/recipe_media/${path}` : null
   }
 

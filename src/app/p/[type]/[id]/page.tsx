@@ -48,7 +48,7 @@ export default async function FeedItemPage({ params }: { params: Promise<{ type:
     const { data } = await supabase.from("recipes").select(`
       *, 
       author:profiles!recipes_owner_id_fkey(id, username, display_name, avatar:media_assets!fk_profiles_avatar(storage_path)), 
-      recipe_media(display_order, media:media_assets(id, storage_path))
+      recipe_media(display_order, is_primary, media:media_assets(id, storage_path))
     `).eq("id", id).single()
 
     if (data) {
@@ -66,7 +66,7 @@ export default async function FeedItemPage({ params }: { params: Promise<{ type:
         author: data.author,
         recipeName: data.name,
         recipeType: data.rice_type,
-        media: data.recipe_media?.sort((a: any, b: any) => a.display_order - b.display_order).map((m: any) => m.media?.storage_path).filter(Boolean) || [],
+        media: data.recipe_media?.sort((a: any, b: any) => (b.is_primary ? 1 : 0) - (a.is_primary ? 1 : 0) || (a.display_order || 0) - (b.display_order || 0)).map((m: any) => m.media?.storage_path || m.media_assets?.storage_path).filter(Boolean) || [],
         likes_count: data.likes_count || 0,
         comments_count: data.comments_count || 0,
         isLiked

@@ -60,7 +60,7 @@ export function FeedList({ initialItems, currentUserId }: { initialItems: any[],
         }
 
         if ((item as any).entity_type === 'recipe') {
-          const media = item.data.recipe_media?.sort((a,b)=>(a.display_order||0)-(b.display_order||0)).map((rm: any) => rm.media).filter(Boolean) || []
+          const media = item.data.recipe_media?.slice().sort((a: any, b: any) => (b.is_primary ? 1 : 0) - (a.is_primary ? 1 : 0) || (a.display_order||0) - (b.display_order||0)).map((rm: any) => rm.media || rm.media_assets).filter(Boolean) || []
           return (
             <FeedCard 
               key={`${(item as any).entity_type}-${(item as any).entity_id}`}

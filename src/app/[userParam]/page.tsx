@@ -227,7 +227,7 @@ export default async function PublicProfilePage({
     fetchUserActiveStories(profile.id).then(r => r, () => null),
     // Recipes (if canViewImmediately)
     canViewImmediately
-      ? supabase.from("recipes").select(`*, author:profiles!recipes_owner_id_fkey(id, username, display_name, avatar:media_assets!fk_profiles_avatar(storage_path)), recipe_media(display_order, media:media_assets(*))`).eq("owner_id", profile.id).eq("status", "PUBLISHED").in("visibility", visibilityFilter).then(r => r, () => ({ data: [] }))
+      ? supabase.from("recipes").select(`*, author:profiles!recipes_owner_id_fkey(id, username, display_name, avatar:media_assets!fk_profiles_avatar(storage_path)), recipe_media(display_order, is_primary, media:media_assets(*))`).eq("owner_id", profile.id).eq("status", "PUBLISHED").in("visibility", visibilityFilter).then(r => r, () => ({ data: [] }))
       : Promise.resolve({ data: [] }),
     // Sessions (if canViewImmediately)
     canViewImmediately
@@ -261,7 +261,7 @@ export default async function PublicProfilePage({
   // If was private but followStatus is ACCEPTED, fetch entities now
   if (!canViewImmediately && canViewPrivate) {
     const [extraRec, extraSes, extraPost] = await Promise.all([
-      supabase.from("recipes").select(`*, author:profiles!recipes_owner_id_fkey(id, username, display_name, avatar:media_assets!fk_profiles_avatar(storage_path)), recipe_media(display_order, media:media_assets(*))`).eq("owner_id", profile.id).eq("status", "PUBLISHED").in("visibility", visibilityFilter).then(r => r, () => ({ data: [] })),
+      supabase.from("recipes").select(`*, author:profiles!recipes_owner_id_fkey(id, username, display_name, avatar:media_assets!fk_profiles_avatar(storage_path)), recipe_media(display_order, is_primary, media:media_assets(*))`).eq("owner_id", profile.id).eq("status", "PUBLISHED").in("visibility", visibilityFilter).then(r => r, () => ({ data: [] })),
       supabase.from("cooking_sessions").select(`*, author:profiles!cooking_sessions_user_id_fkey(id, username, display_name, avatar:media_assets!fk_profiles_avatar(storage_path)), session_media(display_order, media:media_assets(*)), recipe:recipes(id, name)`).eq("user_id", profile.id).eq("status", "PUBLISHED").in("visibility", visibilityFilter).then(r => r, () => ({ data: [] })),
       supabase.from("social_posts").select(`*, author:profiles!social_posts_author_id_fkey(id, username, display_name, avatar:media_assets!fk_profiles_avatar(storage_path)), post_media(display_order, media:media_assets(*)), recipe:recipes(id, name)`).eq("author_id", profile.id).in("visibility", visibilityFilter).then(r => r, () => ({ data: [] }))
     ])
