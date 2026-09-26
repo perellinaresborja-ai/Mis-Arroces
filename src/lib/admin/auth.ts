@@ -113,7 +113,7 @@ export async function requireAdminSession(minimumRole?: AdminRole): Promise<Admi
     notFound()
   }
 
-  const role = await getAdminRole(user.id)
+  const role = await getAdminRole(user.id, user.email)
 
   // Si no tiene rol administrativo, 404 instantáneo
   if (!role) {

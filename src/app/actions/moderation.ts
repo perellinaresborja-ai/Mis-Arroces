@@ -320,6 +320,8 @@ export async function createModerationReport(
 }
 
 import { createClient as createSupabaseAdmin } from "@supabase/supabase-js"
+import { getAdminRole } from "@/lib/admin/auth"
+import { logAdminAction } from "@/lib/admin/audit"
 
 function getAdminClient() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -328,16 +330,6 @@ function getAdminClient() {
     throw new Error("Faltan credenciales de administración del servidor.")
   }
   return createSupabaseAdmin(supabaseUrl, supabaseServiceRole)
-}
-
-/**
- * Server-side check for moderator privileges.
- * Relies strictly on the server-only environment variable ADMIN_USER_IDS.
- * Note: Neither profiles nor any public table contains an 'ADMIN' role column.
- */
-async function isUserAuthorizedModerator(userId: string): Promise<boolean> {
-  const adminIds = (process.env.ADMIN_USER_IDS || "").split(",").map(id => id.trim()).filter(Boolean)
-  return adminIds.includes(userId)
 }
 
 export interface ModerationReportItem {
@@ -357,8 +349,8 @@ export interface ModerationReportItem {
 
 /**
  * Internal Review mechanism: List moderation reports by status.
- * Strictly protected on server by moderator authorization check.
- * Uses admin client server-side to read across RLS policies after verifying user identity.
+ * Strictly protected on server by unified admin role check (MODERATOR, ADMIN, or SUPER_ADMIN).
+ * Uses admin client server-side to read across RLS policies after verifying caller credentials.
  */
 export async function getModerationReports(filter?: {
   status?: ModerationStatus
@@ -372,8 +364,8 @@ export async function getModerationReports(filter?: {
       return { success: false, error: "No autenticado." }
     }
 
-    const isAuthorized = await isUserAuthorizedModerator(user.id)
-    if (!isAuthorized) {
+    const role = await getAdminRole(user.id, user.email)
+    if (!role) {
       return { success: false, error: "No tienes permisos de moderación." }
     }
 
@@ -406,7 +398,8 @@ export async function getModerationReports(filter?: {
 /**
  * Internal Review mechanism: Review and update report status.
  * Contract statuses: PENDING | REVIEWED | ACTIONED | DISMISSED.
- * Strictly verifies moderator authorization and updates reviewed_at and reviewed_by.
+ * Strictly verifies caller has unified admin role (MODERATOR, ADMIN, or SUPER_ADMIN),
+ * updates status/review metadata, and writes to admin_audit_logs.
  */
 export async function reviewModerationReport(params: {
   reportId: string
@@ -414,7 +407,7 @@ export async function reviewModerationReport(params: {
   notes?: string
 }): Promise<{ success: boolean; error?: string }> {
   try {
-    const { reportId, newStatus } = params
+    const { reportId, newStatus, notes } = params
 
     if (!["PENDING", "REVIEWED", "ACTIONED", "DISMISSED"].includes(newStatus)) {
       return { success: false, error: "Estado de moderación inválido." }
@@ -427,8 +420,8 @@ export async function reviewModerationReport(params: {
       return { success: false, error: "No autenticado." }
     }
 
-    const isAuthorized = await isUserAuthorizedModerator(user.id)
-    if (!isAuthorized) {
+    const role = await getAdminRole(user.id, user.email)
+    if (!role) {
       return { success: false, error: "No tienes permisos de moderación." }
     }
 
@@ -447,6 +440,19 @@ export async function reviewModerationReport(params: {
     if (error) {
       return { success: false, error: error.message }
     }
+
+    // Registrar en auditoría administrativa
+    await logAdminAction({
+      adminId: user.id,
+      action: `MODERATION_REPORT_${newStatus}`,
+      targetType: "moderation_report",
+      targetId: reportId,
+      details: {
+        new_status: newStatus,
+        reviewer_role: role,
+        notes: notes || null,
+      },
+    })
 
     return { success: true }
   } catch (err: any) {
