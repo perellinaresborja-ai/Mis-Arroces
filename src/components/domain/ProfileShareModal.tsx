@@ -20,7 +20,7 @@ export function ProfileShareModal({ username, display_name, path }: { username: 
   const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(url)}&color=000000&bgcolor=ffffff`
 
   const handleNativeShare = () => {
-    share(display_name || `@${username}`, "¡Mira mi perfil en Mis Arroces!", url)
+    share(display_name || `@${username}`, "¡Mira mi perfil en misarroces!", url)
   }
 
   const handleCopy = () => {

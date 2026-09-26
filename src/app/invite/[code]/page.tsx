@@ -42,7 +42,7 @@ export default async function InviteLandingPage({ params }: { params: Promise<{ 
           </div>
           <h1 className="text-2xl font-bold mb-2">¡Hola de nuevo!</h1>
           <p className="text-muted-foreground mb-8">
-            <span className="font-semibold text-foreground">@{inviter.username}</span> te ha invitado a seguirle en Mis Arroces.
+            <span className="font-semibold text-foreground">@{inviter.username}</span> te ha invitado a seguirle en misarroces.
           </p>
           
           <div className="space-y-3 flex flex-col">
@@ -65,7 +65,7 @@ export default async function InviteLandingPage({ params }: { params: Promise<{ 
     <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-background">
       <div className="w-full max-w-sm bg-card border border-border p-8 rounded-3xl shadow-sm text-center">
         <div className="relative w-48 h-12 mx-auto mb-8">
-          <Image src="/logover.png" alt="Mis Arroces Logo" fill className="object-contain" priority />
+          <Image src="/logover.png" alt="misarroces" fill className="object-contain" priority />
         </div>
 
         <div className="w-24 h-24 mx-auto bg-muted rounded-full overflow-hidden border-2 border-border mb-4 relative z-10">
@@ -80,7 +80,7 @@ export default async function InviteLandingPage({ params }: { params: Promise<{ 
         
         <h1 className="text-2xl font-bold mb-2">¡Estás invitado!</h1>
         <p className="text-muted-foreground mb-8 text-sm">
-          <strong className="text-foreground">@{inviter.username}</strong> te ha invitado a unirte a Mis Arroces.<br/><br/>
+          <strong className="text-foreground">@{inviter.username}</strong> te ha invitado a unirte a misarroces.<br/><br/>
           Descubre, guarda y cocina las mejores recetas de arroz de la comunidad.
         </p>
 

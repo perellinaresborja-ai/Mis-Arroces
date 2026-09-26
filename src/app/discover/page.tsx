@@ -6,6 +6,7 @@ import { FeedCard } from "@/components/domain/FeedCard"
 import { Users, BookOpen, Flame, LayoutTemplate, Search } from "lucide-react"
 import { WhatDoIHaveContainer } from "./WhatDoIHaveContainer"
 import { ProfileFollowButton } from "@/components/domain/ProfileFollowButton"
+import { FindFriendsBanner } from "@/components/domain/FindFriendsBanner"
 import type { Metadata } from "next"
 
 export const metadata: Metadata = {
@@ -283,9 +284,10 @@ export default async function DiscoverPage(props: { searchParams?: Promise<{ q?:
           {/* DISCOVER HOME (No search active) */}
           {(!q && tab === "todo") && (
             <div className="space-y-12 animate-in fade-in duration-500">
+              <FindFriendsBanner className="mb-4" />
           
-          <section>
-            <div className="flex items-center justify-between mb-4">
+              <section>
+                <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-bold">Arroceros que descubrir</h2>
               <Link href="/discover?tab=personas" className="text-sm font-semibold text-primary hover:underline">Ver todos &gt;</Link>
             </div>
@@ -435,10 +437,12 @@ export default async function DiscoverPage(props: { searchParams?: Promise<{ q?:
           )}
 
           {/* People Results */}
-          {(tab === "todo" || tab === "personas") && searchResults.users.length > 0 && (
+          {(tab === "todo" || tab === "personas") && (
             <section className="space-y-4">
-              {tab === "todo" && <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wider">Personas</h3>}
-              <div className="space-y-2">
+              {tab === "personas" && <FindFriendsBanner className="mb-4" />}
+              {tab === "todo" && searchResults.users.length > 0 && <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wider">Personas</h3>}
+              {searchResults.users.length > 0 && (
+                <div className="space-y-2">
                 {searchResults.users.map((u) => {
                   const avatar = getAvatarUrl(u.avatar?.storage_path)
                   return (
@@ -475,6 +479,7 @@ export default async function DiscoverPage(props: { searchParams?: Promise<{ q?:
                   )
                 })}
               </div>
+              )}
             </section>
           )}
 

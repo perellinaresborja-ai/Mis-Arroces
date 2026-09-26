@@ -13,6 +13,7 @@ import {
 import { Camera, Check, UserPlus, Loader2 } from "lucide-react"
 import { toggleFollow } from "@/app/actions/social"
 import { acceptActiveLegalDocuments } from "@/app/actions/legal"
+import { FindFriendsBanner } from "@/components/domain/FindFriendsBanner"
 import Link from "next/link"
 
 export function OnboardingWizard({ initialProfile, inviter, suggestions, inviteCode }: any) {
@@ -326,6 +327,10 @@ export function OnboardingWizard({ initialProfile, inviter, suggestions, inviteC
               </div>
             )}
 
+            <div className="mb-4">
+              <FindFriendsBanner variant="compact" />
+            </div>
+
             <div>
               <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3">Sugerencias para ti</p>
               {suggestions.length === 0 && <p className="text-sm text-muted-foreground">No hay sugerencias por ahora.</p>}
@@ -362,7 +367,7 @@ export function OnboardingWizard({ initialProfile, inviter, suggestions, inviteC
 
           <div className="pt-4 space-y-3">
             <Button onClick={handleComplete} disabled={loading} className="w-full font-bold rounded-xl h-12 bg-olive hover:bg-olive/90 text-white">
-              {loading ? "Entrando..." : "Entrar a Mis Arroces"}
+              {loading ? "Entrando..." : "Entrar a misarroces"}
             </Button>
             <Button onClick={handleComplete} disabled={loading} variant="ghost" className="w-full font-bold rounded-xl text-muted-foreground">
               Ahora no
