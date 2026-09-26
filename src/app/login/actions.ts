@@ -153,6 +153,19 @@ export async function signup(formData: FormData) {
     ? targetRedirect
     : "/create/recipe"
 
+  const phoneRaw = (formData.get("phone") as string || "").trim()
+  const phoneCountry = (formData.get("phone_country") as string || "ES").trim()
+
+  let normalizedPhoneE164: string | null = null
+  if (phoneRaw) {
+    const { normalizePhoneToE164 } = await import("@/lib/phone")
+    const norm = normalizePhoneToE164(phoneRaw)
+    if (!norm.valid) {
+      redirect(`/login?mode=signup&error=${encodeURIComponent(norm.error || "El número de teléfono no es válido.")}`)
+    }
+    normalizedPhoneE164 = norm.e164
+  }
+
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
@@ -160,6 +173,7 @@ export async function signup(formData: FormData) {
       data: {
         display_name: cleanDisplayName,
         username: cleanUsername,
+        ...(normalizedPhoneE164 ? { phone_e164: normalizedPhoneE164, phone_country: phoneCountry } : {}),
       },
       emailRedirectTo: `${baseUrl}/auth/callback?next=${encodeURIComponent(emailNext)}`
     }
@@ -194,6 +208,24 @@ export async function signup(formData: FormData) {
         redirect(`/login?mode=signup&error=${encodeURIComponent("El nombre o @usuario ya está ocupado.")}`)
       }
       redirect(`/login?mode=signup&error=${encodeURIComponent("No se pudo crear el perfil. Inténtalo de nuevo.")}`)
+    }
+
+    // Guardar teléfono privado de forma segura si fue proporcionado
+    if (normalizedPhoneE164) {
+      try {
+        const { getAdminClient } = await import("@/lib/admin/client")
+        const adminClient = getAdminClient()
+        await adminClient.from("user_private_contacts" as any).upsert({
+          user_id: data.user.id,
+          phone: phoneRaw,
+          phone_e164: normalizedPhoneE164,
+          country_code: phoneCountry,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        }, { onConflict: "user_id" })
+      } catch (phoneErr) {
+        console.warn("Aviso al guardar user_private_contacts:", phoneErr)
+      }
     }
 
     // Register legal acceptances via secure RPC

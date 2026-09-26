@@ -10,6 +10,7 @@ import DownloadDataRow from "./components/DownloadDataRow"
 import { MyIdSection } from "./components/MyIdSection"
 import { InstallAppRow } from "./components/InstallAppRow"
 import { FindFriendsSettingsRow } from "./components/FindFriendsSettingsRow"
+import { PhoneSettingsRow } from "./components/PhoneSettingsRow"
 import { fetchUserRealActivity } from "@/app/actions/activity"
 
 export default async function SettingsPage() {
@@ -82,6 +83,8 @@ export default async function SettingsPage() {
                 <div className="flex items-center gap-3"><User className="w-5 h-5 text-muted-foreground" /> <span className="font-medium">Editar perfil</span></div>
                 <ChevronRight className="w-4 h-4 text-muted-foreground" />
               </Link>
+              <div className="h-px bg-border ml-12"></div>
+              <PhoneSettingsRow />
               <div className="h-px bg-border ml-12"></div>
               <Link href="/profile/requests" className="flex items-center justify-between p-4 hover:bg-muted/50 transition">
                 <div className="flex items-center gap-3"><Shield className="w-5 h-5 text-muted-foreground" /> <span className="font-medium">Solicitudes de seguimiento</span></div>

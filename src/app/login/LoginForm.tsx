@@ -6,6 +6,7 @@ import Link from "next/link"
 import { login, signup } from "./actions"
 import { useFormStatus } from "react-dom"
 import { checkDisplayNameAvailabilityAction, checkUsernameAvailabilityAction } from "@/app/onboarding/actions"
+import { PhoneInput } from "@/components/ui/PhoneInput"
 
 export function LoginForm({ initialMode = "login", initialEmail = "", error, message, redirectTo }: { initialMode?: "login" | "signup", initialEmail?: string, error?: string, message?: string, redirectTo?: string }) {
   const [mode, setMode] = useState<"login" | "signup">(initialMode)
@@ -261,6 +262,19 @@ export function LoginForm({ initialMode = "login", initialEmail = "", error, mes
                     {usernameStatus.message}
                   </p>
                 )}
+              </div>
+
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <label htmlFor="phone" className="text-sm font-semibold text-charcoal block">
+                    Teléfono <span className="text-muted-foreground text-xs font-normal">(opcional)</span>
+                  </label>
+                  <span className="text-[11px] text-muted-foreground">Privado</span>
+                </div>
+                <PhoneInput id="phone" name="phone" placeholder="612 34 56 78" />
+                <p className="text-[11px] text-muted-foreground leading-tight">
+                  Servirá para que amigos que tengan tu número en su agenda puedan encontrarte. Nunca será público.
+                </p>
               </div>
             </>
           )}

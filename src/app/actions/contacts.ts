@@ -142,9 +142,14 @@ export async function matchContactsAction(rawContacts: ContactInput[]): Promise<
   // Cap batch size to prevent bulk enumeration
   const contacts = rawContacts.slice(0, MAX_CONTACTS_BATCH)
 
-  // Map contacts by normalized email for fast matching
+  // Map contacts by normalized email and phone for fast matching
   const emailToContactMap = new Map<string, ContactInput>()
   const validEmails: string[] = []
+
+  const phoneToContactMap = new Map<string, ContactInput>()
+  const validPhones: string[] = []
+
+  const { normalizePhoneToE164 } = await import("@/lib/phone")
 
   for (const c of contacts) {
     const rawEmail = (c.email || "").trim().toLowerCase()
@@ -152,35 +157,85 @@ export async function matchContactsAction(rawContacts: ContactInput[]): Promise<
       emailToContactMap.set(rawEmail, c)
       validEmails.push(rawEmail)
     }
+
+    if (c.tel) {
+      const normPhone = normalizePhoneToE164(c.tel)
+      if (normPhone.valid && normPhone.e164) {
+        phoneToContactMap.set(normPhone.e164, c)
+        validPhones.push(normPhone.e164)
+      }
+    }
   }
 
   const matchedUserIds = new Set<string>()
   const contactNameByUserId = new Map<string, string>()
 
-  if (validEmails.length > 0) {
+  if (validEmails.length > 0 || validPhones.length > 0) {
     try {
       const adminClient = getAdminClient()
-      // Check auth users matching these emails
-      // Currently misarroces has <1000 users; listUsers is fast and secure server-side
+
+      // 1. Check user_private_contacts for phone matches
+      if (validPhones.length > 0) {
+        try {
+          const { data: phoneMatches } = await adminClient
+            .from("user_private_contacts" as any)
+            .select("user_id, phone_e164")
+            .in("phone_e164", validPhones)
+
+          for (const row of phoneMatches || []) {
+            const uid = (row as any).user_id
+            const pE164 = (row as any).phone_e164
+            if (uid && uid !== user.id) {
+              matchedUserIds.add(uid)
+              const matchedContact = phoneToContactMap.get(pE164)
+              if (matchedContact?.name) {
+                contactNameByUserId.set(uid, matchedContact.name)
+              }
+            }
+          }
+        } catch (err) {
+          console.warn("[matchContactsAction] user_private_contacts query warning:", err)
+        }
+      }
+
+      // 2. Check auth users matching emails and user_metadata phones
       const { data: authData } = await adminClient.auth.admin.listUsers({ perPage: 1000 })
       const allAuthUsers = authData?.users || []
 
       for (const authUser of allAuthUsers) {
-        if (!authUser.email) continue
-        const userEmail = authUser.email.trim().toLowerCase()
-        if (emailToContactMap.has(userEmail)) {
-          // Never match the user with themselves
-          if (authUser.id !== user.id) {
-            matchedUserIds.add(authUser.id)
-            const matchedContact = emailToContactMap.get(userEmail)
-            if (matchedContact?.name) {
-              contactNameByUserId.set(authUser.id, matchedContact.name)
-            }
+        // Never match the user with themselves
+        if (authUser.id === user.id) continue
+
+        let isMatch = false
+        let contactInfo: ContactInput | undefined
+
+        // Match email
+        if (authUser.email) {
+          const userEmail = authUser.email.trim().toLowerCase()
+          if (emailToContactMap.has(userEmail)) {
+            isMatch = true
+            contactInfo = emailToContactMap.get(userEmail)
+          }
+        }
+
+        // Match phone in auth metadata
+        if (!isMatch && validPhones.length > 0) {
+          const metaPhone = authUser.user_metadata?.phone_e164 || authUser.phone
+          if (metaPhone && phoneToContactMap.has(metaPhone)) {
+            isMatch = true
+            contactInfo = phoneToContactMap.get(metaPhone)
+          }
+        }
+
+        if (isMatch) {
+          matchedUserIds.add(authUser.id)
+          if (contactInfo?.name) {
+            contactNameByUserId.set(authUser.id, contactInfo.name)
           }
         }
       }
     } catch (err) {
-      console.error("[matchContactsAction] Error checking auth matches:", err)
+      console.error("[matchContactsAction] Error checking contact matches:", err)
     }
   }
 
@@ -241,9 +296,19 @@ export async function matchContactsAction(rawContacts: ContactInput[]): Promise<
   const unmatchedList: UnmatchedContactItem[] = []
   for (const c of contacts) {
     const cEmail = (c.email || "").trim().toLowerCase()
+    const normTel = c.tel ? normalizePhoneToE164(c.tel).e164 : ""
     let wasMatched = false
 
     if (cEmail && emailToContactMap.has(cEmail)) {
+      for (const m of deduplicatedMatched) {
+        if (contactNameByUserId.get(m.id) === c.name) {
+          wasMatched = true
+          break
+        }
+      }
+    }
+
+    if (!wasMatched && normTel && phoneToContactMap.has(normTel)) {
       for (const m of deduplicatedMatched) {
         if (contactNameByUserId.get(m.id) === c.name) {
           wasMatched = true
