@@ -1,16 +1,4 @@
-import { createClient as createAdminClient } from "@supabase/supabase-js"
-import { Database } from "@/types/database.types"
-
-function getAdminClient() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const adminKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-  if (!supabaseUrl || !adminKey) {
-    throw new Error("[Admin Dashboard] Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY")
-  }
-  return createAdminClient<Database>(supabaseUrl, adminKey, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  })
-}
+import { getAdminClient } from "./client"
 
 export interface GrowthPoint {
   date: string // YYYY-MM-DD
@@ -345,6 +333,54 @@ export async function getAdminDashboardData(): Promise<DashboardData> {
     alerts: {
       pendingReports: pendingReportsCount,
       openIncidents: openIncidentsCount,
+    },
+  }
+}
+
+export function getFallbackDashboardData(): DashboardData {
+  const emptySeries = Array.from({ length: 7 }, (_, i) => ({
+    date: new Date(Date.now() - (6 - i) * 86400000).toISOString().split("T")[0],
+    label: `${new Date(Date.now() - (6 - i) * 86400000).getDate()}`,
+    count: 0,
+    cumulative: 0,
+  }))
+
+  return {
+    metrics: {
+      totalUsers: 0,
+      newUsers7d: 0,
+      newUsers30d: 0,
+      publishedRecipes: 0,
+      totalPosts: 0,
+      activeStories: 0,
+      totalSessions: 0,
+      activeUsers7d: 0,
+      activeUsers30d: 0,
+      eventsToday: 0,
+      events7d: 0,
+      pendingReports: 0,
+      openIncidents: 0,
+    },
+    growth: {
+      d7: emptySeries,
+      d30: emptySeries,
+      d90: emptySeries,
+    },
+    community: {
+      foundersAssigned: 0,
+      foundersPendingEmail: 0,
+      professionalTotal: 0,
+      professionalBreakdown: {},
+    },
+    topContent: {
+      mostViewed: [],
+      mostCooked: [],
+      mostSaved: [],
+    },
+    recentAudit: [],
+    alerts: {
+      pendingReports: 0,
+      openIncidents: 0,
     },
   }
 }

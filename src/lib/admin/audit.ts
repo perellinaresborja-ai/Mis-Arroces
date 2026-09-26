@@ -1,17 +1,6 @@
-import { createClient as createAdminClient } from "@supabase/supabase-js"
-import { Database, Json } from "@/types/database.types"
+import { Json } from "@/types/database.types"
 import { headers } from "next/headers"
-
-function getAdminClient() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const adminKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-  if (!supabaseUrl || !adminKey) {
-    throw new Error("[Admin Audit] Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY")
-  }
-  return createAdminClient<Database>(supabaseUrl, adminKey, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  })
-}
+import { getAdminClient } from "./client"
 
 export interface LogAdminActionParams {
   adminId: string

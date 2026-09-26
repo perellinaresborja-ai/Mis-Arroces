@@ -1,5 +1,5 @@
 import { requireAdminSession } from "@/lib/admin/auth"
-import { getAdminDashboardData } from "@/lib/admin/dashboard"
+import { getAdminDashboardData, getFallbackDashboardData } from "@/lib/admin/dashboard"
 import { AdminAttentionBanner } from "./components/AdminAttentionBanner"
 import { AdminMetricsGrid } from "./components/AdminMetricsGrid"
 import { AdminUserGrowthChart } from "./components/AdminUserGrowthChart"
@@ -13,7 +13,13 @@ export const dynamic = "force-dynamic"
 
 export default async function AdminDashboardPage() {
   const session = await requireAdminSession()
-  const data = await getAdminDashboardData()
+  let data
+  try {
+    data = await getAdminDashboardData()
+  } catch (err) {
+    console.error("[Admin Dashboard] Failed to load data:", err)
+    data = getFallbackDashboardData()
+  }
 
   return (
     <div className="space-y-6">

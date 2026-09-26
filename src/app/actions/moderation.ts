@@ -319,18 +319,9 @@ export async function createModerationReport(
   }
 }
 
-import { createClient as createSupabaseAdmin } from "@supabase/supabase-js"
 import { getAdminRole } from "@/lib/admin/auth"
 import { logAdminAction } from "@/lib/admin/audit"
-
-function getAdminClient() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const supabaseServiceRole = process.env.SUPABASE_SERVICE_ROLE_KEY
-  if (!supabaseUrl || !supabaseServiceRole) {
-    throw new Error("Faltan credenciales de administración del servidor.")
-  }
-  return createSupabaseAdmin(supabaseUrl, supabaseServiceRole)
-}
+import { getAdminClient } from "@/lib/admin/client"
 
 export interface ModerationReportItem {
   id: string

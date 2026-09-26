@@ -1,20 +1,8 @@
 import { notFound } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
-import { createClient as createAdminClient } from "@supabase/supabase-js"
-import { Database } from "@/types/database.types"
+import { getAdminClient } from "./client"
 
 export type AdminRole = "SUPER_ADMIN" | "ADMIN" | "MODERATOR"
-
-function getAdminClient() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const adminKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-  if (!supabaseUrl || !adminKey) {
-    throw new Error("[Admin Auth] Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY")
-  }
-  return createAdminClient<Database>(supabaseUrl, adminKey, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  })
-}
 
 // Identificadores fundacionales del creador de misarroces para garantizar resiliencia en despliegues
 const PRIMARY_SUPER_ADMIN_IDS = ["d5e0c178-49d0-4160-b122-d518f5d46036"]

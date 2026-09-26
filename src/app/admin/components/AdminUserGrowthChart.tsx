@@ -16,9 +16,10 @@ export function AdminUserGrowthChart({ growth }: GrowthChartProps) {
   const [range, setRange] = useState<"7d" | "30d" | "90d">("30d")
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null)
 
-  const points = range === "7d" ? growth.d7 : range === "30d" ? growth.d30 : growth.d90
-  const maxCumulative = Math.max(...points.map((p) => p.cumulative), 1)
-  const maxDaily = Math.max(...points.map((p) => p.count), 1)
+  const points = (range === "7d" ? growth?.d7 : range === "30d" ? growth?.d30 : growth?.d90) || []
+  const maxCumulative = points.length > 0 ? Math.max(...points.map((p) => p.cumulative), 1) : 1
+  const maxDaily = points.length > 0 ? Math.max(...points.map((p) => p.count), 1) : 1
+  const safeLength = Math.max(points.length, 1)
 
   // Dimensiones SVG
   const width = 600
@@ -45,7 +46,7 @@ export function AdminUserGrowthChart({ growth }: GrowthChartProps) {
   }, "")
 
   // Path cerrado para el área de relleno con gradiente
-  const areaD = `${pathD} L ${paddingX + chartW},${height - paddingY} L ${paddingX},${height - paddingY} Z`
+  const areaD = pathD ? `${pathD} L ${paddingX + chartW},${height - paddingY} L ${paddingX},${height - paddingY} Z` : ""
 
   // Total de altas en el periodo seleccionado
   const periodNewUsers = points.reduce((acc, p) => acc + p.count, 0)
@@ -171,7 +172,7 @@ export function AdminUserGrowthChart({ growth }: GrowthChartProps) {
 
           {/* Barras de altas diarias tenues en la base */}
           {points.map((p, idx) => {
-            const barW = Math.max(chartW / points.length - 2, 2)
+            const barW = Math.max(chartW / safeLength - 2, 2)
             const barH = (p.count / maxDaily) * (chartH * 0.45)
             const bx = paddingX + (idx / Math.max(points.length - 1, 1)) * chartW - barW / 2
             const by = height - paddingY - barH
@@ -219,9 +220,9 @@ export function AdminUserGrowthChart({ growth }: GrowthChartProps) {
 
               {/* Área invisible grande para facilitar el toque */}
               <rect
-                x={pt.x - chartW / points.length / 2}
+                x={pt.x - chartW / safeLength / 2}
                 y={paddingY}
-                width={chartW / points.length}
+                width={chartW / safeLength}
                 height={chartH}
                 fill="transparent"
                 className="cursor-pointer"

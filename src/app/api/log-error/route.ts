@@ -1,15 +1,6 @@
 import { NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
-import { createClient as createAdminClient } from "@supabase/supabase-js"
-
-function getAdminClient() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const adminKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-  if (!supabaseUrl || !adminKey) return null
-  return createAdminClient(supabaseUrl, adminKey, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  })
-}
+import { getAdminClient } from "@/lib/admin/client"
 
 function sanitizeText(str: string, maxLen = 4000): string {
   if (!str) return ""
