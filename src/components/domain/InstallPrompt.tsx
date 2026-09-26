@@ -95,7 +95,7 @@ export function InstallPrompt() {
           <div>
             {/* Cabecera con logo integrado */}
             <div className="flex items-start gap-3.5 mb-4 pr-6">
-              <div className="w-12 h-12 rounded-2xl bg-white dark:bg-[#25221E] border border-[#EAE5D9] dark:border-[#2C2822] flex items-center justify-center p-2 shrink-0 shadow-xs">
+              <div className="w-12 h-12 rounded-2xl bg-[#F7F5F0] dark:bg-[#25221E] border border-[#EAE5D9] dark:border-[#2C2822] flex items-center justify-center p-2 shrink-0 shadow-xs">
                 <Image
                   src="/icons/icon-192x192.png"
                   alt="misarroces"
@@ -149,7 +149,7 @@ export function InstallPrompt() {
           <div>
             {/* Cabecera iOS */}
             <div className="flex items-start gap-3.5 mb-4 pr-6">
-              <div className="w-11 h-11 rounded-2xl bg-white dark:bg-[#25221E] border border-[#EAE5D9] dark:border-[#2C2822] flex items-center justify-center p-2 shrink-0 shadow-xs">
+              <div className="w-11 h-11 rounded-2xl bg-[#F7F5F0] dark:bg-[#25221E] border border-[#EAE5D9] dark:border-[#2C2822] flex items-center justify-center p-2 shrink-0 shadow-xs">
                 <Image
                   src="/icons/icon-192x192.png"
                   alt="misarroces"

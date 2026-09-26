@@ -52,7 +52,7 @@ export function InstallAppRow() {
             className="w-full flex items-center justify-between p-4 hover:bg-muted/50 transition text-left group"
           >
             <div className="flex items-center gap-3.5">
-              <div className="w-10 h-10 rounded-2xl bg-[#FAF8F5] dark:bg-[#25221E] border border-[#EAE5D9] dark:border-[#2C2822] flex items-center justify-center p-1.5 shrink-0 shadow-xs">
+              <div className="w-10 h-10 rounded-2xl bg-[#F7F5F0] dark:bg-[#25221E] border border-[#EAE5D9] dark:border-[#2C2822] flex items-center justify-center p-1.5 shrink-0 shadow-xs">
                 <Image
                   src="/icons/icon-192x192.png"
                   alt="misarroces"
@@ -88,7 +88,7 @@ export function InstallAppRow() {
             {/* Header del modal */}
             <div className="flex items-start justify-between pr-4">
               <div className="flex items-center gap-3.5">
-                <div className="w-11 h-11 rounded-2xl bg-white dark:bg-[#25221E] border border-[#EAE5D9] dark:border-[#2C2822] flex items-center justify-center p-2 shrink-0 shadow-xs">
+                <div className="w-11 h-11 rounded-2xl bg-[#F7F5F0] dark:bg-[#25221E] border border-[#EAE5D9] dark:border-[#2C2822] flex items-center justify-center p-2 shrink-0 shadow-xs">
                   <Image
                     src="/icons/icon-192x192.png"
                     alt="misarroces"

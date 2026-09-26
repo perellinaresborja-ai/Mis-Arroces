@@ -33,10 +33,10 @@ export const metadata: Metadata = {
   manifest: "/manifest.webmanifest",
   icons: {
     icon: [
-      { url: "/icons/icon-192x192.webp", type: "image/webp" },
-      { url: "/icons/icon-192x192.png", type: "image/png" }
+      { url: "/icons/icon-192x192.webp?v=6", type: "image/webp" },
+      { url: "/icons/icon-192x192.png?v=6", type: "image/png" }
     ],
-    apple: "/apple-touch-icon.png",
+    apple: "/apple-touch-icon.png?v=6",
   },
   openGraph: {
     type: "website",
