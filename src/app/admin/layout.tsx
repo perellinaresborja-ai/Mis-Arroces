@@ -5,7 +5,7 @@ import { AdminNav, AdminMobileNav } from "./components/AdminNav"
 import { ShieldCheck, ArrowLeft } from "lucide-react"
 
 export const metadata = {
-  title: "Mi Admin | misarroces",
+  title: "admin | misarroces",
   description: "Panel de administración privado de misarroces",
   robots: {
     index: false,
@@ -30,7 +30,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
             </Link>
             <span className="text-muted-foreground/40 font-mono">/</span>
             <div className="flex items-center gap-2">
-              <span className="font-bold text-base tracking-tight">Mi Admin</span>
+              <span className="font-bold text-base tracking-tight">admin</span>
               <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
                 <ShieldCheck className="w-3 h-3" />
                 {session.role}
