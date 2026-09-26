@@ -481,8 +481,8 @@ export default function CreateRecipeOptions({ createManualAction }: { createManu
             {isLoading ? <Loader2 className="w-8 h-8 text-orange-500 animate-spin" /> : <PenLine className="w-8 h-8 text-orange-500" />}
           </div>
           <div>
-            <h3 className="font-semibold text-lg">Manualmente</h3>
-            <p className="text-sm text-muted-foreground mt-1">Crea tu receta paso a paso.</p>
+            <h3 className="font-semibold text-lg">Crear desde cero</h3>
+            <p className="text-sm text-muted-foreground mt-1">Rellena tu receta paso a paso</p>
           </div>
         </button>
 
@@ -495,8 +495,8 @@ export default function CreateRecipeOptions({ createManualAction }: { createManu
             <Wand2 className="w-8 h-8 text-orange-500" />
           </div>
           <div>
-            <h3 className="font-semibold text-lg">Escribir receta</h3>
-            <p className="text-sm text-muted-foreground mt-1">Escribe o pega tu receta y la convertimos en un borrador listo para editar.</p>
+            <h3 className="font-semibold text-lg">Pegar receta</h3>
+            <p className="text-sm text-muted-foreground mt-1">Pega o escribe tu receta y la preparamos automáticamente</p>
           </div>
         </button>
 
@@ -509,8 +509,8 @@ export default function CreateRecipeOptions({ createManualAction }: { createManu
             <Mic className="w-8 h-8 text-orange-500" />
           </div>
           <div>
-            <h3 className="font-semibold text-lg">Por voz</h3>
-            <p className="text-sm text-muted-foreground mt-1">Cuéntanos tu receta y la preparamos para que puedas revisarla y editarla.</p>
+            <h3 className="font-semibold text-lg">Dictar receta</h3>
+            <p className="text-sm text-muted-foreground mt-1">Cuéntanos tu receta hablando</p>
           </div>
         </button>
 
@@ -524,7 +524,7 @@ export default function CreateRecipeOptions({ createManualAction }: { createManu
           </div>
           <div>
             <h3 className="font-semibold text-lg">Importar receta</h3>
-            <p className="text-sm text-muted-foreground mt-1">Pega el enlace de una receta y la importaremos para que puedas revisarla y completarla.</p>
+            <p className="text-sm text-muted-foreground mt-1">Tráela desde un enlace</p>
           </div>
         </button>
       </div>
