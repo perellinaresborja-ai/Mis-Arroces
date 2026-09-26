@@ -88,6 +88,49 @@ export function PostMediaManager({
   const dragStartPosRef = useRef<{ x: number; y: number } | null>(null)
   const isDraggingActiveRef = useRef<boolean>(false)
   const activeDragIdRef = useRef<string | null>(null)
+  const pointerTypeRef = useRef<string>('mouse')
+  const holdTimerRef = useRef<NodeJS.Timeout | null>(null)
+  const capturedElementRef = useRef<HTMLElement | null>(null)
+  const capturedPointerIdRef = useRef<number | null>(null)
+  const hasReorderedRef = useRef<boolean>(false)
+
+  // Global safety net: ensure pointer capture and dragging state are always released
+  useEffect(() => {
+    const handleGlobalPointerUp = () => {
+      if (holdTimerRef.current) {
+        clearTimeout(holdTimerRef.current)
+        holdTimerRef.current = null
+      }
+      if (capturedElementRef.current && capturedPointerIdRef.current !== null) {
+        try {
+          if (capturedElementRef.current.hasPointerCapture(capturedPointerIdRef.current)) {
+            capturedElementRef.current.releasePointerCapture(capturedPointerIdRef.current)
+          }
+        } catch {}
+        capturedElementRef.current = null
+        capturedPointerIdRef.current = null
+      }
+      if (isDraggingActiveRef.current || activeDragIdRef.current) {
+        const hadReordered = hasReorderedRef.current
+        isDraggingActiveRef.current = false
+        activeDragIdRef.current = null
+        dragStartPosRef.current = null
+        hasReorderedRef.current = false
+        setActiveDragId(null)
+        if (hadReordered) {
+          notifyChange(itemsRef.current)
+        }
+      }
+    }
+
+    window.addEventListener('pointerup', handleGlobalPointerUp)
+    window.addEventListener('pointercancel', handleGlobalPointerUp)
+    return () => {
+      window.removeEventListener('pointerup', handleGlobalPointerUp)
+      window.removeEventListener('pointercancel', handleGlobalPointerUp)
+      if (holdTimerRef.current) clearTimeout(holdTimerRef.current)
+    }
+  }, [])
 
   const notifyChange = (newItems: PostMediaItem[]) => {
     let normalized = [...newItems]
@@ -209,28 +252,87 @@ export function PostMediaManager({
     dragStartPosRef.current = { x: e.clientX, y: e.clientY }
     isDraggingActiveRef.current = false
     activeDragIdRef.current = id
+    pointerTypeRef.current = e.pointerType
+    hasReorderedRef.current = false
 
-    try {
-      e.currentTarget.setPointerCapture(e.pointerId)
-    } catch {
-      // Ignore if pointer capture fails
+    const targetEl = e.currentTarget
+    const pointerId = e.pointerId
+
+    if (holdTimerRef.current) {
+      clearTimeout(holdTimerRef.current)
+      holdTimerRef.current = null
+    }
+
+    // Touch device: short intentional hold delay (220ms) before activating drag.
+    // This leaves natural vertical scroll completely uninhibited for normal swipes!
+    if (e.pointerType === 'touch' || e.pointerType === 'pen') {
+      holdTimerRef.current = setTimeout(() => {
+        if (dragStartPosRef.current && activeDragIdRef.current === id) {
+          isDraggingActiveRef.current = true
+          setActiveDragId(id)
+          capturedElementRef.current = targetEl
+          capturedPointerIdRef.current = pointerId
+          try {
+            targetEl.setPointerCapture(pointerId)
+          } catch {}
+          if (typeof navigator !== 'undefined' && navigator.vibrate) {
+            try { navigator.vibrate(35) } catch {}
+          }
+        }
+      }, 220)
     }
   }
 
   const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
     if (!dragStartPosRef.current || !activeDragIdRef.current) return
 
-    const dist = Math.hypot(
-      e.clientX - dragStartPosRef.current.x,
-      e.clientY - dragStartPosRef.current.y
-    )
+    const dx = e.clientX - dragStartPosRef.current.x
+    const dy = e.clientY - dragStartPosRef.current.y
+    const dist = Math.hypot(dx, dy)
 
     if (!isDraggingActiveRef.current) {
-      if (dist > 6) {
-        isDraggingActiveRef.current = true
-        setActiveDragId(activeDragIdRef.current)
+      if (pointerTypeRef.current === 'touch' || pointerTypeRef.current === 'pen') {
+        // If moving vertically before hold timer fires, user is scrolling!
+        // Immediately abort drag recognition to let browser scroll smoothly.
+        if (Math.abs(dy) > 7 && Math.abs(dy) > Math.abs(dx)) {
+          if (holdTimerRef.current) {
+            clearTimeout(holdTimerRef.current)
+            holdTimerRef.current = null
+          }
+          dragStartPosRef.current = null
+          activeDragIdRef.current = null
+          return
+        }
+
+        // Substantial lateral move after touch:
+        if (dist > 16) {
+          if (holdTimerRef.current) {
+            clearTimeout(holdTimerRef.current)
+            holdTimerRef.current = null
+          }
+          isDraggingActiveRef.current = true
+          setActiveDragId(activeDragIdRef.current)
+          capturedElementRef.current = e.currentTarget
+          capturedPointerIdRef.current = e.pointerId
+          try {
+            e.currentTarget.setPointerCapture(e.pointerId)
+          } catch {}
+        } else {
+          return
+        }
       } else {
-        return
+        // Desktop mouse: drag activates after 6px movement
+        if (dist > 6) {
+          isDraggingActiveRef.current = true
+          setActiveDragId(activeDragIdRef.current)
+          capturedElementRef.current = e.currentTarget
+          capturedPointerIdRef.current = e.pointerId
+          try {
+            e.currentTarget.setPointerCapture(e.pointerId)
+          } catch {}
+        } else {
+          return
+        }
       }
     }
 
@@ -269,28 +371,44 @@ export function PostMediaManager({
       }
     }
 
-    if (targetIdx !== -1 && targetIdx !== currentIdx) {
+    if (targetIdx !== -1 && targetIdx !== currentIdx && targetIdx < currentList.length) {
       const updated = [...currentList]
       const [movedItem] = updated.splice(currentIdx, 1)
       updated.splice(targetIdx, 0, movedItem)
+      hasReorderedRef.current = true
       setItems(updated)
       itemsRef.current = updated
-      onChange(updated)
     }
   }
 
   const handlePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (activeDragIdRef.current) {
-      try {
-        e.currentTarget.releasePointerCapture(e.pointerId)
-      } catch {
-        // Ignore
-      }
+    if (holdTimerRef.current) {
+      clearTimeout(holdTimerRef.current)
+      holdTimerRef.current = null
     }
+
+    if (capturedElementRef.current && capturedPointerIdRef.current !== null) {
+      try {
+        if (capturedElementRef.current.hasPointerCapture(capturedPointerIdRef.current)) {
+          capturedElementRef.current.releasePointerCapture(capturedPointerIdRef.current)
+        }
+      } catch {}
+      capturedElementRef.current = null
+      capturedPointerIdRef.current = null
+    }
+
+    const wasDragging = isDraggingActiveRef.current
+    const hadReordered = hasReorderedRef.current
+
     dragStartPosRef.current = null
     isDraggingActiveRef.current = false
     activeDragIdRef.current = null
+    hasReorderedRef.current = false
     setActiveDragId(null)
+
+    if (wasDragging && hadReordered) {
+      notifyChange(itemsRef.current)
+    }
   }
 
   return (
@@ -305,7 +423,7 @@ export function PostMediaManager({
       {items.length > 0 && (
         <div 
           ref={gridRef}
-          className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 select-none touch-none"
+          className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 select-none touch-pan-y"
         >
           {items.map((item, index) => {
             const isDraggingThis = activeDragId === item.id
@@ -322,8 +440,10 @@ export function PostMediaManager({
                 onPointerUp={handlePointerUp}
                 onPointerCancel={handlePointerUp}
                 className={cn(
-                  "relative aspect-square rounded-2xl overflow-hidden border border-border bg-muted group cursor-grab active:cursor-grabbing transition-transform duration-150 select-none",
-                  isDraggingThis ? "scale-105 shadow-xl ring-2 ring-primary z-30 opacity-90" : "hover:shadow-md",
+                  "relative aspect-square rounded-2xl overflow-hidden border border-border bg-muted group transition-transform duration-150 select-none",
+                  isDraggingThis 
+                    ? "scale-105 shadow-xl ring-2 ring-primary z-30 opacity-90 cursor-grabbing touch-none" 
+                    : "hover:shadow-md cursor-grab active:cursor-grabbing touch-pan-y",
                   isCover && "ring-2 ring-primary/80"
                 )}
               >
