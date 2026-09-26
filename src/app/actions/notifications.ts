@@ -103,7 +103,13 @@ export async function createNotification(
 
   if (!user || user.id === recipient_id) return // Don't notify yourself
 
-  // Check user preferences
+  const adminKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const dbClient = (adminKey && supabaseUrl)
+    ? createAdminClient(supabaseUrl, adminKey, { auth: { autoRefreshToken: false, persistSession: false } })
+    : supabase
+
+  // Check user preferences securely on server without RLS blocking read of recipient's settings
   let prefKey = null;
   if (type === 'FOLLOW' || type === 'FOLLOW_REQUEST' || type === 'FOLLOW_ACCEPT') prefKey = 'follows';
   if (type === 'LIKE') prefKey = 'likes';
@@ -113,10 +119,10 @@ export async function createNotification(
   if (type === 'SYSTEM') prefKey = 'system';
   
   if (prefKey) {
-    const { data: prefs } = await supabase.from('notification_preferences')
+    const { data: prefs } = await dbClient.from('notification_preferences')
       .select(prefKey)
       .eq('user_id', recipient_id)
-      .single()
+      .maybeSingle()
       
     // Validate with typed key access
     const prefsData = prefs as Record<string, any>;
@@ -138,11 +144,6 @@ export async function createNotification(
 
   // Deduplication check for repeatable actions
   if (type === 'LIKE' || type === 'FOLLOW' || type === 'FOLLOW_REQUEST') {
-    const adminKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-    const dbClient = (adminKey && supabaseUrl)
-      ? createAdminClient(supabaseUrl, adminKey, { auth: { autoRefreshToken: false, persistSession: false } })
-      : supabase
 
     const { data: existing } = await dbClient
       .from('notifications')

@@ -77,15 +77,37 @@ export async function createPost(formData: FormData) {
 
   if (mediaIdsRaw && id) {
     try {
-      const mediaIds = JSON.parse(mediaIdsRaw) as string[]
-      if (Array.isArray(mediaIds) && mediaIds.length > 0) {
-        const mediaInserts = mediaIds.map((media_id, index) => ({
-          post_id: id,
-          media_id,
-          display_order: index
-        }))
-        const { error: mediaError } = await supabase.from("post_media").insert(mediaInserts)
-        if (mediaError) console.error("Error inserting post_media", mediaError)
+      const parsedMedia = JSON.parse(mediaIdsRaw) as (string | { id: string, is_primary?: boolean })[]
+      if (Array.isArray(parsedMedia) && parsedMedia.length > 0) {
+        const normalizedMedia = parsedMedia.map((m: any, idx: number) => {
+          const mid = typeof m === 'string' ? m : m?.id
+          const isPrimary = typeof m === 'object' && m?.is_primary !== undefined ? Boolean(m.is_primary) : idx === 0
+          return { id: mid, isPrimary }
+        }).filter(m => m.id)
+
+        if (normalizedMedia.length > 0) {
+          const primaryCount = normalizedMedia.filter(m => m.isPrimary).length
+          if (primaryCount !== 1) {
+            normalizedMedia.forEach((m, idx) => { m.isPrimary = idx === 0 })
+          }
+
+          const mediaInserts = normalizedMedia.map((m, index) => ({
+            post_id: id,
+            media_id: m.id,
+            display_order: index,
+            is_primary: m.isPrimary
+          }))
+
+          const { error: mediaError } = await (supabase.from("post_media" as any) as any).insert(mediaInserts)
+          if (mediaError) {
+            if (mediaError.message?.includes("is_primary") || mediaError.message?.includes("column")) {
+              const fallbackInserts = mediaInserts.map(({ post_id, media_id, display_order }) => ({ post_id, media_id, display_order }))
+              await (supabase.from("post_media" as any) as any).insert(fallbackInserts)
+            } else {
+              console.error("Error inserting post_media", mediaError)
+            }
+          }
+        }
       }
     } catch (e) {
       console.error("Failed to parse media_ids", e)
@@ -143,15 +165,35 @@ export async function toggleWantToCook(recipeId: string, currentStatus: boolean)
   revalidatePath("/cookbook")
 }
 
-export async function toggleFollow(targetUserId: string, isPrivate: boolean, currentStatus: string | null) {
+export async function toggleFollow(targetUserId: string, _clientIsPrivate?: boolean, currentStatus?: string | null) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error("Unauthorized")
+  if (user.id === targetUserId) throw new Error("No puedes seguirte a ti mismo")
 
-  if (currentStatus) {
+  // Check if existing follow exists in database
+  const { data: existingFollow } = await supabase
+    .from("follows")
+    .select("status")
+    .match({ follower_id: user.id, following_id: targetUserId })
+    .maybeSingle()
+
+  if (existingFollow || currentStatus) {
     await supabase.from("follows").delete().match({ follower_id: user.id, following_id: targetUserId })
+    revalidatePath("/discover")
+    revalidatePath("/", "layout")
+    return { status: null }
   } else {
-    const status = isPrivate ? "PENDING" : "ACCEPTED"
+    // SECURITY: Always check the target user's real privacy_level on the server
+    const { data: targetProfile } = await supabase
+      .from("profiles")
+      .select("privacy_level")
+      .eq("id", targetUserId)
+      .maybeSingle()
+
+    const isTargetPrivate = targetProfile?.privacy_level === "PRIVATE"
+    const status = isTargetPrivate ? "PENDING" : "ACCEPTED"
+
     const { error: insertErr } = await supabase.from("follows").insert({
       follower_id: user.id,
       following_id: targetUserId,
@@ -160,8 +202,7 @@ export async function toggleFollow(targetUserId: string, isPrivate: boolean, cur
 
     if (insertErr) {
       if (insertErr.code === '23505') {
-        // Ya existe la fila de follow en BD, no creamos notificación duplicada
-        return
+        return { status }
       }
       throw new Error("Error al seguir al usuario: " + insertErr.message)
     }
@@ -172,9 +213,11 @@ export async function toggleFollow(targetUserId: string, isPrivate: boolean, cur
       'profile', 
       user.id
     )
+
+    revalidatePath("/discover")
+    revalidatePath("/", "layout")
+    return { status }
   }
-  revalidatePath("/discover")
-  revalidatePath("/", "layout")
 }
 
 export async function acceptFollowRequest(followerId: string) {

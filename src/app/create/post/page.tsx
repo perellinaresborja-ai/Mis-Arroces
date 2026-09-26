@@ -1,4 +1,3 @@
-import { BackButton } from "@/components/domain/BackButton"
 import { createClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
 import { PostForm } from "./PostForm"
@@ -25,10 +24,6 @@ export default async function CreatePostPage() {
 
   return (
     <div className="max-w-xl mx-auto py-6 md:py-8 px-4">
-      <div className="flex items-center gap-3 mb-6">
-        <BackButton />
-        <h1 className="text-xl font-bold text-foreground">Crear publicación</h1>
-      </div>
       <PostForm recipes={recipes || []} />
     </div>
   )

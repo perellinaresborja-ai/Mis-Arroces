@@ -23,22 +23,40 @@ export async function POST() {
     const { data: acceptances } = await supabase.from('user_legal_acceptances').select('document_id, accepted_at, legal_documents(document_type, version)').eq('user_id', user.id)
 
     // 3. Contenido Generado
-    const { data: recipes } = await supabase.from('recipes').select('*').eq('owner_id', user.id)
-    const { data: sessions } = await supabase.from('cooking_sessions').select('*').eq('user_id', user.id)
-    const { data: posts } = await supabase.from('social_posts').select('*').eq('author_id', user.id)
-    const { data: comments } = await (supabase as any).from('comments').select('*').eq('author_id', user.id)
-    const { data: stories } = await supabase.from('stories').select('*').eq('owner_id', user.id)
-    
-    // 4. Guardados e Interacciones de contenido
-    const { data: bookmarks } = await supabase.from('bookmarks').select('*').eq('user_id', user.id)
-    const { data: shopping_lists } = await supabase.from('shopping_lists').select('*').eq('user_id', user.id)
-    const { data: reactions } = await (supabase as any).from('reactions').select('*').eq('user_id', user.id)
+    const [recipesRes, sessionsRes, postsRes, storiesRes] = await Promise.all([
+      supabase.from('recipes').select('*').eq('owner_id', user.id),
+      supabase.from('cooking_sessions').select('*').eq('user_id', user.id),
+      supabase.from('social_posts').select('*').eq('author_id', user.id),
+      supabase.from('stories').select('*').eq('owner_id', user.id),
+    ])
 
-    // 5. Mensajes Directos (DMs) - Solo enviados
-    // Para proteger la privacidad de terceros, exportamos SÓLO los mensajes que el propio usuario ha redactado y enviado.
-    // Excluimos información sobre el receptor (receiver_id) para no exponer con quién habló,
-    // y solo exportamos el contenido del mensaje y el timestamp de cuándo lo envió.
-    const { data: sent_messages } = await supabase.from('messages').select('id, content, created_at, message_attachments(storage_path)').eq('sender_id', user.id)
+    // 4. Comentarios reales del usuario (en posts, recetas y sesiones)
+    const [postCommentsRes, recipeCommentsRes, sessionCommentsRes] = await Promise.all([
+      supabase.from('post_comments').select('*').eq('author_id', user.id),
+      supabase.from('recipe_comments').select('*').eq('author_id', user.id),
+      supabase.from('session_comments').select('*').eq('author_id', user.id),
+    ])
+    
+    // 5. Guardados e Interacciones de contenido (tablas reales: saves, want_to_cook, shopping_lists)
+    const [savesRes, wantToCookRes, shoppingListsRes] = await Promise.all([
+      supabase.from('saves').select('*, recipe:recipes(id, name)').eq('user_id', user.id),
+      supabase.from('want_to_cook').select('*, recipe:recipes(id, name)').eq('user_id', user.id),
+      supabase.from('shopping_lists').select('*').eq('user_id', user.id),
+    ])
+
+    // 6. Me gusta y reacciones reales del usuario
+    const [postLikesRes, recipeLikesRes, sessionLikesRes, commentLikesRes] = await Promise.all([
+      supabase.from('post_likes').select('*').eq('user_id', user.id),
+      supabase.from('recipe_likes').select('*').eq('user_id', user.id),
+      supabase.from('session_likes').select('*').eq('user_id', user.id),
+      supabase.from('post_comment_likes').select('*').eq('user_id', user.id),
+    ])
+
+    // 7. Mensajes Directos (DMs) - Solo enviados por el usuario
+    const { data: sent_messages } = await supabase
+      .from('messages')
+      .select('id, content, created_at, message_attachments(storage_path)')
+      .eq('sender_id', user.id)
 
     const exportData = {
       generated_at: new Date().toISOString(),
@@ -57,15 +75,27 @@ export async function POST() {
         hidden_words: hidden_words
       },
       content: {
-        recipes: recipes,
-        sessions: sessions,
-        posts: posts,
-        comments: comments,
-        stories: stories,
-        bookmarks: bookmarks,
-        shopping_lists: shopping_lists,
-        reactions: reactions,
-        sent_messages: sent_messages
+        recipes: recipesRes.data || [],
+        sessions: sessionsRes.data || [],
+        posts: postsRes.data || [],
+        stories: storiesRes.data || [],
+        comments: {
+          post_comments: postCommentsRes.data || [],
+          recipe_comments: recipeCommentsRes.data || [],
+          session_comments: sessionCommentsRes.data || [],
+        },
+        saved_items: {
+          saves: savesRes.data || [],
+          want_to_cook: wantToCookRes.data || [],
+        },
+        shopping_lists: shoppingListsRes.data || [],
+        reactions: {
+          post_likes: postLikesRes.data || [],
+          recipe_likes: recipeLikesRes.data || [],
+          session_likes: sessionLikesRes.data || [],
+          comment_likes: commentLikesRes.data || [],
+        },
+        sent_messages: sent_messages || []
       }
     }
 

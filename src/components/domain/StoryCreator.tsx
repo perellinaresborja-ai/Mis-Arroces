@@ -1111,36 +1111,42 @@ export function StoryCreator({
             overlay={o}
             isSelected={selectedOverlayId === o.id}
             onSelect={() => setSelectedOverlayId(o.id)}
-            onUpdate={(updated) => setOverlays(overlays.map(x => x.id === o.id ? updated : x))}
-            onDelete={() => { saveHistory(); setOverlays(overlays.filter(x => x.id !== o.id)); }}
+            onUpdate={(updated) => setOverlays(prev => prev.map(x => x.id === o.id ? updated : x))}
+            onDelete={() => { saveHistory(); setOverlays(prev => prev.filter(x => x.id !== o.id)); }}
             onDragStateChange={setIsDraggingOverlay}
             containerRef={containerRef}
             onTap={() => {
               if (isTapStyleSupported(o.type)) {
                 saveHistory();
-                const cur = (o.payload as any).styleVariant || (o.payload as any).displayStyle;
-                const next = getNextStickerStyle(o.type, cur);
-                const updated = {
-                  ...o,
-                  payload: {
-                    ...(o.payload as any),
-                    styleVariant: next,
-                    ...(o.type === 'RECIPE' ? { displayStyle: next } : {})
-                  }
-                };
-                setOverlays(overlays.map(x => x.id === o.id ? updated : x));
+                setOverlays(prev => prev.map(item => {
+                  if (item.id !== o.id) return item;
+                  const cur = (item.payload as any)?.styleVariant || (item.payload as any)?.displayStyle;
+                  const next = getNextStickerStyle(item.type, cur);
+                  return {
+                    ...item,
+                    payload: {
+                      ...(item.payload as any),
+                      styleVariant: next,
+                      ...(item.type === 'RECIPE' ? { displayStyle: next } : {})
+                    }
+                  };
+                }));
               } else if (o.type === 'POST') {
                 saveHistory();
-                const cur = (o.payload as any).displayStyle || 'pill';
-                const next = cur === 'pill' ? 'white' : (cur === 'white' ? 'minimal' : 'pill');
-                const updated = { ...o, payload: { ...(o.payload as any), displayStyle: next } } as any;
-                setOverlays(overlays.map(x => x.id === o.id ? updated : x) as any);
+                setOverlays(prev => prev.map(item => {
+                  if (item.id !== o.id) return item;
+                  const cur = (item.payload as any)?.displayStyle || 'pill';
+                  const next = cur === 'pill' ? 'white' : (cur === 'white' ? 'minimal' : 'pill');
+                  return { ...item, payload: { ...(item.payload as any), displayStyle: next } } as any;
+                }));
               } else if (o.type === 'SESSION') {
                 saveHistory();
-                const currentStyle = (o.payload as any).displayStyle || 'compact';
-                const nextStyle = currentStyle === 'compact' ? 'text' : 'compact';
-                const updated = { ...o, payload: { ...(o.payload as any), displayStyle: nextStyle } } as any;
-                setOverlays(overlays.map(x => x.id === o.id ? updated : x) as any);
+                setOverlays(prev => prev.map(item => {
+                  if (item.id !== o.id) return item;
+                  const currentStyle = (item.payload as any)?.displayStyle || 'compact';
+                  const nextStyle = currentStyle === 'compact' ? 'text' : 'compact';
+                  return { ...item, payload: { ...(item.payload as any), displayStyle: nextStyle } } as any;
+                }));
               }
             }}
           >

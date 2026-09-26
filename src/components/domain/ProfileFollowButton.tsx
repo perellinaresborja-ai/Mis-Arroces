@@ -44,7 +44,10 @@ export function ProfileFollowButton({
       const nextStatus = status ? null : (isPrivate ? 'PENDING' : 'ACCEPTED')
       setStatus(nextStatus)
 
-      await toggleFollow(targetId, isPrivate, previousStatus)
+      const res = await toggleFollow(targetId, isPrivate, previousStatus)
+      if (res && 'status' in res) {
+        setStatus(res.status)
+      }
     } catch (err) {
       console.error("Error al actualizar seguimiento:", err)
       setStatus(status) // Revertir en caso de fallo

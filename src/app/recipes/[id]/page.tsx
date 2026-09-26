@@ -27,7 +27,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   const supabase = await createClient();
   const { data: recipe } = await supabase
     .from("recipes")
-    .select("id, name, description, status, visibility, deleted_at, profiles:recipes_owner_id_fkey(username, display_name), media:recipe_media!recipe_media_recipe_id_fkey(display_order, is_primary, media_assets(storage_path))")
+    .select("id, name, description, status, visibility, deleted_at, profiles:recipes_owner_id_fkey(username, display_name, privacy_level), media:recipe_media!recipe_media_recipe_id_fkey(display_order, is_primary, media_assets(storage_path))")
     .eq("id", resolvedParams.id)
     .single();
   
@@ -35,9 +35,12 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
     return { title: "Receta no encontrada" }
   }
 
-  // If not public, don't generate rich SEO metadata, but don't 404 either so the owner can still see it
-  if (recipe.status !== "PUBLISHED" || recipe.visibility !== "PUBLIC") {
-    return { title: recipe.name || "Receta Privada" }
+  // If not public or author is private, don't generate rich SEO metadata
+  if (recipe.status !== "PUBLISHED" || recipe.visibility !== "PUBLIC" || (recipe.profiles as any)?.privacy_level === "PRIVATE") {
+    return {
+      title: recipe.name || "Receta Privada",
+      robots: { index: false, follow: false }
+    }
   }
 
   const sortedMedia = ((recipe.media as any[]) || [])
@@ -101,7 +104,7 @@ export default async function RecipeDetailPage({
     .from("recipes")
     .select(`
       *,
-      author:profiles!recipes_owner_id_fkey(id, username, display_name),
+      author:profiles!recipes_owner_id_fkey(id, username, display_name, privacy_level),
       style:rice_styles(name),
       variety:rice_varieties(name, ingredient_id, ingredient:ingredients(*)),
       stock_ingredient:ingredients(*),
@@ -128,20 +131,32 @@ export default async function RecipeDetailPage({
 
   if (!recipe) notFound()
 
-  // Check auth for edit button
+  // Check auth for edit button and privacy
   const { data: { user } } = await supabase.auth.getUser()
   const isOwner = user?.id === recipe.owner_id
+  const isAuthorPrivate = (recipe.author as any)?.privacy_level === "PRIVATE"
 
-  if (recipe.deleted_at && !isOwner) {
-    notFound()
-  }
-
-  if (recipe.visibility === 'PRIVATE' && !isOwner) {
-    notFound()
-  }
-
-  if (recipe.status !== 'PUBLISHED' && !isOwner) {
-    notFound()
+  if (!isOwner) {
+    if (recipe.deleted_at || recipe.status !== 'PUBLISHED' || recipe.visibility === 'PRIVATE') {
+      notFound()
+    }
+    if (isAuthorPrivate) {
+      if (!user) notFound()
+      const { data: follow } = await supabase
+        .from("follows")
+        .select("status")
+        .match({ follower_id: user.id, following_id: recipe.owner_id, status: "ACCEPTED" })
+        .maybeSingle()
+      if (follow?.status !== "ACCEPTED") notFound()
+    } else if (recipe.visibility === 'FOLLOWERS') {
+      if (!user) notFound()
+      const { data: follow } = await supabase
+        .from("follows")
+        .select("status")
+        .match({ follower_id: user.id, following_id: recipe.owner_id, status: "ACCEPTED" })
+        .maybeSingle()
+      if (follow?.status !== "ACCEPTED") notFound()
+    }
   }
 
   if (recipe.deleted_at) {

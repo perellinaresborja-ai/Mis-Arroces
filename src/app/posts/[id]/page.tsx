@@ -2,6 +2,7 @@
 import { createClient } from "@/lib/supabase/server"
 import { notFound, redirect } from "next/navigation"
 import Link from "next/link"
+import { BackButton } from "@/components/domain/BackButton"
 import { ShareButton } from "@/components/domain/ShareButton"
 import { ReactionButton } from "@/components/domain/ReactionButton"
 import { CommentSection } from "@/components/domain/CommentSection"
@@ -15,17 +16,35 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   const resolvedParams = await params
   const supabase = await createClient()
 
-  const { data: post } = await supabase
+  let { data: post, error } = await supabase
     .from("social_posts")
     .select(`
       id, content, visibility,
-      author:profiles!social_posts_author_id_fkey(username, display_name, avatar:media_assets!fk_profiles_avatar(storage_path)),
-      post_media(display_order, media:media_assets(storage_path, media_type))
+      author:profiles!social_posts_author_id_fkey(username, display_name, privacy_level, avatar:media_assets!fk_profiles_avatar(storage_path)),
+      post_media(display_order, is_primary, media:media_assets(storage_path, media_type))
     `)
     .eq("id", resolvedParams.id)
     .single()
 
-  if (!post || post.visibility !== "PUBLIC") {
+  if (error && (error.code === "42703" || error.message?.includes("is_primary"))) {
+    const fallbackRes = await supabase
+      .from("social_posts")
+      .select(`
+        id, content, visibility,
+        author:profiles!social_posts_author_id_fkey(username, display_name, privacy_level, avatar:media_assets!fk_profiles_avatar(storage_path)),
+        post_media(display_order, media:media_assets(storage_path, media_type))
+      `)
+      .eq("id", resolvedParams.id)
+      .single()
+    post = fallbackRes.data
+      ? ({
+          ...fallbackRes.data,
+          post_media: (fallbackRes.data.post_media || []).map((m: any) => ({ ...m, is_primary: false }))
+        } as any)
+      : null
+  }
+
+  if (!post || post.visibility !== "PUBLIC" || (post.author as any)?.privacy_level === "PRIVATE") {
     return {
       title: "Publicación no encontrada",
       robots: {
@@ -38,7 +57,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   const authorName = post.author?.display_name || post.author?.username || "un arrocero"
   const title = `Publicación de @${post.author?.username || authorName}`
   const description = post.content ? (post.content.length > 150 ? post.content.slice(0, 147) + "..." : post.content) : `Mira la publicación de @${authorName} en misarroces.`
-  const firstMedia = post.post_media?.sort((a: any, b: any) => a.display_order - b.display_order)?.[0]?.media?.storage_path
+  const firstMedia = post.post_media?.sort((a: any, b: any) => (b.is_primary ? 1 : 0) - (a.is_primary ? 1 : 0) || a.display_order - b.display_order)?.[0]?.media?.storage_path
   const imageUrl = firstMedia
     ? `https://zvesoygqssyyojqyswwm.supabase.co/storage/v1/object/public/recipe_media/${firstMedia}`
     : "https://www.misarroces.es/logopngver.webp"
@@ -83,29 +102,73 @@ export default async function PostDetailPage({ params }: { params: Promise<{ id:
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  const { data: post, error } = await supabase
+  let { data: post, error } = await supabase
     .from("social_posts")
     .select(`
       *,
-      author:profiles!social_posts_author_id_fkey(username, display_name, avatar:media_assets!fk_profiles_avatar(storage_path)),
+      author:profiles!social_posts_author_id_fkey(username, display_name, privacy_level, avatar:media_assets!fk_profiles_avatar(storage_path)),
       recipe:recipes(id, name),
       post_media(
         display_order,
+        is_primary,
         media:media_assets(id, storage_path, media_type)
       )
     `)
     .eq("id", resolvedParams.id)
     .single()
 
+  if (error && (error.code === "42703" || error.message?.includes("is_primary"))) {
+    const fallbackRes = await supabase
+      .from("social_posts")
+      .select(`
+        *,
+        author:profiles!social_posts_author_id_fkey(username, display_name, privacy_level, avatar:media_assets!fk_profiles_avatar(storage_path)),
+        recipe:recipes(id, name),
+        post_media(
+          display_order,
+          media:media_assets(id, storage_path, media_type)
+        )
+      `)
+      .eq("id", resolvedParams.id)
+      .single()
+    post = fallbackRes.data
+      ? ({
+          ...fallbackRes.data,
+          post_media: (fallbackRes.data.post_media || []).map((m: any) => ({ ...m, is_primary: false }))
+        } as any)
+      : null
+  }
+
   if (!post) notFound()
 
   // Validate visibility manually for extra security
   const isOwner = user?.id === post.author_id
-  let canView = isOwner || post.visibility === "PUBLIC"
-  
-  if (!canView && user && post.visibility === "FOLLOWERS") {
-    const { data: follow } = await supabase.from("follows").select("status").match({ follower_id: user.id, following_id: post.author_id, status: "ACCEPTED" }).single()
-    if (follow) canView = true
+  const isAuthorPrivate = (post.author as any)?.privacy_level === "PRIVATE"
+  let canView = isOwner
+
+  if (!isOwner) {
+    if (isAuthorPrivate) {
+      // If author is private, viewer MUST be an accepted follower
+      if (user && post.visibility !== "PRIVATE") {
+        const { data: follow } = await supabase
+          .from("follows")
+          .select("status")
+          .match({ follower_id: user.id, following_id: post.author_id, status: "ACCEPTED" })
+          .maybeSingle()
+        if (follow?.status === "ACCEPTED") canView = true
+      }
+    } else {
+      if (post.visibility === "PUBLIC") {
+        canView = true
+      } else if (post.visibility === "FOLLOWERS" && user) {
+        const { data: follow } = await supabase
+          .from("follows")
+          .select("status")
+          .match({ follower_id: user.id, following_id: post.author_id, status: "ACCEPTED" })
+          .maybeSingle()
+        if (follow?.status === "ACCEPTED") canView = true
+      }
+    }
   }
 
   if (!canView) notFound()
@@ -151,12 +214,20 @@ export default async function PostDetailPage({ params }: { params: Promise<{ id:
     : null
 
   return (
-    <div className="min-h-screen bg-background p-4 md:p-8 pb-24 md:pb-8 max-w-2xl mx-auto space-y-8">
+    <div className="min-h-screen bg-background pb-24 md:pb-8">
+      <header className="sticky top-0 z-40 bg-background/95 backdrop-blur border-b border-border">
+        <div className="flex h-14 items-center px-4 max-w-2xl mx-auto">
+          <BackButton fallbackUrl="/" className="mr-3 p-2 -ml-2 rounded-full hover:bg-muted transition-colors cursor-pointer" iconClassName="w-5 h-5" />
+          <h1 className="font-bold text-lg">Publicación</h1>
+        </div>
+      </header>
+
+      <div className="p-4 md:p-8 max-w-2xl mx-auto space-y-8">
       
-      <article className="bg-card md:rounded-3xl border border-border p-4 sm:p-6 space-y-5 shadow-sm">
+        <article className="bg-card md:rounded-3xl border border-border p-4 sm:p-6 space-y-5 shadow-sm">
         
-        {/* Header */}
-        <header className="flex items-center justify-between gap-3">
+          {/* Header */}
+          <header className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-3 min-w-0">
             {/* Avatars */}
             <div className="relative shrink-0">
@@ -324,7 +395,7 @@ export default async function PostDetailPage({ params }: { params: Promise<{ id:
           allowComments={post.allow_comments} 
         />
       </div>
-
     </div>
-  )
+  </div>
+)
 }

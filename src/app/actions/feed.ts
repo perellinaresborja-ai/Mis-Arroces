@@ -112,8 +112,14 @@ export async function fetchFeedPage(pageIndex: number = 0, existingUser?: any) {
     if (!data) return null;
 
     const authorId = data.author?.id || data.author_id || data.owner_id || data.user_id;
-    if (authorId !== user?.id && excludedUserIds.includes(authorId)) {
-      return null;
+    if (authorId !== user?.id) {
+      if (excludedUserIds.includes(authorId)) {
+        return null;
+      }
+      const authorPrivacy = data.author?.privacy_level || 'PUBLIC';
+      if (authorPrivacy === 'PRIVATE' && followStatusMap[authorId] !== 'ACCEPTED') {
+        return null;
+      }
     }
 
     return { 

@@ -7,7 +7,7 @@ import Link from "next/link";
 import { cn } from "@/lib/utils"
 import { VideoThumbnail } from "./VideoThumbnail"
 
-interface MediaItem {
+export interface MediaItem {
   id: string
   storage_path: string
   media_type?: string // 'IMAGE' or 'VIDEO'
@@ -19,13 +19,15 @@ export function MediaCarousel({
   bucket = "recipe_media", 
   href, 
   priority = false,
-  className 
+  className,
+  imageFit = "cover"
 }: { 
   items: MediaItem[]
   bucket?: string
   href?: string
   priority?: boolean
-  className?: string 
+  className?: string
+  imageFit?: "cover" | "contain"
 }) {
   const [currentIndex, setCurrentIndex] = useState(0)
   const [isMuted, setIsMuted] = useState(true)
@@ -203,7 +205,7 @@ export function MediaCarousel({
       // En contexto abierto (/posts/[id] o detalle sin href):
       // Aquí sí se reproduce el vídeo al abrirlo.
       return (
-        <div className="absolute inset-0 w-full h-full bg-black/10">
+        <div className="absolute inset-0 w-full h-full bg-black/10 flex items-center justify-center">
           <video
             ref={el => {
               videoRefs.current[index] = el
@@ -213,7 +215,7 @@ export function MediaCarousel({
               }
             }}
             src={url}
-            className="w-full h-full object-cover"
+            className={cn("w-full h-full object-cover", imageFit === "contain" && "object-contain")}
             autoPlay={index === currentIndex}
             muted={isMuted}
             preload="auto"
@@ -232,7 +234,7 @@ export function MediaCarousel({
         alt={`Media ${index + 1}`} 
         fill 
         sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" 
-        className="object-cover" 
+        className={cn("object-cover", imageFit === "contain" && "object-contain")} 
         priority={priority && index === 0} 
       />
     )

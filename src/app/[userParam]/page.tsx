@@ -16,6 +16,7 @@ import { ShareButton } from "@/components/domain/ShareButton"
 import { ProfileShareModal } from "@/components/domain/ProfileShareModal"
 import { ProfileAvatar } from "@/components/domain/ProfileAvatar"
 import { ProfileFollowButton } from "@/components/domain/ProfileFollowButton"
+import { ProfileOptionsMenu } from "@/components/domain/ProfileOptionsMenu"
 import { ReportButton } from "@/components/domain/ReportButton"
 import { FounderCardModal } from "@/components/domain/FounderCardModal"
 import { ViewTracker } from "@/components/domain/ViewTracker"
@@ -238,6 +239,16 @@ export default async function PublicProfilePage({
       ? supabase.from("social_posts").select(`*, author:profiles!social_posts_author_id_fkey(id, username, display_name, avatar:media_assets!fk_profiles_avatar(storage_path)), post_media(display_order, media:media_assets(*)), recipe:recipes(id, name)`).eq("author_id", profile.id).in("visibility", visibilityFilter).then(r => r, () => ({ data: [] }))
       : Promise.resolve({ data: [] })
   ])
+
+  const [muteRes, blockRes] = (!isSelf && user)
+    ? await Promise.all([
+        supabase.from("user_mutes").select("id").match({ muter_id: user.id, muted_id: profile.id }).maybeSingle().then(r => r, () => ({ data: null })),
+        supabase.from("blocks").select("id").match({ blocker_id: user.id, blocked_id: profile.id }).maybeSingle().then(r => r, () => ({ data: null }))
+      ])
+    : [{ data: null }, { data: null }]
+
+  const isTargetMuted = !!muteRes?.data
+  const isTargetBlocked = !!blockRes?.data
 
   const founderNumber = typeof (founderRes?.data as any)?.founder_number === "number" ? (founderRes.data as any).founder_number : null
   const publicCode = (identityRes?.data as any)?.public_code || undefined
@@ -486,20 +497,12 @@ export default async function PublicProfilePage({
                 targetId={profile.id} 
                 isPrivate={profile.privacy_level === "PRIVATE"} 
               />
-              <ReportButton
-                targetType="USER"
-                targetId={profile.id}
-                reportedUserId={profile.id}
-                contentSnapshot={{
-                  username: profile.username,
-                  display_name: profile.display_name,
-                  id: profile.id
-                }}
-                title="Reportar perfil"
-                variant="icon"
-                label="Reportar perfil"
+              <ProfileOptionsMenu
+                targetUserId={profile.id}
+                targetUsername={profile.username}
+                initialIsMuted={isTargetMuted}
+                initialIsBlocked={isTargetBlocked}
                 isAuthenticated={!!user}
-                className="h-10 w-10 border border-border bg-card shadow-sm flex items-center justify-center"
               />
             </div>
           )}

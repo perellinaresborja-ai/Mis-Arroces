@@ -9,6 +9,7 @@ import DeleteAccountRow from "./components/DeleteAccountRow"
 import DownloadDataRow from "./components/DownloadDataRow"
 import { MyIdSection } from "./components/MyIdSection"
 import { InstallAppRow } from "./components/InstallAppRow"
+import { fetchUserRealActivity } from "@/app/actions/activity"
 
 export default async function SettingsPage() {
   const supabase = await createClient()
@@ -37,10 +38,10 @@ export default async function SettingsPage() {
   let activities: any[] = []
 
   try {
-    const [identityRes, founderRes, actRes] = await Promise.all([
+    const [identityRes, founderRes, realActivities] = await Promise.all([
       supabase.from("user_identities" as any).select("public_code").eq("user_id", user.id).maybeSingle(),
       supabase.from("founders" as any).select("founder_number").eq("user_id", user.id).maybeSingle(),
-      (supabase.from("user_activity_history" as any).select("id, activity_type, title, description, occurred_at, metadata, status").eq("user_id", user.id).order("occurred_at", { ascending: false }) as any).then((res: any) => res, () => ({ data: [], error: null }))
+      fetchUserRealActivity(user.id, 30)
     ])
 
     if ((identityRes.data as any)?.public_code) {
@@ -55,9 +56,7 @@ export default async function SettingsPage() {
       founderNumber = (founderRes.data as any).founder_number
     }
 
-    if (actRes?.data && !actRes?.error) {
-      activities = actRes.data
-    }
+    activities = realActivities || []
   } catch (err) {
     console.error("Error fetching ID section data:", err)
   }

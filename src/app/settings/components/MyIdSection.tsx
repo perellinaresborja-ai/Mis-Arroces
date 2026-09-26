@@ -18,17 +18,23 @@ import {
   Sparkles,
   UserPlus,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Heart,
+  MessageSquare,
+  Bookmark,
+  ChefHat,
+  FileText
 } from "lucide-react"
 import { InviteFounderModal } from "@/components/domain/InviteFounderModal"
 
 export interface UserActivityItem {
   id: string
-  user_id: string
+  user_id?: string
   activity_type: string
   title: string
   description: string | null
   occurred_at: string
+  url?: string | null
   metadata?: Record<string, any>
   status?: string
 }
@@ -42,6 +48,18 @@ interface MyIdSectionProps {
 
 function getActivityIcon(type: string) {
   switch (type?.toUpperCase()) {
+    case "LIKE":
+      return <Heart className="w-4 h-4 text-rose-500" />
+    case "COMMENT":
+      return <MessageSquare className="w-4 h-4 text-sky-500" />
+    case "SAVE":
+      return <Bookmark className="w-4 h-4 text-amber-500" />
+    case "COOK":
+      return <UtensilsCrossed className="w-4 h-4 text-orange-500" />
+    case "RECIPE":
+      return <ChefHat className="w-4 h-4 text-primary" />
+    case "POST":
+      return <FileText className="w-4 h-4 text-indigo-500" />
     case "EVENT":
       return <Calendar className="w-4 h-4 text-sky-500" />
     case "TASTING":
@@ -181,38 +199,54 @@ export function MyIdSection({
                   Todavía no tienes actividad registrada.
                 </p>
                 <p className="text-xs text-muted-foreground/70 mt-1">
-                  Aquí aparecerán tus eventos, catas, check-ins, concursos, sorteos y reconocimientos oficiales.
+                  Aquí aparecerán tus recetas cocinadas, me gusta, comentarios y recetas guardadas.
                 </p>
               </div>
             ) : (
               <div className="space-y-2.5">
-                {activities.map((act) => (
-                  <div 
-                    key={act.id} 
-                    className="p-3.5 rounded-2xl bg-muted/40 border border-border/60 flex items-start gap-3"
-                  >
-                    <div className="p-2 rounded-xl bg-background border border-border shrink-0 mt-0.5">
-                      {getActivityIcon(act.activity_type)}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center justify-between gap-2">
-                        <h5 className="font-bold text-sm truncate">{act.title}</h5>
-                        <span className="text-[11px] text-muted-foreground shrink-0">
-                          {new Date(act.occurred_at).toLocaleDateString("es-ES", {
-                            day: "numeric",
-                            month: "short",
-                            year: "numeric",
-                          })}
-                        </span>
+                {activities.map((act) => {
+                  const content = (
+                    <>
+                      <div className="p-2 rounded-xl bg-background border border-border shrink-0 mt-0.5">
+                        {getActivityIcon(act.activity_type)}
                       </div>
-                      {act.description && (
-                        <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
-                          {act.description}
-                        </p>
-                      )}
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center justify-between gap-2">
+                          <h5 className="font-bold text-sm truncate group-hover:text-primary transition-colors">{act.title}</h5>
+                          <span className="text-[11px] text-muted-foreground shrink-0">
+                            {new Date(act.occurred_at).toLocaleDateString("es-ES", {
+                              day: "numeric",
+                              month: "short",
+                              year: "numeric",
+                            })}
+                          </span>
+                        </div>
+                        {act.description && (
+                          <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
+                            {act.description}
+                          </p>
+                        )}
+                      </div>
+                    </>
+                  )
+
+                  return act.url ? (
+                    <Link
+                      key={act.id}
+                      href={act.url}
+                      className="p-3.5 rounded-2xl bg-muted/40 hover:bg-muted/70 border border-border/60 flex items-start gap-3 transition-colors group cursor-pointer"
+                    >
+                      {content}
+                    </Link>
+                  ) : (
+                    <div
+                      key={act.id}
+                      className="p-3.5 rounded-2xl bg-muted/40 border border-border/60 flex items-start gap-3"
+                    >
+                      {content}
                     </div>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             )}
           </div>

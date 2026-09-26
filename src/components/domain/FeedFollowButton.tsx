@@ -3,8 +3,9 @@
 import { useState, useRef, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { toggleFollow, blockUser } from "@/app/actions/social"
+import { toggleMuteUser } from "@/app/actions/settings"
 import { useAuthPrompt } from "@/components/providers/AuthPromptProvider"
-import { UserMinus, Ban, Flag } from "lucide-react"
+import { UserMinus, Ban, Flag, MicOff } from "lucide-react"
 import { ConfirmModal } from "@/components/ui/ConfirmModal"
 import { ReportModal } from "./ReportModal"
 
@@ -68,7 +69,10 @@ export function FeedFollowButton({
       const nextStatus = isPrivate && status !== 'PENDING' ? 'PENDING' : 'ACCEPTED'
       setStatus(status === 'PENDING' ? null : nextStatus)
       
-      await toggleFollow(targetId, isPrivate, status)
+      const res = await toggleFollow(targetId, isPrivate, status)
+      if (res && 'status' in res) {
+        setStatus(res.status)
+      }
     } catch (error) {
       console.error(error)
       setStatus(status) // revert
@@ -116,6 +120,20 @@ export function FeedFollowButton({
     }
   }
 
+  const [isMuted, setIsMuted] = useState(false)
+
+  const handleMute = async (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setShowMenu(false)
+    try {
+      const res = await toggleMuteUser(targetId)
+      setIsMuted(res.isMuted)
+    } catch (err) {
+      console.error(err)
+    }
+  }
+
   if (status === 'BLOCKED') return null;
 
   return (
@@ -138,6 +156,13 @@ export function FeedFollowButton({
             className="flex items-center gap-2.5 w-full text-left px-4 py-3 text-sm hover:bg-muted font-medium border-b border-border text-foreground transition-colors"
           >
             <UserMinus className="w-4 h-4" /> Dejar de seguir
+          </button>
+
+          <button 
+            onClick={handleMute} 
+            className="flex items-center gap-2.5 w-full text-left px-4 py-3 text-sm hover:bg-muted font-medium border-b border-border text-foreground transition-colors"
+          >
+            <MicOff className="w-4 h-4 text-muted-foreground" /> {isMuted ? "Dejar de silenciar" : "Silenciar cuenta"}
           </button>
           
           {entityId && entityType && (

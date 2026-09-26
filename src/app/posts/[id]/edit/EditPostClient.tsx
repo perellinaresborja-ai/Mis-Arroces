@@ -1,31 +1,34 @@
 "use client"
 
-import { useState, useRef } from "react"
+import { useState, useRef, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { updatePost } from "@/app/actions/post_options"
+import { uploadMedia } from "@/services/media/client"
 import { AutocompleteMenu } from "@/components/domain/AutocompleteMenu"
 import { useAutocomplete } from "@/hooks/useAutocomplete"
 import { TaggingSelector, TaggedProfile } from "@/components/domain/TaggingSelector"
 import { LocationSelector } from "@/components/domain/LocationSelector"
 import { CollaboratorSelector, CollaboratorProfile } from "@/components/domain/CollaboratorSelector"
 import { RecipeLinkSelector, LinkedRecipeInfo } from "@/components/domain/RecipeLinkSelector"
-import { MediaCarousel } from "@/components/domain/MediaCarousel"
+import { PostMediaManager, PostMediaItem } from "@/components/domain/PostMediaManager"
+import { DiscardDraftModal } from "@/components/domain/DiscardDraftModal"
+import { BackButton } from "@/components/domain/BackButton"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
-import { ShieldCheck, Loader2, Save } from "lucide-react"
+import { Loader2, Save } from "lucide-react"
 
 export function EditPostClient({
   post,
   initialTags = [],
   initialCollaborator = null,
   initialRecipe = null,
-  mediaItems = [],
+  initialMedia = [],
 }: {
   post: any
   initialTags?: TaggedProfile[]
   initialCollaborator?: CollaboratorProfile | null
   initialRecipe?: LinkedRecipeInfo | null
-  mediaItems?: any[]
+  initialMedia?: any[]
 }) {
   const router = useRouter()
   const [content, setContent] = useState(post.content || "")
@@ -33,11 +36,98 @@ export function EditPostClient({
   const [collaborator, setCollaborator] = useState<CollaboratorProfile | null>(initialCollaborator)
   const [taggedUsers, setTaggedUsers] = useState<TaggedProfile[]>(initialTags)
   const [linkedRecipe, setLinkedRecipe] = useState<LinkedRecipeInfo | null>(initialRecipe)
+  const [mediaItems, setMediaItems] = useState<PostMediaItem[]>([])
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
+  const [showDiscardModal, setShowDiscardModal] = useState(false)
+
+  const isSubmittingRef = useRef(false)
+  const isExitingRef = useRef(false)
+  const showDiscardModalRef = useRef(showDiscardModal)
+  showDiscardModalRef.current = showDiscardModal
 
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const autocomplete = useAutocomplete()
+
+  // Has changes detection
+  const hasChanges = () => {
+    if (content.trim() !== (post.content || "").trim()) return true
+    if ((location || null) !== (post.location || null)) return true
+    if ((collaborator?.id || null) !== (initialCollaborator?.id || null)) return true
+    if ((linkedRecipe?.id || null) !== (initialRecipe?.id || null)) return true
+    if (taggedUsers.length !== initialTags.length) return true
+    const currentTagIds = new Set(taggedUsers.map(t => t.id))
+    if (initialTags.some(t => !currentTagIds.has(t.id))) return true
+
+    // Check media changes
+    if (mediaItems.some(m => m.type === 'new')) return true
+    const sortedInit = (initialMedia || []).slice().sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0))
+    if (mediaItems.length !== sortedInit.length) return true
+    for (let i = 0; i < mediaItems.length; i++) {
+      const cur = mediaItems[i]
+      const init = sortedInit[i]
+      const initId = init.media_id || init.media?.id || init.id
+      if (cur.id !== initId) return true
+      if (Boolean(cur.isPrimary) !== Boolean(init.is_primary)) return true
+    }
+
+    return false
+  }
+  const hasChangesRef = useRef(hasChanges)
+  hasChangesRef.current = hasChanges
+
+  useEffect(() => {
+    // Intercept back actions via history pushState
+    window.history.pushState({ isEditPost: true }, '')
+
+    const handlePopState = () => {
+      if (isSubmittingRef.current || isExitingRef.current) return
+
+      if (showDiscardModalRef.current) {
+        setShowDiscardModal(false)
+        window.history.pushState({ isEditPost: true }, '')
+        return
+      }
+
+      if (hasChangesRef.current()) {
+        window.history.pushState({ isEditPost: true }, '')
+        setShowDiscardModal(true)
+      } else {
+        isExitingRef.current = true
+        router.back()
+      }
+    }
+
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasChangesRef.current() && !isSubmittingRef.current && !isExitingRef.current) {
+        e.preventDefault()
+        e.returnValue = ''
+      }
+    }
+
+    window.addEventListener('popstate', handlePopState)
+    window.addEventListener('beforeunload', handleBeforeUnload)
+
+    return () => {
+      window.removeEventListener('popstate', handlePopState)
+      window.removeEventListener('beforeunload', handleBeforeUnload)
+    }
+  }, [router])
+
+  const handleRequestExit = () => {
+    if (hasChanges()) {
+      setShowDiscardModal(true)
+    } else {
+      isExitingRef.current = true
+      router.back()
+    }
+  }
+
+  const handleConfirmDiscard = () => {
+    setShowDiscardModal(false)
+    isExitingRef.current = true
+    router.back()
+  }
 
   const handleContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const val = e.target.value
@@ -58,6 +148,17 @@ export function EditPostClient({
     setErrorMsg(null)
 
     try {
+      // 1. Upload any newly added media items
+      const normalizedMedia = await Promise.all(
+        mediaItems.map(async (m) => {
+          if (m.type === 'new') {
+            const uploadedId = await uploadMedia(m.file, "posts", post.id)
+            return { id: uploadedId, is_primary: Boolean(m.isPrimary) }
+          }
+          return { id: m.id, is_primary: Boolean(m.isPrimary) }
+        })
+      )
+
       const res = await updatePost({
         postId: post.id,
         content: content.trim(),
@@ -65,9 +166,12 @@ export function EditPostClient({
         collaboratorId: collaborator?.id || null,
         recipeId: linkedRecipe?.id || null,
         tags: taggedUsers,
+        mediaItems: normalizedMedia
       })
 
       if (res?.success) {
+        isSubmittingRef.current = true
+        isExitingRef.current = true
         router.push(`/posts/${post.id}`)
         router.refresh()
         return
@@ -83,25 +187,34 @@ export function EditPostClient({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6 bg-card border border-border p-5 sm:p-7 rounded-3xl shadow-sm">
-      {errorMsg && (
-        <div className="p-3.5 bg-destructive/10 text-destructive text-sm rounded-2xl border border-destructive/20 font-medium">
-          {errorMsg}
-        </div>
-      )}
+    <>
+      <div className="flex items-center gap-3 mb-6">
+        <BackButton onClick={handleRequestExit} />
+        <h1 className="text-2xl font-bold">Editar Publicación</h1>
+      </div>
 
-      {/* Media Preservation Banner and Preview */}
-      {mediaItems.length > 0 && (
-        <div className="space-y-3">
-          <div className="flex items-center gap-2 text-xs font-semibold text-green-700 dark:text-green-400 bg-green-500/10 border border-green-500/20 px-3.5 py-2 rounded-2xl">
-            <ShieldCheck className="w-4 h-4 shrink-0" />
-            <span>Los archivos multimedia se conservan intactos.</span>
+      <DiscardDraftModal
+        isOpen={showDiscardModal}
+        onCancel={() => setShowDiscardModal(false)}
+        onConfirm={handleConfirmDiscard}
+      />
+
+      <form onSubmit={handleSubmit} className="space-y-6 bg-card border border-border p-5 sm:p-7 rounded-3xl shadow-sm">
+        {errorMsg && (
+          <div className="p-3.5 bg-destructive/10 text-destructive text-sm rounded-2xl border border-destructive/20 font-medium">
+            {errorMsg}
           </div>
-          <div className="rounded-2xl overflow-hidden border border-border/50 max-h-80">
-            <MediaCarousel items={mediaItems} priority={true} />
-          </div>
+        )}
+
+        {/* Media Manager */}
+        <div className="space-y-2">
+          <Label className="text-sm font-bold">Fotos de la publicación</Label>
+          <PostMediaManager
+            initialMedia={initialMedia}
+            onChange={setMediaItems}
+            maxItems={10}
+          />
         </div>
-      )}
 
       {/* Content Textarea with Autocomplete */}
       <div className="space-y-2">
@@ -181,7 +294,7 @@ export function EditPostClient({
       <div className="flex items-center justify-end gap-3 pt-4 border-t border-border">
         <button
           type="button"
-          onClick={() => router.back()}
+          onClick={handleRequestExit}
           className="px-5 py-3 text-sm font-semibold hover:bg-muted rounded-2xl transition-colors text-muted-foreground hover:text-foreground"
           disabled={isSubmitting}
         >
@@ -206,5 +319,6 @@ export function EditPostClient({
         </Button>
       </div>
     </form>
+    </>
   )
 }

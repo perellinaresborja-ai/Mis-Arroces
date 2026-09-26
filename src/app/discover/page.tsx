@@ -77,12 +77,12 @@ export default async function DiscoverPage(props: { searchParams?: Promise<{ q?:
     if (tab === "todo" || tab === "arroces") {
       const selectFields = `
         *,
-        author:profiles!recipes_owner_id_fkey(id, username, display_name, avatar:media_assets!fk_profiles_avatar(storage_path)),
+        author:profiles!recipes_owner_id_fkey(id, username, display_name, privacy_level, avatar:media_assets!fk_profiles_avatar(storage_path)),
         recipe_media(display_order, is_primary, media:media_assets(id, storage_path)),
         variety:rice_varieties(name),
         style:rice_styles(name)
       `;
-      let req = supabase.from("recipes").select(selectFields).eq("status", "PUBLISHED").order("created_at", { ascending: false }).limit(20)
+      let req = supabase.from("recipes").select(selectFields).eq("status", "PUBLISHED").eq("visibility", "PUBLIC").order("created_at", { ascending: false }).limit(20)
       if (q) req = req.or(`name.ilike.%${q}%`)
       if (variety) req = req.eq("variety_id", variety)
       if (style) req = req.eq("style_id", style)
@@ -98,7 +98,7 @@ export default async function DiscoverPage(props: { searchParams?: Promise<{ q?:
         let req2 = supabase.from("recipes").select(`
           ${selectFields},
           recipe_ingredients!inner(canonical_ingredient_id, display_text)
-        `).eq("status", "PUBLISHED").limit(20);
+        `).eq("status", "PUBLISHED").eq("visibility", "PUBLIC").limit(20);
         
         if (variety) req2 = req2.eq("variety_id", variety)
         if (style) req2 = req2.eq("style_id", style)
@@ -117,6 +117,36 @@ export default async function DiscoverPage(props: { searchParams?: Promise<{ q?:
              }
           });
         }
+      }
+
+      // Filter out private accounts' recipes unless following with ACCEPTED status
+      if (merged.length > 0) {
+        const privateAuthorIds = Array.from(new Set(
+          merged
+            .filter((r: any) => r.author?.id !== user?.id && r.author?.privacy_level === 'PRIVATE')
+            .map((r: any) => r.author?.id)
+            .filter(Boolean)
+        ))
+
+        let acceptedPrivateAuthorIds: string[] = []
+        if (user && privateAuthorIds.length > 0) {
+          const { data: acceptedFollows } = await supabase
+            .from("follows")
+            .select("following_id")
+            .eq("follower_id", user.id)
+            .in("following_id", privateAuthorIds)
+            .eq("status", "ACCEPTED")
+          acceptedPrivateAuthorIds = (acceptedFollows || []).map((f: any) => f.following_id)
+        }
+
+        merged = merged.filter((r: any) => {
+          if (r.author?.id === user?.id) return true
+          if (r.visibility !== 'PUBLIC') return false
+          if (r.author?.privacy_level === 'PRIVATE') {
+            return acceptedPrivateAuthorIds.includes(r.author?.id)
+          }
+          return true
+        })
       }
       
       searchResults.recipes = merged

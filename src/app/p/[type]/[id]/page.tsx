@@ -2,8 +2,7 @@
 import { createClient } from "@/lib/supabase/server"
 import { notFound } from "next/navigation"
 import { FeedCard } from "@/components/domain/FeedCard"
-import { ArrowLeft } from "lucide-react"
-import Link from "next/link"
+import { BackButton } from "@/components/domain/BackButton"
 
 // @ts-nocheck
 export default async function FeedItemPage({ params }: { params: Promise<{ type: string, id: string }> }) {
@@ -18,7 +17,7 @@ export default async function FeedItemPage({ params }: { params: Promise<{ type:
   if (type === 'post') {
     const { data } = await supabase.from("social_posts").select(`
       *, 
-      author:profiles!social_posts_author_id_fkey(id, username, display_name, avatar:media_assets!fk_profiles_avatar(storage_path)), 
+      author:profiles!social_posts_author_id_fkey(id, username, display_name, privacy_level, avatar:media_assets!fk_profiles_avatar(storage_path)), 
       post_media(display_order, media:media_assets(id, storage_path)), 
       recipe:recipes(id, name)
     `).eq("id", id).single()
@@ -47,7 +46,7 @@ export default async function FeedItemPage({ params }: { params: Promise<{ type:
   } else if (type === 'recipe') {
     const { data } = await supabase.from("recipes").select(`
       *, 
-      author:profiles!recipes_owner_id_fkey(id, username, display_name, avatar:media_assets!fk_profiles_avatar(storage_path)), 
+      author:profiles!recipes_owner_id_fkey(id, username, display_name, privacy_level, avatar:media_assets!fk_profiles_avatar(storage_path)), 
       recipe_media(display_order, is_primary, media:media_assets(id, storage_path))
     `).eq("id", id).single()
 
@@ -75,7 +74,7 @@ export default async function FeedItemPage({ params }: { params: Promise<{ type:
   } else if (type === 'session') {
     const { data } = await supabase.from("cooking_sessions").select(`
       *, 
-      author:profiles!cooking_sessions_user_id_fkey(id, username, display_name, avatar:media_assets!fk_profiles_avatar(storage_path)), 
+      author:profiles!cooking_sessions_user_id_fkey(id, username, display_name, privacy_level, avatar:media_assets!fk_profiles_avatar(storage_path)), 
       session_media(display_order, media:media_assets(id, storage_path)), 
       recipe:recipes(id, name)
     `).eq("id", id).single()
@@ -107,21 +106,27 @@ export default async function FeedItemPage({ params }: { params: Promise<{ type:
   if (!feedItem) notFound()
 
   // Protect privacy
-  if (feedItem.visibility === 'PRIVATE' && (!user || user.id !== feedItem.user_id)) {
-    notFound()
-  }
-  if (feedItem.visibility === 'FOLLOWERS' && user && user.id !== feedItem.user_id) {
-    const { data: follows } = await supabase.from("follows").select("status").eq("follower_id", user.id).eq("following_id", feedItem.user_id).eq("status", "ACCEPTED").single()
-    if (!follows) notFound()
+  const isOwner = user?.id === feedItem.user_id
+  const isAuthorPrivate = (feedItem.author as any)?.privacy_level === "PRIVATE"
+
+  if (!isOwner) {
+    if (feedItem.visibility === 'PRIVATE') notFound()
+    if (isAuthorPrivate || feedItem.visibility === 'FOLLOWERS') {
+      if (!user) notFound()
+      const { data: follows } = await supabase
+        .from("follows")
+        .select("status")
+        .match({ follower_id: user.id, following_id: feedItem.user_id, status: "ACCEPTED" })
+        .maybeSingle()
+      if (follows?.status !== "ACCEPTED") notFound()
+    }
   }
 
   return (
     <div className="min-h-screen pb-20 md:pb-8">
       <header className="sticky top-0 z-40 bg-background/95 backdrop-blur border-b border-border">
         <div className="flex h-14 items-center px-4 max-w-2xl mx-auto">
-          <Link href="/" className="mr-4 p-2 -ml-2 rounded-full hover:bg-muted transition-colors">
-            <ArrowLeft className="w-5 h-5" />
-          </Link>
+          <BackButton fallbackUrl="/" className="mr-4 p-2 -ml-2 rounded-full hover:bg-muted transition-colors cursor-pointer" iconClassName="w-5 h-5" />
           <h1 className="font-bold text-lg">Publicación</h1>
         </div>
       </header>

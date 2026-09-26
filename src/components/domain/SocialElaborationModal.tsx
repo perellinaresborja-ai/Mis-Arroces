@@ -3,15 +3,14 @@ import { MediaImage } from "@/components/domain/MediaImage"
 import { useState, useEffect } from "react"
 import { ReactionButton } from "@/components/domain/ReactionButton"
 import { ShareButton } from "@/components/domain/ShareButton"
-import { MessageCircle, X, ChevronLeft, ChevronRight, User } from "lucide-react"
+import { MessageCircle, X, User } from "lucide-react"
 import { PostOptionsMenu } from "./PostOptionsMenu"
 import { CommentSection } from "@/components/domain/CommentSection"
 import { getComments } from "@/app/actions/interactions"
+import { MediaCarousel, MediaItem } from "@/components/domain/MediaCarousel"
 import Link from "next/link"
-import Image from "next/image"
 
 export function SocialElaborationModal({ isOpen, onClose, item, currentUserId }: { isOpen: boolean, onClose: () => void, item: any, currentUserId: string | undefined }) {
-  const [currentIndex, setCurrentIndex] = useState(0)
   const [comments, setComments] = useState<any[]>([])
   const [loadingComments, setLoadingComments] = useState(false)
   const [loadingMore, setLoadingMore] = useState(false)
@@ -65,14 +64,35 @@ export function SocialElaborationModal({ isOpen, onClose, item, currentUserId }:
   const handleCommentAdded = (newComment: any) => setComments(prev => [...prev, newComment])
   const handleCommentDeleted = (commentId: string) => setComments(prev => prev.map(c => c.id === commentId ? { ...c, is_deleted: true, content: "Comentario eliminado" } : c))
 
-  const mediaList = item.recipe_media || item.session_media || item.post_media || []
-  const media = [...mediaList].sort((a: any, b: any) => (b.is_primary ? 1 : 0) - (a.is_primary ? 1 : 0) || (a.display_order || 0) - (b.display_order || 0)).map(m => m.media || m.media_assets).filter(Boolean)
+  const rawList = item.recipe_media || item.session_media || item.post_media || item.media || []
+  const sorted = Array.isArray(rawList)
+    ? [...rawList].sort((a: any, b: any) => (b?.is_primary ? 1 : 0) - (a?.is_primary ? 1 : 0) || (a?.display_order || 0) - (b?.display_order || 0))
+    : []
+  const mediaItems: MediaItem[] = []
+  sorted.forEach((m: any, idx: number) => {
+    const asset = m?.media || m?.media_assets || m
+    if (!asset) return
+    if (typeof asset === 'string') {
+      mediaItems.push({
+        id: `media-${idx}`,
+        storage_path: asset,
+        media_type: asset.match(/\.(mp4|webm|mov)$/i) ? 'VIDEO' : 'IMAGE',
+        thumbnail_path: null
+      })
+      return
+    }
+    if (asset.storage_path) {
+      mediaItems.push({
+        id: String(asset.id || `media-${idx}`),
+        storage_path: asset.storage_path,
+        media_type: asset.media_type || (asset.storage_path.match(/\.(mp4|webm|mov)$/i) ? 'VIDEO' : 'IMAGE'),
+        thumbnail_path: asset.thumbnail_path || null
+      })
+    }
+  })
 
   const NEXT_PUBLIC_SUPABASE_URL = "https://zvesoygqssyyojqyswwm.supabase.co"
   const getImageUrl = (path: string) => `${NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/recipe_media/${path}`
-
-  const next = () => setCurrentIndex(prev => (prev + 1) % media.length)
-  const prev = () => setCurrentIndex(prev => (prev - 1 + media.length) % media.length)
 
   const href = item.entity_type === 'recipe' ? `/recipes/${item.id}` : item.entity_type === 'session' ? `/sessions/${item.id}` : `/posts/${item.id}`
   const actionLabel = item.entity_type === 'recipe' ? "Ver receta completa" : item.entity_type === 'session' ? "Ver cocinado" : "Ver post"
@@ -105,54 +125,13 @@ export function SocialElaborationModal({ isOpen, onClose, item, currentUserId }:
 
         {/* LEFT: MEDIA */}
         <div className="md:w-[55%] lg:w-[60%] bg-black flex items-center justify-center relative shrink-0 h-[40dvh] md:h-full">
-          {media.length > 0 ? (
-            <>
-              {(() => {
-                const currentItem = media[currentIndex]
-                const isVideo = Boolean(currentItem?.media_type === 'VIDEO' || currentItem?.storage_path?.match(/\.(mp4|webm|mov)$/i))
-                const url = getImageUrl(currentItem.storage_path)
-
-                if (isVideo) {
-                  return (
-                    <video
-                      key={currentItem.storage_path}
-                      src={url}
-                      controls
-                      autoPlay
-                      playsInline
-                      className="w-full h-full object-contain"
-                    >
-                      <source src={url} type="video/mp4" />
-                    </video>
-                  )
-                }
-
-                return (
-                  <Image 
-                    src={url} 
-                    alt={`Media ${currentIndex + 1}`} sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                    fill
-                    className="object-contain"
-                    priority
-                  />
-                )
-              })()}
-              {media.length > 1 && (
-                <>
-                  <button onClick={prev} className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/60 text-white rounded-full p-2 transition">
-                    <ChevronLeft className="w-5 h-5" />
-                  </button>
-                  <button onClick={next} className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/60 text-white rounded-full p-2 transition">
-                    <ChevronRight className="w-5 h-5" />
-                  </button>
-                  <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-1.5">
-                    {media.map((_, i) => (
-                      <div key={i} className={`w-1.5 h-1.5 rounded-full transition-colors ${i === currentIndex ? 'bg-white' : 'bg-white/40'}`} />
-                    ))}
-                  </div>
-                </>
-              )}
-            </>
+          {mediaItems.length > 0 ? (
+            <MediaCarousel 
+              items={mediaItems} 
+              priority={true} 
+              className="w-full h-full aspect-auto md:aspect-auto rounded-none bg-black"
+              imageFit="contain"
+            />
           ) : (
              <div className="text-white/50">Sin foto</div>
           )}

@@ -192,4 +192,68 @@ export async function unmuteUser(formData: FormData) {
   return { success: true }
 }
 
+export async function muteUser(targetUserId: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error("No autorizado")
+  if (user.id === targetUserId) throw new Error("No puedes silenciarte a ti mismo")
+
+  const { error } = await supabase.from('user_mutes').insert({
+    muter_id: user.id,
+    muted_id: targetUserId
+  })
+
+  if (error && error.code !== '23505') {
+    throw new Error("Error al silenciar usuario: " + error.message)
+  }
+
+  revalidatePath('/', 'layout')
+  revalidatePath('/settings/interactions/muted')
+  return { success: true, isMuted: true }
+}
+
+export async function toggleMuteUser(targetUserId: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error("No autorizado")
+  if (user.id === targetUserId) throw new Error("No puedes silenciarte a ti mismo")
+
+  const { data: existing } = await supabase
+    .from('user_mutes')
+    .select('id')
+    .eq('muter_id', user.id)
+    .eq('muted_id', targetUserId)
+    .maybeSingle()
+
+  if (existing) {
+    await supabase.from('user_mutes').delete().eq('id', existing.id)
+    revalidatePath('/', 'layout')
+    revalidatePath('/settings/interactions/muted')
+    return { isMuted: false }
+  } else {
+    await supabase.from('user_mutes').insert({
+      muter_id: user.id,
+      muted_id: targetUserId
+    })
+    revalidatePath('/', 'layout')
+    revalidatePath('/settings/interactions/muted')
+    return { isMuted: true }
+  }
+}
+
+export async function unblockUserById(targetUserId: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error("No autorizado")
+
+  await supabase.from('blocks')
+    .delete()
+    .eq('blocker_id', user.id)
+    .eq('blocked_id', targetUserId)
+
+  revalidatePath('/', 'layout')
+  revalidatePath('/settings/privacy/blocked')
+  return { success: true }
+}
+
 

@@ -1337,16 +1337,19 @@ export type Database = {
       post_media: {
         Row: {
           display_order: number
+          is_primary?: boolean
           media_id: string
           post_id: string
         }
         Insert: {
           display_order?: number
+          is_primary?: boolean
           media_id: string
           post_id: string
         }
         Update: {
           display_order?: number
+          is_primary?: boolean
           media_id?: string
           post_id?: string
         }

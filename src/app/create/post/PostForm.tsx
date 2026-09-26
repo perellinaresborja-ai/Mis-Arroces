@@ -3,7 +3,9 @@
 import { useState, useRef, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { MediaUploader, SelectedMedia } from "@/components/domain/MediaUploader"
+import { PostMediaManager, PostMediaItem } from "@/components/domain/PostMediaManager"
+import { DiscardDraftModal } from "@/components/domain/DiscardDraftModal"
+import { BackButton } from "@/components/domain/BackButton"
 import { uploadMedia } from "@/services/media/client"
 import { createPost } from "@/app/actions/social"
 import { searchUsersForMention } from "@/app/actions/social_features"
@@ -48,7 +50,7 @@ export interface LinkedRecipeInfo {
 
 export function PostForm({ recipes }: { recipes: { id: string; name: string }[] }) {
   const router = useRouter()
-  const [selectedMedia, setSelectedMedia] = useState<SelectedMedia[]>([])
+  const [mediaItems, setMediaItems] = useState<PostMediaItem[]>([])
   const [content, setContent] = useState("")
   const [location, setLocation] = useState<string | null>(null)
   const [collaborator, setCollaborator] = useState<CollaboratorProfile | null>(null)
@@ -57,6 +59,79 @@ export function PostForm({ recipes }: { recipes: { id: string; name: string }[] 
   const [visibility, setVisibility] = useState<"PUBLIC" | "FOLLOWERS" | "PRIVATE">("PUBLIC")
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
+  const [showDiscardModal, setShowDiscardModal] = useState(false)
+
+  const isSubmittingRef = useRef(false)
+  const isExitingRef = useRef(false)
+  const showDiscardModalRef = useRef(showDiscardModal)
+  showDiscardModalRef.current = showDiscardModal
+
+  // Has changes detection
+  const hasChanges = () => {
+    return (
+      content.trim().length > 0 ||
+      mediaItems.length > 0 ||
+      location !== null ||
+      collaborator !== null ||
+      taggedUsers.length > 0 ||
+      linkedRecipe !== null
+    )
+  }
+  const hasChangesRef = useRef(hasChanges)
+  hasChangesRef.current = hasChanges
+
+  useEffect(() => {
+    // Intercept back actions via history pushState
+    window.history.pushState({ isPostEditor: true }, '')
+
+    const handlePopState = () => {
+      if (isSubmittingRef.current || isExitingRef.current) return
+
+      if (showDiscardModalRef.current) {
+        setShowDiscardModal(false)
+        window.history.pushState({ isPostEditor: true }, '')
+        return
+      }
+
+      if (hasChangesRef.current()) {
+        window.history.pushState({ isPostEditor: true }, '')
+        setShowDiscardModal(true)
+      } else {
+        isExitingRef.current = true
+        router.back()
+      }
+    }
+
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasChangesRef.current() && !isSubmittingRef.current && !isExitingRef.current) {
+        e.preventDefault()
+        e.returnValue = ''
+      }
+    }
+
+    window.addEventListener('popstate', handlePopState)
+    window.addEventListener('beforeunload', handleBeforeUnload)
+
+    return () => {
+      window.removeEventListener('popstate', handlePopState)
+      window.removeEventListener('beforeunload', handleBeforeUnload)
+    }
+  }, [router])
+
+  const handleRequestExit = () => {
+    if (hasChanges()) {
+      setShowDiscardModal(true)
+    } else {
+      isExitingRef.current = true
+      router.back()
+    }
+  }
+
+  const handleConfirmDiscard = () => {
+    setShowDiscardModal(false)
+    isExitingRef.current = true
+    router.back()
+  }
 
   // Bottom Sheet state
   const [activeSheet, setActiveSheet] = useState<'location' | 'tagging' | 'collaborator' | 'recipe' | 'privacy' | null>(null)
@@ -181,15 +256,23 @@ export function PostForm({ recipes }: { recipes: { id: string; name: string }[] 
         formData.append("tagged_users", JSON.stringify(taggedUsers))
       }
 
-      if (selectedMedia.length > 0) {
-        const uploadedIds = await Promise.all(
-          selectedMedia.map((m) => uploadMedia(m.file, "posts", postId))
+      if (mediaItems.length > 0) {
+        const uploaded = await Promise.all(
+          mediaItems.map(async (m) => {
+            if (m.type === 'new') {
+              const mediaId = await uploadMedia(m.file, "posts", postId)
+              return { id: mediaId, is_primary: Boolean(m.isPrimary) }
+            }
+            return { id: m.id, is_primary: Boolean(m.isPrimary) }
+          })
         )
-        formData.append("media_ids", JSON.stringify(uploadedIds))
+        formData.append("media_ids", JSON.stringify(uploaded))
       }
 
       const res = await createPost(formData)
       if (res?.success) {
+        isSubmittingRef.current = true
+        isExitingRef.current = true
         router.push("/")
         router.refresh()
         return
@@ -209,6 +292,17 @@ export function PostForm({ recipes }: { recipes: { id: string; name: string }[] 
 
   return (
     <>
+      <div className="flex items-center gap-3 mb-6">
+        <BackButton onClick={handleRequestExit} />
+        <h1 className="text-xl font-bold text-foreground">Crear publicación</h1>
+      </div>
+
+      <DiscardDraftModal
+        isOpen={showDiscardModal}
+        onCancel={() => setShowDiscardModal(false)}
+        onConfirm={handleConfirmDiscard}
+      />
+
       <form onSubmit={handleSubmit} className="space-y-4">
         {errorMsg && (
           <div className="p-3.5 bg-destructive/10 text-destructive text-sm rounded-2xl border border-destructive/20 font-medium">
@@ -218,12 +312,9 @@ export function PostForm({ recipes }: { recipes: { id: string; name: string }[] 
 
         {/* 1. MEDIA */}
         <div className="w-full">
-          <MediaUploader
-            context="posts"
+          <PostMediaManager
+            onChange={setMediaItems}
             maxItems={10}
-            emptyLabel="Añadir fotos o vídeos"
-            emptySubLabel="Hasta 10"
-            onMediaChange={setSelectedMedia}
           />
         </div>
 

@@ -27,8 +27,12 @@ export async function updateSession(request: NextRequest) {
     }
   )
 
-  // Refresh session if expired
-  await supabase.auth.getUser()
+  try {
+    // Refresh session if expired (network errors during cold start must not crash the whole page)
+    await supabase.auth.getUser()
+  } catch (error) {
+    console.warn('[Middleware] Supabase auth refresh non-fatal error:', error)
+  }
 
   return supabaseResponse
 }

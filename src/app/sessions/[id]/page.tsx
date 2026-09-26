@@ -22,14 +22,14 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
     .from("cooking_sessions")
     .select(`
       id, notes, visibility, date, rating, socarrat_level,
-      author:profiles!cooking_sessions_user_id_fkey(username, display_name, avatar:media_assets!fk_profiles_avatar(storage_path)),
+      author:profiles!cooking_sessions_user_id_fkey(username, display_name, privacy_level, avatar:media_assets!fk_profiles_avatar(storage_path)),
       recipe:recipes(id, name),
       session_media(display_order, media:media_assets(storage_path))
     `)
     .eq("id", resolvedParams.id)
     .single()
 
-  if (!session || session.visibility !== "PUBLIC") {
+  if (!session || session.visibility !== "PUBLIC" || (session.author as any)?.privacy_level === "PRIVATE") {
     return {
       title: "Elaboración no encontrada",
       robots: {
@@ -95,7 +95,7 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
     .from("cooking_sessions")
     .select(`
       *,
-      author:profiles!cooking_sessions_user_id_fkey(id, username, display_name, avatar:media_assets!fk_profiles_avatar(storage_path)),
+      author:profiles!cooking_sessions_user_id_fkey(id, username, display_name, privacy_level, avatar:media_assets!fk_profiles_avatar(storage_path)),
       recipe:recipes(id, name, owner_id),
       session_media(display_order, media:media_assets(id, storage_path))
     `)
@@ -104,12 +104,21 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
 
   if (!session) notFound()
 
-  // Verify visibility
-  if (session.visibility === 'PRIVATE' && session.user_id !== user?.id) notFound()
-  if (session.visibility === 'FOLLOWERS' && session.user_id !== user?.id) {
-    if (!user) notFound()
-    const { data: follows } = await supabase.from("follows").select("status").eq("follower_id", user.id).eq("following_id", session.user_id).single()
-    if (follows?.status !== 'ACCEPTED') notFound()
+  // Verify visibility and privacy
+  const isOwner = session.user_id === user?.id
+  const isAuthorPrivate = (session.author as any)?.privacy_level === "PRIVATE"
+
+  if (!isOwner) {
+    if (session.visibility === 'PRIVATE') notFound()
+    if (isAuthorPrivate || session.visibility === 'FOLLOWERS') {
+      if (!user) notFound()
+      const { data: follows } = await supabase
+        .from("follows")
+        .select("status")
+        .match({ follower_id: user.id, following_id: session.user_id, status: "ACCEPTED" })
+        .maybeSingle()
+      if (follows?.status !== 'ACCEPTED') notFound()
+    }
   }
 
   // Fetch likes & comments

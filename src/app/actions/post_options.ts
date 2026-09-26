@@ -117,6 +117,7 @@ export interface UpdatePostParams {
   collaboratorId?: string | null
   recipeId?: string | null
   tags?: any[]
+  mediaItems?: { id: string, is_primary?: boolean }[]
 }
 
 export async function updatePost({
@@ -125,7 +126,8 @@ export async function updatePost({
   location,
   collaboratorId,
   recipeId,
-  tags = []
+  tags = [],
+  mediaItems
 }: UpdatePostParams) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -177,6 +179,41 @@ export async function updatePost({
     updateErr = retry.error
   }
   if (updateErr) throw updateErr
+
+  // 2b. Update post_media if mediaItems was provided
+  if (mediaItems && Array.isArray(mediaItems)) {
+    await supabase.from("post_media").delete().eq("post_id", postId)
+    if (mediaItems.length > 0) {
+      const normalized = mediaItems.map((m: any, idx: number) => ({
+        id: typeof m === 'string' ? m : m?.id,
+        isPrimary: typeof m === 'object' && m?.is_primary !== undefined ? Boolean(m.is_primary) : idx === 0
+      })).filter(m => m.id)
+
+      if (normalized.length > 0) {
+        const primaryCount = normalized.filter(m => m.isPrimary).length
+        if (primaryCount !== 1) {
+          normalized.forEach((m, idx) => { m.isPrimary = idx === 0 })
+        }
+
+        const inserts = normalized.map((m, idx) => ({
+          post_id: postId,
+          media_id: m.id,
+          display_order: idx,
+          is_primary: m.isPrimary
+        }))
+
+        const { error: insertErr } = await (supabase.from("post_media" as any) as any).insert(inserts)
+        if (insertErr) {
+          if (insertErr.message?.includes("is_primary") || insertErr.message?.includes("column")) {
+            const fallback = inserts.map(({ post_id, media_id, display_order }) => ({ post_id, media_id, display_order }))
+            await (supabase.from("post_media" as any) as any).insert(fallback)
+          } else {
+            console.error("Error updating post_media", insertErr)
+          }
+        }
+      }
+    }
+  }
 
   // 3. Update tags and mentions
   try {

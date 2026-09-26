@@ -207,17 +207,28 @@ export async function fetchActiveStories(existingUser?: any) {
 
   if (!data || data.length === 0) return []
 
-  // Fetch the current user's views in one query to avoid filtering client-side
+  // Fetch the current user's views and mutes in parallel to avoid filtering client-side
   const storyIds = data.map(s => s.id)
   let userSeenSet = new Set<string>()
-  if (user && storyIds.length > 0) {
-    const { data: myViews } = await supabase.from('story_views').select('story_id').eq('viewer_id', user.id).in('story_id', storyIds)
-    if (myViews) {
-      myViews.forEach(v => userSeenSet.add(v.story_id))
+  let mutedOwnerIds = new Set<string>()
+
+  if (user) {
+    const [viewsRes, mutesRes] = await Promise.all([
+      storyIds.length > 0
+        ? supabase.from('story_views').select('story_id').eq('viewer_id', user.id).in('story_id', storyIds)
+        : Promise.resolve({ data: [] }),
+      supabase.from('user_mutes').select('muted_id').eq('muter_id', user.id)
+    ])
+
+    if (viewsRes.data) {
+      viewsRes.data.forEach(v => userSeenSet.add(v.story_id))
+    }
+    if (mutesRes.data) {
+      mutesRes.data.forEach((m: any) => mutedOwnerIds.add(m.muted_id))
     }
   }
 
-    // Generate signed URLs for story media using SERVICE_ROLE
+  // Generate signed URLs for story media using SERVICE_ROLE
   // This is completely isolated from the browser and only signs paths that were already authorized by the RLS of 'stories'
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (serviceKey) {
@@ -255,6 +266,11 @@ export async function fetchActiveStories(existingUser?: any) {
   // Group by owner
   const userMap = new Map()
   data.forEach((story: {id: string, owner_id: string, created_at: string, author: any, view_count?: any[]}) => {
+    // Exclude stories from muted accounts (unless owner is self)
+    if (user && story.owner_id !== user.id && mutedOwnerIds.has(story.owner_id)) {
+      return
+    }
+
     if (!userMap.has(story.owner_id)) {
       userMap.set(story.owner_id, {
         author: story.author,
@@ -311,6 +327,16 @@ export async function fetchUserActiveStories(targetUserId: string) {
 
   // 1. Fetch active stories for this specific user
   // Supabase RLS automatically applies visibility, privacy and blocks
+  if (user && user.id !== targetUserId) {
+    const { data: mute } = await supabase
+      .from('user_mutes')
+      .select('id')
+      .eq('muter_id', user.id)
+      .eq('muted_id', targetUserId)
+      .maybeSingle()
+    if (mute) return null
+  }
+
   const { data, error } = await supabase
     .from("stories")
     .select(`

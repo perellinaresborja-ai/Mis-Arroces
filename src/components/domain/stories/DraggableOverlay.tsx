@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 import React, { useRef, useEffect, useState } from 'react';
 import { useGesture } from '@use-gesture/react';
 import { StoryOverlay } from '@/types/stories';
@@ -27,24 +27,58 @@ export function DraggableOverlay({
   children 
 }: DraggableOverlayProps) {
   
-  const elementRef = useRef<HTMLDivElement>(null);
   const [local, setLocal] = useState({ x: overlay.x, y: overlay.y, scale: overlay.scale, rotation: overlay.rotation });
+
+  const latestOverlayRef = useRef(overlay);
+  latestOverlayRef.current = overlay;
+
+  const onTapRef = useRef(onTap);
+  onTapRef.current = onTap;
+
+  // Track start of interaction for tap vs drag
+  const pointerStartRef = useRef<{ x: number; y: number; time: number } | null>(null);
+  const hasMovedBeyondThresholdRef = useRef(false);
+  const isPinchingRef = useRef(false);
+  const lastTapTimestampRef = useRef(0);
 
   // Sync from props if updated externally
   useEffect(() => {
     setLocal({ x: overlay.x, y: overlay.y, scale: overlay.scale, rotation: overlay.rotation });
   }, [overlay.x, overlay.y, overlay.scale, overlay.rotation]);
 
+  const triggerTap = () => {
+    const now = Date.now();
+    // Debounce to prevent duplicate tap triggers within 200ms
+    if (now - lastTapTimestampRef.current < 200) return;
+    lastTapTimestampRef.current = now;
+    if (onTapRef.current) {
+      onTapRef.current();
+    }
+  };
+
+  const DRAG_THRESHOLD_PX = 8;
+
   const bind = useGesture({
-    onDragStart: ({ event }) => {
-      // event.stopPropagation();
+    onDragStart: () => {
       onSelect();
-      onDragStateChange?.(true);
     },
     onDrag: ({ movement: [mx, my], event, memo }) => {
       event?.stopPropagation(); // Prevent background from dragging
       if (!containerRef.current) return memo;
       
+      const dist = Math.hypot(mx, my);
+      if (dist > DRAG_THRESHOLD_PX) {
+        if (!hasMovedBeyondThresholdRef.current) {
+          hasMovedBeyondThresholdRef.current = true;
+          onDragStateChange?.(true);
+        }
+      }
+      
+      // If we haven't exceeded the drag threshold yet, don't move the sticker visually
+      if (!hasMovedBeyondThresholdRef.current) {
+        return memo;
+      }
+
       if (!memo) {
         memo = { startX: local.x, startY: local.y };
       }
@@ -56,27 +90,38 @@ export function DraggableOverlay({
       setLocal(prev => ({ ...prev, x: nextX, y: nextY }));
       return memo;
     },
-    onDragEnd: ({ event, tap, xy: [clientX, clientY] }) => {
+    onDragEnd: ({ tap, xy: [clientX, clientY] }) => {
       onDragStateChange?.(false);
-      
-      if (tap) {
-        if (onTap) onTap();
-      } else {
-        // Hit test for trash zone
-        const droppedOn = document.elementFromPoint(clientX, clientY);
-        if (droppedOn?.closest('#story-trash')) {
-          onDelete();
-          return;
-        }
+
+      const elapsed = pointerStartRef.current ? Date.now() - pointerStartRef.current.time : 9999;
+      const isShortTap = !isPinchingRef.current && !hasMovedBeyondThresholdRef.current && elapsed < 400;
+
+      if (tap || isShortTap) {
+        // Revert any sub-threshold movement back to exact overlay position
+        setLocal(prev => ({
+          ...prev,
+          x: latestOverlayRef.current.x,
+          y: latestOverlayRef.current.y
+        }));
+        triggerTap();
+        return; // CRITICAL: Stop here! Do not call onUpdate or test trash on tap
+      }
+
+      // Hit test for trash zone
+      const droppedOn = document.elementFromPoint(clientX, clientY);
+      if (droppedOn?.closest('#story-trash')) {
+        onDelete();
+        return;
       }
       
-      // Flush to parent
+      // Flush to parent using latest overlay
       setLocal(current => {
-        onUpdate({ ...overlay, x: current.x, y: current.y });
+        onUpdate({ ...latestOverlayRef.current, x: current.x, y: current.y });
         return current;
       });
     },
-    onPinchStart: ({ event }) => {
+    onPinchStart: () => {
+      isPinchingRef.current = true;
       onSelect();
     },
     onPinch: ({ offset: [d, a], event }) => {
@@ -86,12 +131,19 @@ export function DraggableOverlay({
     onPinchEnd: () => {
       // Flush to parent
       setLocal(current => {
-        onUpdate({ ...overlay, scale: current.scale, rotation: current.rotation });
+        onUpdate({ ...latestOverlayRef.current, scale: current.scale, rotation: current.rotation });
         return current;
       });
+      setTimeout(() => {
+        isPinchingRef.current = false;
+      }, 50);
     }
   }, {
-    drag: { pointer: { capture: false } },
+    drag: { 
+      filterTaps: true,
+      tapsThreshold: DRAG_THRESHOLD_PX,
+      pointer: { capture: false } 
+    },
     pinch: { 
       scaleBounds: { min: 0.2, max: 10 },
       from: () => [local.scale, local.rotation]
@@ -100,15 +152,26 @@ export function DraggableOverlay({
 
   const bindProps = bind() as React.DOMAttributes<HTMLDivElement>;
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    pointerStartRef.current = { x: e.clientX, y: e.clientY, time: Date.now() };
+    hasMovedBeyondThresholdRef.current = false;
     if (bindProps.onPointerDown) bindProps.onPointerDown(e);
     e.stopPropagation();
     onSelect();
+  };
+
+  const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    e.stopPropagation();
+    if (bindProps.onClick) bindProps.onClick(e);
+    if (!hasMovedBeyondThresholdRef.current && !isPinchingRef.current) {
+      triggerTap();
+    }
   };
 
   return (
     <div
       {...bindProps}
       onPointerDown={handlePointerDown}
+      onClick={handleClick}
       style={{
         position: 'absolute',
         left: `${local.x * 100}%`,
@@ -125,4 +188,3 @@ export function DraggableOverlay({
     </div>
   );
 }
-

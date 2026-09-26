@@ -32,7 +32,13 @@ export function PwaProvider({ children }: { children: ReactNode }) {
       navigator.serviceWorker
         .register("/sw.js")
         .then((reg) => {
-          reg.update().catch(() => {})
+          if (document.readyState === "complete") {
+            reg.update().catch(() => {})
+          } else {
+            window.addEventListener("load", () => {
+              reg.update().catch(() => {})
+            }, { once: true })
+          }
         })
         .catch((err) => {
           console.warn("[PWA] Error al registrar service worker:", err)
