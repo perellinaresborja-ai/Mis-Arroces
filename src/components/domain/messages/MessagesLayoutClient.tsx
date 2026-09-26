@@ -2,8 +2,9 @@
 import { useState, useEffect, useTransition, useRef } from "react"
 import { useRouter, usePathname } from "next/navigation"
 import Link from "next/link"
-import { MoreHorizontal, Pin, PinOff, Trash2 } from "lucide-react"
+import { MoreHorizontal, Pin, PinOff, Trash2, Plus, Search, Users } from "lucide-react"
 import { togglePinConversation, archiveConversation } from "@/app/actions/messaging"
+import { NewMessageModal } from "./NewMessageModal"
 
 export function MessagesLayoutClient({ convs, children }: { convs: Record<string, any>[], children: React.ReactNode }) {
   const router = useRouter()
@@ -11,6 +12,7 @@ export function MessagesLayoutClient({ convs, children }: { convs: Record<string
   const isRoot = pathname === '/messages'
   const [localConvs, setLocalConvs] = useState(convs)
   const [menuOpenId, setMenuOpenId] = useState<string | null>(null)
+  const [isNewMessageOpen, setIsNewMessageOpen] = useState(false)
   const [isPending, startTransition] = useTransition()
   const menuRef = useRef<HTMLDivElement>(null)
 
@@ -96,12 +98,46 @@ export function MessagesLayoutClient({ convs, children }: { convs: Record<string
     <div className="fixed inset-0 h-[100dvh] md:h-auto md:top-[64px] flex w-full max-w-2xl mx-auto md:border-x border-border/50 overflow-hidden bg-background z-40 overscroll-none select-none">
       {/* LEFT SIDEBAR (Inbox) */}
       <div className={`${isRoot ? 'flex' : 'hidden'} flex-col w-full shrink-0 h-full`}>
-        <div className="p-4 border-b border-border sticky top-0 bg-background/95 z-10">
+        <div className="p-4 border-b border-border sticky top-0 bg-background/95 z-10 flex items-center justify-between">
           <h1 className="text-2xl font-bold">Mensajes</h1>
+          <button
+            type="button"
+            onClick={() => setIsNewMessageOpen(true)}
+            className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-primary text-primary-foreground hover:bg-primary/90 transition-colors shadow-sm cursor-pointer"
+            title="Nuevo mensaje"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Nuevo mensaje</span>
+          </button>
         </div>
         
         <div className="flex-1 overflow-y-auto p-4 space-y-4 pb-24 md:pb-4 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-          {localConvs.length === 0 && <p className="text-muted-foreground text-center py-12 text-sm">No tienes mensajes todavía.</p>}
+          {localConvs.length === 0 && (
+            <div className="flex flex-col items-center justify-center py-12 px-4 text-center bg-card border border-border rounded-3xl mt-2 shadow-sm">
+              <div className="w-14 h-14 bg-primary/10 text-primary rounded-full flex items-center justify-center mb-4">
+                <Users className="w-7 h-7" />
+              </div>
+              <h3 className="font-bold text-base mb-1">No tienes mensajes todavía</h3>
+              <p className="text-xs text-muted-foreground max-w-xs mb-5">
+                Conecta con otros apasionados del arroz e intercambia recetas, trucos y experiencias.
+              </p>
+              <div className="flex flex-col sm:flex-row items-center gap-2.5 w-full max-w-xs">
+                <button
+                  type="button"
+                  onClick={() => setIsNewMessageOpen(true)}
+                  className="w-full inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-primary text-primary-foreground text-sm font-bold rounded-full shadow-sm hover:bg-primary/90 transition-colors cursor-pointer"
+                >
+                  <Plus className="w-4 h-4" /> Nuevo mensaje
+                </button>
+                <Link 
+                  href="/discover?tab=personas"
+                  className="w-full inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-muted text-foreground text-sm font-semibold rounded-full border border-border hover:bg-muted/80 transition-colors"
+                >
+                  <Search className="w-4 h-4 text-muted-foreground" /> Buscar arroceros
+                </Link>
+              </div>
+            </div>
+          )}
           
           {localConvs.map((c) => {
             const isActive = pathname === `/messages/${c.conversation_id}`;
@@ -178,6 +214,11 @@ export function MessagesLayoutClient({ convs, children }: { convs: Record<string
       <div className={`${!isRoot ? 'flex' : 'hidden'} flex-col flex-1 min-h-0 h-full relative`}>
         {children}
       </div>
+
+      <NewMessageModal 
+        isOpen={isNewMessageOpen} 
+        onClose={() => setIsNewMessageOpen(false)} 
+      />
     </div>
   )
 }

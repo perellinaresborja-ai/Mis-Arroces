@@ -319,6 +319,48 @@ export async function archiveConversation(conversationId: string) {
   return { success: !error, error: error?.message }
 }
 
+export async function searchUsersForNewChat(query?: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
 
+  const cleanQ = query?.trim().replace(/^@+/, '')
 
+  if (cleanQ && cleanQ.length > 0) {
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("id, username, display_name, avatar:media_assets!fk_profiles_avatar(storage_path)")
+      .neq("id", user.id)
+      .or(`username.ilike.%${cleanQ}%,display_name.ilike.%${cleanQ}%`)
+      .limit(15)
 
+    if (error) {
+      console.error("searchUsersForNewChat error:", error)
+      return []
+    }
+    return data || []
+  }
+
+  // Si no hay query, mostrar primero a los usuarios seguidos
+  const { data: follows } = await supabase
+    .from("follows")
+    .select("following:profiles!follows_following_id_fkey(id, username, display_name, avatar:media_assets!fk_profiles_avatar(storage_path))")
+    .eq("follower_id", user.id)
+    .eq("status", "ACCEPTED")
+    .limit(15)
+
+  if (follows && follows.length > 0) {
+    const list = follows.map((f: any) => f.following).filter(Boolean)
+    if (list.length > 0) return list
+  }
+
+  // Fallback a perfiles públicos si no sigue a nadie
+  const { data: popular } = await supabase
+    .from("profiles")
+    .select("id, username, display_name, avatar:media_assets!fk_profiles_avatar(storage_path)")
+    .neq("id", user.id)
+    .eq("privacy_level", "PUBLIC")
+    .limit(10)
+
+  return popular || []
+}

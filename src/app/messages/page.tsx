@@ -1,6 +1,7 @@
 import { getOrCreateConversation } from "@/app/actions/messaging"
 import { redirect } from "next/navigation"
-import { MessageCircle } from "lucide-react"
+import { MessageCircle, Search } from "lucide-react"
+import Link from "next/link"
 
 export default async function MessagesPage({ searchParams }: { searchParams: Promise<{ [key: string]: string | string[] | undefined }> | { [key: string]: string | string[] | undefined } }) {
   const sp = await Promise.resolve(searchParams);
@@ -33,9 +34,15 @@ export default async function MessagesPage({ searchParams }: { searchParams: Pro
         <MessageCircle className="w-10 h-10 text-primary" />
       </div>
       <h2 className="text-2xl font-bold mb-2">Tus Mensajes</h2>
-      <p className="text-muted-foreground max-w-sm">
-        Selecciona una conversación a la izquierda o inicia un nuevo chat desde el perfil de otro usuario.
+      <p className="text-muted-foreground max-w-sm mb-6">
+        Selecciona una conversación a la izquierda o busca a otros arroceros para empezar a hablar.
       </p>
+      <Link 
+        href="/discover?tab=personas"
+        className="inline-flex items-center justify-center gap-2 px-6 py-2.5 bg-primary text-primary-foreground text-sm font-bold rounded-full shadow-sm hover:bg-primary/90 transition-colors"
+      >
+        <Search className="w-4 h-4" /> Buscar arroceros
+      </Link>
     </div>
   )
 }
