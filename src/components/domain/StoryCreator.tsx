@@ -13,6 +13,7 @@ import { MentionPicker, RecipePicker, IngredientPicker, LocationPicker, StickerP
 import { Camera, User, ChefHat, MapPin, AlignLeft, AlignCenter, AlignRight, Apple, Image as ImageIcon, Trash2, Paintbrush, Sparkles, Link as LinkIcon, HelpCircle, BarChart2, Music, Volume2, Video, X, Undo2, Globe, Users, AtSign, Smile, Hash, Timer, Play, Pause } from 'lucide-react';
 import { StoryMusicSelector } from './StoryMusicSelector';
 import { useModalHistory } from '@/hooks/useModalHistory';
+import { isTapStyleSupported, getNextStickerStyle } from '@/lib/story-sticker-styles';
 
 const TEXT_COLORS = ['#ffffff', '#000000', '#ef4444', '#f97316', '#eab308', '#22c55e', '#3b82f6', '#a855f7', '#ec4899'];
 const TEXT_FONTS = ['sans-serif', 'serif', 'monospace', 'Impact'];
@@ -999,13 +1000,26 @@ export function StoryCreator({
             onDragStateChange={setIsDraggingOverlay}
             containerRef={containerRef}
             onTap={() => {
-              if (o.type === 'POST') {
+              if (isTapStyleSupported(o.type)) {
+                saveHistory();
+                const cur = (o.payload as any).styleVariant || (o.payload as any).displayStyle;
+                const next = getNextStickerStyle(o.type, cur);
+                const updated = {
+                  ...o,
+                  payload: {
+                    ...(o.payload as any),
+                    styleVariant: next,
+                    ...(o.type === 'RECIPE' ? { displayStyle: next } : {})
+                  }
+                };
+                setOverlays(overlays.map(x => x.id === o.id ? updated : x));
+              } else if (o.type === 'POST') {
                 saveHistory();
                 const cur = (o.payload as any).displayStyle || 'pill';
                 const next = cur === 'pill' ? 'white' : (cur === 'white' ? 'minimal' : 'pill');
                 const updated = { ...o, payload: { ...(o.payload as any), displayStyle: next } } as any;
                 setOverlays(overlays.map(x => x.id === o.id ? updated : x) as any);
-              } else if (['RECIPE', 'SESSION'].includes(o.type)) {
+              } else if (o.type === 'SESSION') {
                 saveHistory();
                 const currentStyle = (o.payload as any).displayStyle || 'compact';
                 const nextStyle = currentStyle === 'compact' ? 'text' : 'compact';

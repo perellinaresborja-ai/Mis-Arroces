@@ -51,6 +51,7 @@ export interface MentionOverlay extends BaseOverlay {
   payload: {
     userId: string;
     username: string;
+    styleVariant?: string;
   };
 }
 
@@ -59,6 +60,7 @@ export interface LocationOverlay extends BaseOverlay {
   payload: {
     name: string;
     placeId?: string;
+    styleVariant?: string;
   };
 }
 
@@ -68,7 +70,8 @@ export interface RecipeOverlay extends BaseOverlay {
     recipeId: string;
     title: string;
     coverUrl?: string;
-    displayStyle?: 'small' | 'card' | 'compact' | 'text';
+    displayStyle?: 'small' | 'card' | 'compact' | 'text' | string;
+    styleVariant?: string;
   };
 }
 
@@ -101,6 +104,7 @@ export interface ProfileOverlay extends BaseOverlay {
     userId: string;
     username: string;
     avatarUrl?: string;
+    styleVariant?: string;
   };
 }
 
@@ -109,6 +113,7 @@ export interface IngredientOverlay extends BaseOverlay {
   payload: {
     ingredientId: string;
     name: string;
+    styleVariant?: string;
   };
 }
 
@@ -151,6 +156,7 @@ export interface LinkOverlay extends BaseOverlay {
   payload: {
     url: string;
     title?: string;
+    styleVariant?: string;
   };
 }
 
@@ -166,6 +172,7 @@ export interface HashtagOverlay extends BaseOverlay {
   type: 'HASHTAG';
   payload: {
     tag: string;
+    styleVariant?: string;
   };
 }
 

@@ -41,3 +41,9 @@ yarn-error.log*
 next-env.d.ts
 mode_test.html
 
+# android keys and binaries
+*.keystore
+*.jks
+*.idsig
+*.aab
+

@@ -3,42 +3,37 @@
   "host": "www.misarroces.es",
   "name": "misarroces",
   "launcherName": "misarroces",
+  "display": "standalone",
   "themeColor": "#F7F5F0",
   "themeColorDark": "#18181B",
   "navigationColor": "#F7F5F0",
   "navigationColorDark": "#18181B",
-  "navigationDividerColor": "#00000000",
-  "navigationDividerColorDark": "#00000000",
+  "navigationDividerColor": "#000000",
+  "navigationDividerColorDark": "#000000",
   "backgroundColor": "#F7F5F0",
   "enableNotifications": true,
   "startUrl": "/",
   "iconUrl": "https://www.misarroces.es/icons/icon-512x512.png",
   "maskableIconUrl": "https://www.misarroces.es/icons/icon-maskable-512x512.png",
-  "appVersionName": "1.0.0",
-  "appVersionCode": 1,
+  "splashScreenFadeOutDuration": 300,
   "signingKey": {
     "path": "./misarroces-release-key.keystore",
     "alias": "misarroces"
   },
-  "splashScreenFadeOutDuration": 300,
-  "enableSiteSettingsShortcut": true,
-  "isChromeOSOnly": false,
-  "fullScopeUrl": "https://www.misarroces.es/",
-  "minSdkVersion": 21,
-  "targetSdkVersion": 36,
-  "orientation": "portrait",
+  "appVersionName": "1.0.0",
+  "appVersionCode": 2,
   "shortcuts": [
     {
       "name": "Recetario",
       "shortName": "Recetas",
       "url": "https://www.misarroces.es/cookbook",
-      "icon": "https://www.misarroces.es/icons/icon-192x192.png"
+      "chosenIconUrl": "https://www.misarroces.es/icons/icon-192x192.png"
     },
     {
       "name": "Descubrir",
       "shortName": "Descubrir",
       "url": "https://www.misarroces.es/discover",
-      "icon": "https://www.misarroces.es/icons/icon-192x192.png"
+      "chosenIconUrl": "https://www.misarroces.es/icons/icon-192x192.png"
     }
   ],
   "generatorApp": "bubblewrap-cli",
@@ -54,5 +49,16 @@
   },
   "alphaDependencies": {
     "enabled": false
-  }
+  },
+  "enableSiteSettingsShortcut": true,
+  "isChromeOSOnly": false,
+  "isMetaQuest": false,
+  "fullScopeUrl": "https://www.misarroces.es/",
+  "minSdkVersion": 21,
+  "orientation": "portrait",
+  "fingerprints": [],
+  "additionalTrustedOrigins": [],
+  "retainedBundles": [],
+  "displayOverride": [],
+  "appVersion": "1.0.0"
 }

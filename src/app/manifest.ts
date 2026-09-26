@@ -14,37 +14,37 @@ export default function manifest(): MetadataRoute.Manifest {
     theme_color: '#F7F5F0',
     icons: [
       {
-        src: '/icons/icon-192x192.webp?v=6',
+        src: '/icons/icon-192x192.webp?v=8',
         sizes: '192x192',
         type: 'image/webp',
         purpose: 'any',
       },
       {
-        src: '/icons/icon-512x512.webp?v=6',
+        src: '/icons/icon-512x512.webp?v=8',
         sizes: '512x512',
         type: 'image/webp',
         purpose: 'any',
       },
       {
-        src: '/icons/icon-maskable-512x512.webp?v=6',
+        src: '/icons/icon-maskable-512x512.webp?v=8',
         sizes: '512x512',
         type: 'image/webp',
         purpose: 'maskable',
       },
       {
-        src: '/icons/icon-192x192.png?v=6',
+        src: '/icons/icon-192x192.png?v=8',
         sizes: '192x192',
         type: 'image/png',
         purpose: 'any',
       },
       {
-        src: '/icons/icon-512x512.png?v=6',
+        src: '/icons/icon-512x512.png?v=8',
         sizes: '512x512',
         type: 'image/png',
         purpose: 'any',
       },
       {
-        src: '/icons/icon-maskable-512x512.png?v=6',
+        src: '/icons/icon-maskable-512x512.png?v=8',
         sizes: '512x512',
         type: 'image/png',
         purpose: 'maskable',

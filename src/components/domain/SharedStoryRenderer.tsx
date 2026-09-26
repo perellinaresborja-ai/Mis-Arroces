@@ -7,6 +7,7 @@ import { MapPin, Utensils, ChefHat } from "lucide-react"
 import { votePoll, getPollResults, submitQuestionReply, upsertSliderValue, getSliderResults } from "@/app/actions/stories"
 import { cleanIngredientName } from "./stories/StickerPickers"
 import { isInternalUrl, getInternalPath } from "@/lib/utils"
+import { resolveStickerStyle } from "@/lib/story-sticker-styles"
 
 interface PollResultData {
   countA?: number;
@@ -531,67 +532,72 @@ export function renderOverlayContent(overlay: StoryOverlay, mode: string, ctx?: 
     case 'MENTION': {
       const p = overlay.payload;
       const cleanUsername = (p.username || '').replace(/^@+/, '');
+      const theme = resolveStickerStyle('MENTION', p.styleVariant);
       return (
         <div 
-          className="bg-primary text-primary-foreground px-4 py-2 rounded-2xl font-bold shadow-2xl flex items-center gap-1.5 border border-primary-foreground/20 cursor-pointer text-sm"
+          className={`${theme.wrapperClass} px-4 py-2 rounded-2xl font-bold flex items-center gap-1.5 cursor-pointer text-sm select-none`}
           onClick={(e) => { e.stopPropagation(); if (mode === 'VIEWER') navigate('/' + cleanUsername); }}
         >
-          <span>@</span>
+          <span className={theme.iconClass}>@</span>
           <span>{cleanUsername}</span>
         </div>
       );
     }
     case 'LOCATION': {
       const p = overlay.payload;
+      const theme = resolveStickerStyle('LOCATION', p.styleVariant);
       return (
         <div 
-          className="bg-card text-foreground px-4 py-2 rounded-2xl font-bold flex items-center gap-2 shadow-2xl border border-border cursor-pointer text-sm"
+          className={`${theme.wrapperClass} px-4 py-2 rounded-2xl font-bold flex items-center gap-2 cursor-pointer text-sm select-none`}
         >
-          <MapPin className="w-4 h-4 text-primary shrink-0"/> 
+          <MapPin className={`w-4 h-4 shrink-0 ${theme.iconClass}`}/> 
           <span className="truncate max-w-[200px]">{p.name}</span>
         </div>
       );
     }
     case 'RECIPE': {
       const p = overlay.payload;
-      const style = p.displayStyle || 'compact';
+      const rawStyle = p.styleVariant || p.displayStyle || 'compact';
 
       const handleClick = (e: React.MouseEvent) => { 
         if (mode === 'VIEWER') { e.stopPropagation(); navigate('/recipes/' + p.recipeId); } 
       };
 
-      if (style === 'compact') {
+      if (rawStyle === 'text') {
         return (
-          <div onClick={handleClick} className="bg-card border border-border text-foreground px-4 py-2 rounded-2xl font-bold flex items-center gap-2 shadow-2xl cursor-pointer text-sm pointer-events-auto transition-transform hover:scale-105">
-            <ChefHat className="w-4 h-4 text-primary shrink-0" />
-            <span className="truncate max-w-[150px]">{p.title || 'Receta'}</span>
-            <span className="text-primary text-xs ml-1 border-l pl-2 border-border font-semibold">Ver</span>
-          </div>
-        );
-      }
-
-      if (style === 'text') {
-        return (
-          <div onClick={handleClick} className="text-white drop-shadow-md px-3 py-1.5 flex flex-col items-center cursor-pointer pointer-events-auto hover:opacity-80 transition-opacity">
+          <div onClick={handleClick} className="text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.85)] px-3 py-1.5 flex flex-col items-center cursor-pointer pointer-events-auto hover:opacity-80 transition-opacity select-none">
             <span className="font-bold text-lg">{p.title || 'Receta'}</span>
             <span className="text-xs bg-black/50 border border-white/20 px-3 py-1 rounded-full mt-1 font-medium">Ver receta →</span>
           </div>
         );
       }
 
-      return (
-        <div onClick={handleClick} className="bg-card rounded-2xl overflow-hidden shadow-2xl border border-border flex flex-col w-48 cursor-pointer pointer-events-auto transition-transform hover:scale-105">
-          <div className="p-3.5 flex flex-col gap-1 text-center bg-card">
-            <span className="font-bold text-foreground text-sm truncate">{p.title || 'Receta'}</span>
-            <span className="text-xs font-semibold text-primary">Ver receta</span>
+      if (rawStyle === 'card') {
+        return (
+          <div onClick={handleClick} className="bg-card rounded-2xl overflow-hidden shadow-2xl border border-border flex flex-col w-48 cursor-pointer pointer-events-auto transition-transform hover:scale-105 select-none">
+            <div className="p-3.5 flex flex-col gap-1 text-center bg-card">
+              <span className="font-bold text-foreground text-sm truncate">{p.title || 'Receta'}</span>
+              <span className="text-xs font-semibold text-primary">Ver receta</span>
+            </div>
           </div>
+        );
+      }
+
+      const theme = resolveStickerStyle('RECIPE', rawStyle);
+      const isOrange = theme.variant === 'orange';
+      return (
+        <div onClick={handleClick} className={`${theme.wrapperClass} px-4 py-2 rounded-2xl font-bold flex items-center gap-2 cursor-pointer text-sm pointer-events-auto transition-transform hover:scale-105 select-none`}>
+          <ChefHat className={`w-4 h-4 shrink-0 ${theme.iconClass}`} />
+          <span className="truncate max-w-[150px]">{p.title || 'Receta'}</span>
+          <span className={`text-xs ml-1 border-l pl-2 ${isOrange ? 'border-primary-foreground/30 text-primary-foreground' : 'border-current/20 text-primary'} font-semibold`}>Ver</span>
         </div>
       );
     }
     case 'INGREDIENT': {
       const p = overlay.payload;
+      const theme = resolveStickerStyle('INGREDIENT', p.styleVariant);
       return (
-        <div className="bg-card text-foreground px-4 py-2 rounded-2xl font-bold shadow-2xl text-sm border border-border flex items-center gap-2 cursor-pointer">
+        <div className={`${theme.wrapperClass} px-4 py-2 rounded-2xl font-bold text-sm flex items-center gap-2 cursor-pointer select-none`}>
           <span className="text-base">🥘</span>
           <span>{cleanIngredientName(p.name)}</span>
         </div>
@@ -600,12 +606,13 @@ export function renderOverlayContent(overlay: StoryOverlay, mode: string, ctx?: 
     case 'PROFILE': {
       const p = overlay.payload;
       const cleanUsername = (p.username || '').replace(/^@+/, '');
+      const theme = resolveStickerStyle('PROFILE', p.styleVariant);
       return (
         <div 
-          className="bg-card text-foreground px-4 py-2 rounded-2xl font-bold flex items-center gap-2 shadow-2xl border border-border cursor-pointer text-sm" 
+          className={`${theme.wrapperClass} px-4 py-2 rounded-2xl font-bold flex items-center gap-2 cursor-pointer text-sm select-none`} 
           onClick={(e) => { e.stopPropagation(); if (mode === 'VIEWER') navigate('/' + cleanUsername); }}
         >
-          <span className="text-primary">👤</span>
+          <span className={theme.iconClass}>👤</span>
           <span>@{cleanUsername}</span>
         </div>
       );
@@ -806,19 +813,43 @@ export function renderOverlayContent(overlay: StoryOverlay, mode: string, ctx?: 
         }
       };
 
+      const theme = resolveStickerStyle('LINK', p.styleVariant);
+
+      if (theme.isTextOnly) {
+        return (
+          <div 
+            onClick={handleClick}
+            className="bg-transparent text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.85)] px-3 py-1.5 font-bold text-sm flex items-center gap-1.5 cursor-pointer pointer-events-auto transition-transform hover:scale-105 select-none underline underline-offset-4 decoration-primary"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-primary shrink-0">
+              <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+              <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+            </svg>
+            <span className="truncate max-w-[190px]">{displayText}</span>
+          </div>
+        );
+      }
+
+      const isOrange = theme.variant === 'orange';
+      const isBlack = theme.variant === 'black';
+      const isWhite = theme.variant === 'white';
+      const isGlass = theme.variant === 'glass';
+      const badgeBg = isOrange ? 'bg-white/20 text-white' : isBlack ? 'bg-white/10 text-white' : isWhite ? 'bg-zinc-100 text-zinc-900' : isGlass ? 'bg-white/15 text-white' : 'bg-primary/10 text-primary';
+      const iconExternal = isOrange ? 'text-primary-foreground/70' : isBlack ? 'text-zinc-400' : isWhite ? 'text-zinc-400' : 'text-muted-foreground';
+
       return (
         <div 
           onClick={handleClick} 
-          className="bg-card/95 backdrop-blur-md border border-border text-foreground px-4 py-2.5 rounded-2xl font-bold flex items-center gap-2 shadow-2xl cursor-pointer text-sm pointer-events-auto transition-transform hover:scale-105"
+          className={`${theme.wrapperClass} px-4 py-2.5 rounded-2xl font-bold flex items-center gap-2 cursor-pointer text-sm pointer-events-auto transition-transform hover:scale-105 select-none`}
         >
-          <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-primary shrink-0">
+          <div className={`w-6 h-6 rounded-full ${badgeBg} flex items-center justify-center shrink-0`}>
             <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
               <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
             </svg>
           </div>
-          <span className="truncate max-w-[170px] text-foreground">{displayText}</span>
-          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-muted-foreground shrink-0">
+          <span className="truncate max-w-[170px]">{displayText}</span>
+          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`${iconExternal} shrink-0`}>
             <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
             <polyline points="15 3 21 3 21 9"/>
             <line x1="10" y1="14" x2="21" y2="3"/>
@@ -954,9 +985,10 @@ export function renderOverlayContent(overlay: StoryOverlay, mode: string, ctx?: 
       const p = overlay.payload;
       const rawTag = p.tag || '';
       const cleanTag = rawTag.replace(/^#+/, '').trim();
+      const theme = resolveStickerStyle('HASHTAG', p.styleVariant);
       return (
         <div 
-          className="bg-card text-foreground px-4 py-2 rounded-2xl font-bold flex items-center gap-1.5 shadow-2xl border border-border cursor-pointer text-sm select-none pointer-events-auto"
+          className={`${theme.wrapperClass} px-4 py-2 rounded-2xl font-bold flex items-center gap-1.5 cursor-pointer text-sm select-none pointer-events-auto`}
           onClick={(e) => {
             e.stopPropagation();
             if (mode === 'VIEWER' && cleanTag) {
@@ -964,7 +996,7 @@ export function renderOverlayContent(overlay: StoryOverlay, mode: string, ctx?: 
             }
           }}
         >
-          <span className="text-primary font-black text-base">#</span>
+          <span className={`${theme.iconClass} font-black text-base`}>#</span>
           <span>{cleanTag}</span>
         </div>
       );
