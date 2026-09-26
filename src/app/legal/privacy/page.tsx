@@ -19,7 +19,7 @@ export default function PrivacyPage() {
           <li><strong>Identidad:</strong> Celler Naziha S.L.</li>
           <li><strong>NIF:</strong> B54936604</li>
           <li><strong>Domicilio Postal:</strong> Calle Benimantell, 10, 03530 La Nucía, Alicante, España.</li>
-          <li><strong>Contacto Privacidad:</strong> <a href="mailto:info@misarroces.es" className="text-primary hover:underline">info@misarroces.es</a></li>
+          <li><strong>Contacto Privacidad:</strong> <a href="mailto:info@misarroces.es" className="text-primary hover:underline">info@misarroces.es</a> | Instagram: <a href="https://www.instagram.com/misarroces.es" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">@misarroces.es</a></li>
         </ul>
 
         <h2 className="text-2xl font-bold text-foreground mt-8 mb-4">2. ¿Qué datos tratamos, para qué y con qué base jurídica?</h2>

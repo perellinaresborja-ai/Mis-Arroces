@@ -12,6 +12,7 @@ import {
   VolumeX,
 } from "lucide-react"
 import { toggleMusicTrackActive } from "@/app/actions/admin"
+import { fixMojibake } from "@/lib/utils"
 
 export interface MusicTrackItem {
   id: string
@@ -149,14 +150,14 @@ export function MusicTracksManager({ initialTracks }: { initialTracks: MusicTrac
                         </button>
                       </td>
                       <td className="p-4 font-bold text-foreground max-w-[200px] truncate">
-                        {t.title}
+                        {fixMojibake(t.title)}
                       </td>
                       <td className="p-4 text-xs text-muted-foreground font-semibold">
-                        {t.artist}
+                        {fixMojibake(t.artist)}
                       </td>
                       <td className="p-4 text-xs">
                         <span className="px-2 py-0.5 rounded-full bg-muted border border-border text-[11px] font-semibold">
-                          {t.category || "General"}
+                          {fixMojibake(t.category) || "General"}
                         </span>
                       </td>
                       <td className="p-4 text-xs font-mono text-muted-foreground">

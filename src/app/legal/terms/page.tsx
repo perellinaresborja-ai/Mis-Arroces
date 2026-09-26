@@ -83,7 +83,7 @@ export default function TermsPage() {
           Estos Términos se rigen por la legislación española. Para la resolución de conflictos, si actúas como consumidor, podrás acudir a los tribunales de tu domicilio. 
         </p>
         <p className="mb-4">
-          Para dudas, problemas o cuestiones legales, contáctanos en: <a href="mailto:info@misarroces.es" className="text-primary hover:underline">info@misarroces.es</a>
+          Para dudas, problemas o cuestiones legales, contáctanos en: <a href="mailto:info@misarroces.es" className="text-primary hover:underline">info@misarroces.es</a> o por Instagram en <a href="https://www.instagram.com/misarroces.es" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">@misarroces.es</a>
         </p>
 
         <p className="text-sm mt-12 pt-8 border-t border-border">

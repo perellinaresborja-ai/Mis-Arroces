@@ -17,6 +17,80 @@ import { isTapStyleSupported, getNextStickerStyle } from '@/lib/story-sticker-st
 const TEXT_COLORS = ['#ffffff', '#000000', '#ef4444', '#f97316', '#eab308', '#22c55e', '#3b82f6', '#a855f7', '#ec4899'];
 const TEXT_FONTS = ['sans-serif', 'serif', 'monospace', 'Impact'];
 
+function getSmartInitialPosition(
+  type: string,
+  existing: StoryOverlay[],
+  hasCenterUploadBtn: boolean
+): { x: number; y: number } {
+  const isLargeCard = ['POLL', 'QUESTION', 'SLIDER', 'COUNTDOWN', 'RECIPE', 'SESSION', 'POST'].includes(type)
+  const isText = type === 'TEXT'
+
+  let candidateSlots: number[]
+  if (hasCenterUploadBtn) {
+    if (isText) {
+      candidateSlots = [0.26, 0.36, 0.72, 0.20, 0.80]
+    } else if (isLargeCard) {
+      candidateSlots = [0.72, 0.78, 0.26, 0.36]
+    } else {
+      candidateSlots = [0.36, 0.70, 0.24, 0.78]
+    }
+  } else {
+    if (isText) {
+      candidateSlots = [0.26, 0.38, 0.50, 0.70]
+    } else if (isLargeCard) {
+      candidateSlots = [0.70, 0.78, 0.50, 0.32]
+    } else {
+      candidateSlots = [0.50, 0.36, 0.66, 0.26, 0.76]
+    }
+  }
+
+  for (const slotY of candidateSlots) {
+    if (hasCenterUploadBtn && Math.abs(slotY - 0.5) < 0.14) {
+      continue
+    }
+
+    const collides = existing.some(o => {
+      const otherIsLarge = ['POLL', 'QUESTION', 'SLIDER', 'COUNTDOWN', 'RECIPE', 'SESSION', 'POST'].includes(o.type)
+      const minDistance = (isLargeCard || otherIsLarge) ? 0.15 : 0.10
+      return Math.abs(o.y - slotY) < minDistance
+    })
+
+    if (!collides) {
+      return { x: 0.5, y: slotY }
+    }
+  }
+
+  const lastY = existing.length > 0 ? existing[existing.length - 1].y : 0.5
+  let nextY = lastY + 0.14
+  if (nextY > 0.80) nextY = 0.24
+  if (hasCenterUploadBtn && Math.abs(nextY - 0.5) < 0.14) {
+    nextY = 0.72
+  }
+  return { x: 0.5, y: Number(nextY.toFixed(2)) }
+}
+
+function declusterOverlaysIfNeeded(items: StoryOverlay[], hasCenterUploadBtn: boolean): StoryOverlay[] {
+  if (!items || items.length <= 1) return items
+  let changed = false
+  const result: StoryOverlay[] = []
+
+  for (let i = 0; i < items.length; i++) {
+    const item = items[i]
+    const exactCollision = result.some(r => Math.abs(r.x - item.x) < 0.02 && Math.abs(r.y - item.y) < 0.06)
+    const centerBtnCollision = hasCenterUploadBtn && Math.abs(item.x - 0.5) < 0.05 && Math.abs(item.y - 0.5) < 0.12
+
+    if (exactCollision || centerBtnCollision) {
+      changed = true
+      const smartPos = getSmartInitialPosition(item.type, result, hasCenterUploadBtn)
+      result.push({ ...item, x: smartPos.x, y: smartPos.y })
+    } else {
+      result.push(item)
+    }
+  }
+
+  return changed ? result : items
+}
+
 export function StoryCreator({ 
   initialMedia, 
   initialRecipe,
@@ -269,11 +343,13 @@ export function StoryCreator({
         pendingPhotoStickersRef.current.set(overlayId, fileToUpload);
 
         saveHistory();
+        const hasCenterBtn = !draftMediaUrl && !initialRecipe && !initialSession && !initialPost && !overlays.some(o => ['POST', 'RECIPE', 'SESSION'].includes(o.type));
+        const pos = getSmartInitialPosition('IMAGE', overlays, hasCenterBtn);
         const newOverlay: StoryOverlay = {
           id: overlayId,
           type: 'IMAGE',
-          x: 0.5,
-          y: 0.5,
+          x: pos.x,
+          y: pos.y,
           scale: 1,
           rotation: 0,
           zIndex: overlays.length + 10,
@@ -621,6 +697,18 @@ export function StoryCreator({
       }
     }, [initialRecipe, initialSession, initialPost]);
 
+  // Ensure restored drafts or multiple elements don't collide with each other or center button
+  useEffect(() => {
+    if (overlays.length > 1) {
+      const hasCenterBtn = !draftMediaUrl && !initialRecipe && !initialSession && !initialPost && !overlays.some(o => ['POST', 'RECIPE', 'SESSION'].includes(o.type));
+      const declustered = declusterOverlaysIfNeeded(overlays, hasCenterBtn);
+      const isDifferent = declustered.some((item, idx) => item.x !== overlays[idx]?.x || item.y !== overlays[idx]?.y);
+      if (isDifferent) {
+        setOverlays(declustered);
+      }
+    }
+  }, [draftMediaUrl, initialRecipe, initialSession, initialPost]);
+
   const saveHistory = () => setHistory([...history, [...overlays]]);
 
   const handlePointerDown = (e: React.PointerEvent) => {
@@ -658,8 +746,10 @@ export function StoryCreator({
   const addText = () => {
     if (!textVal.trim()) { setMode('EDIT'); return; }
     saveHistory();
+    const hasCenterBtn = !draftMediaUrl && !initialRecipe && !initialSession && !initialPost && !overlays.some(o => ['POST', 'RECIPE', 'SESSION'].includes(o.type));
+    const pos = getSmartInitialPosition('TEXT', overlays, hasCenterBtn);
     setOverlays([...overlays, {
-      id: 'text_'+Date.now(), type: 'TEXT', x: 0.5, y: 0.5, scale: 1, rotation: 0, zIndex: overlays.length + 10,
+      id: 'text_'+Date.now(), type: 'TEXT', x: pos.x, y: pos.y, scale: 1, rotation: 0, zIndex: overlays.length + 10,
       payload: { text: textVal, color: textColor, backgroundColor: textBg, fontFamily: textFont, align: textAlign }
     }]);
     setTextVal(''); setMode('EDIT');
@@ -667,9 +757,11 @@ export function StoryCreator({
 
   const handleStickerSelect = (type: string, data: any) => {
     saveHistory();
+    const hasCenterBtn = !draftMediaUrl && !initialRecipe && !initialSession && !initialPost && !overlays.some(o => ['POST', 'RECIPE', 'SESSION'].includes(o.type));
+    const pos = getSmartInitialPosition(type, overlays, hasCenterBtn);
     
     let newOverlay: StoryOverlay | null = null;
-    const common = { id: type.toLowerCase() + '_' + Date.now(), x: 0.5, y: 0.5, scale: 1, rotation: 0, zIndex: overlays.length + 10 };
+    const common = { id: type.toLowerCase() + '_' + Date.now(), x: pos.x, y: pos.y, scale: 1, rotation: 0, zIndex: overlays.length + 10 };
     
     if (type === 'MENTION') {
       newOverlay = { ...common, type: 'MENTION', payload: { username: data.title, userId: data.id } };

@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { Music, Play, Pause, Search, X, Volume2, ArrowLeft, Video, Check, Trash2 } from 'lucide-react'
 import { getMusicCatalog } from '@/app/actions/stories'
+import { fixMojibake } from '@/lib/utils'
 
 export interface MusicTrack {
   id: string
@@ -177,8 +178,9 @@ export function StoryMusicSelector({
   const categories = useMemo(() => {
     const set = new Set<string>()
     tracks.forEach(t => {
-      if (t.category && t.category.trim()) {
-        set.add(t.category.trim())
+      const cleanCat = fixMojibake(t.category)?.trim()
+      if (cleanCat) {
+        set.add(cleanCat)
       }
     })
     return ['Todos', ...Array.from(set)]
@@ -188,8 +190,11 @@ export function StoryMusicSelector({
   const filteredTracks = useMemo(() => {
     const q = search.trim().toLowerCase()
     return tracks.filter(t => {
-      const matchSearch = !q || t.title.toLowerCase().includes(q) || t.artist.toLowerCase().includes(q)
-      const matchCategory = selectedCategory === 'Todos' || t.category?.trim().toLowerCase() === selectedCategory.toLowerCase()
+      const title = fixMojibake(t.title).toLowerCase()
+      const artist = fixMojibake(t.artist).toLowerCase()
+      const category = fixMojibake(t.category).trim().toLowerCase()
+      const matchSearch = !q || title.includes(q) || artist.includes(q)
+      const matchCategory = selectedCategory === 'Todos' || category === selectedCategory.toLowerCase()
       return matchSearch && matchCategory
     })
   }, [tracks, search, selectedCategory])
@@ -739,10 +744,10 @@ export function StoryMusicSelector({
                       {/* Title & Artist */}
                       <div className="flex-1 min-w-0 px-3 flex flex-col">
                         <span className={`text-xs font-bold truncate ${previewTrackId === track.id ? 'text-primary' : 'text-foreground'}`}>
-                          {track.title}
+                          {fixMojibake(track.title)}
                         </span>
                         <span className="text-[11px] text-muted-foreground truncate">
-                          {track.artist}
+                          {fixMojibake(track.artist)}
                         </span>
                       </div>
 

@@ -3,6 +3,7 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { Upload, X, Check, AlertCircle, Music, RefreshCw } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { fixMojibake } from '@/lib/utils'
 
 interface ImportRow {
   file: File;
@@ -66,9 +67,9 @@ export function MusicBulkImporter() {
       title = title.replace(/\.mp3$/i, '').replace(/\.m4a$/i, '').replace(/\(\d+\)/g, '').trim()
     }
 
-    // Title case
-    title = title.replace(/\b\w/g, l => l.toUpperCase())
-    artist = artist.replace(/\b\w/g, l => l.toUpperCase())
+    // Title case and clean encoding
+    title = fixMojibake(title.replace(/\b\w/g, l => l.toUpperCase()))
+    artist = fixMojibake(artist.replace(/\b\w/g, l => l.toUpperCase()))
 
     return { title, artist }
   }

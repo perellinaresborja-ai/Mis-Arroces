@@ -14,7 +14,6 @@ import { markStoryViewed, fetchStoryViewers, deleteStory, toggleStoryReaction } 
 import Link from "next/link"
 import { SharedStoryRenderer } from "./SharedStoryRenderer"
 import { getOrCreateConversation, sendMessage } from "@/app/actions/messaging"
-import { EntityInsightsModal } from "./EntityInsightsModal"
 import { SaveRecipeButton } from "./SaveRecipeButton"
 import { ConfirmModal } from "@/components/ui/ConfirmModal"
 import { trackClickAction } from "@/app/actions/tracking"
@@ -849,12 +848,7 @@ export function StoriesViewer({ groupedStories: _groupedStories, initialGroupInd
 
       </div>
 
-      <EntityInsightsModal 
-        isOpen={insightsOpen} 
-        onClose={() => { setInsightsOpen(false); setIsPaused(false); }} 
-        entityType="STORY" 
-        entityId={currentStory.id} 
-      />
+
       {floatingEmojis.map(e => (
         <div key={e.id} className="absolute bottom-20 left-1/2 text-4xl animate-float-up pointer-events-none drop-shadow-xl z-50 flex items-center justify-center w-12 h-12" style={{ marginLeft: `${e.x}px` }}>
           {e.emoji}

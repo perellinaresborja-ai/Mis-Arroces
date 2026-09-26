@@ -7,6 +7,7 @@ import Link from "next/link"
 import { trackClickAction } from "@/app/actions/tracking"
 import { sendGAEvent } from "@/lib/analytics/ga4"
 import { Home, Smartphone, Info, BookOpen, Share2, Copy, Check, X, Download } from "lucide-react"
+import { InstagramIcon } from "@/components/icons/InstagramIcon"
 import { useUserSession } from "@/components/providers/UserSessionProvider"
 import { Button } from "@/components/ui/button"
 
@@ -148,6 +149,19 @@ export default function LinksPage() {
             <Share2 className="w-4 h-4" />
             <span>Compárteselo</span>
           </button>
+        </div>
+
+        {/* Instagram Oficial */}
+        <div className="text-center pt-2">
+          <a
+            href="https://www.instagram.com/misarroces.es"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors py-2 px-4 rounded-full bg-card border border-border/60 hover:border-primary/40 shadow-xs"
+          >
+            <InstagramIcon className="w-4 h-4 text-pink-600 dark:text-pink-400" />
+            <span>@misarroces.es en Instagram</span>
+          </a>
         </div>
 
       </div>

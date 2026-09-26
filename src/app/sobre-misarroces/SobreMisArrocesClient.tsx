@@ -16,6 +16,7 @@ import {
   Users,
   CheckCircle2,
 } from "lucide-react"
+import { InstagramIcon } from "@/components/icons/InstagramIcon"
 
 export default function SobreMisArrocesClient() {
   return (
@@ -221,6 +222,31 @@ export default function SobreMisArrocesClient() {
           </div>
         </div>
 
+        {/* CONTACTO & REDES */}
+        <div className="bg-card border border-border rounded-2xl sm:rounded-3xl p-5 shadow-xs text-center space-y-3">
+          <span className="text-xs uppercase font-bold tracking-wider text-muted-foreground block">
+            Contacto y Comunidad
+          </span>
+          <div className="flex flex-wrap items-center justify-center gap-4 text-xs sm:text-sm">
+            <a
+              href="https://www.instagram.com/misarroces.es"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 font-bold text-foreground hover:text-primary transition py-1.5 px-3 rounded-full hover:bg-muted"
+            >
+              <InstagramIcon className="w-4 h-4 text-pink-600 dark:text-pink-400" />
+              <span>@misarroces.es</span>
+            </a>
+            <span className="text-muted-foreground/40">•</span>
+            <a
+              href="mailto:info@misarroces.es"
+              className="font-medium text-muted-foreground hover:text-foreground hover:underline transition"
+            >
+              info@misarroces.es
+            </a>
+          </div>
+        </div>
+
         {/* VOLVER A ENLACES */}
         <div className="text-center text-xs text-muted-foreground">
           <Link href="/links" className="hover:underline font-semibold">
@@ -228,9 +254,18 @@ export default function SobreMisArrocesClient() {
           </Link>
         </div>
 
-        {/* TEXTO LEGAL */}
+        {/* TEXTO LEGAL & FOOTER */}
         <footer className="pt-4 pb-8">
-          <div className="border-t border-border pt-6">
+          <div className="border-t border-border pt-6 flex flex-col items-center gap-3">
+            <a
+              href="https://www.instagram.com/misarroces.es"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors py-1 px-3 rounded-full hover:bg-muted/50"
+            >
+              <InstagramIcon className="w-3.5 h-3.5 text-pink-600 dark:text-pink-400" />
+              <span>@misarroces.es</span>
+            </a>
             <p className="text-[11px] text-muted-foreground/60 text-center max-w-xl mx-auto leading-relaxed">
               misarroces.es es una plataforma digital y red social especializada en gastronomía arrocera. No es un restaurante ni un servicio de restauración o catering.
             </p>

@@ -92,3 +92,19 @@ export function getInternalPath(url: string | null | undefined): string {
   }
 }
 
+/**
+ * Detects and repairs double-encoded UTF-8 mojibake strings (e.g. 'MediterrÃ¡neo' -> 'Mediterráneo',
+ * 'Ã±' -> 'ñ', 'Ã©' -> 'é', 'Ã³' -> 'ó', 'Ãº' -> 'ú', 'Ã­' -> 'í', 'Ã‘' -> 'Ñ', 'Ã¼' -> 'ü').
+ */
+export function fixMojibake(str?: string | null): string {
+  if (!str) return ""
+  if (/[\u00C2-\u00C5][\u0080-\u00BF]/.test(str) || str.includes("Ã")) {
+    try {
+      return decodeURIComponent(escape(str))
+    } catch {
+      return str
+    }
+  }
+  return str
+}
+

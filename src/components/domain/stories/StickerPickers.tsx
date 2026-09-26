@@ -466,17 +466,31 @@ export function LinkPicker({ onSelect }: { onSelect: (link: { id: string, title:
       return
     }
 
-    let parsedUrl = trimmedUrl
-    if (parsedUrl.startsWith('/') || parsedUrl.startsWith('#')) {
+    // Rechazar cadenas con espacios (evita texto arbitrario como "esto no es una url")
+    if (/\s/.test(trimmedUrl)) {
+      setError('La URL no puede contener espacios. Introduce una dirección web válida.')
+      return
+    }
+
+    // Rutas internas de la aplicación
+    if (trimmedUrl.startsWith('/') || trimmedUrl.startsWith('#')) {
       onSelect({
         id: 'link_' + Date.now(),
         title: title.trim() || '',
-        url: parsedUrl
+        url: trimmedUrl
       })
       return
     }
 
-    if (!/^https?:\/\//i.test(parsedUrl)) {
+    let parsedUrl = trimmedUrl
+    const hasScheme = /^https?:\/\//i.test(parsedUrl)
+    if (!hasScheme) {
+      // Validar que se parezca a un dominio real antes de añadir https://
+      const domainPattern = /^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+(\/.*)?$/
+      if (!domainPattern.test(parsedUrl)) {
+        setError('Introduce un enlace o dominio válido (ej. misarroces.es o https://...).')
+        return
+      }
       parsedUrl = `https://${parsedUrl}`
     }
 
@@ -484,6 +498,18 @@ export function LinkPicker({ onSelect }: { onSelect: (link: { id: string, title:
       const u = new URL(parsedUrl)
       if (u.protocol !== 'http:' && u.protocol !== 'https:') {
         setError('El enlace debe ser http:// o https://')
+        return
+      }
+
+      // Comprobar que el hostname tenga un dominio con extensión válida
+      const parts = u.hostname.split('.')
+      if (parts.length < 2 || parts[parts.length - 1].length < 2) {
+        setError('El dominio del enlace no parece válido (ej. .es, .com).')
+        return
+      }
+
+      if (u.hostname.includes('%20')) {
+        setError('La URL no es válida.')
         return
       }
     } catch {

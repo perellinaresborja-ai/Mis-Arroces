@@ -3,6 +3,7 @@ import Link from "next/link"
 import { buttonVariants } from "@/components/ui/button"
 import { Flame, Users, BookOpen, Compass, ShoppingCart, Calculator, Coins, Leaf, ChefHat, Mic, Link as LinkIcon, Smartphone, Bookmark, Share2, Download } from "lucide-react"
 import { InstagramCTA } from "@/app/sobre-misarroces/InstagramCTA"
+import { InstagramIcon } from "@/components/icons/InstagramIcon"
 
 export function LandingContent({ isHome = false }: { isHome?: boolean }) {
   return (
@@ -150,7 +151,16 @@ export function LandingContent({ isHome = false }: { isHome?: boolean }) {
 
       {/* SEO Disambiguation (Discreet) */}
       <footer className="pt-12 pb-8">
-        <div className="border-t border-border pt-8">
+        <div className="border-t border-border pt-8 flex flex-col items-center gap-4">
+          <a
+            href="https://www.instagram.com/misarroces.es"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors py-1.5 px-3 rounded-full hover:bg-muted"
+          >
+            <InstagramIcon className="w-4 h-4 text-pink-600 dark:text-pink-400" />
+            <span>@misarroces.es</span>
+          </a>
           <p className="text-[11px] text-muted-foreground/50 text-center max-w-4xl mx-auto leading-relaxed">
             misarroces.es es una plataforma digital y red social especializada en gastronomía arrocera. No es un restaurante ni un servicio de restauración o catering.
           </p>

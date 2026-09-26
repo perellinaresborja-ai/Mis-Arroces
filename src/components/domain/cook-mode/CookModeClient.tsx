@@ -644,11 +644,11 @@ export function CookModeClient({ recipe, userName, reset }: { recipe: CookModeRe
       )}
 
       {/* Main Content */}
-      <main className="flex-1 flex flex-col items-center justify-center px-6 py-2 overflow-hidden min-h-0">
+      <main className="flex-1 flex flex-col items-center justify-center px-6 py-2 overflow-y-auto min-h-0">
         <div key={currentStepIndex} className="w-full max-w-md mx-auto flex flex-col h-full animate-in fade-in duration-300">
           
           {/* Step Image / Fallback Logo */}
-          <div className="w-full flex-1 min-h-[150px] max-h-[35vh] bg-white/5 rounded-3xl overflow-hidden mb-6 relative flex items-center justify-center border border-white/10 shadow-2xl shrink-0">
+          <div className="w-full flex-1 min-h-[130px] max-h-[28vh] bg-white/5 rounded-3xl overflow-hidden mb-4 relative flex items-center justify-center border border-white/10 shadow-2xl shrink-0">
             {step.media?.storage_path ? (
               <Image 
                 src={`https://zvesoygqssyyojqyswwm.supabase.co/storage/v1/object/public/recipe_media/${step.media.storage_path}`}
@@ -668,12 +668,21 @@ export function CookModeClient({ recipe, userName, reset }: { recipe: CookModeRe
             )}
           </div>
 
-          <div className="flex flex-col gap-6 shrink-0 justify-center">
+          <div className="flex flex-col gap-4 shrink-0 justify-center">
+            {/* 1. Instrucción / paso */}
             <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold leading-tight text-center">
               {step.instruction}
             </h2>
 
-            {/* Timer Display */}
+            {/* 2. Nota del paso (si existe, inmediatamente visible) */}
+            {step.notes && (
+              <div className={`p-3.5 sm:p-4 rounded-2xl border ${timer?.remainingMs === 0 ? 'bg-primary/20 border-primary/50 text-primary animate-pulse' : 'bg-white/10 border-white/20 text-white/90'} text-center text-sm md:text-base font-medium leading-relaxed shadow-lg`}>
+                <span className="text-[11px] uppercase font-bold tracking-wider text-primary block mb-0.5">Nota del paso</span>
+                {step.notes}
+              </div>
+            )}
+
+            {/* 3. Temporizador */}
             {hasDuration && (
               <div className="bg-white/10 border border-white/20 rounded-3xl p-4 flex flex-col items-center justify-center gap-3 shadow-2xl">
                 <div className={`text-6xl md:text-7xl font-black font-mono tracking-tighter tabular-nums leading-none ${timer?.isRunning ? 'text-primary' : 'text-white'}`}>
@@ -681,14 +690,27 @@ export function CookModeClient({ recipe, userName, reset }: { recipe: CookModeRe
                 </div>
                 <div className="flex flex-col w-full gap-2">
                   <div className="flex gap-2 w-full">
+                    {/* 4. Acciones del temporizador */}
                     <button 
-                      onClick={() => toggleTimer(currentStepIndex, step.duration_minutes)}
-                      className="flex-1 py-3 rounded-2xl bg-white text-black font-black text-lg flex items-center justify-center gap-2 hover:bg-white/90 active:scale-95 transition-transform"
+                      onClick={() => {
+                        if (timer && timer.remainingMs === 0) {
+                          handleNext()
+                        } else {
+                          toggleTimer(currentStepIndex, step.duration_minutes)
+                        }
+                      }}
+                      className={`flex-1 py-3 rounded-2xl font-black text-lg flex items-center justify-center gap-2 active:scale-95 transition-all ${
+                        timer && timer.remainingMs === 0
+                          ? 'bg-primary text-white shadow-[0_0_25px_rgba(var(--primary),0.5)] hover:bg-primary/90'
+                          : 'bg-white text-black hover:bg-white/90'
+                      }`}
                     >
                       {timer?.isRunning ? (
                         <><Pause className="w-5 h-5 fill-current"/> PAUSAR</>
+                      ) : timer && timer.remainingMs === 0 ? (
+                        <><ChevronRight className="w-6 h-6 stroke-[3]"/> CONTINUAR</>
                       ) : (
-                        <><Play className="w-5 h-5 fill-current"/> {timer?.remainingMs < durationMs ? "CONTINUAR" : "INICIAR"}</>
+                        <><Play className="w-5 h-5 fill-current"/> {timer && timer.remainingMs < durationMs ? "CONTINUAR" : "INICIAR"}</>
                       )}
                     </button>
                     {timer && timer.remainingMs < durationMs && (
@@ -710,15 +732,9 @@ export function CookModeClient({ recipe, userName, reset }: { recipe: CookModeRe
                 </div>
               </div>
             )}
-
-          {step.notes && (
-            <div className={`mt-2 p-4 rounded-2xl border ${timer?.remainingMs === 0 ? 'bg-primary/20 border-primary/50 text-primary animate-pulse' : 'bg-white/5 border-white/10 text-white/80'} text-center md:text-lg font-medium leading-relaxed`}>
-              {step.notes}
-            </div>
-          )}
+          </div>
         </div>
-      </div>
-    </main>
+      </main>
 
       {/* Bottom Navigation */}
       <footer className="p-6 grid grid-cols-2 gap-4 shrink-0 bg-gradient-to-t from-black to-transparent pb-8">
