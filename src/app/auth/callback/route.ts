@@ -33,6 +33,14 @@ export async function GET(request: Request) {
             privacy_level: 'PUBLIC',
             onboarding_completed: true
           }, { onConflict: 'id' })
+
+          // Reclamar plaza de Arrocero Fundador y enviar email de bienvenida si corresponde
+          try {
+            const { processFounderSpotAndEmail } = await import("@/lib/founder-claim")
+            await processFounderSpotAndEmail(session.user.id, session.user.email)
+          } catch (founderErr) {
+            console.error("[AUTH_CALLBACK] Error al procesar plaza fundador:", founderErr)
+          }
         } else {
           const response = NextResponse.redirect(`${origin}/onboarding`)
           response.cookies.set("ma_has_account", "1", {

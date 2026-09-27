@@ -154,5 +154,13 @@ export async function completeOnboardingAction(inviteCode: string | null) {
   const cookieStore = await cookies()
   cookieStore.delete("misarroces_invite_code")
 
+  // Reclamar plaza de Arrocero Fundador y enviar email de bienvenida si corresponde
+  try {
+    const { processFounderSpotAndEmail } = await import("@/lib/founder-claim")
+    await processFounderSpotAndEmail(user.id, user.email)
+  } catch (founderErr) {
+    console.error("[ONBOARDING] Error al procesar plaza fundador:", founderErr)
+  }
+
   return { success: true }
 }

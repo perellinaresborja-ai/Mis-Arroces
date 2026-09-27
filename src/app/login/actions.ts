@@ -234,6 +234,14 @@ export async function signup(formData: FormData) {
       console.error('Failed to accept legal documents:', rpcError)
     }
 
+    // Reclamar plaza de Arrocero Fundador y enviar email de bienvenida si corresponde
+    try {
+      const { processFounderSpotAndEmail } = await import("@/lib/founder-claim")
+      await processFounderSpotAndEmail(data.user.id, email)
+    } catch (founderErr) {
+      console.error("[SIGNUP] Error al procesar plaza fundador:", founderErr)
+    }
+
     // Process acquisition data if present
     const acqDataRaw = formData.get("acquisition_data") as string
     if (acqDataRaw) {

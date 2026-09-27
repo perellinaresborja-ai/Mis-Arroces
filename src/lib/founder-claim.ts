@@ -9,15 +9,29 @@ export async function processFounderSpotAndEmail(
   if (!userId) return { success: false, error: "No user ID provided" }
 
   try {
-    const supabase = await createClient()
+    const adminKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+
+    const adminClient = (adminKey && supabaseUrl)
+      ? createAdminClient(supabaseUrl, adminKey, {
+          auth: { autoRefreshToken: false, persistSession: false },
+        })
+      : null
+
+    const supabase = adminClient || (await createClient())
 
     // 1. Intentar reclamar la plaza atómicamente si no la tiene
     const { data: claimedNumber, error: founderErr } = await supabase.rpc('claim_founder_spot', { p_user_id: userId })
 
+    if (founderErr) {
+      console.error(`[FOUNDERS] Error al ejecutar claim_founder_spot para ${userId}:`, founderErr)
+      return { success: false, error: founderErr.message }
+    }
+
     let founderNumber: number | null = null
     let needsEmail = false
 
-    if (!founderErr && typeof claimedNumber === 'number' && claimedNumber >= 0 && claimedNumber <= 99) {
+    if (typeof claimedNumber === 'number' && claimedNumber >= 0 && claimedNumber <= 99) {
       founderNumber = claimedNumber
       needsEmail = true
     } else if (claimedNumber === -1) {
@@ -47,19 +61,18 @@ export async function processFounderSpotAndEmail(
     // 2. Obtener email de destino
     let targetEmail = userEmail
     if (!targetEmail) {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (user?.id === userId && user.email) {
-        targetEmail = user.email
+      try {
+        const userClient = await createClient()
+        const { data: { user } } = await userClient.auth.getUser()
+        if (user?.id === userId && user.email) {
+          targetEmail = user.email
+        }
+      } catch {
+        // Ignorar si no hay sesión activa en cookies
       }
     }
 
-    const adminKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-
-    if (!targetEmail && adminKey && supabaseUrl) {
-      const adminClient = createAdminClient(supabaseUrl, adminKey, {
-        auth: { autoRefreshToken: false, persistSession: false },
-      })
+    if (!targetEmail && adminClient) {
       const { data: authUser } = await adminClient.auth.admin.getUserById(userId)
       targetEmail = authUser?.user?.email
     }
@@ -91,13 +104,12 @@ export async function processFounderSpotAndEmail(
 
     if (emailResult?.error) {
       console.error(`[FOUNDERS] Error de Resend para #${founderNumber} (${targetEmail}):`, emailResult.error)
+      // OJO: La plaza se CONSERVA en la base de datos intacta. Solo se devuelve el error para auditoría/reintento.
       return { success: false, error: JSON.stringify(emailResult.error), founderNumber }
     }
 
     // 5. Actualizar welcome_email_sent_at en la base de datos
-    const dbClient = (adminKey && supabaseUrl)
-      ? createAdminClient(supabaseUrl, adminKey, { auth: { autoRefreshToken: false, persistSession: false } })
-      : supabase
+    const dbClient = adminClient || supabase
 
     const { error: updateErr } = await dbClient
       .from('founders')
