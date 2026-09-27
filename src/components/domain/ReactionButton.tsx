@@ -38,6 +38,22 @@ export function ReactionButton({
   const [optGrouped, setOptGrouped] = useState<Record<string, number>>(initialGroupedReactions || {})
   const [optMyReaction, setOptMyReaction] = useState<string | null>(initialMyReaction || null)
   const useGroupedMode = initialGroupedReactions !== undefined
+
+  useEffect(() => {
+    setOptimisticReactions(reactions || [])
+  }, [reactions])
+
+  useEffect(() => {
+    if (initialGroupedReactions !== undefined) {
+      setOptGrouped(initialGroupedReactions)
+    }
+  }, [initialGroupedReactions])
+
+  useEffect(() => {
+    if (initialMyReaction !== undefined) {
+      setOptMyReaction(initialMyReaction)
+    }
+  }, [initialMyReaction])
   
   const [showReactionMenu, setShowReactionMenu] = useState(false)
   const [showReactionAnim, setShowReactionAnim] = useState(false)
@@ -212,9 +228,12 @@ export function ReactionButton({
   
   // Find if user has a reaction
   const myReaction = useGroupedMode ? optMyReaction : optimisticReactions.find(r => r.user_id === currentUserId)?.emoji
+  const totalLikes = useGroupedMode 
+    ? Object.values(optGrouped).reduce((sum, count) => sum + count, 0)
+    : optimisticReactions.length
 
   return (
-    <div className="relative inline-flex items-center gap-2">
+    <div className="relative inline-flex items-center gap-1.5">
       {/* ADD REACTION BUTTON */}
       <button 
         type="button"
@@ -233,7 +252,7 @@ export function ReactionButton({
         aria-label={myReaction ? `Reacción actual: ${myReaction}` : "Reaccionar con Me gusta"}
         title={myReaction ? "Quitar reacción (mantén pulsado para más)" : "Me gusta (mantén pulsado para más)"}
         className={cn(
-          "flex items-center gap-1.5 hover:opacity-70 transition-opacity select-none touch-manipulation", 
+          "inline-flex items-center justify-center hover:opacity-70 transition-opacity select-none touch-manipulation", 
           className
         )}
       >
@@ -246,65 +265,58 @@ export function ReactionButton({
           {myReaction === '🥘' || !myReaction ? (
             <PaellaIcon filled={myReaction === '🥘'} className={cn("w-6 h-6", iconClassName)} />
           ) : (
-            <span className={cn("text-xl", iconClassName)}>{myReaction}</span>
+            <span className={cn("text-xl leading-none", iconClassName)}>{myReaction}</span>
           )}
         </span>
-        {!hasReactions && (
-           <span className="text-sm font-medium text-muted-foreground">Me gusta</span>
-        )}
       </button>
 
-      {/* REACTION PILLS */}
-      {hasReactions && (
-        <div className="flex flex-wrap gap-1.5 items-center">
-          {grouped.map(([emoji, data]) => (
-            <div 
-              key={emoji} 
-              className={cn(
-                "inline-flex items-center text-xs rounded-full border shadow-xs transition-colors overflow-hidden select-none",
-                data.hasMine 
-                  ? 'bg-primary/10 border-primary/30 text-primary' 
-                  : 'bg-background border-border text-muted-foreground hover:bg-muted/60'
-              )}
-            >
-              {/* Pulsar el emoji sigue dando o quitando Me gusta */}
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  e.preventDefault()
-                  handleReact(emoji)
-                }}
-                className={cn(
-                  "pl-2 pr-1 py-0.5 hover:opacity-75 transition-opacity flex items-center justify-center active:scale-90",
-                  data.hasMine && "font-bold"
-                )}
-                title={`Reaccionar con ${emoji}`}
-                aria-label={`Reaccionar con ${emoji}`}
-              >
-                <span className="text-[13px] leading-none">{emoji}</span>
-              </button>
+      {/* CONTADOR DE ME GUSTA VISIBLE */}
+      {totalLikes > 0 ? (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation()
+            e.preventDefault()
+            setIsLikesModalOpen(true)
+          }}
+          className={cn(
+            "text-sm font-medium transition-colors hover:underline cursor-pointer select-none touch-manipulation",
+            myReaction ? "text-primary font-semibold" : "text-muted-foreground hover:text-foreground"
+          )}
+          title="Ver personas a las que les gusta"
+          aria-label={`Ver las ${totalLikes} personas a las que les gusta`}
+        >
+          {totalLikes}
+        </button>
+      ) : (
+        <button
+          type="button"
+          onClick={handleClick}
+          className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors cursor-pointer select-none"
+        >
+          Me gusta
+        </button>
+      )}
 
-              {/* Pulsar el número abre el listado de personas */}
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  e.preventDefault()
-                  setIsLikesModalOpen(true)
-                }}
-                className={cn(
-                  "pr-2.5 pl-1 py-0.5 font-semibold text-xs transition-colors hover:underline cursor-pointer border-l border-border/40",
-                  data.hasMine 
-                    ? "text-primary border-primary/20 hover:text-primary/80" 
-                    : "text-muted-foreground hover:text-foreground"
-                )}
-                title="Ver personas a las que les gusta"
-                aria-label={`Ver las ${data.count} personas a las que les gusta`}
-              >
-                <span>{data.count}</span>
-              </button>
-            </div>
+      {/* PÍLDORAS SECUNDARIAS SI HAY VARIEDAD DE EMOJIS */}
+      {hasReactions && grouped.length > 1 && (
+        <div className="flex flex-wrap gap-1 items-center ml-1">
+          {grouped.filter(([em]) => em !== (myReaction || '🥘')).slice(0, 2).map(([emoji, data]) => (
+            <button
+              key={emoji}
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation()
+                e.preventDefault()
+                setIsLikesModalOpen(true)
+              }}
+              className="inline-flex items-center gap-0.5 text-xs px-1.5 py-0.5 rounded-full bg-muted/60 hover:bg-muted text-muted-foreground border border-border/50 transition-colors"
+              title={`Ver personas con reacción ${emoji}`}
+              aria-label={`Ver las ${data.count} personas con reacción ${emoji}`}
+            >
+              <span>{emoji}</span>
+              <span className="font-semibold text-[11px]">{data.count}</span>
+            </button>
           ))}
         </div>
       )}

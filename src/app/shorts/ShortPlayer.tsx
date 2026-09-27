@@ -6,6 +6,7 @@ import { PaellaLike } from "@/components/domain/PaellaLike"
 import Link from "next/link"
 import { toggleLike } from "@/app/actions/interactions"
 import { usePathname, useRouter } from "next/navigation"
+import { LikesModal } from "@/components/domain/LikesModal"
 
 export function ShortPlayer({ short, currentUserId }: { short: any, currentUserId: string | null }) {
   const videoRef = useRef<HTMLVideoElement>(null)
@@ -14,6 +15,7 @@ export function ShortPlayer({ short, currentUserId }: { short: any, currentUserI
   const [isMuted, setIsMuted] = useState(false)
   const [isLiked, setIsLiked] = useState(short.user_liked)
   const [likeCount, setLikeCount] = useState(short.like_count)
+  const [isLikesModalOpen, setIsLikesModalOpen] = useState(false)
   const [isPending, startTransition] = useTransition()
   const router = useRouter()
   const pathname = usePathname()
@@ -126,12 +128,29 @@ export function ShortPlayer({ short, currentUserId }: { short: any, currentUserI
           </div>
 
           <div className="flex flex-col items-center gap-6 pointer-events-auto">
-            <button onClick={handleLike} className="flex flex-col items-center gap-1">
-              <div className="p-3 bg-black/40 rounded-full backdrop-blur-md">
+            <div className="flex flex-col items-center gap-1">
+              <button 
+                type="button" 
+                onClick={handleLike} 
+                className="p-3 bg-black/40 rounded-full backdrop-blur-md active:scale-90 transition-transform"
+                title={isLiked ? "Quitar me gusta" : "Me gusta"}
+                aria-label={isLiked ? "Quitar me gusta" : "Me gusta"}
+              >
                 <PaellaLike active={isLiked} className="text-2xl" />
-              </div>
-              <span className="text-xs font-bold">{likeCount}</span>
-            </button>
+              </button>
+              <button 
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setIsLikesModalOpen(true)
+                }}
+                className="text-xs font-bold text-white hover:underline cursor-pointer py-0.5 px-1 select-none"
+                title="Ver personas a las que les gusta"
+                aria-label={`Ver las ${likeCount} personas a las que les gusta`}
+              >
+                {likeCount}
+              </button>
+            </div>
 
             <button className="flex flex-col items-center gap-1">
               <div className="p-3 bg-black/40 rounded-full backdrop-blur-md">
@@ -149,6 +168,14 @@ export function ShortPlayer({ short, currentUserId }: { short: any, currentUserI
           </div>
         </div>
       </div>
+
+      <LikesModal
+        isOpen={isLikesModalOpen}
+        onClose={() => setIsLikesModalOpen(false)}
+        entityType="short"
+        entityId={short.id}
+        currentUserId={currentUserId}
+      />
     </div>
   )
 }
