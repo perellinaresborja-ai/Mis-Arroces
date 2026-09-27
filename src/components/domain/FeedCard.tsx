@@ -14,6 +14,8 @@ import { cn, formatRelativeTime } from "@/lib/utils"
 import { useAuthPrompt } from "@/components/providers/AuthPromptProvider"
 import { FeedFollowButton } from "@/components/domain/FeedFollowButton"
 import { SocialTextRenderer } from "@/components/domain/SocialTextRenderer"
+import { GiveawayBanner } from "@/components/domain/GiveawayBanner"
+import { Giveaway } from "@/types/giveaway"
 
 export interface FeedCardProps {
   entityType: "recipe" | "session" | "post"
@@ -51,6 +53,9 @@ export interface FeedCardProps {
   linkedRecipe?: { id: string, name: string }
   isPinned?: boolean
 
+  // Giveaway specific
+  giveaway?: Giveaway | null
+
   // Media
   media: { id: string, storage_path: string, media_type?: string, thumbnail_path?: string | null }[]
   priority?: boolean
@@ -77,6 +82,7 @@ export function FeedCard({
   sessionSocarrat,
   linkedRecipe,
   isPinned,
+  giveaway,
   media,
   priority = false
 }: FeedCardProps) {
@@ -169,6 +175,7 @@ export function FeedCard({
             allowComments={true} 
             isPinned={isPinned} 
             hidePin={true}
+            giveawayCertificateCode={giveaway?.certificate_code}
           />
         )}
         </div>
@@ -202,6 +209,11 @@ export function FeedCard({
         <p className="whitespace-pre-wrap text-[15px] leading-relaxed">
           <SocialTextRenderer text={postContent} />
         </p>
+      )}
+
+      {/* Giveaway Banner (Compact for feed) */}
+      {giveaway && (
+        <GiveawayBanner giveaway={giveaway} currentUserId={currentUserId} compact={true} />
       )}
 
       {/* Media */}

@@ -61,12 +61,22 @@ export async function fetchFeedPage(pageIndex: number = 0, existingUser?: any) {
   if (posts.length > 0) {
     try {
       const postCollaboratorIds = posts.map((p: any) => p.collaborator_id).filter(Boolean)
-      const [collabRes, taggedRes] = await Promise.all([
+      const [collabRes, taggedRes, giveawayRes] = await Promise.all([
         postCollaboratorIds.length > 0
           ? supabase.from("profiles").select("id, username, display_name").in("id", postCollaboratorIds)
           : { data: [] },
         postIds.length > 0
           ? supabase.from("tagged_users").select("entity_id, tagged:profiles!tagged_users_tagged_id_fkey(id, username, display_name)").eq("entity_type", "social_post").in("entity_id", postIds)
+          : { data: [] },
+        postIds.length > 0
+          ? (supabase as any).from("post_giveaways").select(`
+              *,
+              organizer:profiles!post_giveaways_organizer_id_fkey(id, username, display_name, avatar:media_assets!fk_profiles_avatar(storage_path)),
+              results:giveaway_results(
+                id, giveaway_id, user_id, role, position, status,
+                user:profiles!giveaway_results_user_id_fkey(id, username, display_name, avatar:media_assets!fk_profiles_avatar(storage_path))
+              )
+            `).in("post_id", postIds)
           : { data: [] }
       ])
 
@@ -76,10 +86,15 @@ export async function fetchFeedPage(pageIndex: number = 0, existingUser?: any) {
         if (t.tagged) acc[t.entity_id].push(t.tagged)
         return acc
       }, {})
+      const giveawayMap = (giveawayRes.data || []).reduce((acc: any, g: any) => {
+        if (g.post_id) acc[g.post_id] = g
+        return acc
+      }, {})
 
       posts.forEach((p: any) => {
         p.collaborator = p.collaborator_id ? collabMap[p.collaborator_id] || null : null
         p.tagged_users = taggedMap[p.id] || []
+        p.giveaway = giveawayMap[p.id] || null
       })
     } catch (e) {
       console.error("Error attaching feed post metadata:", e)

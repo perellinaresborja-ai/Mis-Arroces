@@ -10,6 +10,8 @@ import { MediaCarousel } from "@/components/domain/MediaCarousel"
 import { PostOptionsMenu } from "@/components/domain/PostOptionsMenu"
 import { ReportButton } from "@/components/domain/ReportButton"
 import { SocialTextRenderer } from "@/components/domain/SocialTextRenderer"
+import { GiveawayBanner } from "@/components/domain/GiveawayBanner"
+import { getGiveawayByPostId } from "@/app/actions/giveaways"
 import { MapPin, Tag, ChefHat, Users } from "lucide-react"
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
@@ -179,8 +181,8 @@ export default async function PostDetailPage({ params }: { params: Promise<{ id:
     .map((pm: any) => pm.media)
     .filter(Boolean) || []
 
-  // Fetch reactions & comments, collaborator & tagged users
-  const [{ data: reactions }, { data: commentsRaw }, collabRes, tagsRes] = await Promise.all([
+  // Fetch reactions & comments, collaborator, tagged users & giveaway
+  const [{ data: reactions }, { data: commentsRaw }, collabRes, tagsRes, giveaway] = await Promise.all([
     supabase.from("post_likes").select("emoji, user_id").eq("post_id", post.id),
     supabase.from("post_comments").select(`
       id, content, created_at, is_deleted, parent_id,
@@ -194,7 +196,8 @@ export default async function PostDetailPage({ params }: { params: Promise<{ id:
       .from("tagged_users")
       .select("tagged:profiles!tagged_users_tagged_id_fkey(id, username, display_name)")
       .eq("entity_type", "social_post")
-      .eq("entity_id", post.id)
+      .eq("entity_id", post.id),
+    getGiveawayByPostId(post.id)
   ])
 
   const collaborator = collabRes?.data || null
@@ -293,6 +296,7 @@ export default async function PostDetailPage({ params }: { params: Promise<{ id:
                 allowComments={post.allow_comments} 
                 isPinned={post.is_pinned}
                 hidePin={true}
+                giveawayCertificateCode={giveaway?.certificate_code}
               />
             ) : (
               <ReportButton
@@ -343,6 +347,13 @@ export default async function PostDetailPage({ params }: { params: Promise<{ id:
         {post.content && (
           <div className="text-[15px] leading-relaxed px-1">
             <SocialTextRenderer content={post.content} />
+          </div>
+        )}
+
+        {/* Sorteo Banner (si es un sorteo) */}
+        {giveaway && (
+          <div className="pt-2">
+            <GiveawayBanner giveaway={giveaway} currentUserId={user?.id || null} />
           </div>
         )}
 

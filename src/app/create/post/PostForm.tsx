@@ -25,7 +25,11 @@ import {
   Search,
   Check,
   Loader2,
-  Plus
+  Plus,
+  Gift,
+  FileText,
+  Sparkles,
+  AlertCircle
 } from "lucide-react"
 
 export interface TaggedProfile {
@@ -57,6 +61,25 @@ export function PostForm({ recipes }: { recipes: { id: string; name: string }[] 
   const [taggedUsers, setTaggedUsers] = useState<TaggedProfile[]>([])
   const [linkedRecipe, setLinkedRecipe] = useState<LinkedRecipeInfo | null>(null)
   const [visibility, setVisibility] = useState<"PUBLIC" | "FOLLOWERS" | "PRIVATE">("PUBLIC")
+  const [giveawayConfig, setGiveawayConfig] = useState({
+    enabled: false,
+    title: "",
+    prize: "",
+    description: "",
+    startsAt: "",
+    endsAt: "",
+    numWinners: 1,
+    numAlternates: 1,
+    requireFollow: true,
+    requireLike: true,
+    requireComment: true,
+    minMentions: 1,
+    requiredKeyword: "",
+    excludedUsernames: [] as string[],
+    termsAndConditions: "",
+    organizerDisclaimerAccepted: false
+  })
+  const [excludedUserInput, setExcludedUserInput] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
   const [showDiscardModal, setShowDiscardModal] = useState(false)
@@ -74,7 +97,8 @@ export function PostForm({ recipes }: { recipes: { id: string; name: string }[] 
       location !== null ||
       collaborator !== null ||
       taggedUsers.length > 0 ||
-      linkedRecipe !== null
+      linkedRecipe !== null ||
+      giveawayConfig.enabled
     )
   }
   const hasChangesRef = useRef(hasChanges)
@@ -134,7 +158,7 @@ export function PostForm({ recipes }: { recipes: { id: string; name: string }[] 
   }
 
   // Bottom Sheet state
-  const [activeSheet, setActiveSheet] = useState<'location' | 'tagging' | 'collaborator' | 'recipe' | 'privacy' | null>(null)
+  const [activeSheet, setActiveSheet] = useState<'location' | 'tagging' | 'collaborator' | 'recipe' | 'privacy' | 'giveaway' | null>(null)
 
   // Tagging search state
   const [tagQuery, setTagQuery] = useState("")
@@ -224,6 +248,46 @@ export function PostForm({ recipes }: { recipes: { id: string; name: string }[] 
     setTaggedUsers(taggedUsers.filter((u) => u.id !== id))
   }
 
+  const handleGenerateTerms = () => {
+    const start = giveawayConfig.startsAt || new Date().toISOString()
+    const end = giveawayConfig.endsAt || new Date(Date.now() + 3 * 86400000).toISOString()
+    
+    const conditionsList: string[] = []
+    if (giveawayConfig.requireFollow) conditionsList.push("1. Seguir la cuenta del organizador en misarroces.")
+    if (giveawayConfig.requireLike) conditionsList.push("2. Dar Me gusta a la publicación del sorteo.")
+    if (giveawayConfig.requireComment) conditionsList.push("3. Dejar un comentario en la publicación del sorteo.")
+    if (giveawayConfig.minMentions > 0) {
+      conditionsList.push(`4. Mencionar al menos a ${giveawayConfig.minMentions} persona${giveawayConfig.minMentions > 1 ? 's' : ''} real${giveawayConfig.minMentions > 1 ? 'es' : ''} de misarroces en el comentario.`)
+    }
+    if (giveawayConfig.requiredKeyword?.trim()) {
+      conditionsList.push(`5. Incluir el texto o hashtag "${giveawayConfig.requiredKeyword.trim()}" en el comentario.`)
+    }
+
+    const generated = `BASES LEGALES Y CONDICIONES DEL SORTEO: "${giveawayConfig.title || 'Sorteo misarroces'}"
+
+1. ORGANIZADOR:
+El presente sorteo es organizado exclusivamente por el creador de la publicación en misarroces. misarroces actúa como plataforma tecnológica para la verificación y certificación neutral del sorteo, sin ser organizador ni responsable del premio.
+
+2. ÁMBITO Y PLAZO DE PARTICIPACIÓN:
+El periodo de participación comienza el ${new Date(start).toLocaleDateString('es-ES')} y finaliza el ${new Date(end).toLocaleDateString('es-ES')} a las ${new Date(end).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}. Las acciones posteriores al cierre no se contabilizan.
+
+3. PREMIO:
+${giveawayConfig.prize || 'Premio indicado por el organizador'}.
+El premio no es canjeable por dinero en metálico ni transferible sin autorización expresa del organizador.
+
+4. CONDICIONES DE PARTICIPACIÓN:
+Para que la participación sea válida, cada usuario debe cumplir acumulativamente los siguientes requisitos antes del cierre:
+${conditionsList.join('\n')}
+
+5. SELECCIÓN DE GANADORES Y SUPLENTES:
+Se seleccionarán ${giveawayConfig.numWinners} ganador${giveawayConfig.numWinners > 1 ? 'es' : ''} y ${giveawayConfig.numAlternates} suplente${giveawayConfig.numAlternates > 1 ? 's' : ''} mediante algoritmo criptográficamente seguro y verificable de misarroces entre todos los participantes válidos únicos (1 persona = 1 participación). El resultado generará un Certificado Público Oficial inmutable.
+
+6. CONTACTO Y ENTREGA DEL PREMIO:
+El organizador contactará a los ganadores a través de misarroces. Si un ganador no responde en el plazo establecido o renuncia, se procederá a la sustitución por el siguiente suplente en estricto orden correlativo.`
+
+    setGiveawayConfig(prev => ({ ...prev, termsAndConditions: generated }))
+  }
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     if (isSubmitting) return
@@ -231,6 +295,33 @@ export function PostForm({ recipes }: { recipes: { id: string; name: string }[] 
     if (!content.trim()) {
       setErrorMsg("Escribe un texto para tu publicación.")
       return
+    }
+
+    if (giveawayConfig.enabled) {
+      if (!giveawayConfig.title.trim()) {
+        setErrorMsg("Debes indicar un título para el sorteo.")
+        return
+      }
+      if (!giveawayConfig.prize.trim()) {
+        setErrorMsg("Debes indicar el premio del sorteo.")
+        return
+      }
+      if (!giveawayConfig.endsAt) {
+        setErrorMsg("Debes especificar la fecha y hora de cierre del sorteo.")
+        return
+      }
+      if (new Date(giveawayConfig.endsAt) <= new Date()) {
+        setErrorMsg("La fecha de cierre del sorteo debe ser en el futuro.")
+        return
+      }
+      if (!giveawayConfig.organizerDisclaimerAccepted) {
+        setErrorMsg("Debes aceptar la declaración de responsabilidad del organizador.")
+        return
+      }
+      if (!giveawayConfig.termsAndConditions.trim()) {
+        setErrorMsg("Debes incluir o generar las bases legales del sorteo.")
+        return
+      }
     }
 
     setIsSubmitting(true)
@@ -242,6 +333,11 @@ export function PostForm({ recipes }: { recipes: { id: string; name: string }[] 
       formData.append("id", postId)
       formData.append("content", content.trim())
       formData.append("visibility", visibility)
+
+      if (giveawayConfig.enabled) {
+        formData.append("is_giveaway", "true")
+        formData.append("giveaway_data", JSON.stringify(giveawayConfig))
+      }
 
       if (location) {
         formData.append("location", location)
@@ -443,6 +539,48 @@ export function PostForm({ recipes }: { recipes: { id: string; name: string }[] 
             </div>
           </div>
 
+          {/* Crear como sorteo */}
+          <div
+            role="button"
+            tabIndex={0}
+            onClick={() => {
+              if (!giveawayConfig.endsAt) {
+                const target = new Date()
+                target.setDate(target.getDate() + 3)
+                target.setHours(20, 0, 0, 0)
+                const offset = target.getTimezoneOffset() * 60000
+                const localIso = new Date(target.getTime() - offset).toISOString().slice(0, 16)
+                setGiveawayConfig((prev) => ({
+                  ...prev,
+                  startsAt: new Date().toISOString(),
+                  endsAt: localIso
+                }))
+              }
+              setActiveSheet('giveaway')
+            }}
+            className="w-full flex items-center justify-between px-4 py-3.5 hover:bg-muted/40 transition-colors cursor-pointer group text-left border-b border-border/40"
+          >
+            <div className="flex items-center gap-3 min-w-0">
+              <Gift className="w-4 h-4 text-muted-foreground group-hover:text-amber-500 transition-colors shrink-0" />
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium text-foreground">Crear como sorteo</span>
+                <span className="text-[10px] uppercase font-black bg-amber-500/15 text-amber-600 px-1.5 py-0.5 rounded-md border border-amber-500/30">
+                  SORTEO
+                </span>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 max-w-[50%] truncate">
+              {giveawayConfig.enabled ? (
+                <span className="text-xs bg-amber-500/10 text-amber-600 border border-amber-500/20 font-bold px-2 py-0.5 rounded-full truncate">
+                  Activo ({giveawayConfig.numWinners} {giveawayConfig.numWinners === 1 ? 'ganador' : 'ganadores'})
+                </span>
+              ) : (
+                <span className="text-sm text-muted-foreground">No</span>
+              )}
+              <ChevronRight className="w-4 h-4 text-muted-foreground/60 shrink-0" />
+            </div>
+          </div>
+
           {/* Privacidad */}
           <div
             role="button"
@@ -511,12 +649,14 @@ export function PostForm({ recipes }: { recipes: { id: string; name: string }[] 
                 {activeSheet === 'collaborator' && <Users className="w-4 h-4 text-primary" />}
                 {activeSheet === 'recipe' && <ChefHat className="w-4 h-4 text-primary" />}
                 {activeSheet === 'privacy' && <Globe className="w-4 h-4 text-primary" />}
+                {activeSheet === 'giveaway' && <Gift className="w-4 h-4 text-amber-500" />}
                 <h3 className="font-bold text-base text-foreground">
                   {activeSheet === 'location' && 'Ubicación'}
                   {activeSheet === 'tagging' && `Etiquetar personas (${taggedUsers.length}/10)`}
                   {activeSheet === 'collaborator' && 'Añadir colaborador'}
                   {activeSheet === 'recipe' && 'Vincular receta'}
                   {activeSheet === 'privacy' && 'Privacidad'}
+                  {activeSheet === 'giveaway' && 'Configuración del sorteo'}
                 </h3>
               </div>
               <button
@@ -926,6 +1066,325 @@ export function PostForm({ recipes }: { recipes: { id: string; name: string }[] 
                       </p>
                     </div>
                   </button>
+                </div>
+              )}
+
+              {/* CONFIGURACIÓN DE SORTEO */}
+              {activeSheet === 'giveaway' && (
+                <div className="p-4 sm:p-5 space-y-5">
+                  {/* Interruptor de activación */}
+                  <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/25 flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <div className="flex items-center gap-2">
+                        <Gift className="w-4 h-4 text-amber-600" />
+                        <span className="font-bold text-sm text-foreground">Habilitar sorteo en este post</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        La publicación incluirá certificación oficial, participantes y selección automática.
+                      </p>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={giveawayConfig.enabled}
+                      onChange={(e) => {
+                        const nextVal = e.target.checked
+                        setGiveawayConfig((prev) => ({ ...prev, enabled: nextVal }))
+                        if (nextVal && !giveawayConfig.termsAndConditions) {
+                          handleGenerateTerms()
+                        }
+                      }}
+                      className="w-5 h-5 rounded accent-amber-600 cursor-pointer"
+                    />
+                  </div>
+
+                  {giveawayConfig.enabled ? (
+                    <div className="space-y-4">
+                      {/* Título */}
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                          Título del sorteo <span className="text-destructive">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="Ej: Sorteo Arrocero de Otoño"
+                          value={giveawayConfig.title}
+                          onChange={(e) => setGiveawayConfig((prev) => ({ ...prev, title: e.target.value }))}
+                          className="w-full px-3.5 py-2.5 rounded-xl border border-input bg-background text-sm focus:border-amber-500 outline-none"
+                        />
+                      </div>
+
+                      {/* Premio */}
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                          Premio a entregar <span className="text-destructive">*</span>
+                        </label>
+                        <textarea
+                          rows={2}
+                          placeholder="Ej: Lote de 5kg Arroz Bomba DOP + Paella tradicional de 40cm"
+                          value={giveawayConfig.prize}
+                          onChange={(e) => setGiveawayConfig((prev) => ({ ...prev, prize: e.target.value }))}
+                          className="w-full px-3.5 py-2.5 rounded-xl border border-input bg-background text-sm focus:border-amber-500 outline-none resize-none"
+                        />
+                      </div>
+
+                      {/* Fecha de cierre */}
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                          Fecha y hora de cierre <span className="text-destructive">*</span>
+                        </label>
+                        <input
+                          type="datetime-local"
+                          value={giveawayConfig.endsAt}
+                          onChange={(e) => setGiveawayConfig((prev) => ({ ...prev, endsAt: e.target.value }))}
+                          className="w-full px-3.5 py-2.5 rounded-xl border border-input bg-background text-sm focus:border-amber-500 outline-none"
+                        />
+                        <p className="text-[11px] text-muted-foreground">
+                          A partir de esta hora el sistema genera el snapshot inmutable y no se admiten más participaciones.
+                        </p>
+                      </div>
+
+                      {/* Ganadores y Suplentes */}
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-1.5">
+                          <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                            Ganadores
+                          </label>
+                          <input
+                            type="number"
+                            min={1}
+                            max={50}
+                            value={giveawayConfig.numWinners}
+                            onChange={(e) => setGiveawayConfig((prev) => ({ ...prev, numWinners: Math.max(1, parseInt(e.target.value) || 1) }))}
+                            className="w-full px-3.5 py-2.5 rounded-xl border border-input bg-background text-sm focus:border-amber-500 outline-none font-bold"
+                          />
+                        </div>
+                        <div className="space-y-1.5">
+                          <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                            Suplentes
+                          </label>
+                          <input
+                            type="number"
+                            min={0}
+                            max={50}
+                            value={giveawayConfig.numAlternates}
+                            onChange={(e) => setGiveawayConfig((prev) => ({ ...prev, numAlternates: Math.max(0, parseInt(e.target.value) || 0) }))}
+                            className="w-full px-3.5 py-2.5 rounded-xl border border-input bg-background text-sm focus:border-amber-500 outline-none font-bold"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Condiciones Verificables */}
+                      <div className="space-y-2.5 pt-2 border-t border-border">
+                        <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                          Condiciones de participación
+                        </span>
+
+                        <div className="space-y-2 bg-muted/20 p-3 rounded-2xl border border-border">
+                          {/* Seguir */}
+                          <label className="flex items-center gap-2.5 text-sm cursor-pointer select-none">
+                            <input
+                              type="checkbox"
+                              checked={giveawayConfig.requireFollow}
+                              onChange={(e) => setGiveawayConfig((prev) => ({ ...prev, requireFollow: e.target.checked }))}
+                              className="w-4 h-4 rounded accent-primary cursor-pointer"
+                            />
+                            <span>Seguir a mi cuenta en misarroces</span>
+                          </label>
+
+                          {/* Me gusta */}
+                          <label className="flex items-center gap-2.5 text-sm cursor-pointer select-none">
+                            <input
+                              type="checkbox"
+                              checked={giveawayConfig.requireLike}
+                              onChange={(e) => setGiveawayConfig((prev) => ({ ...prev, requireLike: e.target.checked }))}
+                              className="w-4 h-4 rounded accent-primary cursor-pointer"
+                            />
+                            <span>Dar Me gusta a la publicación</span>
+                          </label>
+
+                          {/* Comentar */}
+                          <label className="flex items-center gap-2.5 text-sm cursor-pointer select-none">
+                            <input
+                              type="checkbox"
+                              checked={giveawayConfig.requireComment}
+                              onChange={(e) => setGiveawayConfig((prev) => ({ ...prev, requireComment: e.target.checked }))}
+                              className="w-4 h-4 rounded accent-primary cursor-pointer"
+                            />
+                            <span>Dejar un comentario en la publicación</span>
+                          </label>
+
+                          {/* Menciones */}
+                          <div className="pt-2 border-t border-border/50 flex items-center justify-between">
+                            <label className="text-xs font-medium text-foreground">
+                              Mencionar amigos en un comentario:
+                            </label>
+                            <select
+                              value={giveawayConfig.minMentions}
+                              onChange={(e) => setGiveawayConfig((prev) => ({ ...prev, minMentions: parseInt(e.target.value) || 0 }))}
+                              className="px-2.5 py-1 text-xs rounded-lg border border-input bg-background font-semibold"
+                            >
+                              <option value={0}>No obligatorio</option>
+                              <option value={1}>Al menos 1 persona</option>
+                              <option value={2}>Al menos 2 personas</option>
+                              <option value={3}>Al menos 3 personas</option>
+                              <option value={5}>Al menos 5 personas</option>
+                            </select>
+                          </div>
+
+                          {/* Palabra clave / hashtag */}
+                          <div className="pt-2 border-t border-border/50 space-y-1">
+                            <label className="text-xs font-medium text-foreground">
+                              Palabra o hashtag obligatorio (opcional):
+                            </label>
+                            <input
+                              type="text"
+                              placeholder="Ej: #paella o #misarroces"
+                              value={giveawayConfig.requiredKeyword}
+                              onChange={(e) => setGiveawayConfig((prev) => ({ ...prev, requiredKeyword: e.target.value }))}
+                              className="w-full px-3 py-1.5 text-xs rounded-lg border border-input bg-background outline-none"
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Exclusión de cuentas */}
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                          Excluir cuentas adicionales (opcional)
+                        </label>
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            placeholder="@usuario a excluir"
+                            value={excludedUserInput}
+                            onChange={(e) => setExcludedUserInput(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") {
+                                e.preventDefault()
+                                const clean = excludedUserInput.trim().replace(/^@/, "")
+                                if (clean && !giveawayConfig.excludedUsernames.includes(clean)) {
+                                  setGiveawayConfig((prev) => ({
+                                    ...prev,
+                                    excludedUsernames: [...prev.excludedUsernames, clean]
+                                  }))
+                                  setExcludedUserInput("")
+                                }
+                              }
+                            }}
+                            className="flex-1 px-3 py-1.5 rounded-xl border border-input bg-background text-xs outline-none"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const clean = excludedUserInput.trim().replace(/^@/, "")
+                              if (clean && !giveawayConfig.excludedUsernames.includes(clean)) {
+                                setGiveawayConfig((prev) => ({
+                                  ...prev,
+                                  excludedUsernames: [...prev.excludedUsernames, clean]
+                                }))
+                                setExcludedUserInput("")
+                              }
+                            }}
+                            className="px-3 py-1.5 bg-muted text-foreground text-xs font-bold rounded-xl hover:bg-muted/80"
+                          >
+                            Añadir
+                          </button>
+                        </div>
+                        {giveawayConfig.excludedUsernames.length > 0 && (
+                          <div className="flex flex-wrap gap-1.5 pt-1">
+                            {giveawayConfig.excludedUsernames.map((u) => (
+                              <span
+                                key={u}
+                                className="inline-flex items-center gap-1 text-[11px] font-semibold bg-destructive/10 text-destructive border border-destructive/20 px-2 py-0.5 rounded-full"
+                              >
+                                @{u}
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    setGiveawayConfig((prev) => ({
+                                      ...prev,
+                                      excludedUsernames: prev.excludedUsernames.filter((x) => x !== u)
+                                    }))
+                                  }
+                                  className="hover:opacity-75"
+                                >
+                                  ×
+                                </button>
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                        <p className="text-[11px] text-muted-foreground">
+                          Tu propia cuenta se excluye automáticamente siempre de la selección.
+                        </p>
+                      </div>
+
+                      {/* Bases legales */}
+                      <div className="space-y-1.5 pt-2 border-t border-border">
+                        <div className="flex items-center justify-between">
+                          <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                            Bases legales y condiciones <span className="text-destructive">*</span>
+                          </label>
+                          <button
+                            type="button"
+                            onClick={handleGenerateTerms}
+                            className="inline-flex items-center gap-1 text-xs text-primary font-bold hover:underline"
+                          >
+                            <Sparkles className="w-3.5 h-3.5" />
+                            Generar borrador
+                          </button>
+                        </div>
+                        <textarea
+                          rows={4}
+                          value={giveawayConfig.termsAndConditions}
+                          onChange={(e) => setGiveawayConfig((prev) => ({ ...prev, termsAndConditions: e.target.value }))}
+                          placeholder="Bases del sorteo..."
+                          className="w-full px-3 py-2 rounded-xl border border-input bg-background text-xs font-mono outline-none resize-none"
+                        />
+                      </div>
+
+                      {/* Declaración de responsabilidad */}
+                      <div className="p-3 rounded-2xl bg-muted/40 border border-border flex items-start gap-2.5">
+                        <input
+                          type="checkbox"
+                          id="giveaway_disclaimer"
+                          checked={giveawayConfig.organizerDisclaimerAccepted}
+                          onChange={(e) => setGiveawayConfig((prev) => ({ ...prev, organizerDisclaimerAccepted: e.target.checked }))}
+                          className="w-4 h-4 rounded accent-primary mt-0.5 cursor-pointer"
+                        />
+                        <label htmlFor="giveaway_disclaimer" className="text-[11px] text-muted-foreground cursor-pointer leading-tight">
+                          <strong className="text-foreground">Declaración del organizador:</strong> Soy responsable del premio, las condiciones del sorteo y del cumplimiento de la normativa aplicable. misarroces actúa como plataforma tecnológica neutral, no como organizador de sorteos de terceros.
+                        </label>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-center py-6 text-xs text-muted-foreground">
+                      Activa la casilla superior para configurar este post como sorteo oficial con selección certificada.
+                    </div>
+                  )}
+
+                  {/* Botones de acción */}
+                  <div className="flex gap-2 pt-2 border-t border-border">
+                    {giveawayConfig.enabled && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setGiveawayConfig((prev) => ({ ...prev, enabled: false }))
+                          setActiveSheet(null)
+                        }}
+                        className="px-4 py-2.5 rounded-xl border border-border text-xs font-bold text-destructive hover:bg-destructive/10"
+                      >
+                        Quitar sorteo
+                      </button>
+                    )}
+                    <Button
+                      type="button"
+                      onClick={() => setActiveSheet(null)}
+                      className="flex-1 rounded-xl font-bold text-sm bg-primary text-primary-foreground"
+                    >
+                      Listo
+                    </Button>
+                  </div>
                 </div>
               )}
             </div>

@@ -53,6 +53,7 @@ export function FeedList({ initialItems, currentUserId }: { initialItems: any[],
               followStatus={(item as any).followStatus}
               postContent={item.data.content}
               linkedRecipe={item.data.recipe}
+              giveaway={item.data.giveaway}
               media={media}
               priority={index === 0}
             />

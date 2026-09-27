@@ -114,6 +114,61 @@ export async function createPost(formData: FormData) {
     }
   }
 
+  // Handle giveaway creation if enabled
+  if (formData.get("is_giveaway") === "true" && id) {
+    try {
+      const giveawayRaw = formData.get("giveaway_data") as string
+      if (giveawayRaw) {
+        const gConfig = JSON.parse(giveawayRaw)
+        const { getAdminClient } = await import("@/lib/admin/client")
+        const adminClient = getAdminClient() as any
+        
+        const { data: newGiveaway, error: giveErr } = await adminClient.from("post_giveaways").insert({
+          post_id: id,
+          organizer_id: user.id,
+          title: (gConfig.title || "Sorteo").trim(),
+          prize: (gConfig.prize || "").trim(),
+          description: gConfig.description ? gConfig.description.trim() : null,
+          starts_at: gConfig.startsAt || new Date().toISOString(),
+          ends_at: gConfig.endsAt,
+          num_winners: Math.max(1, Math.min(50, parseInt(gConfig.numWinners) || 1)),
+          num_alternates: Math.max(0, Math.min(50, parseInt(gConfig.numAlternates) || 0)),
+          require_follow: Boolean(gConfig.requireFollow),
+          require_like: Boolean(gConfig.requireLike),
+          require_comment: Boolean(gConfig.requireComment),
+          min_mentions: Math.max(0, Math.min(10, parseInt(gConfig.minMentions) || 0)),
+          required_keyword: gConfig.requiredKeyword?.trim() || null,
+          excluded_usernames: Array.isArray(gConfig.excludedUsernames) ? gConfig.excludedUsernames : [],
+          terms_and_conditions: gConfig.termsAndConditions || "",
+          organizer_disclaimer_accepted: Boolean(gConfig.organizerDisclaimerAccepted)
+        }).select("id, certificate_code").single()
+
+        if (giveErr) {
+          console.error("Error creating post_giveaways:", giveErr)
+        } else if (newGiveaway) {
+          await adminClient.from("giveaway_audit_log").insert({
+            giveaway_id: newGiveaway.id,
+            actor_id: user.id,
+            action: "CREATE",
+            details: {
+              certificate_code: newGiveaway.certificate_code,
+              title: gConfig.title,
+              num_winners: gConfig.numWinners,
+              num_alternates: gConfig.numAlternates,
+              ends_at: gConfig.endsAt
+            }
+          })
+
+          try {
+            await trackEvent("GIVEAWAY_CREATE", "giveaway", newGiveaway.id)
+          } catch {}
+        }
+      }
+    } catch (gErr) {
+      console.error("Failed to process giveaway data for post:", gErr)
+    }
+  }
+
   revalidatePath("/")
   revalidatePath("/discover")
   revalidatePath("/[userParam]", "page")

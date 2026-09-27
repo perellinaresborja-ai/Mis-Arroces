@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { MoreHorizontal, Bookmark, MessageSquareOff, Edit2, Trash2 } from "lucide-react"
+import { MoreHorizontal, Bookmark, MessageSquareOff, Edit2, Trash2, Gift } from "lucide-react"
 import { useRouter, usePathname } from "next/navigation"
 import { toggleComments, deleteEntity, toggleBookmark, togglePin } from "@/app/actions/post_options"
 import { Pin, PinOff, PlusCircle } from "lucide-react"
@@ -13,7 +13,8 @@ export function PostOptionsMenu({
   allowComments, 
   onDeleted,
   isPinned,
-  hidePin
+  hidePin,
+  giveawayCertificateCode
 }: { 
   entityType: string
   entityId: string
@@ -21,6 +22,7 @@ export function PostOptionsMenu({
   onDeleted?: () => void 
   isPinned?: boolean
   hidePin?: boolean
+  giveawayCertificateCode?: string | null
 }) {
   const [showMenu, setShowMenu] = useState(false)
   const router = useRouter()
@@ -132,6 +134,18 @@ export function PostOptionsMenu({
         <>
           <div className="fixed inset-0 z-40" onClick={() => setShowMenu(false)} />
           <div className="absolute right-0 top-full mt-2 w-56 bg-card border border-border rounded-xl shadow-lg z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-100">
+
+            {giveawayCertificateCode && (
+              <button 
+                onClick={() => {
+                  setShowMenu(false)
+                  router.push(`/sorteos/${giveawayCertificateCode}`)
+                }} 
+                className="flex items-center gap-3 w-full text-left px-4 py-3 text-sm hover:bg-muted font-medium border-b border-border transition-colors text-amber-600 dark:text-amber-400"
+              >
+                <Gift className="w-4 h-4 text-amber-500" /> Certificado de Sorteo
+              </button>
+            )}
 
             {(entityType === 'recipe' || entityType === 'session' || entityType === 'post') && (
               <button onClick={handleCrearHistoria} className="flex items-center gap-3 w-full text-left px-4 py-3 text-sm hover:bg-muted font-medium border-b border-border transition-colors text-foreground">
