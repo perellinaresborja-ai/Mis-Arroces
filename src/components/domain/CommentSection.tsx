@@ -41,6 +41,7 @@ interface CommentSectionProps {
   comments: Comment[]
   currentUserId: string | null
   allowComments: boolean
+  isLoading?: boolean
 }
 
 type SelectedMedia = 
@@ -480,12 +481,35 @@ function CommentReply({ comment, entityType, currentUserId, allowComments, onRep
   )
 }
 
+function CommentSkeletonItem() {
+  return (
+    <div className="flex gap-3 relative animate-pulse">
+      <div className="w-8 h-8 rounded-full bg-muted/80 shrink-0 mt-1" />
+      <div className="flex-1 min-w-0">
+        <div className="bg-muted/40 rounded-2xl p-3 w-full space-y-2 border border-border/30">
+          <div className="flex items-center gap-2">
+            <div className="h-3.5 w-24 bg-muted/80 rounded-md" />
+            <div className="h-3 w-12 bg-muted/60 rounded-md" />
+          </div>
+          <div className="h-3 w-full bg-muted/70 rounded-md" />
+          <div className="h-3 w-3/4 bg-muted/60 rounded-md" />
+        </div>
+        <div className="flex items-center gap-3 mt-1.5 px-3">
+          <div className="h-3 w-10 bg-muted/50 rounded-md" />
+          <div className="h-3 w-12 bg-muted/50 rounded-md" />
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export function CommentSection({ 
   entityType, 
   entityId, 
   comments, 
   currentUserId, 
   allowComments, 
+  isLoading = false,
   onCommentAdded, 
   onCommentDeleted,
   hasMore = false,
@@ -716,7 +740,11 @@ export function CommentSection({
       {/* Sorting bar */}
       <div className="flex items-center justify-between pb-3 mb-2 border-b border-border/40">
         <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-          {sortedTopLevelComments.length} {sortedTopLevelComments.length === 1 ? "comentario" : "comentarios"}
+          {isLoading && sortedTopLevelComments.length === 0 ? (
+            <div className="h-3.5 w-24 bg-muted rounded-md animate-pulse" />
+          ) : (
+            `${sortedTopLevelComments.length} ${sortedTopLevelComments.length === 1 ? "comentario" : "comentarios"}`
+          )}
         </span>
         <div className="inline-flex items-center p-0.5 bg-muted/60 rounded-xl border border-border/50 text-xs">
           <button
@@ -749,26 +777,40 @@ export function CommentSection({
       </div>
 
       <div className="space-y-4">
-        {sortedTopLevelComments.map(comment => (
-          <CommentThread
-            key={comment.id}
-            comment={comment}
-            replies={(repliesMap[comment.id] || []).filter(r => !r.is_deleted).sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())}
-            entityType={entityType}
-            currentUserId={currentUserId}
-            allowComments={allowComments}
-            onReply={(id: string, username: string) => {
-              setReplyingTo({ id, username })
-              if (!newComment.includes(`@${username}`)) {
-                setNewComment(`@${username} ` + newComment)
-              }
-              setTimeout(() => {
-                textareaRef.current?.focus()
-              }, 10)
-            }}
-            onDelete={handleDelete}
-          />
-        ))}
+        {isLoading && sortedTopLevelComments.length === 0 ? (
+          <>
+            <CommentSkeletonItem />
+            <CommentSkeletonItem />
+            <CommentSkeletonItem />
+          </>
+        ) : (
+          sortedTopLevelComments.map(comment => (
+            <CommentThread
+              key={comment.id}
+              comment={comment}
+              replies={(repliesMap[comment.id] || []).filter(r => !r.is_deleted).sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())}
+              entityType={entityType}
+              currentUserId={currentUserId}
+              allowComments={allowComments}
+              onReply={(id: string, username: string) => {
+                setReplyingTo({ id, username })
+                if (!newComment.includes(`@${username}`)) {
+                  setNewComment(`@${username} ` + newComment)
+                }
+                setTimeout(() => {
+                  textareaRef.current?.focus()
+                }, 10)
+              }}
+              onDelete={handleDelete}
+            />
+          ))
+        )}
+
+        {!isLoading && sortedTopLevelComments.length === 0 && (
+          <div className="py-6 text-center text-muted-foreground text-xs">
+            Aún no hay comentarios. ¡Sé el primero en comentar!
+          </div>
+        )}
 
         {hasMore && (
           <div className="pt-2 pb-1 text-center">

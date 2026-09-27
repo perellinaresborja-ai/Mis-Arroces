@@ -1,8 +1,9 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useCallback } from "react"
 import { getComments } from "@/app/actions/interactions"
 import { CommentSection } from "@/components/domain/CommentSection"
+import { commentsMemoryCache } from "@/components/domain/FeedCommentsInline"
 import { X } from "lucide-react"
 import { PostOptionsMenu } from "./PostOptionsMenu"
 import { toggleComments, deleteEntity, toggleBookmark } from "@/app/actions/post_options"
@@ -14,37 +15,63 @@ interface CommentsModalProps {
   entityType: "recipe" | "session" | "post"
   entityId: string
   currentUserId: string | null
-    isOwner?: boolean
+  isOwner?: boolean
   allowComments: boolean
 }
 
 export function CommentsModal({ isOpen, onClose, entityType, entityId, currentUserId, isOwner, allowComments }: CommentsModalProps) {
+  const cacheKey = `${entityType}:${entityId}`
+  const cached = commentsMemoryCache.get(cacheKey)
+  const PAGE_SIZE = 20
+
   const [showOptionsMenu, setShowOptionsMenu] = useState(false)
   const router = useRouter()
-  const [comments, setComments] = useState<any[]>([])
-  const [loading, setLoading] = useState(false)
+  const [comments, setComments] = useState<any[]>(() => cached ? cached.comments : [])
+  const [loading, setLoading] = useState<boolean>(() => !cached)
   const [loadingMore, setLoadingMore] = useState(false)
-  const [hasMore, setHasMore] = useState(false)
-  const [offset, setOffset] = useState(0)
-  const PAGE_SIZE = 50
+  const [hasMore, setHasMore] = useState<boolean>(() => cached ? cached.hasMore : false)
+  const [offset, setOffset] = useState<number>(() => cached ? PAGE_SIZE : 0)
+
+  const loadInitialComments = useCallback(async (isBackground = false) => {
+    if (!isBackground) {
+      setLoading(true)
+    }
+    try {
+      const data = await getComments(entityType, entityId, currentUserId, PAGE_SIZE, 0)
+      const rootCount = data.filter((c: any) => !c.parent_id).length
+      const more = rootCount >= PAGE_SIZE
+      commentsMemoryCache.set(cacheKey, {
+        comments: data,
+        hasMore: more,
+        timestamp: Date.now()
+      })
+      setComments(data)
+      setHasMore(more)
+      setOffset(PAGE_SIZE)
+    } catch (e) {
+      console.error("Error loading comments:", e)
+    } finally {
+      setLoading(false)
+    }
+  }, [entityType, entityId, currentUserId, cacheKey, PAGE_SIZE])
 
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = "hidden"
-      setLoading(true)
-      setOffset(0)
-      getComments(entityType, entityId, currentUserId, PAGE_SIZE, 0).then(data => {
-        setComments(data)
-        const rootCount = data.filter((c: any) => !c.parent_id).length
-        setHasMore(rootCount >= PAGE_SIZE)
-        setOffset(PAGE_SIZE)
+      const currentCached = commentsMemoryCache.get(cacheKey)
+      const isFresh = currentCached && Date.now() - currentCached.timestamp < 30000
+      if (!isFresh) {
+        loadInitialComments(Boolean(currentCached))
+      } else if (currentCached) {
+        setComments(currentCached.comments)
+        setHasMore(currentCached.hasMore)
         setLoading(false)
-      })
+      }
     } else {
       document.body.style.overflow = ""
     }
     return () => { document.body.style.overflow = "" }
-  }, [isOpen, entityType, entityId, currentUserId])
+  }, [isOpen, cacheKey, loadInitialComments])
 
   const handleLoadMore = async () => {
     if (loadingMore || !hasMore) return
@@ -55,7 +82,14 @@ export function CommentsModal({ isOpen, onClose, entityType, entityId, currentUs
       setComments(prev => {
         const existingIds = new Set(prev.map((c: any) => c.id))
         const newUnique = nextBatch.filter((c: any) => !existingIds.has(c.id))
-        return [...prev, ...newUnique]
+        const updated = [...prev, ...newUnique]
+        const more = nextRootCount >= PAGE_SIZE
+        commentsMemoryCache.set(cacheKey, {
+          comments: updated,
+          hasMore: more,
+          timestamp: Date.now()
+        })
+        return updated
       })
       setOffset(prev => prev + PAGE_SIZE)
       if (nextRootCount < PAGE_SIZE) {
@@ -71,11 +105,27 @@ export function CommentsModal({ isOpen, onClose, entityType, entityId, currentUs
   if (!isOpen) return null
 
   const handleCommentAdded = (newComment: any) => {
-    setComments(prev => [...prev, newComment])
+    setComments(prev => {
+      const updated = [...prev, newComment]
+      commentsMemoryCache.set(cacheKey, {
+        comments: updated,
+        hasMore,
+        timestamp: Date.now()
+      })
+      return updated
+    })
   }
 
   const handleCommentDeleted = (commentId: string) => {
-    setComments(prev => prev.map(c => c.id === commentId ? { ...c, is_deleted: true, content: "Comentario eliminado" } : c))
+    setComments(prev => {
+      const updated = prev.map(c => c.id === commentId ? { ...c, is_deleted: true, content: "Comentario eliminado" } : c)
+      commentsMemoryCache.set(cacheKey, {
+        comments: updated,
+        hasMore,
+        timestamp: Date.now()
+      })
+      return updated
+    })
   }
 
   return (
@@ -97,22 +147,19 @@ export function CommentsModal({ isOpen, onClose, entityType, entityId, currentUs
         </div>
         
         <div className="flex-1 overflow-y-auto p-4 overscroll-contain">
-          {loading ? (
-            <div className="flex justify-center py-8 text-muted-foreground">Cargando comentarios...</div>
-          ) : (
-            <CommentSection 
-              entityType={entityType}
-              entityId={entityId}
-              comments={comments}
-              currentUserId={currentUserId}
-              allowComments={allowComments}
-              onCommentAdded={handleCommentAdded}
-              onCommentDeleted={handleCommentDeleted}
-              hasMore={hasMore}
-              loadingMore={loadingMore}
-              onLoadMore={handleLoadMore}
-            />
-          )}
+          <CommentSection 
+            entityType={entityType}
+            entityId={entityId}
+            comments={comments}
+            currentUserId={currentUserId}
+            allowComments={allowComments}
+            isLoading={loading}
+            onCommentAdded={handleCommentAdded}
+            onCommentDeleted={handleCommentDeleted}
+            hasMore={hasMore}
+            loadingMore={loadingMore}
+            onLoadMore={handleLoadMore}
+          />
         </div>
       </div>
     </div>

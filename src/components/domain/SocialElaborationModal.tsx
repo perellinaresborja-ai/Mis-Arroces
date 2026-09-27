@@ -16,7 +16,7 @@ export function SocialElaborationModal({ isOpen, onClose, item, currentUserId }:
   const [loadingMore, setLoadingMore] = useState(false)
   const [hasMore, setHasMore] = useState(false)
   const [offset, setOffset] = useState(0)
-  const PAGE_SIZE = 50
+  const PAGE_SIZE = 20
 
   // Prevent background scroll when open and load comments
   useEffect(() => {
@@ -167,22 +167,21 @@ export function SocialElaborationModal({ isOpen, onClose, item, currentUserId }:
                </Link>
              </div>
              
-              {loadingComments ? (
-                <div className="text-center text-muted-foreground py-8">Cargando comentarios...</div>
-              ) : (
+
                 <CommentSection 
                    entityType={item.entity_type} 
                    entityId={item.id} 
                    currentUserId={currentUserId || null}
                    comments={comments}
                    allowComments={true}
+                   isLoading={loadingComments}
                    onCommentAdded={handleCommentAdded}
                    onCommentDeleted={handleCommentDeleted}
                    hasMore={hasMore}
                    loadingMore={loadingMore}
                    onLoadMore={handleLoadMore}
                 />
-              )}
+
            </div>
 
            {/* Social Bar (Bottom) */}

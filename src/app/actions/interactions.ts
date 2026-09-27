@@ -365,7 +365,7 @@ export async function getComments(
   entityType: EntityType, 
   entityId: string, 
   currentUserId: string | null,
-  limit: number = 50,
+  limit: number = 20,
   offset: number = 0,
   sortBy: "recent" | "highlighted" = "recent"
 ) {
@@ -373,32 +373,33 @@ export async function getComments(
   let table = ""
   let foreignKey = ""
   let likesRelation = ""
-  let ownerId: string | null = null
+  let ownerTable = ""
+  let ownerColumn = ""
 
   if (entityType === 'recipe') {
     table = "recipe_comments"
     foreignKey = "recipe_id"
     likesRelation = "recipe_comment_likes"
-    const { data: ent } = await supabase.from('recipes').select('owner_id').eq('id', entityId).single()
-    ownerId = ent?.owner_id || null
+    ownerTable = "recipes"
+    ownerColumn = "owner_id"
   } else if (entityType === 'session') {
     table = "session_comments"
     foreignKey = "session_id"
     likesRelation = "session_comment_likes"
-    const { data: ent } = await supabase.from('cooking_sessions').select('user_id').eq('id', entityId).single()
-    ownerId = ent?.user_id || null
+    ownerTable = "cooking_sessions"
+    ownerColumn = "user_id"
   } else if (entityType === 'post') {
     table = "post_comments"
     foreignKey = "post_id"
     likesRelation = "post_comment_likes"
-    const { data: ent } = await supabase.from('social_posts').select('author_id').eq('id', entityId).single()
-    ownerId = ent?.author_id || null
+    ownerTable = "social_posts"
+    ownerColumn = "author_id"
   } else if (entityType === 'short') {
     table = "short_comments"
     foreignKey = "short_id"
     likesRelation = "short_comment_likes"
-    const { data: ent } = await supabase.from('shorts').select('owner_id').eq('id', entityId).single()
-    ownerId = ent?.owner_id || null
+    ownerTable = "shorts"
+    ownerColumn = "owner_id"
   }
 
   if (!table) return []
@@ -409,39 +410,56 @@ export async function getComments(
     reactions:${likesRelation}(user_id, emoji)
   `
 
-  // 1. Fetch paginated top-level (root) comments
   const isDescending = sortBy === "recent"
-  const { data: rootComments, error: rootError } = await (supabase.from(table as any) as any)
+
+  // Phase 1: Parallelize root comments fetch and entity owner fetch
+  const rootCommentsPromise = (supabase.from(table as any) as any)
     .select(selectQuery)
     .eq(foreignKey, entityId)
     .is("parent_id", null)
     .order("created_at", { ascending: !isDescending })
     .range(offset, offset + limit - 1)
 
+  const ownerPromise = ownerTable
+    ? supabase.from(ownerTable as any).select(ownerColumn).eq('id', entityId).single()
+    : Promise.resolve({ data: null })
+
+  const [{ data: rootComments, error: rootError }, ownerResult] = await Promise.all([
+    rootCommentsPromise,
+    ownerPromise
+  ])
+
   if (rootError || !rootComments) return []
 
-  // 2. Fetch all replies corresponding to these loaded root comments
-  const rootIds = (rootComments as any[]).map(c => c.id)
-  let replies: any[] = []
-  if (rootIds.length > 0) {
-    const { data: repliesData } = await (supabase.from(table as any) as any)
-      .select(selectQuery)
-      .in("parent_id", rootIds)
-      .order("created_at", { ascending: true })
-    if (repliesData) {
-      replies = repliesData
-    }
-  }
+  const ownerData: any = ownerResult?.data
+  const ownerId: string | null = ownerData ? (ownerData[ownerColumn] || null) : null
 
+  // Phase 2: Parallelize replies fetch and hidden_words fetch
+  const rootIds = (rootComments as any[]).map(c => c.id)
+
+  const repliesPromise = rootIds.length > 0
+    ? (supabase.from(table as any) as any)
+        .select(selectQuery)
+        .in("parent_id", rootIds)
+        .order("created_at", { ascending: true })
+    : Promise.resolve({ data: [] })
+
+  const hiddenWordsPromise = ownerId
+    ? supabase.from('hidden_words').select('word').eq('user_id', ownerId)
+    : Promise.resolve({ data: [] })
+
+  const [{ data: repliesData }, { data: hwData }] = await Promise.all([
+    repliesPromise,
+    hiddenWordsPromise
+  ])
+
+  const replies = repliesData || []
   const data = [...rootComments, ...replies]
 
-  // Fetch hidden words for the owner
+  // Filter out comments that contain hidden words
   let hiddenWords: string[] = []
-  if (ownerId) {
-    const { data: hw } = await supabase.from('hidden_words').select('word').eq('user_id', ownerId)
-    if (hw) {
-      hiddenWords = hw.map(h => h.word.toLowerCase())
-    }
+  if (hwData && Array.isArray(hwData)) {
+    hiddenWords = hwData.map((h: any) => h.word?.toLowerCase()).filter(Boolean)
   }
 
   // Filter out comments that contain hidden words, unless the current user is the author of the comment

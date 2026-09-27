@@ -8,7 +8,7 @@ import { MediaCarousel } from "@/components/domain/MediaCarousel"
 import { MediaImage } from "@/components/domain/MediaImage"
 import { RecipeFeedPlaceholder } from "@/components/domain/RecipeFeedPlaceholder"
 import { MessageCircle, Bookmark, MapPin, Users, Tag, ChefHat } from "lucide-react"
-import { FeedCommentsInline } from "@/components/domain/FeedCommentsInline"
+import { FeedCommentsInline, prefetchComments } from "@/components/domain/FeedCommentsInline"
 import { PostOptionsMenu } from "@/components/domain/PostOptionsMenu"
 import { cn, formatRelativeTime } from "@/lib/utils"
 import { useAuthPrompt } from "@/components/providers/AuthPromptProvider"
@@ -269,13 +269,19 @@ export function FeedCard({
           currentUserId={currentUserId}
         />
         
-        <button onClick={() => {
+        <button 
+          type="button"
+          onPointerEnter={() => prefetchComments(entityType, entityId, currentUserId)}
+          onTouchStart={() => prefetchComments(entityType, entityId, currentUserId)}
+          onClick={() => {
             if (!currentUserId) {
               showAuthPrompt("Crea tu cuenta para participar en la conversación.")
               return
             }
             setIsCommentsOpen(!isCommentsOpen)
-          }} className="flex items-center gap-1.5 hover:opacity-70 transition-opacity">
+          }} 
+          className="flex items-center gap-1.5 hover:opacity-70 transition-opacity"
+        >
           <MessageCircle className="w-6 h-6 transition-colors hover:text-primary" />
           {commentCount > 0 && <span className="text-sm font-medium">{commentCount}</span>}
         </button>
