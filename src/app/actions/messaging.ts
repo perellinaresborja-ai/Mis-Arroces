@@ -23,37 +23,37 @@ export async function getOrCreateConversation(targetUserId: string) {
 }
 
 export async function fetchConversations() {
-  
   unstable_noStore();
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return []
 
-  // Fetch excluded users (blocks and mutes) to avoid returning conversations with them
-  const [blocksRes, mutesRes] = await Promise.all([
+  // 1. Fetch excluded users (blocks and mutes) AND user conversation members concurrently
+  const [blocksRes, mutesRes, membersRes] = await Promise.all([
     supabase.from("blocks").select("blocker_id, blocked_id").or(`blocker_id.eq.${user.id},blocked_id.eq.${user.id}`),
-    supabase.from("user_mutes").select("muted_id").eq("muter_id", user.id)
+    supabase.from("user_mutes").select("muted_id").eq("muter_id", user.id),
+    supabase
+      .from('conversation_members')
+      .select('*, conversations(*)')
+      .eq('user_id', user.id)
+      .is('archived_at', null)
+      .order('is_pinned', { ascending: false })
+      .order('last_read_at', { ascending: false })
   ])
+
   const blocks = blocksRes.data || []
   const mutes = mutesRes.data || []
+  const convMembers = membersRes.data || []
+
+  if (membersRes.error || convMembers.length === 0) return []
+
   const blockedIds = blocks.map((b: any) => b.blocker_id === user.id ? b.blocked_id : b.blocker_id)
   const mutedIds = mutes.map((m: any) => m.muted_id)
   const excludedUserIds = Array.from(new Set([...blockedIds, ...mutedIds]))
 
-  // Fetch all members for conversations this user is in
-  const { data: convMembers, error: membersError } = await supabase
-    .from('conversation_members')
-    .select('*, conversations(*)')
-    .eq('user_id', user.id)
-    .is('archived_at', null)
-    .order('is_pinned', { ascending: false })
-    .order('last_read_at', { ascending: false })
-
-  if (membersError || !convMembers || convMembers.length === 0) return []
-
   const convIds = convMembers.map(cm => cm.conversation_id)
 
-  // Batch-fetch all other members in 1 single query instead of N queries
+  // 2. Batch-fetch all other members in 1 single query instead of N queries
   const { data: allOthers } = await supabase
     .from('conversation_members')
     .select('conversation_id, status, user_id, user:profiles!inner(id, username, display_name, avatar:media_assets!fk_profiles_avatar(storage_path))')
@@ -67,42 +67,84 @@ export async function fetchConversations() {
     }
   }
 
-  // Filter out conversations with blocked/muted users
+  // 3. Filter out conversations with blocked/muted users
   const validMembers = convMembers.filter(cm => {
     const otherMember = otherMemberMap.get(cm.conversation_id)
     return !(otherMember && excludedUserIds.includes(otherMember.user_id))
   })
 
-  // Concurrently resolve last message and unread count for remaining conversations in parallel
-  const conversations = await Promise.all(
-    validMembers.map(async (cm) => {
-      const otherMember = otherMemberMap.get(cm.conversation_id)
+  if (validMembers.length === 0) return []
 
-      const [lastMsgRes, unreadRes] = await Promise.all([
-        supabase
-          .from('messages')
-          .select('*')
-          .eq('conversation_id', cm.conversation_id)
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .maybeSingle(),
-        supabase
-          .from('messages')
-          .select('*', { count: 'exact', head: true })
-          .eq('conversation_id', cm.conversation_id)
-          .neq('sender_id', user.id)
-          .gt('created_at', cm.last_read_at || '1970-01-01T00:00:00Z')
-          .is('deleted_at', null)
-      ])
+  // 4. Batch resolve unread counts in 1 single query across all valid conversations
+  const validConvIds = validMembers.map(cm => cm.conversation_id)
+  const memberLastReadMap = new Map<string, string | null>()
+  let earliestLastRead: string | null = null
 
-      return {
-        ...cm,
-        otherMember,
-        lastMessage: lastMsgRes.data || null,
-        unreadCount: unreadRes.count || 0
+  for (const cm of validMembers) {
+    memberLastReadMap.set(cm.conversation_id, cm.last_read_at || null)
+    if (!cm.last_read_at) {
+      earliestLastRead = '1970-01-01T00:00:00Z'
+    } else if (earliestLastRead !== '1970-01-01T00:00:00Z') {
+      if (!earliestLastRead || cm.last_read_at < earliestLastRead) {
+        earliestLastRead = cm.last_read_at
       }
-    })
+    }
+  }
+
+  const unreadPromise = earliestLastRead
+    ? supabase
+        .from('messages')
+        .select('conversation_id, created_at')
+        .in('conversation_id', validConvIds)
+        .neq('sender_id', user.id)
+        .gt('created_at', earliestLastRead)
+        .is('deleted_at', null)
+    : Promise.resolve({ data: [] } as any)
+
+  // 5. Concurrently resolve last message for each valid conversation
+  const lastMessagesPromise = Promise.all(
+    validMembers.map(cm =>
+      supabase
+        .from('messages')
+        .select('*')
+        .eq('conversation_id', cm.conversation_id)
+        .is('deleted_at', null)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+    )
   )
+
+  const [unreadRes, lastMessagesRes] = await Promise.all([
+    unreadPromise,
+    lastMessagesPromise
+  ])
+
+  const unreadCountsMap = new Map<string, number>()
+  if (unreadRes.data) {
+    for (const msg of unreadRes.data) {
+      const lastRead = memberLastReadMap.get(msg.conversation_id)
+      if (!lastRead || msg.created_at > lastRead) {
+        unreadCountsMap.set(
+          msg.conversation_id,
+          (unreadCountsMap.get(msg.conversation_id) || 0) + 1
+        )
+      }
+    }
+  }
+
+  const conversations = validMembers.map((cm, idx) => {
+    const otherMember = otherMemberMap.get(cm.conversation_id)
+    const lastMessage = lastMessagesRes[idx]?.data || null
+    const unreadCount = unreadCountsMap.get(cm.conversation_id) || 0
+
+    return {
+      ...cm,
+      otherMember,
+      lastMessage,
+      unreadCount
+    }
+  })
 
   // Sort by last message time or created_at
   conversations.sort((a, b) => {

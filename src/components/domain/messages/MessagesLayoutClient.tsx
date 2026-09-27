@@ -6,19 +6,49 @@ import { MoreHorizontal, Pin, PinOff, Trash2, Plus, Search, Users } from "lucide
 import { togglePinConversation, archiveConversation } from "@/app/actions/messaging"
 import { NewMessageModal } from "./NewMessageModal"
 
-export function MessagesLayoutClient({ convs, children }: { convs: Record<string, any>[], children: React.ReactNode }) {
+export function MessagesLayoutClient({ 
+  convs = [], 
+  convsPromise,
+  children 
+}: { 
+  convs?: Record<string, any>[]
+  convsPromise?: Promise<Record<string, any>[]>
+  children: React.ReactNode 
+}) {
   const router = useRouter()
   const pathname = usePathname()
   const isRoot = pathname === '/messages'
-  const [localConvs, setLocalConvs] = useState(convs)
+  const [localConvs, setLocalConvs] = useState<Record<string, any>[]>(convs || [])
+  const [isLoading, setIsLoading] = useState<boolean>(Boolean(convsPromise && (!convs || convs.length === 0)))
   const [menuOpenId, setMenuOpenId] = useState<string | null>(null)
   const [isNewMessageOpen, setIsNewMessageOpen] = useState(false)
   const [isPending, startTransition] = useTransition()
   const menuRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    setLocalConvs(convs)
-  }, [convs])
+    if (convsPromise) {
+      let isCurrent = true
+      convsPromise
+        .then((res) => {
+          if (isCurrent) {
+            setLocalConvs(res || [])
+            setIsLoading(false)
+          }
+        })
+        .catch((err) => {
+          if (isCurrent) {
+            console.error("Error loading conversations:", err)
+            setIsLoading(false)
+          }
+        })
+      return () => {
+        isCurrent = false
+      }
+    } else if (convs) {
+      setLocalConvs(convs)
+      setIsLoading(false)
+    }
+  }, [convs, convsPromise])
 
   useEffect(() => {
     const handleRead = (e: Event) => {
@@ -112,7 +142,21 @@ export function MessagesLayoutClient({ convs, children }: { convs: Record<string
         </div>
         
         <div className="flex-1 overflow-y-auto p-4 space-y-4 pb-24 md:pb-4 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-          {localConvs.length === 0 && (
+          {isLoading && (
+            <div className="space-y-3">
+              {[1, 2, 3, 4, 5, 6].map((i) => (
+                <div key={i} className="flex items-center p-3 rounded-2xl border border-border bg-card animate-pulse">
+                  <div className="w-12 h-12 rounded-full bg-muted shrink-0" />
+                  <div className="ml-4 flex-1 space-y-2">
+                    <div className="w-28 h-4 bg-muted rounded-full" />
+                    <div className="w-48 h-3 bg-muted/60 rounded-full" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {!isLoading && localConvs.length === 0 && (
             <div className="flex flex-col items-center justify-center py-12 px-4 text-center bg-card border border-border rounded-3xl mt-2 shadow-sm">
               <div className="w-14 h-14 bg-primary/10 text-primary rounded-full flex items-center justify-center mb-4">
                 <Users className="w-7 h-7" />
@@ -139,7 +183,7 @@ export function MessagesLayoutClient({ convs, children }: { convs: Record<string
             </div>
           )}
           
-          {localConvs.map((c) => {
+          {!isLoading && localConvs.map((c) => {
             const isActive = pathname === `/messages/${c.conversation_id}`;
             const isPinned = c.is_pinned;
             return (

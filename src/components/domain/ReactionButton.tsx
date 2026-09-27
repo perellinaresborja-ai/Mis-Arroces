@@ -349,6 +349,7 @@ export function ReactionButton({
         entityType={entityType}
         entityId={entityId}
         currentUserId={currentUserId}
+        initialTotalCount={totalLikes}
       />
     </div>
   )

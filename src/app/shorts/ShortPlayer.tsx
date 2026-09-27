@@ -175,6 +175,7 @@ export function ShortPlayer({ short, currentUserId }: { short: any, currentUserI
         entityType="short"
         entityId={short.id}
         currentUserId={currentUserId}
+        initialTotalCount={likeCount}
       />
     </div>
   )

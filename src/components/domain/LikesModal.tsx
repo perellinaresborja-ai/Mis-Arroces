@@ -17,6 +17,7 @@ interface LikesModalProps {
   entityType: "recipe" | "session" | "post" | "short"
   entityId: string
   currentUserId: string | null
+  initialTotalCount?: number
 }
 
 function FollowUserButton({
@@ -99,7 +100,8 @@ export function LikesModal({
   onClose,
   entityType,
   entityId,
-  currentUserId
+  currentUserId,
+  initialTotalCount
 }: LikesModalProps) {
   const [mounted, setMounted] = useState(false)
   const [users, setUsers] = useState<EntityLikeUser[]>([])
@@ -108,7 +110,13 @@ export function LikesModal({
   const [error, setError] = useState<string | null>(null)
   const [hasMore, setHasMore] = useState(false)
   const [offset, setOffset] = useState(0)
-  const [totalCount, setTotalCount] = useState<number | null>(null)
+  const [totalCount, setTotalCount] = useState<number | null>(initialTotalCount ?? null)
+
+  useEffect(() => {
+    if (initialTotalCount !== undefined) {
+      setTotalCount(initialTotalCount)
+    }
+  }, [initialTotalCount])
 
   const PAGE_SIZE = 30
   const containerRef = useRef<HTMLDivElement>(null)
@@ -223,10 +231,20 @@ export function LikesModal({
 
         {/* Contenido / Listado */}
         <div className="flex-1 overflow-y-auto overscroll-contain pr-1">
-          {isLoading ? (
-            <div className="flex flex-col items-center justify-center py-20 text-muted-foreground gap-2">
-              <Loader2 className="w-6 h-6 animate-spin text-primary" />
-              <span className="text-xs font-medium">Cargando personas…</span>
+          {isLoading && users.length === 0 ? (
+            <div className="divide-y divide-border/30">
+              {[1, 2, 3, 4, 5, 6].map((i) => (
+                <div key={i} className="flex items-center justify-between py-3 gap-3 animate-pulse">
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
+                    <div className="w-11 h-11 rounded-full bg-muted shrink-0" />
+                    <div className="flex flex-col gap-2 flex-1 min-w-0">
+                      <div className="w-28 h-3.5 bg-muted rounded-full" />
+                      <div className="w-20 h-2.5 bg-muted/60 rounded-full" />
+                    </div>
+                  </div>
+                  <div className="w-16 h-8 bg-muted rounded-full shrink-0" />
+                </div>
+              ))}
             </div>
           ) : error ? (
             <div className="flex flex-col items-center justify-center py-16 text-center px-4 gap-3">

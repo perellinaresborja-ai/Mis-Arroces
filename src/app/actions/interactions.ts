@@ -511,12 +511,7 @@ export async function getEntityLikes(
 
   if (!table) return { users: [], totalCount: 0, hasMore: false }
 
-  // 1. Fetch total count of likes for this entity
-  const { count } = await (supabase.from(table as any) as any)
-    .select("user_id", { count: "exact", head: true })
-    .eq(foreignKey, entityId)
-
-  // 2. Query paginated likes with user profile
+  // 1 & 2. Concurrently fetch paginated likes with user profiles (including exact count) AND user blocks
   const selectQuery = `
     emoji,
     created_at,
@@ -529,11 +524,23 @@ export async function getEntityLikes(
     )
   `
 
-  const { data: likesData, error: likesError } = await (supabase.from(table as any) as any)
-    .select(selectQuery)
-    .eq(foreignKey, entityId)
-    .order("created_at", { ascending: false })
-    .range(offset, offset + limit - 1)
+  const [likesRes, blocksRes] = await Promise.all([
+    (supabase.from(table as any) as any)
+      .select(selectQuery, { count: "exact" })
+      .eq(foreignKey, entityId)
+      .order("created_at", { ascending: false })
+      .range(offset, offset + limit - 1),
+    user
+      ? supabase
+          .from("blocks")
+          .select("blocker_id, blocked_id")
+          .or(`blocker_id.eq.${user.id},blocked_id.eq.${user.id}`)
+      : Promise.resolve({ data: [] })
+  ])
+
+  const likesData = likesRes.data
+  const count = likesRes.count
+  const likesError = likesRes.error
 
   if (likesError || !likesData) {
     return { users: [], totalCount: count || 0, hasMore: false }
@@ -541,18 +548,11 @@ export async function getEntityLikes(
 
   // 3. Blocked users filtering (bidirectional)
   const blockedUserIds = new Set<string>()
-  if (user) {
-    const { data: blocks } = await supabase
-      .from("blocks")
-      .select("blocker_id, blocked_id")
-      .or(`blocker_id.eq.${user.id},blocked_id.eq.${user.id}`)
-
-    if (blocks) {
-      blocks.forEach((b: any) => {
-        if (b.blocker_id === user.id) blockedUserIds.add(b.blocked_id)
-        if (b.blocked_id === user.id) blockedUserIds.add(b.blocker_id)
-      })
-    }
+  if (user && blocksRes.data) {
+    blocksRes.data.forEach((b: any) => {
+      if (b.blocker_id === user.id) blockedUserIds.add(b.blocked_id)
+      if (b.blocked_id === user.id) blockedUserIds.add(b.blocker_id)
+    })
   }
 
   // 4. Map profiles
