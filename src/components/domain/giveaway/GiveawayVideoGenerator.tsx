@@ -305,7 +305,7 @@ export function GiveawayVideoGenerator({
 
           ctx.fillStyle = "#16A34A"
           ctx.font = "800 17px ui-sans-serif, system-ui"
-          ctx.fillText("✔ RESULTADO CERTIFICADO POR MISARROCES", 360, 880)
+          ctx.fillText("✔ RESULTADO CERTIFICADO POR misarroces", 360, 880)
         }
 
         // Breve pausa para dar tiempo al encoder
