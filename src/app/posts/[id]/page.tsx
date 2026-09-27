@@ -185,8 +185,8 @@ export default async function PostDetailPage({ params }: { params: Promise<{ id:
   const [{ data: reactions }, { data: commentsRaw }, collabRes, tagsRes, giveaway] = await Promise.all([
     supabase.from("post_likes").select("emoji, user_id").eq("post_id", post.id),
     supabase.from("post_comments").select(`
-      id, content, created_at, is_deleted, parent_id,
-      author:profiles!post_comments_author_id_fkey(username, display_name, avatar:media_assets!fk_profiles_avatar(storage_path)),
+      *,
+      author:profiles!post_comments_author_id_fkey(id, username, display_name, avatar:media_assets!fk_profiles_avatar(storage_path)),
       reactions:post_comment_likes(emoji, user_id)
     `).eq("post_id", post.id).order("created_at", { ascending: true }),
     post.collaborator_id 

@@ -99,7 +99,7 @@ export async function parseAndSaveMentionsAndHashtags(text: string, entityType: 
         .from("hashtags")
         .select("id")
         .eq("normalized_name", normalized)
-        .single()
+        .maybeSingle()
         
       let hashtagId = htData?.id
       if (!hashtagId) {
@@ -107,17 +107,17 @@ export async function parseAndSaveMentionsAndHashtags(text: string, entityType: 
           .from("hashtags")
           .insert({ name: tag, normalized_name: normalized })
           .select("id")
-          .single()
+          .maybeSingle()
         hashtagId = newHt?.id
       }
       
       if (hashtagId) {
         // Link to entity (ignore errors on duplicate)
-        await supabase.from("entity_hashtags").insert({
+        await supabase.from("entity_hashtags").upsert({
           hashtag_id: hashtagId,
           entity_type: entityType,
           entity_id: entityId
-        })
+        }, { onConflict: "hashtag_id,entity_type,entity_id" })
       }
     }
   }
@@ -130,16 +130,16 @@ export async function parseAndSaveMentionsAndHashtags(text: string, entityType: 
         .from("profiles")
         .select("id")
         .eq("username", username)
-        .single()
+        .maybeSingle()
         
       if (profile) {
         // Insert mention
-        await supabase.from("mentions").insert({
+        await supabase.from("mentions").upsert({
           actor_id: actorId,
           mentioned_id: profile.id,
           entity_type: entityType,
           entity_id: entityId
-        })
+        }, { onConflict: "mentioned_id,entity_type,entity_id" })
         
         if (profile.id !== actorId) {
           try {

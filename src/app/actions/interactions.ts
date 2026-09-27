@@ -210,13 +210,28 @@ export async function createComment(
   }
 
   if (insertedComment && trimmedContent.length > 0) {
-    await parseAndSaveMentionsAndHashtags(
-      trimmedContent, 
-      entityType === 'recipe' ? 'recipe_comment' : entityType === 'session' ? 'session_comment' : entityType === 'short' ? 'short_comment' : 'post_comment', 
-      insertedComment.id, 
-      user.id
-    )
+    try {
+      await parseAndSaveMentionsAndHashtags(
+        trimmedContent, 
+        entityType === 'recipe' ? 'recipe_comment' : entityType === 'session' ? 'session_comment' : entityType === 'short' ? 'short_comment' : 'post_comment', 
+        insertedComment.id, 
+        user.id
+      )
+    } catch (tagErr) {
+      console.warn("Could not parse or save mentions/hashtags for comment:", tagErr)
+    }
   }
+  if (insertedComment) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("id, username, display_name, avatar:media_assets!fk_profiles_avatar(storage_path)")
+      .eq("id", user.id)
+      .maybeSingle()
+    if (profile) {
+      (insertedComment as any).author = profile
+    }
+  }
+
   return insertedComment
 }
 

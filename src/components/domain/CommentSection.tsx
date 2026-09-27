@@ -159,9 +159,14 @@ function CommentThread({ comment, replies, entityType, currentUserId, allowComme
   const [isPending, startTransition] = useTransition()
   const [showReplies, setShowReplies] = useState(false)
 
+  const isOwn = Boolean(
+    currentUserId && (
+      (comment.author?.id && currentUserId === comment.author.id) ||
+      ((comment as any).author_id && currentUserId === (comment as any).author_id)
+    )
+  )
   const getAvatar = (path?: string) => path ? `https://zvesoygqssyyojqyswwm.supabase.co/storage/v1/object/public/recipe_media/${path}` : null
-  const isOwn = currentUserId === comment.author.id
-  const avatar = getAvatar(comment.author.avatar?.storage_path)
+  const avatar = getAvatar(comment.author?.avatar?.storage_path)
 
   const handleEdit = () => {
     if (editContent.trim() === localContent && !removeMedia) {
@@ -207,19 +212,18 @@ function CommentThread({ comment, replies, entityType, currentUserId, allowComme
               />
               
               {localMediaUrl && !removeMedia && (
-                <div className="relative inline-flex items-center gap-2 p-1.5 bg-background border border-border rounded-xl self-start">
-                  <div className="w-14 h-14 rounded-lg overflow-hidden relative">
+                <div className="relative inline-block self-start my-1">
+                  <div className="relative w-16 h-16 rounded-2xl overflow-hidden border border-border shadow-xs bg-muted">
                     <img src={localMediaUrl} alt="Adjunto" className="w-full h-full object-cover" />
+                    <button 
+                      type="button" 
+                      onClick={() => setRemoveMedia(true)}
+                      className="absolute top-1 right-1 p-1 rounded-full bg-background/80 hover:bg-background border border-border text-destructive shadow-xs transition-colors"
+                      title="Eliminar"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
                   </div>
-                  <Button 
-                    type="button" 
-                    variant="ghost" 
-                    size="sm" 
-                    onClick={() => setRemoveMedia(true)}
-                    className="text-destructive hover:bg-destructive/10 text-xs flex items-center gap-1 h-8"
-                  >
-                    <X className="w-3.5 h-3.5" /> Quitar {localMediaType === 'IMAGE' ? 'foto' : 'GIF'}
-                  </Button>
                 </div>
               )}
 
@@ -327,9 +331,43 @@ function CommentReply({ comment, entityType, currentUserId, allowComments, onRep
   onReply: () => void
   onDelete: (id: string) => void
 }) {
+  const [isEditing, setIsEditing] = useState(false)
+  const [editContent, setEditContent] = useState(comment.content || "")
+  const [localContent, setLocalContent] = useState(comment.content || "")
+  const [localMediaUrl, setLocalMediaUrl] = useState(comment.media_url)
+  const [localMediaType, setLocalMediaType] = useState(comment.media_type)
+  const [removeMedia, setRemoveMedia] = useState(false)
+  const [isPending, startTransition] = useTransition()
+
   const getAvatar = (path?: string) => path ? `https://zvesoygqssyyojqyswwm.supabase.co/storage/v1/object/public/recipe_media/${path}` : null
-  const isOwn = currentUserId === comment.author.id
+  const isOwn = Boolean(
+    currentUserId && (
+      (comment.author?.id && currentUserId === comment.author.id) ||
+      ((comment as any).author_id && currentUserId === (comment as any).author_id)
+    )
+  )
   const avatar = getAvatar(comment.author.avatar?.storage_path)
+
+  const handleEdit = () => {
+    if (editContent.trim() === localContent && !removeMedia) {
+      setIsEditing(false)
+      return
+    }
+    startTransition(async () => {
+      try {
+        await editComment(entityType as any, comment.id, editContent, removeMedia)
+        setLocalContent(editContent.trim())
+        if (removeMedia) {
+          setLocalMediaUrl(null)
+          setLocalMediaType(null)
+        }
+        setIsEditing(false)
+      } catch (e) {
+        setEditContent(localContent)
+        setRemoveMedia(false)
+      }
+    })
+  }
 
   return (
     <div className="flex gap-2">
@@ -342,32 +380,68 @@ function CommentReply({ comment, entityType, currentUserId, allowComments, onRep
             <Link href={"/@" + comment.author.username} className="font-bold text-xs hover:underline">{comment.author.display_name || comment.author.username}</Link>
             <span className="text-[11px] text-muted-foreground font-normal">· {formatRelativeTime(comment.created_at)}</span>
           </div>
-          {comment.content && (
-            <p className={cn("text-sm whitespace-pre-wrap relative z-10", comment.is_deleted && "text-muted-foreground italic")}>
-              <SocialTextRenderer text={comment.content} />
-            </p>
-          )}
 
-          {!comment.is_deleted && comment.media_url && (
-            <div className="mt-2 max-w-[220px] rounded-2xl overflow-hidden border border-border/70 bg-card shadow-xs relative z-10">
-              {comment.media_type === 'IMAGE' ? (
-                <ExpandableImage
-                  src={comment.media_url}
-                  alt="Foto en respuesta"
-                  className="w-full max-h-[160px] object-cover rounded-2xl block"
-                />
-              ) : (
-                <img
-                  src={comment.media_url}
-                  alt="GIF"
-                  className="w-full max-h-[150px] object-cover rounded-2xl block"
-                  loading="lazy"
-                />
+          {isEditing ? (
+            <div className="mt-1 flex flex-col gap-2 relative z-10">
+              <textarea 
+                value={editContent}
+                onChange={e => setEditContent(e.target.value)}
+                className="w-full text-xs bg-background border rounded-lg p-2 resize-none focus:outline-none focus:ring-2 focus:ring-primary"
+                rows={2}
+                autoFocus
+              />
+              
+              {localMediaUrl && !removeMedia && (
+                <div className="relative inline-block self-start my-1">
+                  <div className="relative w-14 h-14 rounded-xl overflow-hidden border border-border shadow-xs bg-muted">
+                    <img src={localMediaUrl} alt="Adjunto" className="w-full h-full object-cover" />
+                    <button 
+                      type="button" 
+                      onClick={() => setRemoveMedia(true)}
+                      className="absolute top-1 right-1 p-0.5 rounded-full bg-background/80 hover:bg-background border border-border text-destructive shadow-xs transition-colors"
+                      title="Eliminar"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                </div>
               )}
+
+              <div className="flex justify-end gap-1.5">
+                <Button size="sm" variant="ghost" className="h-7 text-xs px-2" onClick={() => { setIsEditing(false); setRemoveMedia(false); }} disabled={isPending}>Cancelar</Button>
+                <Button size="sm" className="h-7 text-xs px-2" onClick={handleEdit} disabled={isPending || (!editContent.trim() && (removeMedia || !localMediaUrl))}>Guardar</Button>
+              </div>
+            </div>
+          ) : (
+            <div className="relative">
+              {localContent && (
+                <p className={cn("text-sm whitespace-pre-wrap relative z-10", comment.is_deleted && "text-muted-foreground italic")}>
+                  <SocialTextRenderer text={localContent} />
+                </p>
+              )}
+
+              {!comment.is_deleted && localMediaUrl && (
+                <div className="mt-2 max-w-[220px] rounded-2xl overflow-hidden border border-border/70 bg-card shadow-xs relative z-10">
+                  {localMediaType === 'IMAGE' ? (
+                    <ExpandableImage
+                      src={localMediaUrl}
+                      alt="Foto en respuesta"
+                      className="w-full max-h-[160px] object-cover rounded-2xl block"
+                    />
+                  ) : (
+                    <img
+                      src={localMediaUrl}
+                      alt="GIF"
+                      className="w-full max-h-[150px] object-cover rounded-2xl block"
+                      loading="lazy"
+                    />
+                  )}
+                </div>
+              )}
+
+              {!comment.is_deleted && <CommentReactionUI comment={comment} entityType={entityType} currentUserId={currentUserId} />}
             </div>
           )}
-
-          {!comment.is_deleted && <CommentReactionUI comment={comment} entityType={entityType} currentUserId={currentUserId} />}
         </div>
         <div className="flex items-center gap-4 mt-1 px-2 text-[11px] text-muted-foreground font-medium relative z-10">
           <button onClick={() => document.getElementById(`reaction-trigger-${comment.id}`)?.click()} className="hover:text-foreground flex items-center gap-1" title="Reaccionar"><SmilePlus className="w-3.5 h-3.5"/></button>
@@ -375,7 +449,10 @@ function CommentReply({ comment, entityType, currentUserId, allowComments, onRep
             <button onClick={onReply} className="hover:text-foreground">Responder</button>
           )}
           {isOwn && !comment.is_deleted && (
-            <button onClick={() => onDelete(comment.id)} className="hover:text-destructive flex items-center gap-1">Eliminar</button>
+            <>
+              <button onClick={() => setIsEditing(true)} className="hover:text-foreground" disabled={isPending}>Editar</button>
+              <button onClick={() => onDelete(comment.id)} className="hover:text-destructive flex items-center gap-1" disabled={isPending}>Eliminar</button>
+            </>
           )}
           {!isOwn && !comment.is_deleted && (
             <ReportButton
@@ -576,10 +653,10 @@ export function CommentSection({
           if (newC) {
             const optimisticComment: Comment = {
               ...newC,
-              media_type: mediaPayload?.type || null,
-              media_url: mediaPayload?.url || null,
-              media_metadata: mediaPayload?.metadata || null,
-              author: { id: currentUserId, username: "tu", display_name: "Tú", avatar: null },
+              media_type: newC.media_type || mediaPayload?.type || null,
+              media_url: newC.media_url || mediaPayload?.url || null,
+              media_metadata: newC.media_metadata || mediaPayload?.metadata || null,
+              author: (newC as any).author || { id: currentUserId, username: "tu", display_name: "Tú", avatar: null },
               reactions: []
             }
             setLocalComments(prev => [...prev, optimisticComment])
@@ -718,30 +795,22 @@ export function CommentSection({
 
             {/* Media preview before submission */}
             {selectedMedia && (
-              <div className="relative inline-flex items-center gap-2 p-1.5 pr-3 bg-muted/80 border border-border/80 rounded-2xl mb-2 animate-in fade-in zoom-in-95">
-                <div className="w-12 h-12 rounded-xl overflow-hidden relative bg-black/10 shrink-0">
+              <div className="relative inline-block mb-2 animate-in fade-in zoom-in-95">
+                <div className="relative w-16 h-16 rounded-2xl overflow-hidden border border-border shadow-xs bg-muted">
                   <img
                     src={selectedMedia.type === "IMAGE" ? selectedMedia.previewUrl : selectedMedia.url}
                     alt="Preview"
                     className="w-full h-full object-cover"
                   />
+                  <button
+                    type="button"
+                    onClick={handleRemoveMedia}
+                    className="absolute top-1 right-1 p-1 rounded-full bg-background/80 hover:bg-background border border-border text-foreground shadow-xs transition-colors"
+                    title="Quitar"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
                 </div>
-                <div className="flex flex-col text-xs pr-2">
-                  <span className="font-semibold text-foreground">
-                    {selectedMedia.type === "IMAGE" ? "Foto adjunta" : "GIF adjunto"}
-                  </span>
-                  <span className="text-[11px] text-muted-foreground">
-                    {selectedMedia.type === "IMAGE" ? `${(selectedMedia.file.size / 1024).toFixed(0)} KB` : "GIPHY"}
-                  </span>
-                </div>
-                <button
-                  type="button"
-                  onClick={handleRemoveMedia}
-                  className="p-1 rounded-full bg-card hover:bg-muted border border-border text-muted-foreground hover:text-foreground transition-colors ml-auto"
-                  title="Quitar archivo adjunto"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
               </div>
             )}
 
