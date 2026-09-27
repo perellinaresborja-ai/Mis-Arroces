@@ -33,12 +33,12 @@ export const metadata: Metadata = {
   manifest: "/manifest.webmanifest",
   icons: {
     icon: [
-      { url: "/icons/icon-192x192.webp?v=8", type: "image/webp" },
-      { url: "/icons/icon-192x192.png?v=8", type: "image/png" },
-      { url: "/icons/icon-512x512.png?v=8", sizes: "512x512", type: "image/png" }
+      { url: "/icons/icon-192x192.webp?v=9", type: "image/webp" },
+      { url: "/icons/icon-192x192.png?v=9", type: "image/png" },
+      { url: "/icons/icon-512x512.png?v=9", sizes: "512x512", type: "image/png" }
     ],
-    apple: "/apple-touch-icon.png?v=8",
-    shortcut: "/icons/icon-192x192.png?v=8"
+    apple: "/apple-touch-icon.png?v=9",
+    shortcut: "/icons/icon-192x192.png?v=9"
   },
   openGraph: {
     type: "website",
