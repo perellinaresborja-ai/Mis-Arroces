@@ -39,7 +39,10 @@ export function ExpandableImage({ src, alt, className }: ExpandableImageProps) {
         src={src} 
         alt={alt} 
         className={`${className || ''} cursor-pointer hover:opacity-90 transition-opacity`} 
-        onClick={() => setIsOpen(true)} 
+        onClick={(e) => {
+          e.stopPropagation()
+          setIsOpen(true)
+        }} 
       />
       
       {mounted && isOpen && createPortal(

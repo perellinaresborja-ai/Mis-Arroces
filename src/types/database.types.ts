@@ -1399,16 +1399,22 @@ export type Database = {
           created_at: string
           id: string
           is_deleted: boolean
+          media_metadata: Json | null
+          media_type: "IMAGE" | "GIF" | null
+          media_url: string | null
           parent_id: string | null
           post_id: string
           updated_at: string
         }
         Insert: {
           author_id: string
-          content: string
+          content?: string
           created_at?: string
           id?: string
           is_deleted?: boolean
+          media_metadata?: Json | null
+          media_type?: "IMAGE" | "GIF" | null
+          media_url?: string | null
           parent_id?: string | null
           post_id: string
           updated_at?: string
@@ -1419,6 +1425,9 @@ export type Database = {
           created_at?: string
           id?: string
           is_deleted?: boolean
+          media_metadata?: Json | null
+          media_type?: "IMAGE" | "GIF" | null
+          media_url?: string | null
           parent_id?: string | null
           post_id?: string
           updated_at?: string
@@ -1710,16 +1719,22 @@ profiles: {
           created_at: string
           id: string
           is_deleted: boolean
+          media_metadata: Json | null
+          media_type: "IMAGE" | "GIF" | null
+          media_url: string | null
           parent_id: string | null
           recipe_id: string
           updated_at: string
         }
         Insert: {
           author_id: string
-          content: string
+          content?: string
           created_at?: string
           id?: string
           is_deleted?: boolean
+          media_metadata?: Json | null
+          media_type?: "IMAGE" | "GIF" | null
+          media_url?: string | null
           parent_id?: string | null
           recipe_id: string
           updated_at?: string
@@ -1730,6 +1745,9 @@ profiles: {
           created_at?: string
           id?: string
           is_deleted?: boolean
+          media_metadata?: Json | null
+          media_type?: "IMAGE" | "GIF" | null
+          media_url?: string | null
           parent_id?: string | null
           recipe_id?: string
           updated_at?: string
@@ -2559,16 +2577,22 @@ profiles: {
           created_at: string
           id: string
           is_deleted: boolean
+          media_metadata: Json | null
+          media_type: "IMAGE" | "GIF" | null
+          media_url: string | null
           parent_id: string | null
           session_id: string
           updated_at: string
         }
         Insert: {
           author_id: string
-          content: string
+          content?: string
           created_at?: string
           id?: string
           is_deleted?: boolean
+          media_metadata?: Json | null
+          media_type?: "IMAGE" | "GIF" | null
+          media_url?: string | null
           parent_id?: string | null
           session_id: string
           updated_at?: string
@@ -2579,6 +2603,9 @@ profiles: {
           created_at?: string
           id?: string
           is_deleted?: boolean
+          media_metadata?: Json | null
+          media_type?: "IMAGE" | "GIF" | null
+          media_url?: string | null
           parent_id?: string | null
           session_id?: string
           updated_at?: string
@@ -2816,16 +2843,22 @@ profiles: {
           created_at: string
           id: string
           is_deleted: boolean
+          media_metadata: Json | null
+          media_type: "IMAGE" | "GIF" | null
+          media_url: string | null
           parent_id: string | null
           short_id: string
           updated_at: string
         }
         Insert: {
           author_id: string
-          content: string
+          content?: string
           created_at?: string
           id?: string
           is_deleted?: boolean
+          media_metadata?: Json | null
+          media_type?: "IMAGE" | "GIF" | null
+          media_url?: string | null
           parent_id?: string | null
           short_id: string
           updated_at?: string
@@ -2836,6 +2869,9 @@ profiles: {
           created_at?: string
           id?: string
           is_deleted?: boolean
+          media_metadata?: Json | null
+          media_type?: "IMAGE" | "GIF" | null
+          media_url?: string | null
           parent_id?: string | null
           short_id?: string
           updated_at?: string

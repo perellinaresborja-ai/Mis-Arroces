@@ -96,14 +96,44 @@ export async function toggleLike(entityType: EntityType, entityId: string, emoji
   }
 }
 
-export async function createComment(entityType: EntityType, entityId: string, content: string, parentId?: string, pathToRevalidate?: string) {
+export interface CommentMediaInput {
+  type: "IMAGE" | "GIF"
+  url: string
+  metadata?: {
+    width?: number
+    height?: number
+    aspectRatio?: number
+    giphyId?: string
+  } | null
+}
+
+export async function createComment(
+  entityType: EntityType, 
+  entityId: string, 
+  content: string, 
+  parentId?: string,
+  media?: CommentMediaInput | null,
+  pathToRevalidate?: string
+) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error("Unauthorized")
 
-  const trimmedContent = content.trim()
-  if (trimmedContent.length === 0 || trimmedContent.length > 1000) {
-    throw new Error("Invalid comment length")
+  const trimmedContent = (content || "").trim()
+
+  if (!trimmedContent && !media) {
+    throw new Error("El comentario no puede estar vacío.")
+  }
+  if (trimmedContent.length > 1000) {
+    throw new Error("El comentario supera el límite de 1000 caracteres.")
+  }
+  if (media) {
+    if (!["IMAGE", "GIF"].includes(media.type)) {
+      throw new Error("Tipo de archivo multimedia no válido.")
+    }
+    if (!media.url || typeof media.url !== "string") {
+      throw new Error("URL de multimedia no válida.")
+    }
   }
 
   // Check allow_comments
@@ -117,11 +147,20 @@ export async function createComment(entityType: EntityType, entityId: string, co
   } else if (entityType === 'post') {
     const { data } = await supabase.from("social_posts").select("allow_comments").eq("id", entityId).single()
     if (data?.allow_comments === false) commentsEnabled = false
+  } else if (entityType === 'short') {
+    // shorts have comments enabled by default
   }
   
   if (!commentsEnabled) throw new Error("Comments are disabled for this content")
 
-  const insertData = { author_id: user.id, content: trimmedContent, parent_id: parentId || null }
+  const insertData = { 
+    author_id: user.id, 
+    content: trimmedContent, 
+    parent_id: parentId || null,
+    media_type: media ? media.type : null,
+    media_url: media ? media.url : null,
+    media_metadata: media?.metadata || null
+  }
   
   let insertedComment = null
 
@@ -137,39 +176,84 @@ export async function createComment(entityType: EntityType, entityId: string, co
     const { data, error } = await supabase.from("post_comments").insert({ ...insertData, post_id: entityId }).select().single()
     if (error) throw new Error(error.message)
     insertedComment = data
+  } else if (entityType === 'short') {
+    const { data, error } = await supabase.from("short_comments").insert({ ...insertData, short_id: entityId }).select().single()
+    if (error) throw new Error(error.message)
+    insertedComment = data
   }
 
   if (pathToRevalidate) {
     revalidatePath(pathToRevalidate)
   }
 
-  if (insertedComment) {
-      await parseAndSaveMentionsAndHashtags(trimmedContent, entityType === 'recipe' ? 'recipe_comment' : entityType === 'session' ? 'session_comment' : 'post_comment', insertedComment.id, user.id)
-    }
-    return insertedComment
+  if (insertedComment && trimmedContent.length > 0) {
+    await parseAndSaveMentionsAndHashtags(
+      trimmedContent, 
+      entityType === 'recipe' ? 'recipe_comment' : entityType === 'session' ? 'session_comment' : entityType === 'short' ? 'short_comment' : 'post_comment', 
+      insertedComment.id, 
+      user.id
+    )
+  }
+  return insertedComment
 }
 
-export async function editComment(entityType: EntityType, commentId: string, newContent: string, pathToRevalidate?: string) {
+export async function editComment(
+  entityType: EntityType, 
+  commentId: string, 
+  newContent: string, 
+  removeMedia?: boolean,
+  pathToRevalidate?: string
+) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error("Unauthorized")
 
-  const trimmedContent = newContent.trim()
-  if (trimmedContent.length === 0 || trimmedContent.length > 1000) {
-    throw new Error("Invalid comment length")
+  const trimmedContent = (newContent || "").trim()
+
+  let table = ""
+  if (entityType === 'recipe') table = "recipe_comments"
+  else if (entityType === 'session') table = "session_comments"
+  else if (entityType === 'post') table = "post_comments"
+  else if (entityType === 'short') table = "short_comments"
+  if (!table) return
+
+  const { data: current }: any = await supabase
+    .from(table as any)
+    .select("id, author_id, media_type, media_url")
+    .eq("id", commentId)
+    .single()
+
+  if (!current || current.author_id !== user.id) {
+    throw new Error("No tienes permiso para editar este comentario")
   }
 
-  const updatePayload = { content: trimmedContent, updated_at: new Date().toISOString() }
-  
-  if (entityType === 'recipe') {
-    await supabase.from("recipe_comments").update(updatePayload).match({ id: commentId, author_id: user.id })
-  } else if (entityType === 'session') {
-    await supabase.from("session_comments").update(updatePayload).match({ id: commentId, author_id: user.id })
-  } else if (entityType === 'post') {
-    await supabase.from("post_comments").update(updatePayload).match({ id: commentId, author_id: user.id })
-  } else if (entityType === 'short') {
-    await supabase.from("short_comments").update(updatePayload).match({ id: commentId, author_id: user.id })
+  if (!trimmedContent && (!current.media_url || removeMedia)) {
+    throw new Error("El comentario no puede quedar completamente vacío")
   }
+  if (trimmedContent.length > 1000) {
+    throw new Error("El comentario supera el límite de 1000 caracteres")
+  }
+
+  const updatePayload: any = { 
+    content: trimmedContent, 
+    updated_at: new Date().toISOString() 
+  }
+
+  if (removeMedia) {
+    if (current.media_type === "IMAGE" && current.media_url) {
+      const storagePath = current.media_url.replace(/^.*\/recipe_media\//, "")
+      try {
+        await supabase.storage.from("recipe_media").remove([storagePath])
+      } catch (storageErr) {
+        console.warn("Error removing comment media from storage:", storageErr)
+      }
+    }
+    updatePayload.media_type = null
+    updatePayload.media_url = null
+    updatePayload.media_metadata = null
+  }
+
+  await supabase.from(table as any).update(updatePayload).match({ id: commentId, author_id: user.id })
 
   if (pathToRevalidate) {
     revalidatePath(pathToRevalidate)
@@ -181,15 +265,39 @@ export async function deleteComment(entityType: EntityType, commentId: string, p
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error("Unauthorized")
 
-  const updatePayload = { is_deleted: true, content: "Comentario eliminado", updated_at: new Date().toISOString() }
-  
-  if (entityType === 'recipe') {
-    await supabase.from("recipe_comments").update(updatePayload).match({ id: commentId, author_id: user.id })
-  } else if (entityType === 'session') {
-    await supabase.from("session_comments").update(updatePayload).match({ id: commentId, author_id: user.id })
-  } else if (entityType === 'post') {
-    await supabase.from("post_comments").update(updatePayload).match({ id: commentId, author_id: user.id })
+  let table = ""
+  if (entityType === 'recipe') table = "recipe_comments"
+  else if (entityType === 'session') table = "session_comments"
+  else if (entityType === 'post') table = "post_comments"
+  else if (entityType === 'short') table = "short_comments"
+  if (!table) return
+
+  // Limpieza de foto propia en Storage
+  const { data: current }: any = await supabase
+    .from(table as any)
+    .select("id, author_id, media_type, media_url")
+    .eq("id", commentId)
+    .single()
+
+  if (current && current.media_type === "IMAGE" && current.media_url) {
+    const storagePath = current.media_url.replace(/^.*\/recipe_media\//, "")
+    try {
+      await supabase.storage.from("recipe_media").remove([storagePath])
+    } catch (storageErr) {
+      console.warn("Error removing deleted comment media from storage:", storageErr)
+    }
   }
+
+  const updatePayload = { 
+    is_deleted: true, 
+    content: "Comentario eliminado", 
+    media_type: null,
+    media_url: null,
+    media_metadata: null,
+    updated_at: new Date().toISOString() 
+  }
+  
+  await supabase.from(table as any).update(updatePayload).match({ id: commentId, author_id: user.id })
 
   if (pathToRevalidate) {
     revalidatePath(pathToRevalidate)
@@ -220,7 +328,8 @@ export async function getComments(
   entityId: string, 
   currentUserId: string | null,
   limit: number = 50,
-  offset: number = 0
+  offset: number = 0,
+  sortBy: "recent" | "highlighted" = "recent"
 ) {
   const supabase = await createClient()
   let table = ""
@@ -263,11 +372,12 @@ export async function getComments(
   `
 
   // 1. Fetch paginated top-level (root) comments
+  const isDescending = sortBy === "recent"
   const { data: rootComments, error: rootError } = await (supabase.from(table as any) as any)
     .select(selectQuery)
     .eq(foreignKey, entityId)
     .is("parent_id", null)
-    .order("created_at", { ascending: true })
+    .order("created_at", { ascending: !isDescending })
     .range(offset, offset + limit - 1)
 
   if (rootError || !rootComments) return []
@@ -298,12 +408,11 @@ export async function getComments(
 
   // Filter out comments that contain hidden words, unless the current user is the author of the comment
   const filteredData = data.filter((c: any) => {
-    if (c.author_id === currentUserId) return true // You can always see your own comments
+    if (c.author_id === currentUserId) return true
     
     if (hiddenWords.length > 0 && c.content) {
       const contentLower = c.content.toLowerCase()
       for (const word of hiddenWords) {
-        // Simple word boundary regex to avoid partial matches
         const regex = new RegExp(`\\b${word}\\b`, 'i')
         if (regex.test(contentLower)) {
           return false
