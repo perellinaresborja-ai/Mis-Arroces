@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils"
 import { toggleLike } from "@/app/actions/interactions"
 import { usePathname } from "next/navigation"
 import { useAuthPrompt } from "@/components/providers/AuthPromptProvider"
+import { LikesModal } from "@/components/domain/LikesModal"
 
 interface ReactionButtonProps {
   entityType: "recipe" | "session" | "post"
@@ -40,6 +41,7 @@ export function ReactionButton({
   
   const [showReactionMenu, setShowReactionMenu] = useState(false)
   const [showReactionAnim, setShowReactionAnim] = useState(false)
+  const [isLikesModalOpen, setIsLikesModalOpen] = useState(false)
 
   const longPressTimerRef = useRef<NodeJS.Timeout | null>(null)
   const isLongPressRef = useRef(false)
@@ -254,19 +256,55 @@ export function ReactionButton({
 
       {/* REACTION PILLS */}
       {hasReactions && (
-        <div className="flex flex-wrap gap-1 items-center">
+        <div className="flex flex-wrap gap-1.5 items-center">
           {grouped.map(([emoji, data]) => (
-            <button 
+            <div 
               key={emoji} 
-              onClick={() => handleReact(emoji)}
               className={cn(
-                "flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border shadow-sm transition-transform active:scale-95",
-                data.hasMine ? 'bg-primary/10 border-primary/30 text-primary font-bold' : 'bg-background border-border text-muted-foreground hover:bg-muted'
+                "inline-flex items-center text-xs rounded-full border shadow-xs transition-colors overflow-hidden select-none",
+                data.hasMine 
+                  ? 'bg-primary/10 border-primary/30 text-primary' 
+                  : 'bg-background border-border text-muted-foreground hover:bg-muted/60'
               )}
             >
-              <span className="text-[13px] leading-none">{emoji}</span>
-              <span>{data.count}</span>
-            </button>
+              {/* Pulsar el emoji sigue dando o quitando Me gusta */}
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  e.preventDefault()
+                  handleReact(emoji)
+                }}
+                className={cn(
+                  "pl-2 pr-1 py-0.5 hover:opacity-75 transition-opacity flex items-center justify-center active:scale-90",
+                  data.hasMine && "font-bold"
+                )}
+                title={`Reaccionar con ${emoji}`}
+                aria-label={`Reaccionar con ${emoji}`}
+              >
+                <span className="text-[13px] leading-none">{emoji}</span>
+              </button>
+
+              {/* Pulsar el número abre el listado de personas */}
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  e.preventDefault()
+                  setIsLikesModalOpen(true)
+                }}
+                className={cn(
+                  "pr-2.5 pl-1 py-0.5 font-semibold text-xs transition-colors hover:underline cursor-pointer border-l border-border/40",
+                  data.hasMine 
+                    ? "text-primary border-primary/20 hover:text-primary/80" 
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+                title="Ver personas a las que les gusta"
+                aria-label={`Ver las ${data.count} personas a las que les gusta`}
+              >
+                <span>{data.count}</span>
+              </button>
+            </div>
           ))}
         </div>
       )}
@@ -291,6 +329,15 @@ export function ReactionButton({
           <span className="text-[8rem] animate-out fade-out zoom-out duration-1000 zoom-in-50">🥘</span>
         </div>
       )}
+
+      {/* LIKES MODAL */}
+      <LikesModal
+        isOpen={isLikesModalOpen}
+        onClose={() => setIsLikesModalOpen(false)}
+        entityType={entityType}
+        entityId={entityId}
+        currentUserId={currentUserId}
+      />
     </div>
   )
 }

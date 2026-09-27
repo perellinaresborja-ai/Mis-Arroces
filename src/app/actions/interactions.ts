@@ -466,6 +466,143 @@ export async function getComments(
   }))
 }
 
+export interface EntityLikeUser {
+  id: string
+  username: string
+  display_name: string
+  privacy_level: string
+  avatar: { storage_path?: string } | null
+  emoji: string
+  created_at: string
+  followStatus: "ACCEPTED" | "PENDING" | null
+}
+
+export interface GetEntityLikesResult {
+  users: EntityLikeUser[]
+  totalCount: number
+  hasMore: boolean
+}
+
+export async function getEntityLikes(
+  entityType: EntityType,
+  entityId: string,
+  limit: number = 30,
+  offset: number = 0
+): Promise<GetEntityLikesResult> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  let table = ""
+  let foreignKey = ""
+
+  if (entityType === "recipe") {
+    table = "recipe_likes"
+    foreignKey = "recipe_id"
+  } else if (entityType === "session") {
+    table = "session_likes"
+    foreignKey = "session_id"
+  } else if (entityType === "post") {
+    table = "post_likes"
+    foreignKey = "post_id"
+  } else if (entityType === "short") {
+    table = "short_likes"
+    foreignKey = "short_id"
+  }
+
+  if (!table) return { users: [], totalCount: 0, hasMore: false }
+
+  // 1. Fetch total count of likes for this entity
+  const { count } = await (supabase.from(table as any) as any)
+    .select("user_id", { count: "exact", head: true })
+    .eq(foreignKey, entityId)
+
+  // 2. Query paginated likes with user profile
+  const selectQuery = `
+    emoji,
+    created_at,
+    user:profiles!${table}_user_id_fkey(
+      id,
+      username,
+      display_name,
+      privacy_level,
+      avatar:media_assets!fk_profiles_avatar(storage_path)
+    )
+  `
+
+  const { data: likesData, error: likesError } = await (supabase.from(table as any) as any)
+    .select(selectQuery)
+    .eq(foreignKey, entityId)
+    .order("created_at", { ascending: false })
+    .range(offset, offset + limit - 1)
+
+  if (likesError || !likesData) {
+    return { users: [], totalCount: count || 0, hasMore: false }
+  }
+
+  // 3. Blocked users filtering (bidirectional)
+  const blockedUserIds = new Set<string>()
+  if (user) {
+    const { data: blocks } = await supabase
+      .from("blocks")
+      .select("blocker_id, blocked_id")
+      .or(`blocker_id.eq.${user.id},blocked_id.eq.${user.id}`)
+
+    if (blocks) {
+      blocks.forEach((b: any) => {
+        if (b.blocker_id === user.id) blockedUserIds.add(b.blocked_id)
+        if (b.blocked_id === user.id) blockedUserIds.add(b.blocker_id)
+      })
+    }
+  }
+
+  // 4. Map profiles
+  const rawUsers: EntityLikeUser[] = (likesData as any[])
+    .filter(row => row.user && !blockedUserIds.has(row.user.id))
+    .map(row => ({
+      id: row.user.id,
+      username: row.user.username,
+      display_name: row.user.display_name || row.user.username,
+      privacy_level: row.user.privacy_level || "PUBLIC",
+      avatar: row.user.avatar || null,
+      emoji: row.emoji || "🥘",
+      created_at: row.created_at,
+      followStatus: null
+    }))
+
+  // 5. Follow status check (single IN query to avoid N+1)
+  if (user && rawUsers.length > 0) {
+    const targetIds = rawUsers.map(u => u.id).filter(id => id !== user.id)
+    if (targetIds.length > 0) {
+      const { data: myFollows } = await supabase
+        .from("follows")
+        .select("following_id, status")
+        .eq("follower_id", user.id)
+        .in("following_id", targetIds)
+
+      const followMap = (myFollows || []).reduce((acc: any, f: any) => {
+        acc[f.following_id] = f.status
+        return acc
+      }, {})
+
+      rawUsers.forEach(u => {
+        if (u.id !== user.id) {
+          u.followStatus = followMap[u.id] || null
+        }
+      })
+    }
+  }
+
+  const effectiveTotal = count !== null && count !== undefined ? count : rawUsers.length
+  const hasMore = offset + rawUsers.length < effectiveTotal
+
+  return {
+    users: rawUsers,
+    totalCount: effectiveTotal,
+    hasMore
+  }
+}
+
+
 
 
 
