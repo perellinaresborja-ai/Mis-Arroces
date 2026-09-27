@@ -12,6 +12,7 @@ import { GlobalCreateMenu } from "@/components/domain/GlobalCreateMenu"
 import { useUserSession } from "@/components/providers/UserSessionProvider"
 import { fetchUserActiveStories } from "@/app/actions/stories"
 import { StoriesViewer } from "@/components/domain/StoriesViewer"
+import { prefetchConversations } from "@/components/domain/messages/MessagesLayoutClient"
 
 import { useMultiAccount } from "@/components/providers/MultiAccountProvider"
 
@@ -101,6 +102,12 @@ export function DesktopNav() {
                   key={item.href}
                   href={item.href}
                   prefetch={true}
+                  onPointerEnter={() => {
+                    if (item.href === "/messages") prefetchConversations()
+                  }}
+                  onTouchStart={() => {
+                    if (item.href === "/messages") prefetchConversations()
+                  }}
                   className={cn(
                     "flex items-center gap-2 text-sm font-medium transition-colors hover:text-primary",
                     isActive ? "text-primary" : "text-muted-foreground"

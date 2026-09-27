@@ -2,6 +2,7 @@
 import { useRef } from "react"
 import { MediaImage } from "@/components/domain/MediaImage"
 import { UnreadBadge } from "@/components/domain/messages/UnreadBadge"
+import { prefetchConversations } from "@/components/domain/messages/MessagesLayoutClient"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { BookOpen, Compass, User, Home, MessageCircle } from "lucide-react"
@@ -259,6 +260,12 @@ export function BottomNav() {
               key={item.label}
               href={item.href}
               prefetch={true}
+              onPointerEnter={() => {
+                if (item.href === '/messages') prefetchConversations()
+              }}
+              onTouchStart={() => {
+                if (item.href === '/messages') prefetchConversations()
+              }}
               onClick={(e) => {
                 if (isActive) {
                   e.preventDefault()

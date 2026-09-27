@@ -3,11 +3,26 @@ import { useState, useEffect, useTransition, useRef } from "react"
 import { useRouter, usePathname } from "next/navigation"
 import Link from "next/link"
 import { MoreHorizontal, Pin, PinOff, Trash2, Plus, Search, Users } from "lucide-react"
-import { togglePinConversation, archiveConversation } from "@/app/actions/messaging"
+import { togglePinConversation, archiveConversation, fetchConversations } from "@/app/actions/messaging"
 import { NewMessageModal } from "./NewMessageModal"
 
+// Module-level cache for instantaneous navigation and zero-latency display
+let cachedConvs: Record<string, any>[] | null = null
+let lastFetchedTime = 0
+
+export function prefetchConversations() {
+  if (typeof window === "undefined") return
+  if (cachedConvs && Date.now() - lastFetchedTime < 15000) return
+  fetchConversations()
+    .then((data) => {
+      cachedConvs = data || []
+      lastFetchedTime = Date.now()
+    })
+    .catch(() => {})
+}
+
 export function MessagesLayoutClient({ 
-  convs = [], 
+  convs, 
   convsPromise,
   children 
 }: { 
@@ -18,19 +33,31 @@ export function MessagesLayoutClient({
   const router = useRouter()
   const pathname = usePathname()
   const isRoot = pathname === '/messages'
-  const [localConvs, setLocalConvs] = useState<Record<string, any>[]>(convs || [])
-  const [isLoading, setIsLoading] = useState<boolean>(Boolean(convsPromise && (!convs || convs.length === 0)))
+  const [localConvs, setLocalConvs] = useState<Record<string, any>[]>(() => {
+    if (convs && convs.length > 0) return convs
+    if (cachedConvs) return cachedConvs
+    return []
+  })
+  const [isLoading, setIsLoading] = useState<boolean>(() => {
+    if (convs && convs.length > 0) return false
+    if (cachedConvs && Date.now() - lastFetchedTime < 15000) return false
+    return true
+  })
   const [menuOpenId, setMenuOpenId] = useState<string | null>(null)
   const [isNewMessageOpen, setIsNewMessageOpen] = useState(false)
   const [isPending, startTransition] = useTransition()
   const menuRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
+    let isCurrent = true
+    const hasFreshCache = cachedConvs && Date.now() - lastFetchedTime < 15000
+
     if (convsPromise) {
-      let isCurrent = true
       convsPromise
         .then((res) => {
           if (isCurrent) {
+            cachedConvs = res || []
+            lastFetchedTime = Date.now()
             setLocalConvs(res || [])
             setIsLoading(false)
           }
@@ -41,12 +68,32 @@ export function MessagesLayoutClient({
             setIsLoading(false)
           }
         })
-      return () => {
-        isCurrent = false
+    } else if (!hasFreshCache) {
+      if (!cachedConvs) {
+        setIsLoading(true)
       }
-    } else if (convs) {
-      setLocalConvs(convs)
+      fetchConversations()
+        .then((res) => {
+          if (isCurrent) {
+            cachedConvs = res || []
+            lastFetchedTime = Date.now()
+            setLocalConvs(res || [])
+            setIsLoading(false)
+          }
+        })
+        .catch((err) => {
+          if (isCurrent) {
+            console.error("Error loading conversations:", err)
+            setIsLoading(false)
+          }
+        })
+    } else if (cachedConvs) {
+      setLocalConvs(cachedConvs)
       setIsLoading(false)
+    }
+
+    return () => {
+      isCurrent = false
     }
   }, [convs, convsPromise])
 

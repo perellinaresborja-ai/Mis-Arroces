@@ -95,6 +95,25 @@ function FollowUserButton({
   )
 }
 
+// Module-level cache for instantaneous modal opening and instant transitions
+const likesMemoryCache = new Map<string, { users: EntityLikeUser[]; totalCount: number; timestamp: number }>()
+
+export function prefetchEntityLikes(entityType: string, entityId: string) {
+  if (typeof window === "undefined") return
+  const cacheKey = `${entityType}:${entityId}`
+  const existing = likesMemoryCache.get(cacheKey)
+  if (existing && Date.now() - existing.timestamp < 30000) return
+  getEntityLikes(entityType as any, entityId, 15, 0)
+    .then((res) => {
+      likesMemoryCache.set(cacheKey, {
+        users: res.users,
+        totalCount: res.totalCount,
+        timestamp: Date.now(),
+      })
+    })
+    .catch(() => {})
+}
+
 export function LikesModal({
   isOpen,
   onClose,
@@ -103,14 +122,16 @@ export function LikesModal({
   currentUserId,
   initialTotalCount
 }: LikesModalProps) {
-  const [mounted, setMounted] = useState(false)
-  const [users, setUsers] = useState<EntityLikeUser[]>([])
-  const [isLoading, setIsLoading] = useState(false)
+  const cacheKey = `${entityType}:${entityId}`
+  const cached = likesMemoryCache.get(cacheKey)
+
+  const [users, setUsers] = useState<EntityLikeUser[]>(() => cached ? cached.users : [])
+  const [isLoading, setIsLoading] = useState<boolean>(() => !cached || Date.now() - cached.timestamp > 30000)
   const [isLoadingMore, setIsLoadingMore] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [hasMore, setHasMore] = useState(false)
-  const [offset, setOffset] = useState(0)
-  const [totalCount, setTotalCount] = useState<number | null>(initialTotalCount ?? null)
+  const [hasMore, setHasMore] = useState<boolean>(() => cached ? cached.users.length < cached.totalCount : false)
+  const [offset, setOffset] = useState<number>(() => cached ? cached.users.length : 0)
+  const [totalCount, setTotalCount] = useState<number | null>(() => cached ? cached.totalCount : (initialTotalCount ?? null))
 
   useEffect(() => {
     if (initialTotalCount !== undefined) {
@@ -118,40 +139,44 @@ export function LikesModal({
     }
   }, [initialTotalCount])
 
-  const PAGE_SIZE = 30
+  const PAGE_SIZE = 15
   const containerRef = useRef<HTMLDivElement>(null)
 
-  useEffect(() => {
-    setMounted(true)
-  }, [])
-
-  const loadInitialLikes = useCallback(async () => {
-    setIsLoading(true)
+  const loadInitialLikes = useCallback(async (isBackgroundRefresh = false) => {
+    if (!isBackgroundRefresh) {
+      setIsLoading(true)
+    }
     setError(null)
     setOffset(0)
     try {
       const result = await getEntityLikes(entityType, entityId, PAGE_SIZE, 0)
+      likesMemoryCache.set(cacheKey, {
+        users: result.users,
+        totalCount: result.totalCount,
+        timestamp: Date.now(),
+      })
       setUsers(result.users)
       setTotalCount(result.totalCount)
       setHasMore(result.hasMore)
       setOffset(result.users.length)
     } catch (err) {
       console.error("Error loading entity likes:", err)
-      setError("No se pudieron cargar los Me gusta. Inténtalo de nuevo.")
+      if (!cached) {
+        setError("No se pudieron cargar los Me gusta. Inténtalo de nuevo.")
+      }
     } finally {
       setIsLoading(false)
     }
-  }, [entityType, entityId])
+  }, [entityType, entityId, cacheKey, cached])
 
   useEffect(() => {
     if (isOpen) {
-      loadInitialLikes()
-    } else {
-      setUsers([])
-      setError(null)
-      setTotalCount(null)
+      const fresh = cached && Date.now() - cached.timestamp < 30000
+      if (!fresh) {
+        loadInitialLikes(Boolean(cached))
+      }
     }
-  }, [isOpen, loadInitialLikes])
+  }, [isOpen, loadInitialLikes, cached])
 
   const handleLoadMore = async () => {
     if (isLoadingMore || !hasMore) return
@@ -161,7 +186,13 @@ export function LikesModal({
       setUsers(prev => {
         const existingIds = new Set(prev.map(u => u.id))
         const newOnes = result.users.filter(u => !existingIds.has(u.id))
-        return [...prev, ...newOnes]
+        const updated = [...prev, ...newOnes]
+        likesMemoryCache.set(cacheKey, {
+          users: updated,
+          totalCount: result.totalCount ?? (totalCount || updated.length),
+          timestamp: Date.now(),
+        })
+        return updated
       })
       setHasMore(result.hasMore)
       setOffset(prev => prev + result.users.length)
@@ -185,7 +216,7 @@ export function LikesModal({
     return () => window.removeEventListener("keydown", handleKeyDown)
   }, [isOpen, onClose])
 
-  if (!isOpen || !mounted) return null
+  if (!isOpen || typeof document === "undefined") return null
 
   return createPortal(
     <div className="fixed inset-0 z-[110] flex items-end sm:items-center justify-center">
@@ -253,7 +284,7 @@ export function LikesModal({
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={loadInitialLikes}
+                onClick={() => loadInitialLikes()}
                 className="rounded-full text-xs flex items-center gap-1.5"
               >
                 <RefreshCw className="w-3.5 h-3.5" /> Reintentar

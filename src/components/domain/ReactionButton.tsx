@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils"
 import { toggleLike } from "@/app/actions/interactions"
 import { usePathname } from "next/navigation"
 import { useAuthPrompt } from "@/components/providers/AuthPromptProvider"
-import { LikesModal } from "@/components/domain/LikesModal"
+import { LikesModal, prefetchEntityLikes } from "@/components/domain/LikesModal"
 
 interface ReactionButtonProps {
   entityType: "recipe" | "session" | "post"
@@ -274,6 +274,8 @@ export function ReactionButton({
       {totalLikes > 0 ? (
         <button
           type="button"
+          onPointerEnter={() => prefetchEntityLikes(entityType, entityId)}
+          onTouchStart={() => prefetchEntityLikes(entityType, entityId)}
           onClick={(e) => {
             e.stopPropagation()
             e.preventDefault()
@@ -305,6 +307,8 @@ export function ReactionButton({
             <button
               key={emoji}
               type="button"
+              onPointerEnter={() => prefetchEntityLikes(entityType, entityId)}
+              onTouchStart={() => prefetchEntityLikes(entityType, entityId)}
               onClick={(e) => {
                 e.stopPropagation()
                 e.preventDefault()

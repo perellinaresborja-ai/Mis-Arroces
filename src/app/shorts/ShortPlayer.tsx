@@ -4,9 +4,9 @@ import { useEffect, useRef, useState, useTransition } from "react"
 import { Volume2, VolumeX, MessageCircle, Share2 } from "lucide-react"
 import { PaellaLike } from "@/components/domain/PaellaLike"
 import Link from "next/link"
+import { useRouter, usePathname } from "next/navigation"
 import { toggleLike } from "@/app/actions/interactions"
-import { usePathname, useRouter } from "next/navigation"
-import { LikesModal } from "@/components/domain/LikesModal"
+import { LikesModal, prefetchEntityLikes } from "@/components/domain/LikesModal"
 
 export function ShortPlayer({ short, currentUserId }: { short: any, currentUserId: string | null }) {
   const videoRef = useRef<HTMLVideoElement>(null)
@@ -140,6 +140,8 @@ export function ShortPlayer({ short, currentUserId }: { short: any, currentUserI
               </button>
               <button 
                 type="button"
+                onPointerEnter={() => prefetchEntityLikes("short", short.id)}
+                onTouchStart={() => prefetchEntityLikes("short", short.id)}
                 onClick={(e) => {
                   e.stopPropagation()
                   setIsLikesModalOpen(true)
