@@ -21,6 +21,7 @@ import { RecipeStateProvider } from "@/components/domain/RecipeStateProvider"
 import { StartCookButton } from "@/components/domain/StartCookButton"
 import { ReportButton } from "@/components/domain/ReportButton"
 import { MediaCarousel } from "@/components/domain/MediaCarousel"
+import { SocialTextRenderer } from "@/components/domain/SocialTextRenderer"
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = await params;
@@ -393,8 +394,8 @@ export default async function RecipeDetailPage({
             </div>
 
             {recipe.description && (
-              <p className="mt-4 md:mt-0 text-muted-foreground text-[16px] leading-relaxed max-w-xl">
-                {recipe.description}
+              <p className="mt-4 md:mt-0 text-muted-foreground text-[16px] leading-relaxed max-w-xl whitespace-pre-line">
+                <SocialTextRenderer text={recipe.description} />
               </p>
             )}
 

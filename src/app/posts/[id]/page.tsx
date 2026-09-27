@@ -345,8 +345,8 @@ export default async function PostDetailPage({ params }: { params: Promise<{ id:
 
         {/* Text with @mentions and #hashtags */}
         {post.content && (
-          <div className="text-[15px] leading-relaxed px-1">
-            <SocialTextRenderer content={post.content} />
+          <div className="text-[15px] leading-relaxed whitespace-pre-wrap px-1">
+            <SocialTextRenderer text={post.content} />
           </div>
         )}
 

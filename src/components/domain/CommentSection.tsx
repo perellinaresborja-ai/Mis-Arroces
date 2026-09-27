@@ -185,7 +185,7 @@ function CommentThread({ comment, replies, entityType, currentUserId, allowComme
             </div>
           ) : (
             <div className="relative">
-              <p className={cn("text-sm whitespace-pre-wrap relative z-10 pointer-events-none", comment.is_deleted && "text-muted-foreground italic")}>
+              <p className={cn("text-sm whitespace-pre-wrap relative z-10", comment.is_deleted && "text-muted-foreground italic")}>
                 <SocialTextRenderer text={localContent} />
               </p>
               {!comment.is_deleted && <CommentReactionUI comment={comment} entityType={entityType} currentUserId={currentUserId} />}
@@ -260,7 +260,7 @@ function CommentReply({ comment, entityType, currentUserId, allowComments, onRep
             <Link href={"/@" + comment.author.username} className="font-bold text-xs hover:underline">{comment.author.display_name}</Link>
             <span className="text-[11px] text-muted-foreground font-normal">· {formatRelativeTime(comment.created_at)}</span>
           </div>
-          <p className={cn("text-sm whitespace-pre-wrap relative z-10 pointer-events-none", comment.is_deleted && "text-muted-foreground italic")}>
+          <p className={cn("text-sm whitespace-pre-wrap relative z-10", comment.is_deleted && "text-muted-foreground italic")}>
             <SocialTextRenderer text={comment.content} />
           </p>
           {!comment.is_deleted && <CommentReactionUI comment={comment} entityType={entityType} currentUserId={currentUserId} />}

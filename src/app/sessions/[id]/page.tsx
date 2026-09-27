@@ -13,6 +13,7 @@ import { ProfileAvatar } from "@/components/domain/ProfileAvatar"
 import { ViewTracker } from "@/components/domain/ViewTracker"
 import { ExpandableImage } from "@/components/ui/ExpandableImage"
 import { PostOptionsMenu } from "@/components/domain/PostOptionsMenu"
+import { SocialTextRenderer } from "@/components/domain/SocialTextRenderer"
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = await params
@@ -187,7 +188,11 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
               </div>
             </div>
 
-            {session.notes && <p className="text-sm whitespace-pre-wrap">{session.notes}</p>}
+            {session.notes && (
+              <p className="text-sm whitespace-pre-wrap">
+                <SocialTextRenderer text={session.notes} />
+              </p>
+            )}
             {session.modifications && (
               <div className="bg-muted/30 p-3 rounded-xl border border-border text-sm">
                 <strong>Cambios:</strong> <span className="text-muted-foreground">{session.modifications}</span>

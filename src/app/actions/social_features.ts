@@ -41,11 +41,39 @@ export async function searchHashtags(query: string) {
 }
 
 export async function extractSocialTokens(text: string) {
-  const mentionRegex = /(?:^|\s)@([a-zA-Z0-9_.-]+)/g
-  const hashtagRegex = /(?:^|\s)#([a-zA-Z0-9_ñÑáéíóúÁÉÍÓÚ]+)/g
-  
-  const mentions = Array.from(text.matchAll(mentionRegex)).map(m => m[1])
-  const hashtags = Array.from(text.matchAll(hashtagRegex)).map(m => m[1])
+  if (!text) return { mentions: [], hashtags: [] }
+
+  const tokenRegex = /(?:([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}))|(?:(?<![a-zA-Z0-9._%+-])@([a-zA-Z0-9_.-]+))|(?:(?<![a-zA-Z0-9_ñÑáéíóúÁÉÍÓÚ])#([a-zA-Z0-9_ñÑáéíóúÁÉÍÓÚ]+))/gu
+
+  const mentions: string[] = []
+  const hashtags: string[] = []
+  let match: RegExpExecArray | null
+
+  while ((match = tokenRegex.exec(text)) !== null) {
+    if (match[1]) {
+      // Email -> ignore
+      continue
+    }
+    if (match[2]) {
+      let rawUsername = match[2]
+      const trailingPunctMatch = rawUsername.match(/[.,:;!?'"()\[\]{}«»“”]+$/)
+      if (trailingPunctMatch) {
+        rawUsername = rawUsername.slice(0, -trailingPunctMatch[0].length)
+      }
+      if (rawUsername.length > 0) {
+        mentions.push(rawUsername.toLowerCase())
+      }
+    } else if (match[3]) {
+      let rawTag = match[3]
+      const trailingPunctMatch = rawTag.match(/[.,:;!?'"()\[\]{}«»“”]+$/)
+      if (trailingPunctMatch) {
+        rawTag = rawTag.slice(0, -trailingPunctMatch[0].length)
+      }
+      if (rawTag.length > 0) {
+        hashtags.push(rawTag)
+      }
+    }
+  }
   
   return {
     mentions: [...new Set(mentions)],
