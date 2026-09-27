@@ -4,16 +4,16 @@
  * stickers interactivos soportados (MENTION, LOCATION, HASHTAG, PROFILE, RECIPE, INGREDIENT, LINK).
  */
 
-export type StickerStyleVariant = 'default' | 'white' | 'black' | 'glass' | 'orange' | 'text' | string;
+export type StickerStyleVariant = 'default' | 'white' | 'black' | 'glass' | 'orange' | 'orange-outline' | 'text' | string;
 
 export const STICKER_STYLE_VARIANTS: Record<string, StickerStyleVariant[]> = {
-  MENTION: ['orange', 'white', 'black', 'glass', 'text'],
-  LOCATION: ['default', 'white', 'black', 'glass', 'orange', 'text'],
-  HASHTAG: ['default', 'white', 'black', 'glass', 'orange', 'text'],
-  PROFILE: ['default', 'white', 'black', 'glass', 'orange', 'text'],
-  RECIPE: ['compact', 'white', 'black', 'glass', 'orange', 'text'],
-  INGREDIENT: ['default', 'white', 'black', 'glass', 'orange', 'text'],
-  LINK: ['default', 'white', 'black', 'glass', 'orange', 'text'],
+  MENTION: ['orange', 'orange-outline', 'white', 'black', 'glass', 'text'],
+  LOCATION: ['default', 'white', 'black', 'glass', 'orange', 'orange-outline', 'text'],
+  HASHTAG: ['default', 'white', 'black', 'glass', 'orange', 'orange-outline', 'text'],
+  PROFILE: ['default', 'white', 'black', 'glass', 'orange', 'orange-outline', 'text'],
+  RECIPE: ['compact', 'white', 'black', 'glass', 'orange', 'orange-outline', 'text'],
+  INGREDIENT: ['default', 'white', 'black', 'glass', 'orange', 'orange-outline', 'text'],
+  LINK: ['default', 'white', 'black', 'glass', 'orange', 'orange-outline', 'text'],
 };
 
 export const SUPPORTED_TAP_STYLE_OVERLAYS = [
@@ -106,6 +106,16 @@ export function resolveStickerStyle(type: string, styleVariant?: string): Sticke
         iconClass: 'text-primary-foreground',
         accentClass: 'text-primary-foreground font-bold',
         badgeClass: 'bg-black/20 text-white border border-white/20',
+      };
+    case 'orange-outline':
+    case 'outline':
+      return {
+        variant: 'orange-outline',
+        isTextOnly: false,
+        wrapperClass: 'bg-transparent text-primary border border-primary shadow-sm',
+        iconClass: 'text-primary',
+        accentClass: 'text-primary font-bold',
+        badgeClass: 'bg-transparent text-primary border border-primary/40',
       };
     case 'text':
       return {

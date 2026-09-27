@@ -831,11 +831,30 @@ export function renderOverlayContent(overlay: StoryOverlay, mode: string, ctx?: 
       }
 
       const isOrange = theme.variant === 'orange';
+      const isOutline = theme.variant === 'orange-outline' || theme.variant === 'outline';
       const isBlack = theme.variant === 'black';
       const isWhite = theme.variant === 'white';
       const isGlass = theme.variant === 'glass';
-      const badgeBg = isOrange ? 'bg-white/20 text-white' : isBlack ? 'bg-white/10 text-white' : isWhite ? 'bg-zinc-100 text-zinc-900' : isGlass ? 'bg-white/15 text-white' : 'bg-primary/10 text-primary';
-      const iconExternal = isOrange ? 'text-primary-foreground/70' : isBlack ? 'text-zinc-400' : isWhite ? 'text-zinc-400' : 'text-muted-foreground';
+      const badgeBg = isOrange 
+        ? 'bg-white/20 text-white' 
+        : isOutline
+          ? 'bg-transparent text-primary border border-primary/40'
+          : isBlack 
+            ? 'bg-white/10 text-white' 
+            : isWhite 
+              ? 'bg-zinc-100 text-zinc-900' 
+              : isGlass 
+                ? 'bg-white/15 text-white' 
+                : 'bg-primary/10 text-primary';
+      const iconExternal = isOrange 
+        ? 'text-primary-foreground/70' 
+        : isOutline
+          ? 'text-primary'
+          : isBlack 
+            ? 'text-zinc-400' 
+            : isWhite 
+              ? 'text-zinc-400' 
+              : 'text-muted-foreground';
 
       return (
         <div 
