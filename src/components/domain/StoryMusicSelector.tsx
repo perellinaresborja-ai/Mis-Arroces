@@ -20,6 +20,7 @@ export interface StoryMusicSelectorProps {
   onClose: () => void
   maxDurationMs: number
   isVideo?: boolean
+  videoHasAudio?: boolean
   initialConfig?: any
   videoRef?: React.RefObject<HTMLVideoElement | null>
 }
@@ -57,6 +58,7 @@ export function StoryMusicSelector({
   onClose,
   maxDurationMs,
   isVideo = false,
+  videoHasAudio = true,
   initialConfig,
   videoRef
 }: StoryMusicSelectorProps) {
@@ -287,25 +289,27 @@ export function StoryMusicSelector({
   }, [isPlaying, selectionStartMs, selectionEndMs, videoRef])
 
   // Start preview of track fragment with simultaneous video playback
-  const playPreview = useCallback((startMs: number) => {
-    if (!selectedTrack) return
+  const playPreview = useCallback((startMs: number, trackParam?: MusicTrack) => {
+    const track = trackParam || selectedTrack
+    if (!track) return
     const audio = getOrCreateAudio()
     audio.volume = volume
 
-    if (audio.src !== selectedTrack.audio_url) {
-      audio.src = selectedTrack.audio_url
+    if (audio.src !== track.audio_url) {
+      audio.src = track.audio_url
     }
 
     isSeekingRef.current = true
     audio.currentTime = startMs / 1000
     audio.play().then(() => {
       setIsPlaying(true)
-      setPreviewTrackId(selectedTrack.id)
+      setPreviewTrackId(track.id)
       setCurrentPlaybackTimeMs(startMs)
 
-      if (videoRef?.current) {
-        videoRef.current.muted = originalVolume === 0
-        videoRef.current.volume = originalVolume
+      if (videoRef?.current && isVideo) {
+        const effectiveVol = videoHasAudio ? originalVolume : 0
+        videoRef.current.muted = effectiveVol === 0
+        videoRef.current.volume = effectiveVol
         videoRef.current.currentTime = 0
         videoRef.current.play().catch(() => {})
       }
@@ -317,7 +321,7 @@ export function StoryMusicSelector({
       setIsPlaying(false)
       isSeekingRef.current = false
     })
-  }, [selectedTrack, getOrCreateAudio, volume, originalVolume, videoRef])
+  }, [selectedTrack, getOrCreateAudio, volume, originalVolume, videoRef, isVideo, videoHasAudio])
 
   // Safely seek audio and sync video
   const seekAudioTo = useCallback((targetStartMs: number) => {
@@ -331,7 +335,7 @@ export function StoryMusicSelector({
 
     if (isPlaying) {
       audio.play().catch(() => {})
-      if (videoRef?.current) {
+      if (videoRef?.current && isVideo) {
         videoRef.current.currentTime = 0
         videoRef.current.play().catch(() => {})
       }
@@ -340,7 +344,7 @@ export function StoryMusicSelector({
     setTimeout(() => {
       isSeekingRef.current = false
     }, 150)
-  }, [selectedTrack, isPlaying, videoRef])
+  }, [selectedTrack, isPlaying, videoRef, isVideo])
 
   // Stop preview
   const stopPreview = useCallback(() => {
@@ -361,7 +365,8 @@ export function StoryMusicSelector({
     setSelectionStartMs(initialStart)
     setSelectionEndMs(initialStart + initialDur)
     setCurrentPlaybackTimeMs(initialStart)
-    playPreview(initialStart)
+    // Synchronously initiate audio playback within user click/touch gesture
+    playPreview(initialStart, track)
   }
 
   // Handler: Toggle preview play/pause in catalog list
@@ -597,7 +602,7 @@ export function StoryMusicSelector({
   const handleConfirm = () => {
     stopPreview()
     if (!selectedTrack) {
-      onSelect(isVideo ? { original_audio_volume: originalVolume } : null)
+      onSelect(isVideo && videoHasAudio ? { original_audio_volume: originalVolume } : null)
       return
     }
 
@@ -611,7 +616,7 @@ export function StoryMusicSelector({
       start_time_ms: selectionStartMs,
       duration_ms: actualDuration,
       music_volume: volume,
-      original_audio_volume: isVideo ? originalVolume : undefined,
+      original_audio_volume: isVideo && videoHasAudio ? originalVolume : undefined,
       _trackMeta: selectedTrack
     })
   }
@@ -619,7 +624,7 @@ export function StoryMusicSelector({
   // Remove music
   const handleRemoveMusic = () => {
     stopPreview()
-    onSelect(isVideo ? { original_audio_volume: originalVolume } : null)
+    onSelect(isVideo && videoHasAudio ? { original_audio_volume: originalVolume } : null)
   }
 
   return (
@@ -629,7 +634,7 @@ export function StoryMusicSelector({
     >
       <div
         className="w-full max-w-lg mx-auto bg-card border-t border-border rounded-t-3xl shadow-2xl flex flex-col overflow-hidden animate-in slide-in-from-bottom duration-200"
-        style={{ maxHeight: selectedTrack ? (isVideo ? '60vh' : '55vh') : '62vh' }}
+        style={{ maxHeight: selectedTrack ? (isVideo && videoHasAudio ? '78vh' : '70vh') : '65vh' }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Subtle top drag pill */}
@@ -767,12 +772,12 @@ export function StoryMusicSelector({
               )}
             </div>
 
-            {/* When it's a video story, show Audio del vídeo control so user can adjust it even without music */}
-            {isVideo && (
+            {/* When it's a video story with audio, show Audio del vídeo control so user can adjust it even without music */}
+            {isVideo && videoHasAudio && (
               <div className="p-3 border-t border-border/60 bg-muted/20 flex items-center justify-between gap-3 shrink-0">
                 <div className="flex-1 flex items-center gap-2 bg-card px-3 py-2 rounded-2xl border border-border/50">
                   <Video className="w-3.5 h-3.5 text-primary shrink-0" />
-                  <span className="text-[11px] font-semibold text-muted-foreground shrink-0">Audio del vídeo</span>
+                  <span className="text-[11px] font-semibold text-muted-foreground shrink-0 w-24">Audio del vídeo</span>
                   <input
                     type="range"
                     min={0}
@@ -796,7 +801,7 @@ export function StoryMusicSelector({
           </div>
         ) : (
           /* ---------------- STATE 2: INSTAGRAM-STYLE ADJUST FRAGMENT ---------------- */
-          <div className="flex-1 flex flex-col justify-between p-4 pt-1 gap-3 overflow-hidden">
+          <div className="flex-1 flex flex-col justify-between p-4 pt-1 gap-3 overflow-y-auto max-h-full">
             {/* Top Bar: Back, Track Info, Close */}
             <div className="flex items-center justify-between gap-2 shrink-0">
               <button
@@ -1014,8 +1019,8 @@ export function StoryMusicSelector({
                 </div>
               </div>
 
-              {/* Original Audio Volume (when video story) */}
-              {isVideo && (
+              {/* Original Audio Volume (when video story with audio) */}
+              {isVideo && videoHasAudio && (
                 <div className="flex items-center gap-2 bg-muted/40 px-3 py-2 rounded-2xl border border-border/40">
                   <Video className="w-3.5 h-3.5 text-primary shrink-0" />
                   <span className="text-[11px] font-semibold text-muted-foreground shrink-0">Audio del vídeo</span>

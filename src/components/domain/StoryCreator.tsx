@@ -6,7 +6,8 @@ import { StoryTransform, StoryOverlay, StoryBackground, DrawingOverlay } from '@
 import { createClient } from '@/lib/supabase/client';
 import { createStory } from '@/app/actions/stories';
 import { optimizeStoryVideo } from '@/lib/video-optimizer';
-import { globalStoryDraftUrl, globalStoryDraftType, globalStoryDraftFile, globalStoryDraftFresh, clearGlobalStoryDraft, setGlobalStoryDraft, consumeGlobalStoryDraft } from '@/lib/story-draft';
+import { globalStoryDraftUrl, globalStoryDraftType, globalStoryDraftFile, globalStoryDraftFresh, clearGlobalStoryDraft, setGlobalStoryDraft, consumeGlobalStoryDraft, isVideoFile } from '@/lib/story-draft';
+import { detectVideoHasAudio } from '@/lib/video-audio';
 import { SharedStoryRenderer, renderOverlayContent } from './SharedStoryRenderer';
 import { DraggableOverlay } from './stories/DraggableOverlay';
 import { MentionPicker, RecipePicker, IngredientPicker, LocationPicker, StickerPicker, LinkPicker, QuestionPicker, PollPicker, ProfilePicker, SliderPicker, HashtagPicker, CountdownPicker, cleanIngredientName } from './stories/StickerPickers';
@@ -139,17 +140,20 @@ export function StoryCreator({
   const [musicConfig, setMusicConfig] = useState<any>(null);
 
   useEffect(() => {
-    if (mode === 'MUSIC' && videoRef.current) {
-      const v = videoRef.current as any;
-      let hasA = false;
-      if (v.audioTracks && v.audioTracks.length > 0) hasA = true;
-      else if (v.mozHasAudio) hasA = true;
-      else if (v.webkitAudioDecodedByteCount > 0) hasA = true;
-      else if (v.videoTracks && v.videoTracks.length > 0 && !v.audioTracks) hasA = false; 
-      else hasA = true; // Fallback to true if we cannot definitively prove it has no audio
-      setVideoHasAudio(hasA);
+    if (draftMediaType !== 'VIDEO') {
+      setVideoHasAudio(false);
+      return;
     }
-  }, [mode]);
+    let isCancelled = false;
+    detectVideoHasAudio(videoRef.current, globalStoryDraftFile).then((hasA) => {
+      if (!isCancelled) {
+        setVideoHasAudio(hasA);
+      }
+    });
+    return () => {
+      isCancelled = true;
+    };
+  }, [draftMediaType, draftMediaUrl, mode]);
   const videoRef = useRef<HTMLVideoElement>(null);
   
   // Video playback & timeline state
@@ -171,6 +175,9 @@ export function StoryCreator({
         setDuration(vid.duration);
       }
       setIsPlaying(!vid.paused);
+      detectVideoHasAudio(vid, globalStoryDraftFile).then((hasA) => {
+        setVideoHasAudio(hasA);
+      });
     };
 
     const handleTime = () => {
@@ -307,10 +314,14 @@ export function StoryCreator({
     userHasInteractedRef.current = false;
     setDraftMediaUrl(url);
     setDraftMediaSize(file.size);
-    if (file.type.startsWith("video/")) {
+    if (isVideoFile(file)) {
       setDraftMediaType("VIDEO");
+      detectVideoHasAudio(null, file).then((hasA) => {
+        setVideoHasAudio(hasA);
+      });
     } else {
       setDraftMediaType("IMAGE");
+      setVideoHasAudio(false);
     }
     setMode('EDIT');
     e.target.value = '';
@@ -1027,14 +1038,16 @@ export function StoryCreator({
                 <MapPin size={18} />
               </button>
 
-              {/* 4. Música */}
+              {/* 4. Música y audio */}
               <button 
                 onClick={() => setMode('MUSIC')} 
                 className="w-10 h-10 bg-black/45 hover:bg-black/65 backdrop-blur-md rounded-full flex items-center justify-center text-white border border-white/15 transition-transform active:scale-90 relative shadow-sm cursor-pointer"
-                title="Música"
+                title={draftMediaType === 'VIDEO' ? "Música y audio del vídeo" : "Música"}
               >
-                <Music size={18} className={musicConfig?.track_id ? "text-primary" : "text-white"} />
-                {musicConfig?.track_id && <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-primary rounded-full border-2 border-zinc-950" />}
+                <Music size={18} className={(musicConfig?.track_id || (musicConfig?.original_audio_volume !== undefined && musicConfig.original_audio_volume !== 1)) ? "text-primary" : "text-white"} />
+                {(musicConfig?.track_id || (musicConfig?.original_audio_volume !== undefined && musicConfig.original_audio_volume !== 1)) && (
+                  <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-primary rounded-full border-2 border-zinc-950" />
+                )}
               </button>
 
               {/* 5. Stickers */}
@@ -1608,6 +1621,7 @@ export function StoryCreator({
       {mode === 'MUSIC' && (
         <StoryMusicSelector
           isVideo={draftMediaType === 'VIDEO'}
+          videoHasAudio={videoHasAudio}
           maxDurationMs={draftMediaType === 'VIDEO' ? Math.max(3000, Math.min(15000, ((videoRef.current?.duration || 15) * 1000))) : 15000}
           initialConfig={musicConfig}
           videoRef={videoRef}
