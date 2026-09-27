@@ -11,7 +11,7 @@ import { detectVideoHasAudio } from '@/lib/video-audio';
 import { SharedStoryRenderer, renderOverlayContent } from './SharedStoryRenderer';
 import { DraggableOverlay } from './stories/DraggableOverlay';
 import { MentionPicker, RecipePicker, IngredientPicker, LocationPicker, StickerPicker, LinkPicker, QuestionPicker, PollPicker, ProfilePicker, SliderPicker, HashtagPicker, CountdownPicker, cleanIngredientName } from './stories/StickerPickers';
-import { Camera, User, ChefHat, MapPin, AlignLeft, AlignCenter, AlignRight, Apple, Image as ImageIcon, Trash2, Paintbrush, Sparkles, Link as LinkIcon, HelpCircle, BarChart2, Music, Volume2, Video, X, Undo2, Globe, Users, AtSign, Smile, Hash, Timer, Play, Pause } from 'lucide-react';
+import { Camera, User, ChefHat, MapPin, AlignLeft, AlignCenter, AlignRight, Apple, Image as ImageIcon, Trash2, Paintbrush, Sparkles, Link as LinkIcon, HelpCircle, BarChart2, Music, Volume2, VolumeX, Video, X, Undo2, Globe, Users, AtSign, Smile, Hash, Timer, Play, Pause } from 'lucide-react';
 import { StoryMusicSelector } from './StoryMusicSelector';
 import { isTapStyleSupported, getNextStickerStyle } from '@/lib/story-sticker-styles';
 
@@ -153,7 +153,7 @@ export function StoryCreator({
     return () => {
       isCancelled = true;
     };
-  }, [draftMediaType, draftMediaUrl, mode]);
+  }, [draftMediaType, draftMediaUrl]);
   const videoRef = useRef<HTMLVideoElement>(null);
   
   // Video playback & timeline state
@@ -1354,9 +1354,20 @@ export function StoryCreator({
             {/* Video Timeline & Progress Bar */}
             {draftMediaType === 'VIDEO' && draftMediaUrl && (
               <div className="w-full flex flex-col gap-1 pointer-events-auto select-none mb-0.5">
-                {/* Time Display */}
+                {/* Time Display & Quick Audio Control */}
                 <div className="flex items-center justify-between text-[11px] font-mono font-medium text-white/80 select-none px-0.5">
                   <span>{formatTime(currentTime)}</span>
+                  {videoHasAudio && (
+                    <button
+                      type="button"
+                      onClick={() => setMode('MUSIC')}
+                      className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-black/55 hover:bg-black/75 border border-white/20 text-white font-sans text-[10px] font-semibold transition-all active:scale-95 cursor-pointer shadow-sm"
+                      title="Ajustar volumen del audio del vídeo"
+                    >
+                      {(musicConfig?.original_audio_volume === 0) ? <VolumeX size={12} className="text-red-400" /> : <Volume2 size={12} className="text-primary" />}
+                      <span>Audio del vídeo: {Math.round((musicConfig?.original_audio_volume ?? 1) * 100)}%</span>
+                    </button>
+                  )}
                   <span>{formatTime(duration)}</span>
                 </div>
                 {/* Progress Bar / Scrubbing Track */}
