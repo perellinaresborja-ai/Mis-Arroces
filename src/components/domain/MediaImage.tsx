@@ -53,8 +53,8 @@ export function MediaImage({
   if (!src || error) {
     if (fallbackType === 'avatar') {
       return (
-        <div className={`flex items-center justify-center bg-primary/10 text-primary/50 ${className}`}>
-          <User className="w-1/2 h-1/2" />
+        <div className={`flex items-center justify-center bg-muted text-muted-foreground ${className}`}>
+          <User className="w-1/2 h-1/2 text-muted-foreground/70" strokeWidth={1.75} />
         </div>
       )
     }

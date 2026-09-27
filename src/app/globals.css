@@ -75,7 +75,7 @@
   
   /* Sand (#E5E0D6) for muted backgrounds and borders */
   --muted: #E5E0D6;
-  --muted-foreground: #6B7280; /* A soft gray for text on muted */
+  --muted-foreground: #4D535E; /* Slightly darkened for enhanced control contrast and accessibility */
   
   --accent: #E5E0D6;
   --accent-foreground: #1D1D1B;

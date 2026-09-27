@@ -504,9 +504,11 @@ export function StoriesViewer({ groupedStories: _groupedStories, initialGroupInd
           >
             <div className="w-10 h-10 rounded-full bg-muted overflow-hidden flex items-center justify-center shrink-0">
               {currentGroup.author?.avatar?.storage_path ? (
-                <img src={`${"https://zvesoygqssyyojqyswwm.supabase.co"}/storage/v1/object/public/recipe_media/${currentGroup.author.avatar.storage_path}`} className="w-full h-full object-cover" />
+                <img src={`https://zvesoygqssyyojqyswwm.supabase.co/storage/v1/object/public/recipe_media/${currentGroup.author.avatar.storage_path}`} className="w-full h-full object-cover" />
+              ) : currentGroup.author?.avatar_url ? (
+                <img src={currentGroup.author.avatar_url} className="w-full h-full object-cover" />
               ) : (
-                <span className="font-bold text-muted-foreground text-sm">{(currentGroup.author?.display_name || currentGroup.author?.username || "?").charAt(0).toUpperCase()}</span>
+                <User className="w-5 h-5 text-muted-foreground/70" strokeWidth={1.75} />
               )}
             </div>
             <div className="flex flex-col drop-shadow-md min-w-0 flex-1 overflow-hidden">
@@ -828,10 +830,8 @@ export function StoriesViewer({ groupedStories: _groupedStories, initialGroupInd
                           variant="avatar"
                           fallbackType="avatar"
                         />
-                      ) : (v.display_name || v.username) ? (
-                        <span className="font-bold text-muted-foreground text-sm">{(v.display_name || v.username).charAt(0).toUpperCase()}</span>
                       ) : (
-                        <User className="w-5 h-5 text-muted-foreground" />
+                        <User className="w-5 h-5 text-muted-foreground/70" strokeWidth={1.75} />
                       )}
                     </div>
                     <div>

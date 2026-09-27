@@ -57,7 +57,14 @@ export function StoriesBar({ groupedStories, currentUser }: { groupedStories: an
     safeCloseViewer()
   }
 
-  const currentUserAvatarPath = currentUser?.avatar?.storage_path || (Array.isArray(currentUser?.avatar) ? currentUser.avatar[0]?.storage_path : null);
+  const currentUserAvatarPath = currentUser?.avatar?.storage_path || 
+    (Array.isArray(currentUser?.avatar) ? currentUser.avatar[0]?.storage_path : null) ||
+    currentUser?.avatar_url ||
+    currentUser?.user_metadata?.avatar_url ||
+    currentUser?.user_metadata?.picture ||
+    currentUser?.raw_user_meta_data?.avatar_url ||
+    currentUser?.raw_user_meta_data?.picture ||
+    null;
   const currentUserAvatarUrl = currentUserAvatarPath
     ? (currentUserAvatarPath.startsWith('http') ? currentUserAvatarPath : `https://zvesoygqssyyojqyswwm.supabase.co/storage/v1/object/public/recipe_media/${currentUserAvatarPath}`)
     : null;
@@ -86,12 +93,8 @@ export function StoriesBar({ groupedStories, currentUser }: { groupedStories: an
                       unoptimized={true}
                     />
                   ) : (
-                    <div className="w-full h-full bg-primary/10 flex items-center justify-center text-primary/60 font-bold">
-                      {(currentUser?.display_name || currentUser?.username) ? (
-                        <span>{(currentUser.display_name || currentUser.username).charAt(0).toUpperCase()}</span>
-                      ) : (
-                        <User className="w-6 h-6 text-muted-foreground" />
-                      )}
+                    <div className="w-full h-full bg-muted flex items-center justify-center text-muted-foreground">
+                      <User className="w-7 h-7 text-muted-foreground/70" strokeWidth={1.75} />
                     </div>
                   )}
                 </div>
@@ -145,7 +148,12 @@ export function StoriesBar({ groupedStories, currentUser }: { groupedStories: an
             }
           }
           
-          const authorAvatarPath = group.author?.avatar?.storage_path || (Array.isArray(group.author?.avatar) ? group.author.avatar[0]?.storage_path : null);
+          const authorAvatarPath = group.author?.avatar?.storage_path || 
+            (Array.isArray(group.author?.avatar) ? group.author.avatar[0]?.storage_path : null) ||
+            group.author?.avatar_url ||
+            group.author?.user_metadata?.avatar_url ||
+            group.author?.user_metadata?.picture ||
+            null;
           const authorAvatarUrl = authorAvatarPath ? (authorAvatarPath.startsWith('http') ? authorAvatarPath : `https://zvesoygqssyyojqyswwm.supabase.co/storage/v1/object/public/recipe_media/${authorAvatarPath}`) : null;
           
           return (
@@ -171,7 +179,7 @@ export function StoriesBar({ groupedStories, currentUser }: { groupedStories: an
                     ) : authorAvatarUrl ? (
                       <MediaImage
                         src={authorAvatarUrl}
-                        alt={group.author?.display_name || "Autor"}
+                        alt={group.author?.display_name || group.author?.username || "Autor"}
                         className="w-full h-full object-cover"
                         fill={true}
                         variant="avatar"
@@ -179,12 +187,8 @@ export function StoriesBar({ groupedStories, currentUser }: { groupedStories: an
                         unoptimized={true}
                       />
                     ) : (
-                      <div className="w-full h-full bg-primary/10 flex items-center justify-center text-primary/60 font-bold">
-                        {(group.author?.display_name || group.author?.username) ? (
-                          <span>{(group.author.display_name || group.author.username).charAt(0).toUpperCase()}</span>
-                        ) : (
-                          <User className="w-6 h-6 text-muted-foreground" />
-                        )}
+                      <div className="w-full h-full bg-muted flex items-center justify-center text-muted-foreground">
+                        <User className="w-7 h-7 text-muted-foreground/70" strokeWidth={1.75} />
                       </div>
                     )}
                   </div>
