@@ -38,6 +38,7 @@ export function ExpandableImage({ src, alt, className }: ExpandableImageProps) {
       <img 
         src={src} 
         alt={alt} 
+        loading="lazy"
         className={`${className || ''} cursor-pointer hover:opacity-90 transition-opacity`} 
         onClick={(e) => {
           e.stopPropagation()

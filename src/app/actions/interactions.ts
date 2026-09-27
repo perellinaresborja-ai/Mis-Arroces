@@ -104,6 +104,9 @@ export interface CommentMediaInput {
     height?: number
     aspectRatio?: number
     giphyId?: string
+    size?: number
+    original_name?: string
+    storage_path?: string
   } | null
 }
 
@@ -133,6 +136,26 @@ export async function createComment(
     }
     if (!media.url || typeof media.url !== "string") {
       throw new Error("URL de multimedia no válida.")
+    }
+
+    if (media.type === "IMAGE") {
+      const isOurStorage = media.url.includes(`/recipe_media/${user.id}/comments/`) || media.url.startsWith(`${user.id}/comments/`)
+      if (!isOurStorage) {
+        throw new Error("La imagen adjunta no pertenece al almacenamiento autorizado del usuario.")
+      }
+      if (media.metadata?.size && typeof media.metadata.size === "number" && media.metadata.size > 15 * 1024 * 1024) {
+        throw new Error("La imagen supera el límite de 15MB.")
+      }
+    } else if (media.type === "GIF") {
+      try {
+        const parsed = new URL(media.url)
+        const hostname = parsed.hostname.toLowerCase()
+        if (!hostname.endsWith("giphy.com")) {
+          throw new Error()
+        }
+      } catch {
+        throw new Error("URL de GIF no válida. Solo se admiten recursos procedentes de GIPHY.")
+      }
     }
   }
 
