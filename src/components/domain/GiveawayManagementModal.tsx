@@ -14,7 +14,15 @@ import {
   Ban,
   Loader2,
   Sparkles,
-  ArrowRight
+  ArrowRight,
+  Volume2,
+  VolumeX,
+  Share2,
+  Video,
+  FileText,
+  Disc,
+  List,
+  Timer
 } from "lucide-react"
 import {
   getGiveawayParticipantsServer,
@@ -23,33 +31,49 @@ import {
   cancelGiveaway
 } from "@/app/actions/giveaways"
 import { GiveawayParticipant, Giveaway } from "@/types/giveaway"
+import { GiveawayWheel } from "./giveaway/GiveawayWheel"
+import { GiveawayNamesRoll } from "./giveaway/GiveawayNamesRoll"
+import { GiveawayCountdown } from "./giveaway/GiveawayCountdown"
+import { GiveawayShareCard } from "./giveaway/GiveawayShareCard"
+import { GiveawayVideoGenerator } from "./giveaway/GiveawayVideoGenerator"
+import { giveawaySound } from "./giveaway/GiveawaySound"
 
 interface GiveawayManagementModalProps {
   giveawayId: string
   certificateCode: string
   isOpen: boolean
   onClose: () => void
+  initialTab?: "participants" | "draw" | "results"
 }
+
+type RevealMode = "wheel" | "names" | "countdown"
+type DrawStep = "ready" | "select_mode" | "revealing" | "finished"
 
 export function GiveawayManagementModal({
   giveawayId,
   certificateCode,
   isOpen,
-  onClose
+  onClose,
+  initialTab
 }: GiveawayManagementModalProps) {
-  const [tab, setTab] = useState<"participants" | "draw" | "results">("participants")
+  const [tab, setTab] = useState<"participants" | "draw" | "results">(initialTab || "participants")
   const [giveaway, setGiveaway] = useState<Giveaway | null>(null)
   const [participants, setParticipants] = useState<GiveawayParticipant[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<"all" | "eligible" | "ineligible">("all")
   const [searchQuery, setSearchQuery] = useState("")
 
-  // Sorteo y animación 3-2-1
-  const [isDrawing, setIsDrawing] = useState(false)
-  const [showConfirmDraw, setShowConfirmDraw] = useState(false)
-  const [countdown, setCountdown] = useState<number | null>(null)
-  const [drawnResults, setDrawnResults] = useState<any | null>(null)
-  const [revealedWinnersCount, setRevealedWinnersCount] = useState<number>(0)
+  // Flujo visual del Sorteo
+  const [drawStep, setDrawStep] = useState<DrawStep>("ready")
+  const [revealMode, setRevealMode] = useState<RevealMode>("wheel")
+  const [soundEnabled, setSoundEnabled] = useState(true)
+  const [isServerDrawing, setIsServerDrawing] = useState(false)
+  const [drawnWinners, setDrawnWinners] = useState<any[]>([])
+  const [currentWinnerIndex, setCurrentWinnerIndex] = useState(0)
+  const [currentWinnerRevealed, setCurrentWinnerRevealed] = useState(false)
+
+  // Modales secundarios de compartir y vídeo
+  const [activeMediaModal, setActiveMediaModal] = useState<"share_card" | "video" | null>(null)
 
   // Cancelación
   const [showCancelPrompt, setShowCancelPrompt] = useState(false)
@@ -70,8 +94,13 @@ export function GiveawayManagementModal({
       const res = await getGiveawayParticipantsServer(giveawayId)
       setGiveaway(res.giveaway)
       setParticipants(res.participants)
+
       if (res.giveaway.status === "DRAWN") {
         setTab("results")
+        const existingWinners = (res.giveaway.results || []).filter((r: any) => r.role === "WINNER")
+        setDrawnWinners(existingWinners)
+      } else if (initialTab) {
+        setTab(initialTab)
       }
     } catch (err: any) {
       setActionError(err.message || "Error al cargar datos del sorteo")
@@ -82,9 +111,10 @@ export function GiveawayManagementModal({
 
   useEffect(() => {
     if (isOpen) {
+      if (initialTab) setTab(initialTab)
       loadData()
     }
-  }, [isOpen, giveawayId])
+  }, [isOpen, giveawayId, initialTab])
 
   if (!isOpen) return null
 
@@ -103,43 +133,33 @@ export function GiveawayManagementModal({
   })
 
   const eligibleCount = participants.filter((p) => p.isEligible).length
+  const eligibleUsernames = participants.filter((p) => p.isEligible).map((p) => p.username)
   const ineligibleCount = participants.length - eligibleCount
 
-  // Ejecutar el sorteo criptográfico con animación
-  const handleStartDraw = async () => {
-    setShowConfirmDraw(false)
-    setIsDrawing(true)
+  // Iniciar ejecución: Servidor decide ANTES de que comience cualquier animación
+  const handleStartDrawExecution = async () => {
     setActionError(null)
+    setIsServerDrawing(true)
 
     try {
-      // 1. Ejecutar en servidor (persistencia atómica previa)
-      const res = await drawGiveawayWinners(giveawayId)
-      setDrawnResults(res)
+      let winnersToUse = drawnWinners
 
-      // 2. Animación visual 3... 2... 1...
-      setCountdown(3)
-      await new Promise((r) => setTimeout(r, 900))
-      setCountdown(2)
-      await new Promise((r) => setTimeout(r, 900))
-      setCountdown(1)
-      await new Promise((r) => setTimeout(r, 900))
-      setCountdown(0)
-      await new Promise((r) => setTimeout(r, 600))
-      setCountdown(null)
-
-      // 3. Revelación secuencial de ganadores
-      const totalWinners = res.winners.length
-      for (let i = 1; i <= totalWinners; i++) {
-        setRevealedWinnersCount(i)
-        await new Promise((r) => setTimeout(r, 650))
+      // Solo llamar a drawGiveawayWinners si el sorteo aún no está DRAWN
+      if (!giveaway || giveaway.status !== "DRAWN") {
+        const res = await drawGiveawayWinners(giveawayId)
+        winnersToUse = res.winners
+        setDrawnWinners(res.winners)
+        await loadData()
       }
 
-      await loadData()
-      setTab("results")
+      // Con el resultado persistido en el servidor, iniciamos la revelación secuencial
+      setCurrentWinnerIndex(0)
+      setCurrentWinnerRevealed(false)
+      setDrawStep("revealing")
     } catch (err: any) {
       setActionError(err.message || "Error al realizar el sorteo")
     } finally {
-      setIsDrawing(false)
+      setIsServerDrawing(false)
     }
   }
 
@@ -179,21 +199,22 @@ export function GiveawayManagementModal({
 
   const winners = (giveaway?.results || []).filter((r) => r.role === "WINNER")
   const alternates = (giveaway?.results || []).filter((r) => r.role === "ALTERNATE")
+  const currentRevealingWinner = drawnWinners[currentWinnerIndex] || winners[currentWinnerIndex]
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/70 backdrop-blur-sm p-0 sm:p-4 animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/75 backdrop-blur-sm p-0 sm:p-4 animate-in fade-in duration-200">
       <div className="absolute inset-0" onClick={onClose} />
 
-      <div className="relative w-full max-w-2xl bg-card border border-border rounded-t-3xl sm:rounded-3xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden z-10">
+      <div className="relative w-full max-w-2xl bg-card border border-border rounded-t-3xl sm:rounded-3xl shadow-2xl flex flex-col max-h-[92vh] overflow-hidden z-10">
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-border shrink-0">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-border shrink-0 bg-card">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-amber-500/15 text-amber-600 flex items-center justify-center font-bold">
+            <div className="w-8 h-8 rounded-xl bg-amber-500/15 text-amber-600 flex items-center justify-center font-bold shadow-sm">
               <Trophy className="w-4 h-4" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="font-bold text-base text-foreground">
+                <h3 className="font-extrabold text-base text-foreground">
                   Gestión del sorteo
                 </h3>
                 <span className="text-[11px] font-mono bg-muted px-2 py-0.5 rounded-md text-muted-foreground font-semibold">
@@ -209,7 +230,7 @@ export function GiveawayManagementModal({
           <button
             type="button"
             onClick={onClose}
-            className="p-1.5 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+            className="p-1.5 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>
@@ -220,7 +241,7 @@ export function GiveawayManagementModal({
           <button
             type="button"
             onClick={() => setTab("participants")}
-            className={`py-3 border-b-2 transition-colors flex items-center gap-1.5 ${
+            className={`py-3 border-b-2 transition-colors flex items-center gap-1.5 cursor-pointer ${
               tab === "participants"
                 ? "border-primary text-primary"
                 : "border-transparent text-muted-foreground hover:text-foreground"
@@ -234,7 +255,7 @@ export function GiveawayManagementModal({
             <button
               type="button"
               onClick={() => setTab("results")}
-              className={`py-3 border-b-2 transition-colors flex items-center gap-1.5 ${
+              className={`py-3 border-b-2 transition-colors flex items-center gap-1.5 cursor-pointer ${
                 tab === "results"
                   ? "border-primary text-primary"
                   : "border-transparent text-muted-foreground hover:text-foreground"
@@ -247,85 +268,55 @@ export function GiveawayManagementModal({
             <button
               type="button"
               onClick={() => setTab("draw")}
-              className={`py-3 border-b-2 transition-colors flex items-center gap-1.5 ${
+              className={`py-3 border-b-2 transition-colors flex items-center gap-1.5 cursor-pointer ${
                 tab === "draw"
                   ? "border-primary text-primary"
                   : "border-transparent text-muted-foreground hover:text-foreground"
               }`}
             >
               <Sparkles className="w-4 h-4 text-amber-500" />
-              <span>Realizar sorteo</span>
+              <span>Realizar Sorteo</span>
             </button>
           )}
         </div>
 
-        {/* Mensaje de error si ocurre */}
+        {/* Error global de acción si ocurre */}
         {actionError && (
-          <div className="mx-5 mt-4 p-3 rounded-xl bg-destructive/10 text-destructive text-xs font-semibold border border-destructive/20">
-            {actionError}
+          <div className="m-4 p-3.5 bg-destructive/10 text-destructive text-xs rounded-2xl border border-destructive/20 flex items-start gap-2">
+            <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+            <div className="flex-1 font-medium">{actionError}</div>
           </div>
         )}
 
-        {/* Cuerpo del Modal */}
-        <div className="flex-1 overflow-y-auto p-5">
+        {/* CONTENIDO DE PESTAÑAS */}
+        <div className="flex-1 overflow-y-auto p-5 space-y-4">
           {loading ? (
-            <div className="flex flex-col items-center justify-center py-16 gap-3 text-muted-foreground text-sm">
-              <Loader2 className="w-6 h-6 animate-spin text-primary" />
-              <span>Evaluando participantes en tiempo real...</span>
-            </div>
-          ) : isDrawing ? (
-            /* ANIMACIÓN DE CUENTA ATRÁS Y REVELACIÓN */
-            <div className="flex flex-col items-center justify-center py-16 text-center space-y-6">
-              {countdown !== null ? (
-                <div className="space-y-4 animate-in zoom-in-50 duration-200">
-                  <div className="w-24 h-24 rounded-full bg-amber-500/20 text-amber-600 border-2 border-amber-500 flex items-center justify-center text-5xl font-black mx-auto shadow-xl">
-                    {countdown === 0 ? "¡YA!" : countdown}
-                  </div>
-                  <h4 className="text-lg font-bold text-foreground">
-                    Seleccionando ganadores criptográficamente...
-                  </h4>
-                  <p className="text-xs text-muted-foreground max-w-sm mx-auto">
-                    Algoritmo aleatorio CSPRNG neutral certificado por misarroces.
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-4 w-full max-w-md mx-auto">
-                  <Trophy className="w-12 h-12 text-amber-500 mx-auto animate-bounce" />
-                  <h4 className="text-xl font-black text-foreground">
-                    ¡Ganadores seleccionados!
-                  </h4>
-                  <div className="space-y-2">
-                    {drawnResults?.winners.slice(0, revealedWinnersCount).map((w: any) => (
-                      <div
-                        key={w.id}
-                        className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-between animate-in slide-in-from-bottom-2 duration-300"
-                      >
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs font-black bg-amber-500 text-white px-2 py-0.5 rounded-full">
-                            #{w.position}
-                          </span>
-                          <span className="font-bold text-sm text-foreground">
-                            @{w.user?.username || "ganador"}
-                          </span>
-                        </div>
-                        <span className="text-xs text-emerald-600 font-bold">¡Ganador!</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
+            <div className="flex flex-col items-center justify-center py-16 space-y-2 text-muted-foreground">
+              <Loader2 className="w-7 h-7 animate-spin text-primary" />
+              <span className="text-xs">Cargando censo oficial del sorteo...</span>
             </div>
           ) : tab === "participants" ? (
-            /* LISTA DE PARTICIPANTES */
+            /* TAB 1: LISTADO DE PARTICIPANTES */
             <div className="space-y-4">
-              {/* Filtros y Buscador */}
-              <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
-                <div className="flex items-center gap-1.5 bg-muted/40 p-1 rounded-xl border border-border text-xs font-semibold">
+              {/* Barra de filtros y búsqueda */}
+              <div className="flex flex-col sm:flex-row gap-2.5 justify-between">
+                <div className="relative flex-1">
+                  <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                  <input
+                    type="text"
+                    placeholder="Buscar participante..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full pl-9 pr-3 py-2 rounded-xl bg-muted/40 border border-input text-xs outline-none focus:border-primary"
+                  />
+                </div>
+
+                <div className="flex gap-1.5 bg-muted/40 p-1 rounded-xl border border-border">
                   <button
                     type="button"
                     onClick={() => setFilter("all")}
-                    className={`px-2.5 py-1 rounded-lg transition-colors ${
-                      filter === "all" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground"
+                    className={`px-2.5 py-1 text-xs rounded-lg font-semibold transition-colors ${
+                      filter === "all" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"
                     }`}
                   >
                     Todos ({participants.length})
@@ -333,8 +324,8 @@ export function GiveawayManagementModal({
                   <button
                     type="button"
                     onClick={() => setFilter("eligible")}
-                    className={`px-2.5 py-1 rounded-lg transition-colors ${
-                      filter === "eligible" ? "bg-emerald-500/15 text-emerald-600 shadow-sm" : "text-muted-foreground"
+                    className={`px-2.5 py-1 text-xs rounded-lg font-semibold transition-colors ${
+                      filter === "eligible" ? "bg-card text-emerald-600 shadow-sm" : "text-muted-foreground"
                     }`}
                   >
                     Válidos ({eligibleCount})
@@ -342,368 +333,569 @@ export function GiveawayManagementModal({
                   <button
                     type="button"
                     onClick={() => setFilter("ineligible")}
-                    className={`px-2.5 py-1 rounded-lg transition-colors ${
-                      filter === "ineligible" ? "bg-amber-500/15 text-amber-600 shadow-sm" : "text-muted-foreground"
+                    className={`px-2.5 py-1 text-xs rounded-lg font-semibold transition-colors ${
+                      filter === "ineligible" ? "bg-card text-destructive shadow-sm" : "text-muted-foreground"
                     }`}
                   >
                     Incompletos ({ineligibleCount})
                   </button>
                 </div>
-
-                <div className="relative flex-1 sm:max-w-xs">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-                  <input
-                    type="text"
-                    placeholder="Buscar participante..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full pl-8 pr-3 py-1.5 text-xs rounded-xl border border-input bg-background outline-none"
-                  />
-                </div>
               </div>
 
-              {/* Lista */}
-              <div className="divide-y divide-border/50 border border-border rounded-2xl overflow-hidden bg-card">
-                {filteredParticipants.length > 0 ? (
-                  filteredParticipants.map((p) => (
-                    <div key={p.userId} className="p-3.5 flex items-center justify-between gap-3 hover:bg-muted/30 transition-colors">
-                      <div className="flex items-center gap-3 min-w-0">
-                        <div className="w-10 h-10 rounded-full bg-muted overflow-hidden shrink-0 border border-border">
-                          {p.avatarUrl ? (
-                            <img src={p.avatarUrl} alt="" className="w-full h-full object-cover" />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center font-bold text-xs text-muted-foreground">
-                              {p.username.charAt(0).toUpperCase()}
-                            </div>
-                          )}
-                        </div>
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-1.5">
-                            <span className="font-bold text-sm text-foreground truncate">
-                              {p.displayName}
-                            </span>
-                            <span className="text-xs text-muted-foreground truncate">
-                              @{p.username}
-                            </span>
-                          </div>
-                          {p.isEligible ? (
-                            <span className="text-[11px] font-semibold text-emerald-600 flex items-center gap-1 mt-0.5">
-                              <CheckCircle2 className="w-3 h-3" />
-                              Cumple todas las condiciones requeridas
-                            </span>
-                          ) : (
-                            <div className="flex flex-wrap gap-1 mt-1">
-                              {p.missingCriteria.map((c, idx) => (
-                                <span
-                                  key={idx}
-                                  className="text-[10px] font-semibold bg-amber-500/10 text-amber-600 border border-amber-500/20 px-1.5 py-0.2 rounded-md"
-                                >
-                                  {c}
-                                </span>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="shrink-0">
-                        {p.isEligible ? (
-                          <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/15 text-emerald-600 border border-emerald-500/20">
-                            Elegible
-                          </span>
-                        ) : (
-                          <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-muted text-muted-foreground border border-border">
-                            No válido
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <div className="text-center py-12 text-xs text-muted-foreground">
-                    No hay participantes que coincidan con el filtro.
+              {/* Lista de participantes con checklist */}
+              <div className="space-y-2">
+                {filteredParticipants.length === 0 ? (
+                  <div className="text-center py-12 text-xs text-muted-foreground bg-muted/20 rounded-2xl border border-border">
+                    No se encontraron participantes en este filtro.
                   </div>
+                ) : (
+                  filteredParticipants.map((p) => {
+                    return (
+                      <div
+                        key={p.userId}
+                        className="flex items-center justify-between gap-3 p-3 rounded-2xl border border-border bg-card hover:bg-muted/30 transition-colors"
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div className="w-9 h-9 rounded-full bg-muted overflow-hidden border border-border shrink-0">
+                            {p.avatarUrl ? (
+                              <img src={p.avatarUrl} alt={p.username} className="w-full h-full object-cover" />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center text-xs font-bold text-muted-foreground">
+                                {p.username[0]?.toUpperCase()}
+                              </div>
+                            )}
+                          </div>
+                          <div className="min-w-0">
+                            <span className="font-bold text-xs sm:text-sm text-foreground truncate block">
+                              {p.displayName || p.username}
+                            </span>
+                            <span className="text-[11px] text-muted-foreground">@{p.username}</span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span
+                            className={`text-[10px] font-bold px-2.5 py-1 rounded-full border ${
+                              p.isEligible
+                                ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
+                                : "bg-destructive/10 text-destructive border-destructive/20"
+                            }`}
+                          >
+                            {p.isEligible ? "Apto" : "Incompleto"}
+                          </span>
+                        </div>
+                      </div>
+                    )
+                  })
                 )}
               </div>
             </div>
           ) : tab === "draw" ? (
-            /* ACCIONES Y REALIZAR SORTEO */
+            /* TAB 2: EXPERIENCIA VISUAL DEL SORTEO */
             <div className="space-y-6">
-              <div className="p-5 rounded-2xl bg-amber-500/10 border border-amber-500/25 space-y-3">
-                <div className="flex items-center gap-2">
-                  <Sparkles className="w-5 h-5 text-amber-600" />
-                  <h4 className="font-extrabold text-base text-foreground">
-                    Realizar selección criptográfica oficial
-                  </h4>
-                </div>
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  Al pulsar el botón, el servidor congelará el snapshot inmutable de participantes válidos ({eligibleCount} elegibles) y seleccionará de forma imparcial y definitiva a los {giveaway?.num_winners} ganadores y {giveaway?.num_alternates} suplentes.
-                </p>
-                <div className="pt-2">
-                  <button
-                    type="button"
-                    onClick={() => setShowConfirmDraw(true)}
-                    disabled={eligibleCount === 0 || giveaway?.status === "CANCELLED"}
-                    className="w-full py-3.5 bg-amber-500 hover:bg-amber-600 text-white font-extrabold rounded-2xl text-sm shadow-md transition-all flex items-center justify-center gap-2 disabled:opacity-50"
-                  >
-                    <Trophy className="w-4 h-4" />
-                    Realizar sorteo ahora
-                  </button>
-                  {eligibleCount === 0 && (
-                    <p className="text-[11px] text-amber-600 mt-1 text-center font-medium">
-                      Se necesita al menos 1 participante elegible para sortear.
-                    </p>
-                  )}
-                </div>
-              </div>
+              {/* PASO 1: SORTEO PREPARADO */}
+              {drawStep === "ready" && (
+                <div className="p-6 rounded-3xl bg-muted/20 border border-border text-center space-y-4">
+                  <div className="w-14 h-14 rounded-2xl bg-amber-500/15 text-amber-600 flex items-center justify-center mx-auto shadow-sm">
+                    <Sparkles className="w-7 h-7" />
+                  </div>
 
-              {/* Cancelación */}
-              <div className="p-4 rounded-2xl bg-muted/30 border border-border space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                    Zona de cancelación
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => setShowCancelPrompt(!showCancelPrompt)}
-                    className="text-xs font-bold text-destructive hover:underline"
-                  >
-                    {showCancelPrompt ? "Ocultar" : "Cancelar este sorteo"}
-                  </button>
-                </div>
-                {showCancelPrompt && (
-                  <div className="pt-2 space-y-2">
-                    <input
-                      type="text"
-                      placeholder="Motivo de la cancelación (ej: Cancelado por fuerza mayor)..."
-                      value={cancelReason}
-                      onChange={(e) => setCancelReason(e.target.value)}
-                      className="w-full px-3 py-2 text-xs rounded-xl border border-input bg-background outline-none"
-                    />
+                  <div className="space-y-1">
+                    <h3 className="text-lg font-black text-foreground">
+                      SORTEO PREPARADO
+                    </h3>
+                    <p className="text-xs text-muted-foreground">
+                      Todo listo para realizar la extracción certificada.
+                    </p>
+                  </div>
+
+                  {/* Resumen de censo */}
+                  <div className="grid grid-cols-2 gap-3 max-w-sm mx-auto">
+                    <div className="p-3 rounded-2xl bg-card border border-border">
+                      <span className="text-[10px] uppercase font-bold text-muted-foreground block">
+                        Evaluados
+                      </span>
+                      <span className="text-xl font-black text-foreground">
+                        {participants.length}
+                      </span>
+                    </div>
+                    <div className="p-3 rounded-2xl bg-card border border-border">
+                      <span className="text-[10px] uppercase font-bold text-emerald-600 block">
+                        Válidos (Aptos)
+                      </span>
+                      <span className="text-xl font-black text-emerald-600">
+                        {eligibleCount}
+                      </span>
+                    </div>
+                  </div>
+
+                  {eligibleCount === 0 ? (
+                    <div className="p-3.5 rounded-2xl bg-destructive/10 text-destructive text-xs border border-destructive/20">
+                      No hay participantes que cumplan todas las condiciones requeridas. No es posible realizar el sorteo.
+                    </div>
+                  ) : (
                     <button
                       type="button"
-                      onClick={handleCancelGiveaway}
-                      disabled={isCancelling}
-                      className="px-4 py-2 bg-destructive text-destructive-foreground text-xs font-bold rounded-xl hover:bg-destructive/90"
+                      onClick={() => setDrawStep("select_mode")}
+                      className="px-8 py-3.5 rounded-2xl bg-primary text-primary-foreground font-black text-xs uppercase tracking-wider shadow-lg hover:bg-primary/90 transition-all flex items-center justify-center gap-2 mx-auto cursor-pointer"
                     >
-                      {isCancelling ? "Cancelando..." : "Confirmar cancelación"}
+                      <span>Continuar</span>
+                      <ArrowRight className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {/* PASO 2: ¿CÓMO QUIERES DESCUBRIR AL GANADOR? */}
+              {drawStep === "select_mode" && (
+                <div className="space-y-6 animate-in fade-in duration-200">
+                  <div className="text-center space-y-1">
+                    <h3 className="text-lg font-black text-foreground">
+                      ¿CÓMO QUIERES DESCUBRIR AL GANADOR?
+                    </h3>
+                    <p className="text-xs text-muted-foreground">
+                      Elige el modo de presentación visual. La extracción se realiza de forma segura y criptográfica en el servidor.
+                    </p>
+                  </div>
+
+                  {/* Selector de los 3 modos */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setRevealMode("wheel")}
+                      className={`p-4 rounded-2xl border text-center space-y-2.5 transition-all cursor-pointer ${
+                        revealMode === "wheel"
+                          ? "bg-amber-500/10 border-amber-500 shadow-md ring-2 ring-amber-500/20"
+                          : "bg-card border-border hover:bg-muted/40"
+                      }`}
+                    >
+                      <div className="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center mx-auto">
+                        <Disc className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <div className="font-extrabold text-sm text-foreground">RULETA</div>
+                        <div className="text-[11px] text-muted-foreground">Giro dinámico y suspense con aguja</div>
+                      </div>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setRevealMode("names")}
+                      className={`p-4 rounded-2xl border text-center space-y-2.5 transition-all cursor-pointer ${
+                        revealMode === "names"
+                          ? "bg-amber-500/10 border-amber-500 shadow-md ring-2 ring-amber-500/20"
+                          : "bg-card border-border hover:bg-muted/40"
+                      }`}
+                    >
+                      <div className="w-10 h-10 rounded-xl bg-primary text-white flex items-center justify-center mx-auto">
+                        <List className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <div className="font-extrabold text-sm text-foreground">NOMBRES</div>
+                        <div className="text-[11px] text-muted-foreground">Carrusel vertical slot machine</div>
+                      </div>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setRevealMode("countdown")}
+                      className={`p-4 rounded-2xl border text-center space-y-2.5 transition-all cursor-pointer ${
+                        revealMode === "countdown"
+                          ? "bg-amber-500/10 border-amber-500 shadow-md ring-2 ring-amber-500/20"
+                          : "bg-card border-border hover:bg-muted/40"
+                      }`}
+                    >
+                      <div className="w-10 h-10 rounded-xl bg-foreground text-background flex items-center justify-center mx-auto">
+                        <Timer className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <div className="font-extrabold text-sm text-foreground">3 · 2 · 1</div>
+                        <div className="text-[11px] text-muted-foreground">Cuenta atrás limpia y cinematográfica</div>
+                      </div>
                     </button>
                   </div>
-                )}
-              </div>
-            </div>
-          ) : (
-            /* RESULTADOS CERTIFICADOS Y SUSTITUCIÓN */
-            <div className="space-y-6">
-              {/* Certificado link */}
-              <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/25 flex items-center justify-between gap-3">
-                <div>
-                  <span className="text-[10px] uppercase font-black bg-emerald-500 text-white px-2 py-0.5 rounded-full">
-                    CERTIFICADO OFICIAL
-                  </span>
-                  <div className="font-mono text-sm font-black text-foreground mt-1">
-                    {certificateCode}
-                  </div>
-                  <span className="text-xs text-muted-foreground">
-                    Resultado público e inmutable registrado en misarroces.
-                  </span>
-                </div>
-                <Link
-                  href={`/sorteos/${certificateCode}`}
-                  className="px-3.5 py-2 rounded-xl bg-primary text-primary-foreground font-bold text-xs flex items-center gap-1.5 hover:bg-primary/90 transition-colors shrink-0"
-                >
-                  <ShieldCheck className="w-3.5 h-3.5" />
-                  Ver Certificado
-                </Link>
-              </div>
 
-              {/* Ganadores */}
-              <div className="space-y-3">
-                <h4 className="font-bold text-sm text-foreground flex items-center gap-2">
-                  <Trophy className="w-4 h-4 text-amber-500" />
-                  <span>Ganadores Oficiales ({winners.length})</span>
-                </h4>
-
-                <div className="space-y-2">
-                  {winners.map((w) => (
-                    <div
-                      key={w.id}
-                      className="p-3.5 rounded-2xl border border-border bg-card flex items-center justify-between gap-3"
+                  {/* Control de sonido */}
+                  <div className="flex items-center justify-between p-3.5 rounded-2xl bg-muted/30 border border-border">
+                    <div className="flex items-center gap-2 text-xs font-semibold text-foreground">
+                      {soundEnabled ? (
+                        <Volume2 className="w-4 h-4 text-primary" />
+                      ) : (
+                        <VolumeX className="w-4 h-4 text-muted-foreground" />
+                      )}
+                      <span>Sonido de revelación</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setSoundEnabled(!soundEnabled)}
+                      className={`px-3 py-1 rounded-xl text-xs font-bold transition-colors cursor-pointer ${
+                        soundEnabled
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-muted text-muted-foreground"
+                      }`}
                     >
-                      <div className="flex items-center gap-3 min-w-0">
-                        <span className="w-7 h-7 rounded-full bg-amber-500 text-white text-xs font-black flex items-center justify-center shrink-0">
-                          #{w.position}
-                        </span>
-                        <div className="w-9 h-9 rounded-full bg-muted overflow-hidden shrink-0 border border-border">
-                          {w.user?.avatar?.storage_path ? (
-                            <img
-                              src={`https://zvesoygqssyyojqyswwm.supabase.co/storage/v1/object/public/recipe_media/${w.user.avatar.storage_path}`}
-                              alt=""
-                              className="w-full h-full object-cover"
-                            />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center font-bold text-xs">
-                              {w.user?.username?.charAt(0).toUpperCase()}
-                            </div>
-                          )}
-                        </div>
-                        <div className="min-w-0">
-                          <span className="font-bold text-sm text-foreground block truncate">
-                            {w.user?.display_name || `@${w.user?.username}`}
-                          </span>
-                          <span className="text-xs text-muted-foreground block truncate">
-                            @{w.user?.username}
-                          </span>
-                          {w.status === "REPLACED" && (
-                            <span className="text-[11px] text-destructive font-semibold block mt-0.5">
-                              Sustituido: {w.replacement_reason}
-                            </span>
-                          )}
-                        </div>
-                      </div>
+                      {soundEnabled ? "Activado" : "Desactivado"}
+                    </button>
+                  </div>
 
-                      {w.status === "CONFIRMED" && (
+                  {/* Botón de inicio */}
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setDrawStep("ready")}
+                      className="px-4 py-3 rounded-2xl border border-border text-xs font-bold text-muted-foreground hover:bg-muted"
+                    >
+                      Volver
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleStartDrawExecution}
+                      disabled={isServerDrawing}
+                      className="flex-1 py-3 px-4 rounded-2xl bg-primary text-primary-foreground font-black text-xs uppercase tracking-wider shadow-lg hover:bg-primary/90 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                    >
+                      {isServerDrawing ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          <span>Certificando en servidor...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="w-4 h-4" />
+                          <span>Comenzar Sorteo</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* PASO 3: REVELACIÓN VISUAL (RULETA / NOMBRES / 3-2-1) */}
+              {drawStep === "revealing" && currentRevealingWinner && (
+                <div className="space-y-6 text-center animate-in fade-in duration-200">
+                  <div className="space-y-1">
+                    <span className="text-[11px] uppercase font-black tracking-widest text-amber-600 bg-amber-500/10 px-3 py-1 rounded-full border border-amber-500/20">
+                      GANADOR {currentWinnerIndex + 1} DE {drawnWinners.length || 1}
+                    </span>
+                    <h3 className="text-base font-extrabold text-foreground pt-1">
+                      {giveaway?.title}
+                    </h3>
+                  </div>
+
+                  {/* Componente del modo seleccionado */}
+                  {revealMode === "wheel" && (
+                    <GiveawayWheel
+                      winnerUsername={currentRevealingWinner.user?.username || currentRevealingWinner.username}
+                      winnerDisplayName={currentRevealingWinner.user?.display_name || currentRevealingWinner.displayName}
+                      winnerAvatarUrl={
+                        currentRevealingWinner.user?.avatar?.storage_path
+                          ? `https://zvesoygqssyyojqyswwm.supabase.co/storage/v1/object/public/recipe_media/${currentRevealingWinner.user.avatar.storage_path}`
+                          : null
+                      }
+                      eligibleUsernames={eligibleUsernames}
+                      soundEnabled={soundEnabled}
+                      onFinish={() => setCurrentWinnerRevealed(true)}
+                    />
+                  )}
+
+                  {revealMode === "names" && (
+                    <GiveawayNamesRoll
+                      winnerUsername={currentRevealingWinner.user?.username || currentRevealingWinner.username}
+                      winnerDisplayName={currentRevealingWinner.user?.display_name || currentRevealingWinner.displayName}
+                      winnerAvatarUrl={
+                        currentRevealingWinner.user?.avatar?.storage_path
+                          ? `https://zvesoygqssyyojqyswwm.supabase.co/storage/v1/object/public/recipe_media/${currentRevealingWinner.user.avatar.storage_path}`
+                          : null
+                      }
+                      eligibleUsernames={eligibleUsernames}
+                      soundEnabled={soundEnabled}
+                      onFinish={() => setCurrentWinnerRevealed(true)}
+                    />
+                  )}
+
+                  {revealMode === "countdown" && (
+                    <GiveawayCountdown
+                      winnerUsername={currentRevealingWinner.user?.username || currentRevealingWinner.username}
+                      winnerDisplayName={currentRevealingWinner.user?.display_name || currentRevealingWinner.displayName}
+                      winnerAvatarUrl={
+                        currentRevealingWinner.user?.avatar?.storage_path
+                          ? `https://zvesoygqssyyojqyswwm.supabase.co/storage/v1/object/public/recipe_media/${currentRevealingWinner.user.avatar.storage_path}`
+                          : null
+                      }
+                      soundEnabled={soundEnabled}
+                      onFinish={() => setCurrentWinnerRevealed(true)}
+                    />
+                  )}
+
+                  {/* Botón para avanzar si hay más ganadores o ir a resultados */}
+                  {currentWinnerRevealed && (
+                    <div className="pt-4 animate-in fade-in duration-300">
+                      {currentWinnerIndex < drawnWinners.length - 1 ? (
                         <button
                           type="button"
                           onClick={() => {
-                            setReplacingWinnerId(w.id)
-                            setReplacementReason("")
+                            setCurrentWinnerIndex((prev) => prev + 1)
+                            setCurrentWinnerRevealed(false)
                           }}
-                          className="px-2.5 py-1.5 rounded-xl border border-border hover:bg-muted text-xs font-semibold text-muted-foreground flex items-center gap-1.5 shrink-0"
+                          className="px-8 py-3.5 rounded-2xl bg-primary text-primary-foreground font-black text-xs uppercase tracking-wider shadow-lg hover:bg-primary/90 transition-all flex items-center justify-center gap-2 mx-auto cursor-pointer"
                         >
-                          <RotateCcw className="w-3.5 h-3.5" />
-                          <span>Sustituir</span>
+                          <span>Descubrir Siguiente Ganador ({currentWinnerIndex + 2}/{drawnWinners.length})</span>
+                          <ArrowRight className="w-4 h-4" />
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setTab("results")}
+                          className="px-8 py-3.5 rounded-2xl bg-emerald-600 text-white font-black text-xs uppercase tracking-wider shadow-lg hover:bg-emerald-700 transition-all flex items-center justify-center gap-2 mx-auto cursor-pointer"
+                        >
+                          <Trophy className="w-4 h-4" />
+                          <span>Ver Resultados Oficiales y Certificado</span>
                         </button>
                       )}
                     </div>
-                  ))}
+                  )}
+                </div>
+              )}
+            </div>
+          ) : (
+            /* TAB 3: RESULTADOS CERTIFICADOS Y COMPARTIR */
+            <div className="space-y-6">
+              {/* Composición Final: Ganadores Certificados */}
+              <div className="p-5 rounded-3xl bg-emerald-500/10 border border-emerald-500/25 space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Trophy className="w-5 h-5 text-emerald-600" />
+                    <h4 className="font-black text-base text-foreground">
+                      SORTEO FINALIZADO
+                    </h4>
+                  </div>
+                  <span className="text-xs font-bold text-emerald-600 bg-emerald-500/15 px-2.5 py-0.5 rounded-full">
+                    Certificado Oficial
+                  </span>
+                </div>
+
+                {/* Lista de Ganadores */}
+                <div className="space-y-3">
+                  {winners.map((winner) => {
+                    const isReplaced = winner.status === "REPLACED"
+                    const avatar = winner.user?.avatar?.storage_path
+                      ? `https://zvesoygqssyyojqyswwm.supabase.co/storage/v1/object/public/recipe_media/${winner.user.avatar.storage_path}`
+                      : null
+
+                    return (
+                      <div
+                        key={winner.id}
+                        className={`rounded-2xl border p-3.5 flex items-center justify-between gap-3 ${
+                          isReplaced ? "bg-muted/40 border-border opacity-70" : "bg-card border-emerald-500/30 shadow-sm"
+                        }`}
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <span className="w-7 h-7 rounded-xl bg-amber-500 text-white font-black text-xs flex items-center justify-center shrink-0">
+                            {winner.position}º
+                          </span>
+
+                          <div className="w-10 h-10 rounded-full bg-muted overflow-hidden border border-border shrink-0">
+                            {avatar ? (
+                              <img src={avatar} alt="avatar" className="w-full h-full object-cover" />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center font-bold text-xs text-muted-foreground">
+                                {winner.user?.username?.[0]?.toUpperCase()}
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="min-w-0">
+                            <span className="font-extrabold text-sm text-foreground block truncate">
+                              {winner.user?.display_name || winner.user?.username}
+                            </span>
+                            <span className="text-xs text-muted-foreground">
+                              @{winner.user?.username}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 shrink-0">
+                          {isReplaced ? (
+                            <span className="text-[10px] font-bold text-destructive bg-destructive/10 px-2 py-0.5 rounded-full">
+                              Sustituido
+                            </span>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setReplacingWinnerId(winner.id)
+                                setReplacementReason("")
+                              }}
+                              className="text-xs font-semibold text-muted-foreground hover:text-foreground px-2 py-1 rounded-lg border border-border hover:bg-muted"
+                            >
+                              Sustituir
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    )
+                  })}
                 </div>
               </div>
 
-              {/* Suplentes */}
+              {/* Suplentes si existen */}
               {alternates.length > 0 && (
-                <div className="space-y-3 pt-2 border-t border-border">
-                  <h4 className="font-bold text-sm text-muted-foreground flex items-center gap-2">
-                    <Users className="w-4 h-4" />
-                    <span>Suplentes Oficiales ({alternates.length})</span>
-                  </h4>
+                <div className="p-4 rounded-2xl bg-muted/20 border border-border space-y-2.5">
+                  <div className="flex items-center justify-between text-xs font-bold text-muted-foreground">
+                    <span className="uppercase tracking-wider">Suplentes Oficiales</span>
+                    <span>{alternates.length} extraídos</span>
+                  </div>
 
-                  <div className="space-y-2">
-                    {alternates.map((a) => (
+                  <div className="space-y-1.5">
+                    {alternates.map((alt) => (
                       <div
-                        key={a.id}
-                        className="p-3 rounded-2xl border border-border bg-muted/20 flex items-center justify-between gap-3 text-xs"
+                        key={alt.id}
+                        className="flex items-center justify-between text-xs p-2 rounded-xl bg-card border border-border/60"
                       >
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          <span className="w-6 h-6 rounded-full bg-muted text-muted-foreground font-bold flex items-center justify-center shrink-0">
-                            #{a.position}
-                          </span>
-                          <span className="font-bold text-foreground truncate">
-                            @{a.user?.username}
-                          </span>
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-muted-foreground">S{alt.position}</span>
+                          <span className="font-semibold text-foreground">@{alt.user?.username}</span>
                         </div>
-                        <span className="text-[11px] font-semibold text-muted-foreground">
-                          {a.status === "CLAIMED" ? "Promovido a ganador" : "En reserva"}
+                        <span className="text-[10px] text-muted-foreground font-medium">
+                          {alt.status === "CLAIMED" ? "Promovido a ganador" : "En reserva"}
                         </span>
                       </div>
                     ))}
                   </div>
                 </div>
               )}
+
+              {/* Botones de Acciones Principales */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setActiveMediaModal("share_card")}
+                  className="py-3 px-3 rounded-2xl bg-primary text-primary-foreground font-bold text-xs shadow-md hover:bg-primary/90 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <Share2 className="w-4 h-4" />
+                  <span>Compartir Tarjeta</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setActiveMediaModal("video")}
+                  className="py-3 px-3 rounded-2xl bg-amber-500 text-white font-bold text-xs shadow-md hover:bg-amber-600 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <Video className="w-4 h-4" />
+                  <span>Generar Vídeo (9:16)</span>
+                </button>
+
+                <Link
+                  href={`/sorteos/${certificateCode}`}
+                  target="_blank"
+                  className="py-3 px-3 rounded-2xl bg-muted text-foreground font-bold text-xs border border-border hover:bg-muted/80 transition-colors flex items-center justify-center gap-1.5 text-center"
+                >
+                  <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                  <span>Ver Certificado</span>
+                </Link>
+              </div>
+
+              {/* Modal de Tarjeta Compartible */}
+              {activeMediaModal === "share_card" && winners.length > 0 && (
+                <div className="pt-4 border-t border-border">
+                  <div className="flex justify-between items-center mb-3">
+                    <h5 className="font-bold text-xs uppercase tracking-wider text-muted-foreground">
+                      Tarjeta Visual Oficial
+                    </h5>
+                    <button
+                      type="button"
+                      onClick={() => setActiveMediaModal(null)}
+                      className="text-xs text-muted-foreground hover:text-foreground"
+                    >
+                      Cerrar
+                    </button>
+                  </div>
+                  <GiveawayShareCard
+                    title={giveaway?.title || "Sorteo Oficial"}
+                    prize={giveaway?.prize || "Premio"}
+                    winnerUsername={winners[0].user?.username || "ganador"}
+                    winnerDisplayName={winners[0].user?.display_name || ""}
+                    winnerAvatarUrl={
+                      winners[0].user?.avatar?.storage_path
+                        ? `https://zvesoygqssyyojqyswwm.supabase.co/storage/v1/object/public/recipe_media/${winners[0].user.avatar.storage_path}`
+                        : null
+                    }
+                    organizerUsername={giveaway?.organizer?.username || "organizador"}
+                    certificateCode={certificateCode}
+                  />
+                </div>
+              )}
+
+              {/* Modal de Generador de Vídeo */}
+              {activeMediaModal === "video" && winners.length > 0 && (
+                <div className="pt-4 border-t border-border">
+                  <div className="flex justify-between items-center mb-3">
+                    <h5 className="font-bold text-xs uppercase tracking-wider text-muted-foreground">
+                      Vídeo 9:16 con Código QR
+                    </h5>
+                    <button
+                      type="button"
+                      onClick={() => setActiveMediaModal(null)}
+                      className="text-xs text-muted-foreground hover:text-foreground"
+                    >
+                      Cerrar
+                    </button>
+                  </div>
+                  <GiveawayVideoGenerator
+                    title={giveaway?.title || "Sorteo Oficial"}
+                    prize={giveaway?.prize || "Premio"}
+                    winnerUsername={winners[0].user?.username || "ganador"}
+                    winnerDisplayName={winners[0].user?.display_name || ""}
+                    winnerAvatarUrl={
+                      winners[0].user?.avatar?.storage_path
+                        ? `https://zvesoygqssyyojqyswwm.supabase.co/storage/v1/object/public/recipe_media/${winners[0].user.avatar.storage_path}`
+                        : null
+                    }
+                    organizerUsername={giveaway?.organizer?.username || "organizador"}
+                    certificateCode={certificateCode}
+                  />
+                </div>
+              )}
+
+              {/* Diálogo de Sustitución */}
+              {replacingWinnerId && (
+                <div className="p-4 rounded-2xl bg-destructive/10 border border-destructive/20 space-y-3 mt-4">
+                  <div className="flex items-center gap-2 text-destructive font-bold text-xs">
+                    <AlertTriangle className="w-4 h-4 shrink-0" />
+                    <span>Sustituir Ganador por el siguiente Suplente</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    El suplente en primera posición ascenderá automáticamente a ganador. Esta acción queda auditada y visible en el certificado público.
+                  </p>
+                  <textarea
+                    rows={2}
+                    placeholder="Motivo obligatorio (ej: No responde tras 48 horas)"
+                    value={replacementReason}
+                    onChange={(e) => setReplacementReason(e.target.value)}
+                    className="w-full p-2.5 rounded-xl border border-input bg-background text-xs outline-none"
+                  />
+                  <div className="flex gap-2 justify-end">
+                    <button
+                      type="button"
+                      onClick={() => setReplacingWinnerId(null)}
+                      className="px-3 py-1.5 rounded-xl border border-border text-xs font-semibold hover:bg-muted"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleReplaceWinner}
+                      disabled={isReplacing || replacementReason.trim().length < 5}
+                      className="px-4 py-1.5 rounded-xl bg-destructive text-destructive-foreground text-xs font-bold hover:bg-destructive/90 disabled:opacity-50"
+                    >
+                      {isReplacing ? "Sustituyendo..." : "Confirmar Sustitución"}
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
-
-        {/* Footer */}
-        <div className="p-4 border-t border-border bg-muted/10 shrink-0 flex justify-end">
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-5 py-2 rounded-xl bg-muted text-foreground text-xs font-bold hover:bg-muted/80 transition-colors"
-          >
-            Cerrar
-          </button>
-        </div>
       </div>
-
-      {/* Modal de confirmación para realizar sorteo */}
-      {showConfirmDraw && (
-        <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-150">
-          <div className="bg-card border border-border rounded-3xl p-6 max-w-sm w-full space-y-4 shadow-2xl text-center">
-            <div className="w-12 h-12 rounded-full bg-amber-500/20 text-amber-600 flex items-center justify-center mx-auto">
-              <Trophy className="w-6 h-6" />
-            </div>
-            <h4 className="font-black text-lg text-foreground">
-              ¿Realizar sorteo definitivo?
-            </h4>
-            <p className="text-xs text-muted-foreground leading-relaxed">
-              Esta selección generará el resultado oficial e inmutable. Se seleccionarán {giveaway?.num_winners} ganadores entre los {eligibleCount} participantes válidos.
-            </p>
-            <div className="flex gap-2 pt-2">
-              <button
-                type="button"
-                onClick={() => setShowConfirmDraw(false)}
-                className="flex-1 py-2.5 rounded-xl border border-border text-xs font-bold text-foreground hover:bg-muted"
-              >
-                Cancelar
-              </button>
-              <button
-                type="button"
-                onClick={handleStartDraw}
-                className="flex-1 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-extrabold shadow-md"
-              >
-                Sortear ahora
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Modal de confirmación para sustitución por suplente */}
-      {replacingWinnerId && (
-        <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-150">
-          <div className="bg-card border border-border rounded-3xl p-6 max-w-md w-full space-y-4 shadow-2xl">
-            <div className="flex items-center gap-2">
-              <RotateCcw className="w-5 h-5 text-amber-500" />
-              <h4 className="font-bold text-base text-foreground">
-                Sustituir ganador por suplente
-              </h4>
-            </div>
-            <p className="text-xs text-muted-foreground leading-relaxed">
-              El ganador será sustituido por el siguiente suplente en orden correlativo. Esta sustitución y su motivo quedarán certificados públicamente.
-            </p>
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold text-muted-foreground uppercase">
-                Motivo de la sustitución <span className="text-destructive">*</span>
-              </label>
-              <textarea
-                rows={3}
-                placeholder="Ej: El ganador no ha respondido en el plazo de 48 horas establecido en las bases..."
-                value={replacementReason}
-                onChange={(e) => setReplacementReason(e.target.value)}
-                className="w-full px-3 py-2 text-xs rounded-xl border border-input bg-background outline-none resize-none"
-              />
-            </div>
-            <div className="flex gap-2 pt-2">
-              <button
-                type="button"
-                onClick={() => setReplacingWinnerId(null)}
-                className="flex-1 py-2.5 rounded-xl border border-border text-xs font-bold text-foreground hover:bg-muted"
-              >
-                Cancelar
-              </button>
-              <button
-                type="button"
-                onClick={handleReplaceWinner}
-                disabled={isReplacing || replacementReason.trim().length < 5}
-                className="flex-1 py-2.5 rounded-xl bg-primary text-primary-foreground text-xs font-bold shadow-md disabled:opacity-50"
-              >
-                {isReplacing ? "Sustituyendo..." : "Confirmar sustitución"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   )
 }

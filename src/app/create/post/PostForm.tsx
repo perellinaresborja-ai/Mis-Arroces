@@ -83,6 +83,7 @@ export function PostForm({ recipes }: { recipes: { id: string; name: string }[] 
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
   const [showDiscardModal, setShowDiscardModal] = useState(false)
+  const [showTermsModal, setShowTermsModal] = useState(false)
 
   const isSubmittingRef = useRef(false)
   const isExitingRef = useRef(false)
@@ -1319,28 +1320,35 @@ El organizador contactará a los ganadores a través de misarroces. Si un ganado
                         </p>
                       </div>
 
-                      {/* Bases legales */}
-                      <div className="space-y-1.5 pt-2 border-t border-border">
-                        <div className="flex items-center justify-between">
-                          <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                            Bases legales y condiciones <span className="text-destructive">*</span>
-                          </label>
+                      {/* Bases del sorteo compactas */}
+                      <div className="pt-2 border-t border-border">
+                        <div className="p-3 rounded-2xl bg-card border border-border flex items-center justify-between gap-3 shadow-xs">
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <div className="w-8 h-8 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0 text-primary">
+                              <FileText className="w-4 h-4" />
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-xs font-bold uppercase tracking-wider text-foreground">
+                                BASES DEL SORTEO
+                              </p>
+                              <p className="text-[11px] text-muted-foreground truncate">
+                                {giveawayConfig.termsAndConditions.trim() ? "Generadas automáticamente" : "Pendiente de redactar"}
+                              </p>
+                            </div>
+                          </div>
                           <button
                             type="button"
-                            onClick={handleGenerateTerms}
-                            className="inline-flex items-center gap-1 text-xs text-primary font-bold hover:underline"
+                            onClick={() => {
+                              if (!giveawayConfig.termsAndConditions.trim()) {
+                                handleGenerateTerms()
+                              }
+                              setShowTermsModal(true)
+                            }}
+                            className="px-3 py-1.5 rounded-xl border border-border bg-background hover:bg-muted/50 text-xs font-bold text-foreground transition-colors shrink-0"
                           >
-                            <Sparkles className="w-3.5 h-3.5" />
-                            Generar borrador
+                            Ver / editar
                           </button>
                         </div>
-                        <textarea
-                          rows={4}
-                          value={giveawayConfig.termsAndConditions}
-                          onChange={(e) => setGiveawayConfig((prev) => ({ ...prev, termsAndConditions: e.target.value }))}
-                          placeholder="Bases del sorteo..."
-                          className="w-full px-3 py-2 rounded-xl border border-input bg-background text-xs font-mono outline-none resize-none"
-                        />
                       </div>
 
                       {/* Declaración de responsabilidad */}
@@ -1387,6 +1395,59 @@ El organizador contactará a los ganadores a través de misarroces. Si un ganado
                   </div>
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Bases del Sorteo */}
+      {showTermsModal && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="w-full max-w-lg bg-card border border-border rounded-3xl p-5 shadow-2xl flex flex-col max-h-[85vh] space-y-4 animate-in fade-in zoom-in-95">
+            <div className="flex items-center justify-between pb-3 border-b border-border">
+              <div className="flex items-center gap-2">
+                <FileText className="w-5 h-5 text-primary" />
+                <h3 className="font-bold text-base text-foreground">Bases del Sorteo</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowTermsModal(false)}
+                className="p-1.5 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="flex-1 min-h-0 flex flex-col space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-muted-foreground">
+                  Condiciones y requisitos legales del sorteo:
+                </span>
+                <button
+                  type="button"
+                  onClick={handleGenerateTerms}
+                  className="inline-flex items-center gap-1 text-xs text-primary font-bold hover:underline"
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  Regenerar borrador
+                </button>
+              </div>
+              <textarea
+                value={giveawayConfig.termsAndConditions}
+                onChange={(e) => setGiveawayConfig((prev) => ({ ...prev, termsAndConditions: e.target.value }))}
+                placeholder="Escribe las bases del sorteo..."
+                className="w-full flex-1 min-h-[260px] p-3 rounded-2xl border border-input bg-background text-xs font-mono outline-none resize-none leading-relaxed"
+              />
+            </div>
+
+            <div className="pt-3 border-t border-border flex items-center justify-end gap-2">
+              <Button
+                type="button"
+                onClick={() => setShowTermsModal(false)}
+                className="rounded-xl font-bold text-xs bg-primary text-primary-foreground"
+              >
+                Guardar y cerrar
+              </Button>
             </div>
           </div>
         </div>

@@ -18,12 +18,27 @@ export function GiveawayBanner({ giveaway, currentUserId, compact = false }: Giv
   const [loadingStatus, setLoadingStatus] = useState(false)
   const [showDetails, setShowDetails] = useState(!compact)
   const [showManageModal, setShowManageModal] = useState(false)
+  const [modalTab, setModalTab] = useState<"participants" | "draw" | "results">("participants")
   const [copiedShare, setCopiedShare] = useState(false)
 
   const isOrganizer = currentUserId && currentUserId === giveaway.organizer_id
-  const isFinished = giveaway.status === "DRAWN" || giveaway.status === "CLOSED"
+  const isDrawn = giveaway.status === "DRAWN"
   const isCancelled = giveaway.status === "CANCELLED"
-  const isActive = giveaway.status === "ACTIVE"
+  const isPastDeadline = new Date(giveaway.ends_at).getTime() <= Date.now()
+  const isClosed = !isDrawn && !isCancelled && (giveaway.status === "CLOSED" || isPastDeadline)
+  const isActive = giveaway.status === "ACTIVE" && !isPastDeadline
+  const isFinished = isDrawn || isClosed
+
+  // Formato exacto requerido: Finaliza: DD/MM/YYYY · HH:MM
+  const formatEndsAt = (iso: string) => {
+    try {
+      const d = new Date(iso)
+      const pad = (n: number) => String(n).padStart(2, "0")
+      return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} · ${pad(d.getHours())}:${pad(d.getMinutes())}`
+    } catch {
+      return iso
+    }
+  }
 
   // Cargar estado de participación del usuario si está autenticado
   useEffect(() => {
@@ -48,38 +63,10 @@ export function GiveawayBanner({ giveaway, currentUserId, compact = false }: Giv
     }
   }, [currentUserId, giveaway.post_id, giveaway.status])
 
-  // Formato de tiempo restante limpio
-  const getRemainingTimeText = () => {
-    if (isCancelled) return "Sorteo cancelado"
-    if (isFinished) return "Sorteo finalizado"
-
-    const now = new Date()
-    const end = new Date(giveaway.ends_at)
-    const diffMs = end.getTime() - now.getTime()
-
-    if (diffMs <= 0) return "Cerrando sorteo..."
-
-    const diffHours = Math.floor(diffMs / (1000 * 60 * 60))
-    const diffDays = Math.floor(diffHours / 24)
-
-    if (diffDays >= 2) {
-      return `Quedan ${diffDays} días · Cierra el ${end.toLocaleDateString("es-ES", { day: "numeric", month: "short" })}`
-    }
-    if (diffDays === 1) {
-      return `Queda 1 día · Cierra mañana a las ${end.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}`
-    }
-    if (diffHours >= 1) {
-      return `Quedan ${diffHours} h · Cierra hoy a las ${end.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}`
-    }
-
-    const diffMinutes = Math.floor(diffMs / (1000 * 60))
-    return `¡Últimos ${diffMinutes} minutos!`
-  }
-
   // Compartir resultado
   const handleShare = async () => {
     const certUrl = `https://www.misarroces.es/sorteos/${giveaway.certificate_code}`
-    const text = isFinished
+    const text = isDrawn
       ? `🎉 ¡Sorteo finalizado en misarroces! Comprueba los ganadores certificados de "${giveaway.title}".`
       : `🎁 ¡Participa en el sorteo de "${giveaway.title}" en misarroces!`
 
@@ -103,65 +90,128 @@ export function GiveawayBanner({ giveaway, currentUserId, compact = false }: Giv
 
   const winners = (giveaway.results || []).filter((r) => r.role === "WINNER")
 
-  // Vista compacta para el Feed
+  const getStatusBadge = () => {
+    if (isDrawn) {
+      return (
+        <span className="text-[10px] sm:text-[11px] font-bold px-2 py-0.5 rounded-full bg-muted text-muted-foreground border border-border shrink-0">
+          SORTEO FINALIZADO
+        </span>
+      )
+    }
+    if (isClosed) {
+      return (
+        <span className="text-[10px] sm:text-[11px] font-bold px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-600 border border-amber-500/25 shrink-0">
+          SORTEO CERRADO
+        </span>
+      )
+    }
+    if (isActive) {
+      return (
+        <span className="text-[10px] sm:text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-600 border border-emerald-500/20 shrink-0">
+          SORTEO ACTIVO
+        </span>
+      )
+    }
+    return (
+      <span className="text-[10px] sm:text-[11px] font-bold px-2 py-0.5 rounded-full bg-destructive/10 text-destructive border border-destructive/20 shrink-0">
+        SORTEO CANCELADO
+      </span>
+    )
+  }
+
+  // Vista compacta para el FeedCard
   if (compact) {
     return (
-      <div className="rounded-2xl border border-amber-500/30 bg-amber-500/5 p-3 sm:p-3.5 space-y-2.5">
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2 min-w-0">
-            <span className="text-[10px] uppercase font-black bg-amber-500 text-white px-2 py-0.5 rounded-full shadow-sm shrink-0">
-              SORTEO
-            </span>
-            <span className="font-bold text-xs sm:text-sm text-foreground truncate">
-              {giveaway.title}
-            </span>
-          </div>
-          <span
-            className={`text-[11px] font-bold px-2 py-0.5 rounded-full shrink-0 ${
-              isActive
-                ? "bg-emerald-500/15 text-emerald-600 border border-emerald-500/20"
-                : isCancelled
-                ? "bg-destructive/10 text-destructive border border-destructive/20"
-                : "bg-muted text-muted-foreground border border-border"
-            }`}
-          >
-            {isActive ? "Activo" : isCancelled ? "Cancelado" : "Finalizado"}
-          </span>
-        </div>
-
-        <div className="text-xs text-muted-foreground flex items-center justify-between gap-2">
-          <div className="flex items-center gap-1.5 truncate">
-            <Trophy className="w-3.5 h-3.5 text-amber-500 shrink-0" />
-            <span className="truncate font-medium">{giveaway.prize}</span>
-          </div>
-          <span className="text-[11px] text-muted-foreground/80 shrink-0">
-            {getRemainingTimeText()}
-          </span>
-        </div>
-
-        {isFinished && winners.length > 0 && (
-          <div className="pt-2 border-t border-border/50 flex items-center justify-between text-xs">
-            <div className="flex items-center gap-1.5">
-              <span className="font-semibold text-foreground">Ganador:</span>
-              <span className="text-primary font-bold">
-                @{winners[0].user?.username || "ganador"}
+      <>
+        <div className="rounded-2xl border border-amber-500/30 bg-amber-500/5 p-3 sm:p-3.5 space-y-2.5">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="text-[10px] uppercase font-black bg-amber-500 text-white px-2 py-0.5 rounded-full shadow-sm shrink-0">
+                SORTEO
               </span>
-              {winners.length > 1 && (
-                <span className="text-muted-foreground text-[11px]">
-                  +{winners.length - 1} más
-                </span>
-              )}
+              <span className="font-bold text-xs sm:text-sm text-foreground truncate">
+                {giveaway.title}
+              </span>
             </div>
-            <Link
-              href={`/sorteos/${giveaway.certificate_code}`}
-              className="text-[11px] font-bold text-primary hover:underline flex items-center gap-1"
-            >
-              <ShieldCheck className="w-3 h-3" />
-              Certificado
-            </Link>
+            {getStatusBadge()}
           </div>
+
+          <div className="text-xs text-muted-foreground flex items-center justify-between gap-2">
+            <div className="flex items-center gap-1.5 truncate">
+              <Trophy className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+              <span className="truncate font-medium">{giveaway.prize}</span>
+            </div>
+            {isActive ? (
+              <span className="text-[11px] text-muted-foreground/90 shrink-0">
+                Finaliza: {formatEndsAt(giveaway.ends_at)}
+              </span>
+            ) : isClosed ? (
+              isOrganizer ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setModalTab("draw")
+                    setShowManageModal(true)
+                  }}
+                  className="px-2.5 py-0.5 rounded-lg bg-primary text-primary-foreground font-bold text-[11px] shadow-xs hover:bg-primary/90 transition-colors shrink-0"
+                >
+                  Realizar sorteo
+                </button>
+              ) : (
+                <span className="text-[11px] text-muted-foreground/80 shrink-0">
+                  Pendiente de sorteo
+                </span>
+              )
+            ) : null}
+          </div>
+
+          {isDrawn && (
+            <div className="pt-2 border-t border-border/50 flex items-center justify-between text-xs gap-2">
+              <div className="flex items-center gap-1.5 truncate">
+                <span className="font-semibold text-foreground shrink-0">Ganador:</span>
+                <span className="text-primary font-bold truncate">
+                  @{winners[0]?.user?.username || "ganador"}
+                </span>
+                {winners.length > 1 && (
+                  <span className="text-muted-foreground text-[11px] shrink-0">
+                    +{winners.length - 1} más
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setModalTab("results")
+                    setShowManageModal(true)
+                  }}
+                  className="text-[11px] font-bold text-foreground hover:text-primary transition-colors"
+                >
+                  Ver resultado
+                </button>
+                <span className="text-muted-foreground/40">·</span>
+                <Link
+                  href={`/sorteos/${giveaway.certificate_code}`}
+                  className="text-[11px] font-bold text-primary hover:underline flex items-center gap-1"
+                >
+                  <ShieldCheck className="w-3 h-3" />
+                  Ver certificado
+                </Link>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {showManageModal && (
+          <GiveawayManagementModal
+            giveawayId={giveaway.id}
+            certificateCode={giveaway.certificate_code}
+            isOpen={showManageModal}
+            onClose={() => setShowManageModal(false)}
+            initialTab={modalTab}
+          />
         )}
-      </div>
+      </>
     )
   }
 
@@ -180,17 +230,7 @@ export function GiveawayBanner({ giveaway, currentUserId, compact = false }: Giv
                 <span className="text-[11px] uppercase font-black bg-amber-500 text-white px-2 py-0.5 rounded-full shadow-sm">
                   SORTEO OFICIAL
                 </span>
-                <span
-                  className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${
-                    isActive
-                      ? "bg-emerald-500/15 text-emerald-600 border border-emerald-500/20"
-                      : isCancelled
-                      ? "bg-destructive/10 text-destructive border border-destructive/20"
-                      : "bg-muted text-muted-foreground border border-border"
-                  }`}
-                >
-                  {isActive ? "Activo" : isCancelled ? "Cancelado" : "Finalizado"}
-                </span>
+                {getStatusBadge()}
               </div>
               <h2 className="font-bold text-base sm:text-lg text-foreground mt-1">
                 {giveaway.title}
@@ -199,11 +239,38 @@ export function GiveawayBanner({ giveaway, currentUserId, compact = false }: Giv
           </div>
 
           <div className="flex items-center gap-1.5 shrink-0">
+            {isOrganizer && isClosed && !isDrawn && (
+              <button
+                type="button"
+                onClick={() => {
+                  setModalTab("draw")
+                  setShowManageModal(true)
+                }}
+                className="px-3.5 py-1.5 rounded-xl bg-primary text-primary-foreground text-xs font-bold shadow-sm hover:bg-primary/90 transition-colors animate-pulse"
+              >
+                Realizar sorteo
+              </button>
+            )}
+            {isOrganizer && isDrawn && (
+              <button
+                type="button"
+                onClick={() => {
+                  setModalTab("results")
+                  setShowManageModal(true)
+                }}
+                className="px-3 py-1.5 rounded-xl bg-muted hover:bg-muted/80 text-foreground text-xs font-bold transition-colors"
+              >
+                Ver resultado
+              </button>
+            )}
             {isOrganizer && (
               <button
                 type="button"
-                onClick={() => setShowManageModal(true)}
-                className="px-3 py-1.5 rounded-xl bg-primary text-primary-foreground text-xs font-bold shadow-sm hover:bg-primary/90 transition-colors"
+                onClick={() => {
+                  setModalTab(isDrawn ? "results" : "participants")
+                  setShowManageModal(true)
+                }}
+                className="px-3 py-1.5 rounded-xl bg-muted/80 text-foreground text-xs font-bold shadow-xs hover:bg-muted transition-colors"
               >
                 Gestionar
               </button>
@@ -241,7 +308,17 @@ export function GiveawayBanner({ giveaway, currentUserId, compact = false }: Giv
         <div className="flex items-center justify-between text-xs text-muted-foreground bg-muted/20 px-3.5 py-2.5 rounded-xl border border-border/50">
           <div className="flex items-center gap-2">
             <Clock className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-            <span>{getRemainingTimeText()}</span>
+            {isActive ? (
+              <span>Finaliza: {formatEndsAt(giveaway.ends_at)}</span>
+            ) : isClosed ? (
+              <span className="text-amber-600 font-medium">
+                Participación cerrada · {isOrganizer ? "Listo para realizar el sorteo" : "Esperando resolución"}
+              </span>
+            ) : isDrawn ? (
+              <span className="text-emerald-600 font-medium">Sorteo finalizado y certificado</span>
+            ) : (
+              <span>Sorteo cancelado</span>
+            )}
           </div>
           <div className="font-medium text-foreground">
             {giveaway.num_winners} {giveaway.num_winners === 1 ? "ganador" : "ganadores"}
@@ -250,22 +327,36 @@ export function GiveawayBanner({ giveaway, currentUserId, compact = false }: Giv
         </div>
 
         {/* GANADORES SI ESTÁ FINALIZADO */}
-        {isFinished && (
+        {isDrawn && (
           <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/25 space-y-3">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-1.5">
                 <Trophy className="w-4 h-4 text-emerald-600" />
                 <span className="font-extrabold text-sm text-foreground">
                   Ganadores Certificados
                 </span>
               </div>
-              <Link
-                href={`/sorteos/${giveaway.certificate_code}`}
-                className="text-xs font-bold text-primary hover:underline flex items-center gap-1"
-              >
-                <ShieldCheck className="w-3.5 h-3.5" />
-                Ver Certificado
-              </Link>
+              <div className="flex items-center gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setModalTab("results")
+                    setShowManageModal(true)
+                  }}
+                  className="text-xs font-bold text-foreground hover:text-primary transition-colors flex items-center gap-1"
+                >
+                  <Trophy className="w-3.5 h-3.5 text-amber-500" />
+                  Ver resultado
+                </button>
+                <span className="text-muted-foreground/40">·</span>
+                <Link
+                  href={`/sorteos/${giveaway.certificate_code}`}
+                  className="text-xs font-bold text-primary hover:underline flex items-center gap-1"
+                >
+                  <ShieldCheck className="w-3.5 h-3.5" />
+                  Ver Certificado
+                </Link>
+              </div>
             </div>
 
             {winners.length > 0 ? (
@@ -449,6 +540,7 @@ export function GiveawayBanner({ giveaway, currentUserId, compact = false }: Giv
           certificateCode={giveaway.certificate_code}
           isOpen={showManageModal}
           onClose={() => setShowManageModal(false)}
+          initialTab={modalTab}
         />
       )}
     </>
