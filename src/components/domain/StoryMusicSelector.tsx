@@ -713,7 +713,7 @@ export function StoryMusicSelector({
                     <div
                       key={track.id}
                       onClick={() => handleSelectTrack(track)}
-                      className={`w-full flex items-center p-2 rounded-2xl hover:bg-muted/70 transition-colors cursor-pointer group border ${
+                      className={`w-full flex items-center p-2 rounded-2xl hover:bg-muted/70 active:scale-[0.99] active:bg-muted/90 transition-all cursor-pointer group border select-none ${
                         previewTrackId === track.id ? 'bg-primary/5 border-primary/30' : 'border-transparent'
                       }`}
                     >
@@ -751,14 +751,11 @@ export function StoryMusicSelector({
                         </span>
                       </div>
 
-                      {/* Total Duration & Action indicator */}
-                      <div className="flex items-center gap-2 shrink-0">
+                      {/* Total Duration */}
+                      <div className="flex items-center shrink-0 pr-2">
                         <span className="text-[11px] font-mono text-muted-foreground">
                           {formatTime(track.duration_ms)}
                         </span>
-                        <div className="px-2 py-1 rounded-lg bg-muted text-[10px] font-semibold text-muted-foreground group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
-                          Elegir
-                        </div>
                       </div>
                     </div>
                   )
