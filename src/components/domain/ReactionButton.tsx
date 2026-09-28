@@ -20,10 +20,12 @@ interface ReactionButtonProps {
   currentUserId: string | null
 }
 
+const EMPTY_REACTIONS: { emoji: string; user_id: string }[] = []
+
 export function ReactionButton({ 
   entityType, 
   entityId, 
-  reactions = [],
+  reactions = EMPTY_REACTIONS,
   initialGroupedReactions,
   initialMyReaction,
   className,
@@ -34,24 +36,29 @@ export function ReactionButton({
   const pathname = usePathname()
   const [isPending, startTransition] = useTransition()
   
-  const [optimisticReactions, setOptimisticReactions] = useState(reactions || [])
+  const [optimisticReactions, setOptimisticReactions] = useState(reactions || EMPTY_REACTIONS)
   const [optGrouped, setOptGrouped] = useState<Record<string, number>>(initialGroupedReactions || {})
   const [optMyReaction, setOptMyReaction] = useState<string | null>(initialMyReaction || null)
   const useGroupedMode = initialGroupedReactions !== undefined
 
   useEffect(() => {
-    setOptimisticReactions(reactions || [])
+    if (reactions && reactions.length > 0) {
+      setOptimisticReactions(reactions)
+    }
   }, [reactions])
 
   useEffect(() => {
     if (initialGroupedReactions !== undefined) {
-      setOptGrouped(initialGroupedReactions)
+      setOptGrouped(prev => {
+        if (JSON.stringify(prev) === JSON.stringify(initialGroupedReactions)) return prev
+        return initialGroupedReactions
+      })
     }
   }, [initialGroupedReactions])
 
   useEffect(() => {
     if (initialMyReaction !== undefined) {
-      setOptMyReaction(initialMyReaction)
+      setOptMyReaction(prev => prev === initialMyReaction ? prev : initialMyReaction)
     }
   }, [initialMyReaction])
   

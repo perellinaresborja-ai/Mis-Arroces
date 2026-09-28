@@ -14,7 +14,7 @@ export function MobileHeader() {
   if (pathname === "/login" || pathname === "/forgot-password" || pathname === "/links" || pathname === "/descargar" || pathname.startsWith("/messages") || pathname.includes("/edit") || pathname.includes("/create")) return null;
 
   return (
-    <div className="md:hidden sticky top-0 z-40 flex h-16 items-center justify-between px-4 py-0 bg-background/95 backdrop-blur border-b border-border">
+    <div className="md:hidden sticky top-0 z-50 flex h-16 items-center justify-between px-4 py-0 bg-background/95 backdrop-blur border-b border-border">
       <Link
         href="/"
         prefetch={true}
